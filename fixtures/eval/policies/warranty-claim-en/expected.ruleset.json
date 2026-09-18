@@ -1,0 +1,294 @@
+{
+  "dslVersion": "1.0",
+  "id": "warranty-claim-en",
+  "name": "Appliance Warranty Claims",
+  "language": "en",
+  "fields": [
+    {
+      "name": "delivery_date",
+      "type": "date",
+      "required": true,
+      "description": "Delivery date on the invoice",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "from the delivery date shown on the invoice",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "claim_date",
+      "type": "date",
+      "required": true,
+      "description": "Date the claim was filed",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "Claims filed after the coverage period",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "improper_installation",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Damage caused by improper installation",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "Damage caused by improper installation",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "surge_without_protector",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Power surge without a certified surge protector",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "power surges without a certified surge protector",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "commercial_use",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Heavy or commercial use",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "heavy or commercial use",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "estimated_cost",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "Estimated repair cost",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Repairs with an estimated cost above 1,500 ILS",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "failure_count",
+      "type": "integer",
+      "required": false,
+      "default": 1,
+      "minimum": 1,
+      "description": "Failures including this one",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "An appliance that fails a third time",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "months_since_delivery",
+      "type": "number",
+      "unit": "months",
+      "derived": true,
+      "description": "Whole months from delivery to the claim"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: service desk"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "Months since delivery",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "months_since_delivery",
+          "value": {
+            "fn": "months_between",
+            "args": [
+              {
+                "field": "delivery_date"
+              },
+              {
+                "field": "claim_date"
+              }
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "Appliances are covered for 36 months from the delivery date shown on the invoice",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "Reject: claim after 36 months",
+      "priority": 100,
+      "condition": {
+        "field": "months_since_delivery",
+        "op": "gt",
+        "value": 36
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The claim was filed after the 36-month coverage period"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "Claims filed after the coverage period are rejected",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "Reject: excluded causes",
+      "priority": 110,
+      "condition": {
+        "any": [
+          {
+            "field": "improper_installation",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "surge_without_protector",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "commercial_use",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Improper installation, unprotected power surges or commercial use void the coverage"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "Damage caused by improper installation, power surges without a certified surge protector, or heavy or commercial use voids the coverage",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "Supervisor: estimated cost above 1,500",
+      "priority": 300,
+      "condition": {
+        "field": "estimated_cost",
+        "op": "gt",
+        "value": 1500
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "Repairs above 1,500 ILS are referred to a service supervisor"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Repairs with an estimated cost above 1,500 ILS are referred to a service supervisor",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-310",
+      "label": "Supervisor: third failure, replacement",
+      "priority": 310,
+      "condition": {
+        "field": "failure_count",
+        "op": "gte",
+        "value": 3
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "A third failure within coverage is replaced with supervisor approval"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "An appliance that fails a third time within the coverage period is replaced; replacements require supervisor approval",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Approve for repair",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The claim meets the coverage conditions and is approved for repair"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "Claims that meet the conditions above are approved for repair",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Appliance warranty claims: coverage period, exclusions and supervisor referrals"
+}

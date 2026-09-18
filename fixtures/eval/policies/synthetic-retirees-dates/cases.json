@@ -1,0 +1,196 @@
+{
+  "policy": "synthetic-retirees-dates",
+  "ruleset": "eval/policies/synthetic-retirees-dates/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2004-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 264.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "birth_date": "1967-01-15",
+        "start_date": "2004-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "age_years": 59.583333333333,
+          "seniority_months": 264.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2004-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-07-15"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 264.0,
+          "notice_months": 1.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2012-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 168.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2007-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 228.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "birth_date": "1963-05-20",
+        "start_date": "2007-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "age_years": 63.25,
+          "seniority_months": 228.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2006-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 240.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "birth_date": "1966-09-01",
+        "start_date": "2004-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "age_years": 60.0,
+          "seniority_months": 264.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2004-09-01",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-06-01"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 264.0,
+          "notice_months": 3.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "birth_date": "1965-05-20",
+        "start_date": "2011-09-15",
+        "retirement_date": "2026-09-01",
+        "request_date": "2026-03-01"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "age_years": 61.25,
+          "seniority_months": 179.0,
+          "notice_months": 6.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

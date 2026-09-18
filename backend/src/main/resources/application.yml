@@ -1,0 +1,83 @@
+# PolicyPilot backend, base configuration (Document 2, Configuration and Model Providers).
+# Profiles: openai (default provider), ollama (local provider), cloud (Railway only). Secrets come from
+# environment variables only; this file lists names and defaults, never values (Document 5, Data Protection).
+spring:
+  application:
+    name: policypilot
+  datasource:
+    # Docker Compose and Railway provide DATABASE_URL as postgresql://user:password@host:5432/db;
+    # DatabaseUrlEnvironmentPostProcessor translates it. The defaults below serve a bare local PostgreSQL.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/policypilot}
+    username: ${DATABASE_USERNAME:policypilot}
+    password: ${DATABASE_PASSWORD:policypilot}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    # PolicyPilot uses chat and embedding models only; the provider profiles select them. Every other
+    # model type the starters could configure is switched off so no profile needs credentials it does not use.
+    model:
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+policypilot:
+  # The three demo secrets; empty until day 4, when the front door requires them.
+  access-code: ${POLICYPILOT_ACCESS_CODE:}
+  cookie-secret: ${POLICYPILOT_COOKIE_SECRET:}
+  admin-code: ${POLICYPILOT_ADMIN_CODE:}
+  rate-limit:
+    per-minute: 20
+    per-sandbox-per-hour: 60
+    concurrent-streams: 3
+  ai:
+    models:
+      strong: gpt-5.6-terra
+      fast: gpt-5.6-luna
+    prompt-versions:
+      author: v1
+      review: v1
+      explain: v1
+      answer: v1
+      change: v1
+    timeouts:
+      author-seconds: 60
+      chat-first-token-seconds: 20
+    max-repair-attempts: 2
+    # daily-token-budget: no value is fixed in the documents yet (see CLAUDE.md, open values)
+    log-payloads: false
+  embedding:
+    dimension: 1536
+  rag:
+    top-k: 8
+    min-score: 0.35
+  demo:
+    reset-cron: "0 0 3 * * *"
+    fixture-set: cases-200

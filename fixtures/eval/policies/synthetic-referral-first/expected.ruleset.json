@@ -1,0 +1,162 @@
+{
+  "dslVersion": "1.0",
+  "id": "synthetic-referral-first",
+  "name": "בדיקת בקשות להחזר כספי",
+  "language": "he",
+  "fields": [
+    {
+      "name": "amount",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "סכום העסקה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "עסקה בסכום העולה על 10,000 ש\"ח",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "days_since_purchase",
+      "type": "integer",
+      "unit": "days",
+      "required": true,
+      "minimum": 0,
+      "description": "ימים מהעסקה עד הבקשה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "בקשה שהוגשה יותר מ-14 יום לאחר העסקה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "used",
+      "type": "boolean",
+      "required": true,
+      "description": "נעשה במוצר שימוש",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "מוצר שנעשה בו שימוש",
+        "confidence": 0.95
+      }
+    }
+  ],
+  "defaults": {
+    "outcome": "approve",
+    "reason": "בקשה שאינה נדחית תאושר"
+  },
+  "rules": [
+    {
+      "id": "R-210",
+      "label": "בדיקת מנהל לפני כל דחייה: עסקה מעל 10,000",
+      "priority": 210,
+      "condition": {
+        "field": "amount",
+        "op": "gt",
+        "value": 10000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "עסקה מעל 10,000 ש\"ח נבדקת על ידי מנהל לפני כל החלטה אחרת"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "בקשת החזר על עסקה בסכום העולה על 10,000 ש\"ח תועבר לבדיקת מנהל לפני כל החלטה אחרת, גם אם היא עומדת בתנאי דחייה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review",
+        "precedence_intended"
+      ]
+    },
+    {
+      "id": "R-220",
+      "label": "דחייה: יותר מ-14 יום לאחר העסקה",
+      "priority": 220,
+      "condition": {
+        "field": "days_since_purchase",
+        "op": "gt",
+        "value": 14
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "הבקשה הוגשה יותר מ-14 יום לאחר העסקה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "בקשה שהוגשה יותר מ-14 יום לאחר העסקה תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-230",
+      "label": "דחייה: מוצר שנעשה בו שימוש",
+      "priority": 230,
+      "condition": {
+        "field": "used",
+        "op": "eq",
+        "value": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "המוצר נעשה בו שימוש"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "בקשה על מוצר שנעשה בו שימוש חורג תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור ההחזר",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הבקשה אינה נדחית ומאושרת"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "בקשה שאינה נדחית תאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "הפניה שקודמת לדחייה בכוונה, מסומנת precedence_intended"
+}

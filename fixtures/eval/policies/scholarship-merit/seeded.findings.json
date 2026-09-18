@@ -1,0 +1,87 @@
+{
+  "policy": "scholarship-merit",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-110"
+      ],
+      "planted": "text",
+      "note": "\"עבירת משמעת חמורה\" is undefined: which offences count as severe"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        7
+      ],
+      "ruleIds": [
+        "R-100"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 limits the scholarship to bachelor students, paragraph 7 admits master students"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-020"
+      ],
+      "planted": "ruleset",
+      "note": "the draft grants 6,000 while the text says 5,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-020",
+        "path": [
+          "actions",
+          0,
+          "value"
+        ],
+        "value": 6000
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-030"
+      ],
+      "planted": "ruleset",
+      "note": "the reserve-duty supplement has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-030"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-110",
+        "R-111"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the disciplinary rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-110",
+        "asId": "R-111"
+      }
+    }
+  ]
+}

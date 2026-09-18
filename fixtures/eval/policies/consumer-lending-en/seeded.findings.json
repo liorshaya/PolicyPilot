@@ -1,0 +1,86 @@
+{
+  "policy": "consumer-lending-en",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        7
+      ],
+      "ruleIds": [
+        "R-330"
+      ],
+      "planted": "text",
+      "note": "\"a reasonable repayment history\" for the guarantor is undefined"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        3
+      ],
+      "ruleIds": [
+        "R-100"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 requires age 21, paragraph 3 admits applicants aged 18 with 24 months of employment"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-170"
+      ],
+      "planted": "ruleset",
+      "note": "the draft's income threshold is 7,500 while the text says 7,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-170",
+        "path": [
+          "condition",
+          "value"
+        ],
+        "value": 7500
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-160"
+      ],
+      "planted": "ruleset",
+      "note": "the self-employment clause has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-160"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        1
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the minimum-age rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+# Semgrep rules for PolicyPilot, CI stage 4 (Document 5, Supply Chain and Build Security, "Static analysis"):
+# SQL string concatenation, dangerouslySetInnerHTML, ProcessBuilder, Runtime.exec, javax.script, hard-coded
+# secret patterns, and @Test methods without an assertion (Document 6, "What coverage does not measure").
+rules:
+  - id: policypilot-java-no-process-builder
+    languages: [java]
+    severity: ERROR
+    message: No process execution from the API (Document 5, Injection table).
+    pattern: new ProcessBuilder(...)
+
+  - id: policypilot-java-no-runtime-exec
+    languages: [java]
+    severity: ERROR
+    message: No process execution from the API (Document 5, Injection table).
+    pattern-either:
+      - pattern: Runtime.getRuntime().exec(...)
+      - pattern: (java.lang.Runtime $RT).exec(...)
+
+  - id: policypilot-java-no-script-engine
+    languages: [java]
+    severity: ERROR
+    message: Expressions are tree-evaluated, never scripted (Document 5, Injection table).
+    pattern-either:
+      - pattern: import javax.script.$X
+      - pattern: new javax.script.ScriptEngineManager(...)
+
+  - id: policypilot-java-no-sql-string-concatenation
+    languages: [java]
+    severity: ERROR
+    message: SQL is parameterized only; never build a query from a concatenated string (Document 5, Injection table).
+    pattern-either:
+      - pattern: $EM.createNativeQuery("..." + $X, ...)
+      - pattern: $EM.createNativeQuery($S + $X, ...)
+      - pattern: $EM.createQuery("..." + $X, ...)
+      - pattern: $JDBC.query("..." + $X, ...)
+      - pattern: $JDBC.update("..." + $X, ...)
+      - pattern: $JDBC.execute("..." + $X)
+      - pattern: $JC.sql("..." + $X)
+
+  - id: policypilot-java-test-without-assertion
+    languages: [java]
+    severity: ERROR
+    message: A test without an assertion executes code without proving anything (Document 6, Coverage Targets); assert a value taken from the specification.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @Test
+              $RET $M(...) { ... }
+          - pattern: |
+              @ParameterizedTest
+              $RET $M(...) { ... }
+          - pattern: |
+              @RepeatedTest(...)
+              $RET $M(...) { ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThat(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThat(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThatThrownBy(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThatThrownBy(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThatCode(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThatCode(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThatExceptionOfType(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThatExceptionOfType(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThatNoException(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThatNoException(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertNotEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertNotEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertTrue(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertTrue(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertFalse(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertFalse(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertNull(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertNull(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertNotNull(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertNotNull(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertThrows(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertThrows(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertDoesNotThrow(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertDoesNotThrow(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertAll(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertAll(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertArrayEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertArrayEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertIterableEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertIterableEquals(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertLinesMatch(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertLinesMatch(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertSame(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertSame(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertInstanceOf(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertInstanceOf(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... assertTimeout(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.assertTimeout(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... verify(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.verify(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... verifyNoInteractions(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.verifyNoInteractions(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... verifyNoMoreInteractions(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.verifyNoMoreInteractions(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... fail(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $Q.fail(...) ...>; ... }
+      - pattern-not: |
+          @$A
+          $RET $M(...) { ... <... $RULE.check(...) ...>; ... }
+
+  - id: policypilot-ts-no-dangerously-set-inner-html
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: React renders text, never raw HTML (Document 5, Injection table).
+    pattern-either:
+      - pattern: dangerouslySetInnerHTML
+      - pattern: $EL.innerHTML = $X
+
+  - id: policypilot-ts-no-eval
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: No dynamic code evaluation in the web app (Document 5).
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: policypilot-hard-coded-provider-key
+    languages: [generic]
+    severity: ERROR
+    message: A provider key pattern is committed; keys live only in environment variables (Document 5, Data Protection).
+    pattern-regex: sk-(proj-)?[A-Za-z0-9_-]{32,}
+    paths:
+      exclude:
+        - '**/package-lock.json'

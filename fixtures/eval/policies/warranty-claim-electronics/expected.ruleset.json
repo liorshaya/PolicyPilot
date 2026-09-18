@@ -1,0 +1,363 @@
+{
+  "dslVersion": "1.0",
+  "id": "warranty-claim-electronics",
+  "name": "מדיניות אחריות למוצרי חשמל",
+  "language": "he",
+  "fields": [
+    {
+      "name": "purchase_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הרכישה לפי החשבונית",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "ממועד הרכישה, לפי חשבונית",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "claim_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הגשת התביעה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "תביעה שהוגשה לאחר תום תקופת האחריות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "physical_damage",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "נזק פיזי",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "נזק פיזי",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "liquid_damage",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "נזק נוזלים",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "נזק נוזלים",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "unauthorized_repair",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "תיקון שלא במעבדה מורשית",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "תיקון שבוצע שלא במעבדה מורשית",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "repair_cost",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "עלות התיקון המוערכת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "תקלה שעלות תיקונה עולה על 60% ממחיר הרכישה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "purchase_price",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "מחיר הרכישה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "מוצר שנרכש במחיר העולה על 5,000 ש\"ח",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "failure_count",
+      "type": "integer",
+      "required": false,
+      "default": 1,
+      "minimum": 1,
+      "description": "מספר התקלות כולל התקלה הנוכחית",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "תקלתו חוזרת בפעם השלישית",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "months_since_purchase",
+      "type": "number",
+      "unit": "months",
+      "derived": true,
+      "description": "חודשים שלמים מהרכישה עד התביעה"
+    },
+    {
+      "name": "cost_ratio",
+      "type": "number",
+      "derived": true,
+      "description": "יחס עלות התיקון למחיר הרכישה"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "תביעה שלא הוכרעה תועבר לבדיקה ידנית"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "חישוב החודשים מהרכישה",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "months_since_purchase",
+          "value": {
+            "fn": "months_between",
+            "args": [
+              {
+                "field": "purchase_date"
+              },
+              {
+                "field": "claim_date"
+              }
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "האחריות למוצר היא 24 חודשים ממועד הרכישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "חישוב יחס עלות התיקון למחיר",
+      "priority": 20,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "cost_ratio",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "field": "repair_cost"
+                  },
+                  {
+                    "field": "purchase_price"
+                  }
+                ]
+              },
+              4
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "תקלה שעלות תיקונה עולה על 60% ממחיר הרכישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: תביעה לאחר תום האחריות",
+      "priority": 100,
+      "condition": {
+        "field": "months_since_purchase",
+        "op": "gt",
+        "value": 24
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "התביעה הוגשה לאחר תום תקופת האחריות של 24 חודשים"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "תביעה שהוגשה לאחר תום תקופת האחריות תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: נזק פיזי, נוזלים או תיקון לא מורשה",
+      "priority": 110,
+      "condition": {
+        "any": [
+          {
+            "field": "physical_damage",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "liquid_damage",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "unauthorized_repair",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "נזק פיזי, נזק נוזלים או תיקון לא מורשה מבטלים את האחריות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "נזק פיזי, נזק נוזלים או תיקון שבוצע שלא במעבדה מורשית",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "אישור מנהל: עלות תיקון מעל 60% מהמחיר",
+      "priority": 300,
+      "condition": {
+        "field": "cost_ratio",
+        "op": "gt",
+        "value": 0.6
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "עלות התיקון עולה על 60% ממחיר הרכישה ומועברת לאישור מנהל השירות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "תקלה שעלות תיקונה עולה על 60% ממחיר הרכישה תועבר לאישור מנהל השירות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-310",
+      "label": "אישור מנהל: החלפה בתקלה שלישית במוצר יקר",
+      "priority": 310,
+      "condition": {
+        "all": [
+          {
+            "field": "purchase_price",
+            "op": "gt",
+            "value": 5000
+          },
+          {
+            "field": "failure_count",
+            "op": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "תקלה שלישית במוצר שנרכש מעל 5,000 ש\"ח מזכה בהחלפה באישור מנהל"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "מוצר שנרכש במחיר העולה על 5,000 ש\"ח ותקלתו חוזרת בפעם השלישית יוחלף במוצר חדש",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור לתיקון",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "התביעה עומדת בתנאי האחריות ומאושרת לתיקון"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "תביעה העומדת בתנאים תאושר לתיקון",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "תביעות אחריות: תקופה, נזקים המבטלים אחריות ואישורי מנהל"
+}

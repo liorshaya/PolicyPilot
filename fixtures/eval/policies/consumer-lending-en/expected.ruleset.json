@@ -1,0 +1,660 @@
+{
+  "dslVersion": "1.0",
+  "id": "consumer-lending-en",
+  "name": "Personal Loan Policy",
+  "language": "en",
+  "fields": [
+    {
+      "name": "age",
+      "type": "integer",
+      "unit": "years",
+      "required": true,
+      "minimum": 0,
+      "maximum": 120,
+      "description": "Applicant age at application",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "aged 21 to 65 at the time of application",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "requested_amount",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "Requested loan amount",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "The loan amount is between 5,000 and 120,000 ILS",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "term_months",
+      "type": "integer",
+      "unit": "months",
+      "required": true,
+      "minimum": 1,
+      "description": "Repayment term",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "the repayment term is between 6 and 72 months",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "employment_type",
+      "type": "enum",
+      "values": [
+        "salaried",
+        "self_employed",
+        "unemployed"
+      ],
+      "required": true,
+      "description": "Employment status",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "employed for at least 6 months with the current employer, or self-employed for at least 18 months",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "employment_months",
+      "type": "integer",
+      "unit": "months",
+      "required": false,
+      "minimum": 0,
+      "description": "Months with the current employer or self-employed",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "employed for at least 6 months",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "monthly_income",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "Net monthly income",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Net monthly income must be at least 7,000 ILS",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "existing_monthly_debt",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "Existing monthly repayments",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "existing monthly repayments",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "credit_events_24m",
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "description": "Adverse credit events in the last 24 months",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "adverse credit events in the last 24 months",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "has_guarantor",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "A guarantor was provided",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "must provide a guarantor",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "monthly_installment",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "Monthly installment of the requested loan"
+    },
+    {
+      "name": "debt_to_income",
+      "type": "number",
+      "derived": true,
+      "description": "Debt-to-income ratio"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: manual review"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "Monthly installment at 10.8% annual interest",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "monthly_installment",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "fn": "mul",
+                    "args": [
+                      {
+                        "field": "requested_amount"
+                      },
+                      0.009
+                    ]
+                  },
+                  {
+                    "fn": "sub",
+                    "args": [
+                      1,
+                      {
+                        "fn": "pow",
+                        "args": [
+                          1.009,
+                          {
+                            "fn": "sub",
+                            "args": [
+                              0,
+                              {
+                                "field": "term_months"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "The monthly installment is computed with an annuity schedule at an annual interest rate of 10.8%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "Debt-to-income ratio",
+      "priority": 20,
+      "condition": {
+        "field": "monthly_income",
+        "op": "gt",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "debt_to_income",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "fn": "add",
+                    "args": [
+                      {
+                        "field": "existing_monthly_debt"
+                      },
+                      {
+                        "field": "monthly_installment"
+                      }
+                    ]
+                  },
+                  {
+                    "field": "monthly_income"
+                  }
+                ]
+              },
+              4
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "existing monthly repayments plus the new installment divided by net monthly income",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation",
+        "affordability"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "Reject: younger than 21",
+      "priority": 100,
+      "condition": {
+        "field": "age",
+        "op": "lt",
+        "value": 21
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The applicant is younger than the minimum age of 21"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "aged 21 to 65 at the time of application",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "Reject: older than 65",
+      "priority": 110,
+      "condition": {
+        "field": "age",
+        "op": "gt",
+        "value": 65
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The applicant is older than the maximum age of 65"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "aged 21 to 65 at the time of application",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "Reject: amount outside 5,000 to 120,000",
+      "priority": 120,
+      "condition": {
+        "not": {
+          "field": "requested_amount",
+          "op": "between",
+          "value": [
+            5000,
+            120000
+          ]
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The loan amount must be between 5,000 and 120,000 ILS"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "The loan amount is between 5,000 and 120,000 ILS",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-130",
+      "label": "Reject: term outside 6 to 72 months",
+      "priority": 130,
+      "condition": {
+        "not": {
+          "field": "term_months",
+          "op": "between",
+          "value": [
+            6,
+            72
+          ]
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The repayment term must be between 6 and 72 months"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "the repayment term is between 6 and 72 months",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-140",
+      "label": "Reject: unemployed",
+      "priority": 140,
+      "condition": {
+        "field": "employment_type",
+        "op": "eq",
+        "value": "unemployed"
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Unemployed applicants are not eligible"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "Unemployed applicants are not eligible",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-150",
+      "label": "Reject: employed for less than 6 months",
+      "priority": 150,
+      "condition": {
+        "all": [
+          {
+            "field": "employment_type",
+            "op": "eq",
+            "value": "salaried"
+          },
+          {
+            "field": "employment_months",
+            "op": "lt",
+            "value": 6
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "At least 6 months with the current employer are required"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "employed for at least 6 months with the current employer",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-160",
+      "label": "Reject: self-employed for less than 18 months",
+      "priority": 160,
+      "condition": {
+        "all": [
+          {
+            "field": "employment_type",
+            "op": "eq",
+            "value": "self_employed"
+          },
+          {
+            "field": "employment_months",
+            "op": "lt",
+            "value": 18
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "At least 18 months of self-employment are required"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "self-employed for at least 18 months",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-170",
+      "label": "Reject: net income below 7,000",
+      "priority": 170,
+      "condition": {
+        "field": "monthly_income",
+        "op": "lt",
+        "value": 7000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Net monthly income is below the minimum of 7,000 ILS"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Net monthly income must be at least 7,000 ILS",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-200",
+      "label": "Reject: debt-to-income above 45%",
+      "priority": 200,
+      "condition": {
+        "field": "debt_to_income",
+        "op": "gt",
+        "value": 0.45
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The debt-to-income ratio exceeds 45%"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "must not exceed 45%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "affordability"
+      ]
+    },
+    {
+      "id": "R-220",
+      "label": "Reject: two or more adverse credit events",
+      "priority": 220,
+      "condition": {
+        "field": "credit_events_24m",
+        "op": "gte",
+        "value": 2
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Two or more adverse credit events in the last 24 months"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "An applicant with two or more adverse credit events in the last 24 months is rejected",
+        "confidence": 0.95
+      },
+      "tags": [
+        "credit_history"
+      ]
+    },
+    {
+      "id": "R-320",
+      "label": "Underwriter: ratio between 40% and 45%",
+      "priority": 320,
+      "condition": {
+        "field": "debt_to_income",
+        "op": "between",
+        "value": [
+          0.4,
+          0.45
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "A debt-to-income ratio between 40% and 45% requires an underwriter"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "Applications with a ratio between 40% and 45% are referred to an underwriter",
+        "confidence": 0.95
+      },
+      "tags": [
+        "affordability"
+      ]
+    },
+    {
+      "id": "R-330",
+      "label": "Referral: one credit event without a guarantor",
+      "priority": 330,
+      "condition": {
+        "all": [
+          {
+            "field": "credit_events_24m",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "field": "has_guarantor",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "One adverse credit event requires a guarantor"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "without a guarantor the application is referred",
+        "confidence": 0.95
+      },
+      "tags": [
+        "credit_history"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Approve: every condition is met",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The application meets every condition of the policy"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "Applications that meet every condition above are approved",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Approval rules for a personal loan: eligibility, affordability and credit history"
+}

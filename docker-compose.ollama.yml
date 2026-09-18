@@ -1,0 +1,11 @@
+# Overlay for the local-model run: docker compose --profile ollama -f docker-compose.yml -f docker-compose.ollama.yml up
+# (make up-ollama). Switches the backend to the ollama profile and waits for the Ollama service.
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: ollama
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started

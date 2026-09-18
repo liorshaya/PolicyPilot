@@ -1,0 +1,86 @@
+{
+  "policy": "warranty-claim-en",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-110"
+      ],
+      "planted": "text",
+      "note": "\"heavy use\" is undefined"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        6
+      ],
+      "ruleIds": [
+        "R-100"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 covers appliances for 36 months, paragraph 6 covers refurbished ones for 12"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-300"
+      ],
+      "planted": "ruleset",
+      "note": "the draft refers above 2,000 while the text says 1,500",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-300",
+        "path": [
+          "condition",
+          "value"
+        ],
+        "value": 2000
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-310"
+      ],
+      "planted": "ruleset",
+      "note": "the third-failure replacement has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-310"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the expired-coverage rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+{
+  "dslVersion": "1.0",
+  "id": "rental-deposit-return",
+  "name": "מדיניות החזר פיקדון בשכירות",
+  "language": "he",
+  "fields": [
+    {
+      "name": "deposit",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "סכום הפיקדון",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "הפיקדון יוחזר במלואו לשוכר",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "monthly_rent",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "דמי השכירות החודשיים",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "דמי שכירות של חודש אחד",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "notice_days",
+      "type": "integer",
+      "unit": "days",
+      "required": true,
+      "minimum": 0,
+      "description": "ימי ההודעה המוקדמת שנמסרו",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "הודעה מוקדמת של 60 יום לפחות לפני הפינוי",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "damage_cost",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "עלות תיקון נזקים החורגים מבלאי סביר, לפי חשבוניות",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "עלויות תיקון נזקים החורגים מבלאי סביר, לפי חשבוניות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "unpaid_amount",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "חוב שכר דירה וחשבונות שלא שולמו",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "חוב שכר דירה או חשבונות שלא שולמו",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "deposit_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הפקדת הפיקדון",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "פיקדון שהופקד לפני יותר מ-5 שנים",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "move_out_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד פינוי הדירה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מפינוי הדירה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "years_held",
+      "type": "number",
+      "unit": "years",
+      "derived": true,
+      "description": "שנים שחלפו מההפקדה עד הפינוי"
+    },
+    {
+      "name": "refund_amount",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "סכום ההחזר לאחר הניכויים"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "החזר שאינו מוכרע לפי הכללים יועבר לבדיקה ידנית"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "חישוב השנים שחלפו מההפקדה",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "years_held",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "fn": "months_between",
+                    "args": [
+                      {
+                        "field": "deposit_date"
+                      },
+                      {
+                        "field": "move_out_date"
+                      }
+                    ]
+                  },
+                  12
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "פיקדון שהופקד לפני יותר מ-5 שנים",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "ניכוי נזקים וחובות מהפיקדון",
+      "priority": 20,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "refund_amount",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "fn": "sub",
+                "args": [
+                  {
+                    "field": "deposit"
+                  },
+                  {
+                    "fn": "add",
+                    "args": [
+                      {
+                        "field": "damage_cost"
+                      },
+                      {
+                        "field": "unpaid_amount"
+                      }
+                    ]
+                  }
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "חוב שכר דירה או חשבונות שלא שולמו ינוכה מהפיקדון",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "ניכוי חודש שכירות בהיעדר הודעה מוקדמת של 60 יום",
+      "priority": 30,
+      "condition": {
+        "field": "notice_days",
+        "op": "lt",
+        "value": 60
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "refund_amount",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "fn": "sub",
+                "args": [
+                  {
+                    "field": "refund_amount"
+                  },
+                  {
+                    "field": "monthly_rent"
+                  }
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "שוכר שלא מסר הודעה מוקדמת של 60 יום לפחות לפני הפינוי, ינוכו מפיקדונו דמי שכירות של חודש אחד",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: חוב העולה על סכום הפיקדון",
+      "priority": 100,
+      "condition": {
+        "field": "unpaid_amount",
+        "op": "gt",
+        "value": {
+          "field": "deposit"
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "החוב עולה על סכום הפיקדון, ההחזר נדחה במלואו"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "חוב העולה על סכום הפיקדון יגרור דחיית ההחזר במלואו",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "בדיקת עורך דין: נזק מעל 50% מהפיקדון",
+      "priority": 300,
+      "condition": {
+        "field": "damage_cost",
+        "op": "gt",
+        "value": {
+          "fn": "mul",
+          "args": [
+            {
+              "field": "deposit"
+            },
+            0.5
+          ]
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "נזק ששוויו עולה על 50% מהפיקדון מועבר לבדיקת עורך דין"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "נזק ששוויו עולה על 50% מהפיקדון יועבר לבדיקת עורך דין לפני ההחזר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-310",
+      "label": "בדיקה ידנית: פיקדון שהופקד לפני יותר מ-5 שנים",
+      "priority": 310,
+      "condition": {
+        "field": "years_held",
+        "op": "gt",
+        "value": 5
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "פיקדון ותיק מ-5 שנים מוחזר בתוספת הצמדה בבדיקה ידנית"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "פיקדון שהופקד לפני יותר מ-5 שנים יוחזר בתוספת הצמדה למדד, בבדיקה ידנית",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור ההחזר",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "ההחזר עומד בתנאים ומאושר בסכום שחושב"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "החזר העומד בתנאים יאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "החזר פיקדון לשוכר: ניכויים, דחייה והפניה לבדיקה"
+}

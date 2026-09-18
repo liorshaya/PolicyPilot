@@ -1,0 +1,192 @@
+{
+  "policy": "arnona-discount-seniors",
+  "ruleset": "eval/policies/arnona-discount-seniors/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "age": 64,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10",
+        "receives_income_supplement": true
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 100.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 130,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": [
+          "AREA_CAP_100"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 2,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": false,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "discount_rate": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "age": 66,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "discount_rate": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10",
+        "municipal_debt": 7200
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-04-02"
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-310",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "age": 70,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 85,
+        "submission_date": "2026-02-10",
+        "receives_income_supplement": true,
+        "municipal_debt": 5000.5
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "discount_rate": 100.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "age": 90,
+        "receives_old_age_pension": true,
+        "apartment_count": 1,
+        "area_sqm": 100,
+        "submission_date": "2026-02-10"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

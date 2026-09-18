@@ -1,0 +1,361 @@
+{
+  "dslVersion": "1.0",
+  "id": "synthetic-retirees-dates",
+  "name": "זכאות לפרישה מוקדמת",
+  "language": "he",
+  "fields": [
+    {
+      "name": "birth_date",
+      "type": "date",
+      "required": true,
+      "description": "תאריך הלידה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מלאו לו 60 שנים במועד הפרישה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "start_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד תחילת העבודה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "ממועד תחילת העבודה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "retirement_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הפרישה המבוקש",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "ועד מועד הפרישה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "request_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הגשת הבקשה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "בקשת פרישה שהוגשה פחות מ-3 חודשים לפני מועד הפרישה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "age_years",
+      "type": "number",
+      "unit": "years",
+      "derived": true,
+      "description": "גיל במועד הפרישה, בשנים שלמות"
+    },
+    {
+      "name": "seniority_months",
+      "type": "number",
+      "unit": "months",
+      "derived": true,
+      "description": "ותק בחודשים שלמים"
+    },
+    {
+      "name": "notice_months",
+      "type": "number",
+      "unit": "months",
+      "derived": true,
+      "description": "חודשים שלמים מהגשת הבקשה עד הפרישה"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "בקשה שלא הוכרעה תועבר לוועדת חריגים"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "גיל במועד הפרישה",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "age_years",
+          "value": {
+            "fn": "div",
+            "args": [
+              {
+                "fn": "months_between",
+                "args": [
+                  {
+                    "field": "birth_date"
+                  },
+                  {
+                    "field": "retirement_date"
+                  }
+                ]
+              },
+              12
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מלאו לו 60 שנים במועד הפרישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "ותק בחודשים שלמים",
+      "priority": 20,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "seniority_months",
+          "value": {
+            "fn": "months_between",
+            "args": [
+              {
+                "field": "start_date"
+              },
+              {
+                "field": "retirement_date"
+              }
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "הוותק המזכה נמדד בחודשים שלמים ממועד תחילת העבודה ועד מועד הפרישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "חודשי הודעה מוקדמת",
+      "priority": 30,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "notice_months",
+          "value": {
+            "fn": "months_between",
+            "args": [
+              {
+                "field": "request_date"
+              },
+              {
+                "field": "retirement_date"
+              }
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "בקשת פרישה שהוגשה פחות מ-3 חודשים לפני מועד הפרישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: גיל נמוך מ-60 במועד הפרישה",
+      "priority": 100,
+      "condition": {
+        "field": "age_years",
+        "op": "lt",
+        "value": 60
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "פרישה מוקדמת מותרת מגיל 60"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מלאו לו 60 שנים במועד הפרישה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: הודעה מוקדמת של פחות מ-3 חודשים",
+      "priority": 110,
+      "condition": {
+        "field": "notice_months",
+        "op": "lt",
+        "value": 3
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "הבקשה הוגשה פחות מ-3 חודשים לפני מועד הפרישה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "בקשת פרישה שהוגשה פחות מ-3 חודשים לפני מועד הפרישה תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "דחייה: ותק נמוך מ-180 חודשים",
+      "priority": 120,
+      "condition": {
+        "field": "seniority_months",
+        "op": "lt",
+        "value": 180
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ותק נמוך מ-180 חודשים אינו מזכה בפרישה מוקדמת או בדיון"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "עובד שוותקו 180 עד 239 חודשים",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-130",
+      "label": "דחייה: ותק 180 עד 239 חודשים מתחת לגיל 62",
+      "priority": 130,
+      "condition": {
+        "all": [
+          {
+            "field": "seniority_months",
+            "op": "lt",
+            "value": 240
+          },
+          {
+            "field": "age_years",
+            "op": "lt",
+            "value": 62
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ותק של פחות מ-240 חודשים מתחת לגיל 62 אינו מזכה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "עובד שוותקו 180 עד 239 חודשים ושגילו 62 ומעלה במועד הפרישה יועבר לוועדת חריגים",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "ועדת חריגים: ותק 180 עד 239 חודשים מגיל 62",
+      "priority": 300,
+      "condition": {
+        "field": "seniority_months",
+        "op": "lt",
+        "value": 240
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "ותק 180 עד 239 חודשים מגיל 62 נדון בוועדת חריגים"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "יועבר לוועדת חריגים",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור הפרישה המוקדמת",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הבקשה עומדת בתנאי הפרישה המוקדמת"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "בקשה העומדת בתנאים תאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "פרישה מוקדמת: גיל, ותק והודעה מוקדמת, כולם מתאריכים"
+}

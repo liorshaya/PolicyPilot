@@ -1,0 +1,360 @@
+{
+  "dslVersion": "1.0",
+  "id": "arnona-discount-income",
+  "name": "הנחה בארנונה לפי מבחן הכנסה",
+  "language": "he",
+  "fields": [
+    {
+      "name": "household_income",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "סך הכנסות משק הבית ברוטו לחודש",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "סך הכנסות משק הבית ברוטו",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "persons",
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "description": "מספר הנפשות המתגוררות בדירה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "מספר הנפשות המתגוררות בדירה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "additional_apartment",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "מחזיק בדירה נוספת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "תושב המחזיק בדירה נוספת",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "vehicle_value",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "שווי הרכב",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "רכב ששוויו עולה על 150,000 ש\"ח",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "counted_persons",
+      "type": "number",
+      "derived": true,
+      "description": "מספר הנפשות לחישוב, עד 8"
+    },
+    {
+      "name": "income_per_capita",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "הכנסה חודשית ממוצעת לנפש"
+    },
+    {
+      "name": "discount_rate",
+      "type": "number",
+      "unit": "percent",
+      "derived": true,
+      "description": "שיעור ההנחה שנקבע"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "בקשה שלא הוכרעה תועבר לוועדת ההנחות"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "מספר נפשות לחישוב, עד 8",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "counted_persons",
+          "value": {
+            "fn": "min",
+            "args": [
+              {
+                "field": "persons"
+              },
+              8
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "משק בית שבו יותר מ-8 נפשות יחושב כמשק בית של 8 נפשות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "חישוב ההכנסה לנפש",
+      "priority": 20,
+      "condition": {
+        "field": "counted_persons",
+        "op": "gt",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "income_per_capita",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "field": "household_income"
+                  },
+                  {
+                    "field": "counted_persons"
+                  }
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "ההכנסה לנפש מחושבת כסך הכנסות משק הבית ברוטו חלקי מספר הנפשות המתגוררות בדירה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "הנחה של 90%: הכנסה לנפש נמוכה מ-3,000",
+      "priority": 30,
+      "condition": {
+        "field": "income_per_capita",
+        "op": "lt",
+        "value": 3000
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 90
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "נמוכה מ-3,000 ש\"ח זכאי להנחה של 90%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-040",
+      "label": "הנחה של 60%: הכנסה לנפש 3,000 עד 4,000",
+      "priority": 40,
+      "condition": {
+        "field": "income_per_capita",
+        "op": "between",
+        "value": [
+          3000,
+          4000
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 60
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "3,000 ש\"ח עד 4,000 ש\"ח זכאי להנחה של 60%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-050",
+      "label": "הנחה של 30%: הכנסה לנפש מעל 4,000 עד 5,000",
+      "priority": 50,
+      "condition": {
+        "all": [
+          {
+            "field": "income_per_capita",
+            "op": "gt",
+            "value": 4000
+          },
+          {
+            "field": "income_per_capita",
+            "op": "lte",
+            "value": 5000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 30
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "עולה על 4,000 ש\"ח ואינה עולה על 5,000 ש\"ח זכאי להנחה של 30%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: דירה נוספת",
+      "priority": 100,
+      "condition": {
+        "field": "additional_apartment",
+        "op": "eq",
+        "value": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "המחזיק בדירה נוספת אינו זכאי להנחה לפי מבחן הכנסה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "תושב המחזיק בדירה נוספת",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: רכב ששוויו מעל 150,000",
+      "priority": 110,
+      "condition": {
+        "field": "vehicle_value",
+        "op": "gt",
+        "value": 150000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "המחזיק ברכב ששוויו מעל 150,000 ש\"ח אינו זכאי להנחה לפי מבחן הכנסה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "רכב ששוויו עולה על 150,000 ש\"ח אינו זכאי להנחה לפי מבחן הכנסה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "דחייה: הכנסה לנפש מעל 5,000",
+      "priority": 120,
+      "condition": {
+        "field": "income_per_capita",
+        "op": "gt",
+        "value": 5000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ההכנסה לנפש עולה על 5,000 ש\"ח"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "בקשה של תושב שהכנסתו לנפש עולה על 5,000 ש\"ח תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור בשיעור ההנחה שנקבע",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הבקשה עומדת בתנאי מבחן ההכנסה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "בקשה העומדת בתנאים תאושר בשיעור ההנחה שנקבע",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "הנחה בארנונה לפי הכנסה לנפש"
+}

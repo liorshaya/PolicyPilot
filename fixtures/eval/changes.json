@@ -1,0 +1,348 @@
+{
+  "note": "6 change requests with the expected candidates, patch sets (full replacement or new rules with pending provenance, or removals), untouched rules, and the regression flip count on the named case file",
+  "changes": [
+    {
+      "id": "CR-1",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "text": "העלה את ההכנסה החודשית המינימלית ל-9,000",
+      "textEn": "Raise the minimum monthly income to 9,000",
+      "expected": {
+        "candidates": [
+          "R-170",
+          "R-410",
+          "R-020",
+          "R-200",
+          "R-320"
+        ],
+        "patches": [
+          {
+            "op": "replace",
+            "ruleId": "R-170",
+            "rule": {
+              "id": "R-170",
+              "label": "דחייה: הכנסה חודשית נטו נמוכה מ-9,000",
+              "priority": 170,
+              "condition": {
+                "field": "monthly_income",
+                "op": "lt",
+                "value": 9000
+              },
+              "actions": [
+                {
+                  "type": "decide",
+                  "outcome": "reject",
+                  "terminal": true,
+                  "reason": "ההכנסה החודשית נטו נמוכה מהמינימום 9,000 ש\"ח"
+                }
+              ],
+              "provenance": {
+                "kind": "pending",
+                "changeRequestId": "cr-0001",
+                "rationale": "הסף הועלה ל-9,000 לפי בקשת השינוי; פסקה 4 של המדיניות עדיין נוקבת ב-8,000 ותידרש לעדכון"
+              },
+              "tags": [
+                "eligibility"
+              ]
+            },
+            "rationale": "סף ההכנסה המינימלית עולה מ-8,000 ל-9,000 כפי שהתבקש"
+          },
+          {
+            "op": "replace",
+            "ruleId": "R-410",
+            "rule": {
+              "id": "R-410",
+              "label": "סימון: הכנסה קרובה למינימום",
+              "priority": 410,
+              "condition": {
+                "field": "monthly_income",
+                "op": "between",
+                "value": [
+                  9000,
+                  10000
+                ]
+              },
+              "actions": [
+                {
+                  "type": "flag",
+                  "code": "INCOME_NEAR_MINIMUM",
+                  "message": "ההכנסה בטווח של 1,000 ש\"ח מעל המינימום"
+                }
+              ],
+              "provenance": {
+                "kind": "pending",
+                "changeRequestId": "cr-0001",
+                "rationale": "רצועת הסימון הוזזה כדי להישאר 1,000 ש\"ח מעל המינימום החדש"
+              },
+              "tags": [
+                "advisory"
+              ]
+            },
+            "rationale": "רצועת 'הכנסה קרובה למינימום' מתעדכנת ל-9,000 עד 10,000 כדי להתאים לסף החדש"
+          }
+        ],
+        "untouched": [
+          "R-020",
+          "R-200",
+          "R-320"
+        ],
+        "notes": ""
+      },
+      "regression": {
+        "cases": "policies/consumer-lending/cases-200.json",
+        "flips": 12
+      },
+      "notes": "the scripted demo request; identical to policies/consumer-lending/change-request-1.json"
+    },
+    {
+      "id": "CR-2",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "text": "הארך את תקופת ההחזר המקסימלית ל-96 חודשים",
+      "textEn": "Extend the maximum repayment term to 96 months",
+      "expected": {
+        "candidates": [
+          "R-130",
+          "R-116",
+          "R-010"
+        ],
+        "patches": [
+          {
+            "op": "replace",
+            "ruleId": "R-130",
+            "rule": {
+              "id": "R-130",
+              "label": "דחייה: תקופת ההחזר מחוץ לטווח 12 עד 96 חודשים",
+              "priority": 130,
+              "condition": {
+                "not": {
+                  "field": "term_months",
+                  "op": "between",
+                  "value": [
+                    12,
+                    96
+                  ]
+                }
+              },
+              "actions": [
+                {
+                  "type": "decide",
+                  "outcome": "reject",
+                  "terminal": true,
+                  "reason": "תקופת ההחזר חייבת להיות בין 12 ל-96 חודשים"
+                }
+              ],
+              "provenance": {
+                "kind": "pending",
+                "changeRequestId": "cr-0002",
+                "rationale": "התקופה המקסימלית הוארכה ל-96 חודשים לפי בקשת השינוי; פסקה 2 של המדיניות עדיין נוקבת ב-84"
+              },
+              "tags": [
+                "eligibility"
+              ]
+            },
+            "rationale": "תקופת ההחזר המקסימלית עולה מ-84 ל-96 חודשים כפי שהתבקש"
+          }
+        ],
+        "untouched": [
+          "R-116",
+          "R-010"
+        ],
+        "notes": ""
+      },
+      "regression": {
+        "cases": "policies/consumer-lending/cases-200.json",
+        "flips": 3
+      },
+      "notes": "the flip count is filled in by the builder from the reference implementation"
+    },
+    {
+      "id": "CR-3",
+      "policy": "consumer-lending-en",
+      "ruleset": "eval/policies/consumer-lending-en/expected.ruleset.json",
+      "policyText": "eval/policies/consumer-lending-en/policy.en.md",
+      "language": "en",
+      "text": "Require a guarantor for loans above 80,000 ILS",
+      "expected": {
+        "candidates": [
+          "R-120",
+          "R-330",
+          "R-220"
+        ],
+        "patches": [
+          {
+            "op": "add",
+            "ruleId": "R-180",
+            "rule": {
+              "id": "R-180",
+              "label": "Reject: loan above 80,000 without a guarantor",
+              "priority": 180,
+              "condition": {
+                "all": [
+                  {
+                    "field": "requested_amount",
+                    "op": "gt",
+                    "value": 80000
+                  },
+                  {
+                    "field": "has_guarantor",
+                    "op": "eq",
+                    "value": false
+                  }
+                ]
+              },
+              "actions": [
+                {
+                  "type": "decide",
+                  "outcome": "reject",
+                  "terminal": true,
+                  "reason": "Loans above 80,000 ILS require a guarantor"
+                }
+              ],
+              "provenance": {
+                "kind": "pending",
+                "changeRequestId": "cr-0003",
+                "rationale": "New requirement from the change request; the policy text has no such clause yet"
+              },
+              "tags": [
+                "eligibility"
+              ]
+            },
+            "rationale": "A new rejection in the gate band for loans above 80,000 ILS without a guarantor, as requested"
+          }
+        ],
+        "untouched": [
+          "R-120",
+          "R-330",
+          "R-220"
+        ],
+        "notes": ""
+      },
+      "regression": {
+        "cases": "eval/policies/consumer-lending-en/cases.json",
+        "flips": 1
+      }
+    },
+    {
+      "id": "CR-4",
+      "policy": "arnona-discount-seniors",
+      "ruleset": "eval/policies/arnona-discount-seniors/expected.ruleset.json",
+      "policyText": "eval/policies/arnona-discount-seniors/policy.he.md",
+      "language": "he",
+      "text": "העלה את ההנחה לאזרחים ותיקים מקבלי קצבת זקנה מ-25% ל-30%",
+      "expected": {
+        "candidates": [
+          "R-020",
+          "R-010",
+          "R-120"
+        ],
+        "patches": [
+          {
+            "op": "replace",
+            "ruleId": "R-020",
+            "rule": {
+              "id": "R-020",
+              "label": "הנחה של 30%: בן 67 ומעלה עם קצבת זקנה",
+              "priority": 20,
+              "condition": {
+                "all": [
+                  {
+                    "field": "receives_old_age_pension",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "field": "receives_income_supplement",
+                    "op": "eq",
+                    "value": false
+                  },
+                  {
+                    "field": "age",
+                    "op": "gte",
+                    "value": 67
+                  }
+                ]
+              },
+              "actions": [
+                {
+                  "type": "set",
+                  "field": "discount_rate",
+                  "value": 30
+                }
+              ],
+              "provenance": {
+                "kind": "pending",
+                "changeRequestId": "cr-0004",
+                "rationale": "שיעור ההנחה הועלה ל-30% לפי בקשת השינוי; פסקה 1 של המדיניות עדיין נוקבת ב-25%"
+              },
+              "tags": [
+                "derivation"
+              ]
+            },
+            "rationale": "שיעור ההנחה לאזרחים ותיקים עולה מ-25% ל-30% כפי שהתבקש"
+          }
+        ],
+        "untouched": [
+          "R-010",
+          "R-120"
+        ],
+        "notes": ""
+      },
+      "regression": {
+        "cases": "eval/policies/arnona-discount-seniors/cases.json",
+        "flips": 0
+      },
+      "notes": "the discount rate is a derived value, so no outcome flips; the regression report shows changed derived values instead"
+    },
+    {
+      "id": "CR-5",
+      "policy": "scholarship-merit",
+      "ruleset": "eval/policies/scholarship-merit/expected.ruleset.json",
+      "policyText": "eval/policies/scholarship-merit/policy.he.md",
+      "language": "he",
+      "text": "בטל את דרישת 36 נקודות הזכות למלגת ההצטיינות",
+      "expected": {
+        "candidates": [
+          "R-140",
+          "R-130",
+          "R-020"
+        ],
+        "patches": [
+          {
+            "op": "remove",
+            "ruleId": "R-140",
+            "rationale": "דרישת 36 נקודות הזכות בוטלה כפי שהתבקש; דרישת 40 הנקודות לדיון בוועדה (R-130) לא הוזכרה ונשארת"
+          }
+        ],
+        "untouched": [
+          "R-130",
+          "R-020"
+        ],
+        "notes": ""
+      },
+      "regression": {
+        "cases": "eval/policies/scholarship-merit/cases.json",
+        "flips": 1
+      }
+    },
+    {
+      "id": "CR-6",
+      "policy": "synthetic-enums",
+      "ruleset": "eval/policies/synthetic-enums/expected.ruleset.json",
+      "policyText": "eval/policies/synthetic-enums/policy.en.md",
+      "language": "en",
+      "text": "Approve every parcel sent by customers with a gold membership",
+      "expected": {
+        "candidates": [],
+        "patches": [],
+        "untouched": [],
+        "notes": "The policy has no membership field and no membership clause; the request cannot be expressed in the DSL without a new field and a policy change, so no patch is proposed"
+      },
+      "notes": "an impossible request: the expected answer is an empty patch list with an explanation"
+    }
+  ]
+}

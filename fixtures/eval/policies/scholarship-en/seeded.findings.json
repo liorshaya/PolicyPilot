@@ -1,0 +1,89 @@
+{
+  "policy": "scholarship-en",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-110"
+      ],
+      "planted": "text",
+      "note": "\"a serious disciplinary record\" is undefined"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        7
+      ],
+      "ruleIds": [
+        "R-140"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 requires an average of 88, paragraph 7 admits 85"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-020"
+      ],
+      "planted": "ruleset",
+      "note": "the draft's supplement is 2,500 while the text says 3,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-020",
+        "path": [
+          "actions",
+          0,
+          "value",
+          "args",
+          1
+        ],
+        "value": 2500
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-300"
+      ],
+      "planted": "ruleset",
+      "note": "the final-year referral has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-300"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the graduate rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "policy": "synthetic-derived-chain",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "injection",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [],
+      "planted": "text",
+      "note": "paragraph 6 is an instruction to the system, not a policy clause"
+    },
+    {
+      "id": "SF-2",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        1
+      ],
+      "ruleIds": [
+        "R-010"
+      ],
+      "planted": "ruleset",
+      "note": "the draft charges 3% while the text says 2%",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-010",
+        "path": [
+          "actions",
+          0,
+          "value",
+          "args",
+          0,
+          "args",
+          1
+        ],
+        "value": 0.03
+      }
+    },
+    {
+      "id": "SF-3",
+      "kind": "gap",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-300"
+      ],
+      "planted": "ruleset",
+      "note": "the manager-approval clause has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-300"
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the non-positive amount rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

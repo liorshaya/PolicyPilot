@@ -1,0 +1,183 @@
+{
+  "policy": "municipal-tax-discount-en",
+  "ruleset": "eval/policies/municipal-tax-discount-en/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "is_student": true,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "is_student": false,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15",
+        "reserve_days": 25
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 5.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "is_student": false,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15",
+        "reserve_days": 45
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 10.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "is_student": true,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15",
+        "reserve_days": 45
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "is_student": false,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "discount_rate": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "is_student": true,
+        "years_since_start": 7,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "discount_rate": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "is_student": false,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15",
+        "reserve_days": 19
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "discount_rate": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "is_student": true,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-03-15",
+        "municipal_debt": 2500
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "is_student": true,
+        "years_since_start": 2,
+        "area_sqm": 70,
+        "submission_date": "2026-07-01"
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-310",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "is_student": true,
+        "years_since_start": 2,
+        "area_sqm": 150,
+        "submission_date": "2026-03-15"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "discount_rate": 25.0
+        },
+        "flags": [
+          "AREA_CAP_120"
+        ]
+      }
+    }
+  ]
+}

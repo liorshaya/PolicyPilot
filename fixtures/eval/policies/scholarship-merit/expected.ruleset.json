@@ -1,0 +1,403 @@
+{
+  "dslVersion": "1.0",
+  "id": "scholarship-merit",
+  "name": "מלגת הצטיינות",
+  "language": "he",
+  "fields": [
+    {
+      "name": "degree",
+      "type": "enum",
+      "values": [
+        "bachelor",
+        "master",
+        "phd"
+      ],
+      "required": true,
+      "description": "התואר הנלמד",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "סטודנט לתואר ראשון",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "gpa",
+      "type": "number",
+      "required": true,
+      "minimum": 0,
+      "maximum": 100,
+      "description": "ממוצע הציונים בשנה הקודמת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "ממוצע ציוניו בשנה הקודמת הוא 90 לפחות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "credits",
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "description": "נקודות זכות שהושלמו בשנה הקודמת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "36 נקודות זכות לפחות בשנה הקודמת",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "disciplinary_record",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "עבירת משמעת בשנתיים האחרונות",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "עבירת משמעת חמורה בשנתיים האחרונות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "reserve_days",
+      "type": "integer",
+      "unit": "days",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "ימי מילואים בשנה הקודמת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "שירת במילואים 14 יום לפחות בשנה הקודמת",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "scholarship_amount",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "גובה המלגה"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "בקשה שלא הוכרעה תועבר לוועדת המלגות"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "מלגה של 8,000 לממוצע 95 ומעלה",
+      "priority": 10,
+      "condition": {
+        "field": "gpa",
+        "op": "gte",
+        "value": 95
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 8000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "לסטודנט שממוצעו 95 ומעלה גובה המלגה הוא 8,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "מלגה של 5,000 לממוצע 90 עד 94.9",
+      "priority": 20,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "gte",
+            "value": 90
+          },
+          {
+            "field": "gpa",
+            "op": "lt",
+            "value": 95
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 5000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "גובה המלגה הוא 5,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "תוספת של 1,000 למשרתי מילואים",
+      "priority": 30,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "gte",
+            "value": 90
+          },
+          {
+            "field": "reserve_days",
+            "op": "gte",
+            "value": 14
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": {
+            "fn": "add",
+            "args": [
+              {
+                "field": "scholarship_amount"
+              },
+              1000
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "סטודנט ששירת במילואים 14 יום לפחות בשנה הקודמת זכאי לתוספת של 1,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: אינו סטודנט לתואר ראשון",
+      "priority": 100,
+      "condition": {
+        "field": "degree",
+        "op": "ne",
+        "value": "bachelor"
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "מלגת ההצטיינות ניתנת לסטודנטים לתואר ראשון בלבד"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מלגת הצטיינות תינתן לסטודנט לתואר ראשון",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: עבירת משמעת",
+      "priority": 110,
+      "condition": {
+        "field": "disciplinary_record",
+        "op": "eq",
+        "value": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "עבירת משמעת בשנתיים האחרונות שוללת את הזכאות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "סטודנט שנרשמה לו עבירת משמעת חמורה בשנתיים האחרונות אינו זכאי למלגה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "דחייה: ממוצע נמוך מ-85",
+      "priority": 120,
+      "condition": {
+        "field": "gpa",
+        "op": "lt",
+        "value": 85
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ממוצע נמוך מ-85 אינו מזכה במלגה או בדיון"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "סטודנט שממוצעו 85 עד 89.9",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-130",
+      "label": "דחייה: ממוצע 85 עד 89.9 עם פחות מ-40 נקודות זכות",
+      "priority": 130,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "lt",
+            "value": 90
+          },
+          {
+            "field": "credits",
+            "op": "lt",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ממוצע מתחת ל-90 מחייב 40 נקודות זכות לפחות לדיון בוועדה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "סטודנט שממוצעו 85 עד 89.9 והשלים 40 נקודות זכות לפחות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-140",
+      "label": "דחייה: פחות מ-36 נקודות זכות",
+      "priority": 140,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "gte",
+            "value": 90
+          },
+          {
+            "field": "credits",
+            "op": "lt",
+            "value": 36
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "נדרשות 36 נקודות זכות לפחות בשנה הקודמת"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "הסטודנט ישלים 36 נקודות זכות לפחות בשנה הקודמת",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "ועדת מלגות: ממוצע 85 עד 89.9 עם 40 נקודות זכות",
+      "priority": 300,
+      "condition": {
+        "field": "gpa",
+        "op": "lt",
+        "value": 90
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "ממוצע 85 עד 89.9 עם 40 נקודות זכות לפחות נדון בוועדת המלגות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "יועבר לדיון בוועדת המלגות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור המלגה",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הסטודנט עומד בתנאי מלגת ההצטיינות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "בקשה העומדת בתנאים תאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "מלגת הצטיינות לפי ממוצע, נקודות זכות ומילואים"
+}

@@ -1,0 +1,86 @@
+{
+  "policy": "consumer-lending-strict",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-170"
+      ],
+      "planted": "text",
+      "note": "\"הכנסה משמעותית ממקורות נוספים\" is undefined: how much, and does it count toward the 10,000 minimum"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        3,
+        9
+      ],
+      "ruleIds": [
+        "R-140"
+      ],
+      "planted": "text",
+      "note": "paragraph 3 excludes retirees, paragraph 9 admits retirees with a 12,000 pension"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-170"
+      ],
+      "planted": "ruleset",
+      "note": "the draft's income threshold is 9,000 while the text says 10,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-170",
+        "path": [
+          "condition",
+          "value"
+        ],
+        "value": 9000
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        8
+      ],
+      "ruleIds": [
+        "R-330"
+      ],
+      "planted": "ruleset",
+      "note": "the prior-rejection clause has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-330"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-140",
+        "R-141"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the retiree and unemployed rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-140",
+        "asId": "R-141"
+      }
+    }
+  ]
+}

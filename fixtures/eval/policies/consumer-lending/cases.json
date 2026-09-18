@@ -1,0 +1,477 @@
+{
+  "policy": "consumer-lending",
+  "ruleset": "eval/policies/consumer-lending/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "age": 18,
+        "employment_type": "salaried",
+        "monthly_income": 28835,
+        "requested_amount": 127000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 112,
+        "existing_monthly_debt": 5633
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "monthly_installment": 2289.24,
+          "debt_to_income": 0.2747
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "age": 55,
+        "employment_type": "salaried",
+        "monthly_income": 16399,
+        "requested_amount": 24000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 144,
+        "existing_monthly_debt": 2422
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 498.2,
+          "debt_to_income": 0.1781
+        },
+        "flags": [
+          "STABLE_INCOME_MANUAL_CHECK"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "age": 50,
+        "employment_type": "self_employed",
+        "monthly_income": 18739,
+        "requested_amount": 11000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 121,
+        "existing_monthly_debt": 11716
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-200",
+        "derived": {
+          "monthly_installment": 961.97,
+          "debt_to_income": 0.6766
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "age": 60,
+        "employment_type": "salaried",
+        "monthly_income": 18801,
+        "requested_amount": 141000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 167,
+        "existing_monthly_debt": 1509
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 2268.56,
+          "debt_to_income": 0.2009
+        },
+        "flags": [
+          "STABLE_INCOME_MANUAL_CHECK"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "age": 46,
+        "employment_type": "self_employed",
+        "monthly_income": 29894,
+        "requested_amount": 104000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 193,
+        "existing_monthly_debt": 2966,
+        "has_guarantor": true
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 2588.04,
+          "debt_to_income": 0.1858
+        },
+        "flags": [
+          "STABLE_INCOME_MANUAL_CHECK"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "age": 48,
+        "employment_type": "self_employed",
+        "monthly_income": 29238,
+        "requested_amount": 69000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 30,
+        "existing_monthly_debt": 4545
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 1110.15,
+          "debt_to_income": 0.1934
+        },
+        "flags": [
+          "STABLE_INCOME_MANUAL_CHECK"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "age": 62,
+        "employment_type": "self_employed",
+        "monthly_income": 19675,
+        "requested_amount": 47000,
+        "term_months": 36,
+        "credit_events_24m": 2,
+        "employment_months": 222,
+        "existing_monthly_debt": 3815
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-220",
+        "derived": {
+          "monthly_installment": 1494.59,
+          "debt_to_income": 0.2699
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "age": 61,
+        "employment_type": "salaried",
+        "monthly_income": 8438,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 235,
+        "existing_monthly_debt": 828
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 874.51,
+          "debt_to_income": 0.2018
+        },
+        "flags": [
+          "STABLE_INCOME_MANUAL_CHECK"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 18265,
+        "requested_amount": 61000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 3,
+        "existing_monthly_debt": 511
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-150",
+        "derived": {
+          "monthly_installment": 1939.78,
+          "debt_to_income": 0.1342
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 8583,
+        "requested_amount": 10000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 195,
+        "existing_monthly_debt": 1163,
+        "has_guarantor": false
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-330",
+        "derived": {
+          "monthly_installment": 248.85,
+          "debt_to_income": 0.1645
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 11,
+      "input": {
+        "age": 43,
+        "employment_type": "self_employed",
+        "monthly_income": 11299,
+        "requested_amount": 95000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 130,
+        "existing_monthly_debt": 2073
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-320",
+        "derived": {
+          "monthly_installment": 2364.08,
+          "debt_to_income": 0.3927
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 12,
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "employment_months": 30,
+        "monthly_income": 9500,
+        "existing_monthly_debt": 1200,
+        "requested_amount": 60000,
+        "term_months": 48,
+        "credit_events_24m": 1
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-330",
+        "derived": {
+          "monthly_installment": 1493.1,
+          "debt_to_income": 0.2835
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 13,
+      "input": {
+        "age": 42,
+        "employment_type": "unemployed",
+        "monthly_income": 21232,
+        "requested_amount": 108000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1060
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-140",
+        "derived": {
+          "monthly_installment": 3434.37,
+          "debt_to_income": 0.2117
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 14,
+      "input": {
+        "age": 26,
+        "employment_type": "self_employed",
+        "monthly_income": 24244,
+        "requested_amount": 106000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 9,
+        "existing_monthly_debt": 1953
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-160",
+        "derived": {
+          "monthly_installment": 2200.39,
+          "debt_to_income": 0.1713
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 15,
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 19101,
+        "requested_amount": 145000,
+        "term_months": 96,
+        "credit_events_24m": 0,
+        "employment_months": 207,
+        "existing_monthly_debt": 1260
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {
+          "monthly_installment": 2124.28,
+          "debt_to_income": 0.1772
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 16,
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 27390,
+        "requested_amount": 200000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 214,
+        "existing_monthly_debt": 4769
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "monthly_installment": 4977.01,
+          "debt_to_income": 0.3558
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 17,
+      "input": {
+        "age": 71,
+        "employment_type": "salaried",
+        "monthly_income": 14043,
+        "requested_amount": 46000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 153,
+        "existing_monthly_debt": 836
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "monthly_installment": 2101.5,
+          "debt_to_income": 0.2092
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 18,
+      "input": {
+        "age": 85,
+        "employment_type": "retired",
+        "monthly_income": 27559,
+        "requested_amount": 94000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 8
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-115",
+        "derived": {
+          "monthly_installment": 8220.44,
+          "debt_to_income": 0.2986
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 19,
+      "input": {
+        "age": 52,
+        "employment_type": "self_employed",
+        "monthly_income": 3548,
+        "requested_amount": 10000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 150,
+        "existing_monthly_debt": 442
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-170",
+        "derived": {
+          "monthly_installment": 180.26,
+          "debt_to_income": 0.1754
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 20,
+      "input": {
+        "age": 74,
+        "employment_type": "retired",
+        "monthly_income": 20393,
+        "requested_amount": 10000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2621
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-116",
+        "derived": {
+          "monthly_installment": 160.89,
+          "debt_to_income": 0.1364
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 21,
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 8379,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 46,
+        "existing_monthly_debt": 2205
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-320",
+        "derived": {
+          "monthly_installment": 874.51,
+          "debt_to_income": 0.3675
+        },
+        "flags": []
+      }
+    }
+  ]
+}

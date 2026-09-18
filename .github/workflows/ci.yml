@@ -1,0 +1,343 @@
+# PolicyPilot CI (Document 6, CI Pipeline): eight stages ordered so the cheapest gates fail first, 15 minutes
+# in total. Stages 1 to 6 are required checks for merging to main; stage 7 runs on pull requests; stage 8 is
+# informational. Every action is pinned to a commit SHA (Document 5, Supply Chain and Build Security).
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '24'
+  PYTHON_VERSION: '3.12'
+  JSONSCHEMA_VERSION: '4.25.1'
+  SEMGREP_VERSION: '1.177.0'
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+
+jobs:
+  hygiene:
+    name: 1-hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # budget 1 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: gitleaks (whole history, redacted output)
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$GITHUB_WORKSPACE:/repo" -w /repo \
+            "$GITLEAKS_IMAGE" git --redact --exit-code 1 --no-banner --verbose
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Fixture privacy check
+        run: python3 scripts/ci/check_fixture_privacy.py
+      - name: Schema copies match the backend resources
+        run: scripts/ci/check_schema_copies.sh
+      - name: Generated API client is up to date
+        run: scripts/ci/check_generated_client.sh
+
+  fast-tests:
+    name: 2-fast-tests
+    needs: hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 12 # budget 3 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Backend unit, architecture and conformance tests with the JaCoCo gates
+        working-directory: backend
+        run: ./mvnw -B -ntp verify -DskipITs
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend type check and Vitest with the coverage thresholds
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run test:coverage
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Python reference self-test (conformance suite, invalid fixtures, evaluation-set admission)
+        run: |
+          pip install --quiet "jsonschema==${JSONSCHEMA_VERSION}"
+          python3 fixtures/reference/reference_check.py | tee reference-check.log
+          tail -n 1 reference-check.log | grep -qx 'ALL OK'
+      - name: The committed cases are what the generator produces
+        run: |
+          python3 fixtures/tools/generate_cases.py
+          git diff --exit-code --stat -- fixtures/
+      - name: Quarantine count
+        run: scripts/ci/quarantine_count.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-fast-tests
+          if-no-files-found: ignore
+          path: |
+            backend/target/site/jacoco/jacoco.xml
+            backend/target/surefire-reports/*.xml
+            backend/target/surefire-reports-quarantine/*.xml
+            frontend/coverage/coverage-summary.json
+            frontend/coverage/lcov.info
+
+  mutation:
+    name: 3-mutation
+    needs: fast-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 9 # budget 3 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: PIT on engine and rules (at least 90%)
+        working-directory: backend
+        run: ./mvnw -B -ntp -Pmutation -DskipITs test-compile org.pitest:pitest-maven:mutationCoverage
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-mutation
+          if-no-files-found: ignore
+          path: backend/target/pit-reports/
+
+  static:
+    name: 4-static-and-supply-chain
+    needs: fast-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # budget 2 min
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Semgrep (project rules)
+        run: |
+          pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          semgrep scan --config .semgrep/policypilot.yml --error --metrics=off \
+            backend/src frontend/src frontend/e2e scripts
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: ESLint and Prettier
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run format:check
+      - name: npm audit (high and critical)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: OWASP Dependency-Check
+        if: env.NVD_API_KEY != ''
+        working-directory: backend
+        run: ./mvnw -B -ntp -Psupply-chain -DskipTests -DnvdApiKey="$NVD_API_KEY" dependency-check:check
+      - name: OWASP Dependency-Check skipped
+        if: env.NVD_API_KEY == ''
+        run: echo "::warning title=Dependency-Check skipped::The NVD_API_KEY secret is not set, so OWASP Dependency-Check did not run (Document 5, Supply Chain). Add the free key in the repository secrets."
+      - name: ArchUnit report
+        working-directory: backend
+        run: ./mvnw -B -ntp -DskipITs -Djacoco.skip=true test -Dtest='com.liorshaya.policypilot.architecture.*Test'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-static
+          if-no-files-found: ignore
+          path: |
+            backend/target/surefire-reports/*.xml
+            backend/target/dependency-check-report.*
+
+  integration:
+    name: 5-integration-and-contract
+    needs: fast-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # budget 5 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Integration tests on Testcontainers pgvector, then the merged coverage gates
+        working-directory: backend
+        run: ./mvnw -B -ntp verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-integration
+          if-no-files-found: ignore
+          path: |
+            backend/target/site/jacoco/jacoco.xml
+            backend/target/failsafe-reports/*.xml
+            backend/target/failsafe-reports-quarantine/*.xml
+
+  build-and-scan:
+    name: 6-build-and-scan
+    needs: fast-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # budget 2 min
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.tags.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Image name and tags
+        id: tags
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/policypilot-backend"
+          tags="${image}:sha-${GITHUB_SHA::7}"
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then tags="${tags},${image}:main"; fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then tags="${tags},${image}:${GITHUB_REF_NAME}"; fi
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "scan_ref=${image}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build the backend image (pushed to GHCR on main and tags)
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+      - name: Trivy scan (High and Critical, fixed vulnerabilities only)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.tags.outputs.scan_ref }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Record the image digest
+        run: |
+          {
+            echo "### Backend image"
+            echo ""
+            echo "- image: \`${{ steps.tags.outputs.scan_ref }}\`"
+            echo "- digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- pushed: ${{ github.event_name != 'pull_request' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  e2e:
+    name: 7-end-to-end
+    if: github.event_name == 'pull_request'
+    needs: fast-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 12 # budget 4 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install and fetch the browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Playwright (access gate today, the four demo steps as they arrive)
+        working-directory: frontend
+        run: npm run e2e
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+
+  reports:
+    name: 8-reports
+    if: always() && github.event_name == 'push'
+    needs: [fast-tests, mutation, integration, build-and-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8 # budget 1 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: reports-*
+          path: reports
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Job summary (coverage per package, PIT score, test counts, performance numbers)
+        run: python3 scripts/ci/ci_summary.py reports >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: github.ref_type == 'tag'
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: SBOM for the backend (CycloneDX)
+        if: github.ref_type == 'tag'
+        working-directory: backend
+        run: ./mvnw -B -ntp -Psbom -DskipTests cyclonedx:makeAggregateBom
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: github.ref_type == 'tag'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: SBOM for the frontend (CycloneDX)
+        if: github.ref_type == 'tag'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm sbom --sbom-format cyclonedx --package-lock-only > sbom-frontend.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: github.ref_type == 'tag'
+        with:
+          name: sbom-${{ github.ref_name }}
+          path: |
+            backend/target/sbom-backend.json
+            frontend/sbom-frontend.json

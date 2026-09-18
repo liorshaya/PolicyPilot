@@ -1,0 +1,201 @@
+{
+  "policy": "scholarship-merit",
+  "ruleset": "eval/policies/scholarship-merit/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 92,
+        "credits": 40
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 5000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 96,
+        "credits": 40
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 8000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 92,
+        "credits": 40,
+        "reserve_days": 20
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 6000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 95,
+        "credits": 40,
+        "reserve_days": 14
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 9000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "degree": "master",
+        "gpa": 92,
+        "credits": 40
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "scholarship_amount": 5000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 92,
+        "credits": 40,
+        "disciplinary_record": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "scholarship_amount": 5000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 84.9,
+        "credits": 40
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 87,
+        "credits": 38
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 92,
+        "credits": 30
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-140",
+        "derived": {
+          "scholarship_amount": 5000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 87,
+        "credits": 42
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 11,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 89.9,
+        "credits": 40
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 12,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 90,
+        "credits": 36
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 5000.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

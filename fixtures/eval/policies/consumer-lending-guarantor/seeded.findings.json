@@ -1,0 +1,88 @@
+{
+  "policy": "consumer-lending-guarantor",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-170"
+      ],
+      "planted": "text",
+      "note": "\"ערב מתאים\" is undefined beyond the income floor"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        3
+      ],
+      "ruleIds": [
+        "R-110"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 caps the age at 70, paragraph 3 admits retirees up to 80"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-180"
+      ],
+      "planted": "ruleset",
+      "note": "the draft requires a guarantor above 80,000 while the text says 100,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-180",
+        "path": [
+          "condition",
+          "all",
+          0,
+          "value"
+        ],
+        "value": 80000
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-180"
+      ],
+      "planted": "ruleset",
+      "note": "the guarantor-above-100,000 clause has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-180"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        8
+      ],
+      "ruleIds": [
+        "R-220",
+        "R-221"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the two-events rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-220",
+        "asId": "R-221"
+      }
+    }
+  ]
+}

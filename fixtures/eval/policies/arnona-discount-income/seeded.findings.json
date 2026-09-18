@@ -1,0 +1,87 @@
+{
+  "policy": "arnona-discount-income",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-010"
+      ],
+      "planted": "text",
+      "note": "\"מקרים חריגים\" is undefined"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        7
+      ],
+      "ruleIds": [
+        "R-030"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 gives 90% below 3,000, paragraph 7 gives 80% below 2,500"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-040"
+      ],
+      "planted": "ruleset",
+      "note": "the draft grants 50% while the text says 60%",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-040",
+        "path": [
+          "actions",
+          0,
+          "value"
+        ],
+        "value": 50
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-110"
+      ],
+      "planted": "ruleset",
+      "note": "the vehicle-value exclusion has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-110"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the second-apartment rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

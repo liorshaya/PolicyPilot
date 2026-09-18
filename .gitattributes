@@ -1,0 +1,21 @@
+# Normalise line endings so the Docker build and the CI checks see identical bytes on every machine.
+* text=auto eol=lf
+
+# The Maven wrapper scripts keep the endings their interpreters expect.
+backend/mvnw text eol=lf
+backend/mvnw.cmd text eol=crlf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.zip binary
+*.pdf binary
+
+# Generated or vendored files that reviewers should not diff by default
+frontend/package-lock.json linguist-generated=true

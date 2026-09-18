@@ -1,0 +1,82 @@
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.gate__card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-8) var(--space-6);
+}
+
+.gate__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gate__title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.gate__lead {
+  margin: var(--space-3) 0 var(--space-6);
+  color: var(--color-muted);
+}
+
+.gate__form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.gate__label {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.gate__input {
+  font: inherit;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  letter-spacing: 0.2em;
+}
+
+.gate__button {
+  margin-top: var(--space-2);
+  font: inherit;
+  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  cursor: pointer;
+}
+
+.gate__button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.gate__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gate__hint {
+  margin: var(--space-6) 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}

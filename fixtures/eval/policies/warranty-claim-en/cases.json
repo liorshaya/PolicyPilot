@@ -1,0 +1,171 @@
+{
+  "policy": "warranty-claim-en",
+  "ruleset": "eval/policies/warranty-claim-en/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2027-02-16",
+        "estimated_cost": 700
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "months_since_delivery": 37.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2027-01-15",
+        "estimated_cost": 700
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_delivery": 36.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700,
+        "improper_installation": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700,
+        "surge_without_protector": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700,
+        "commercial_use": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 1800
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 1500
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700,
+        "failure_count": 3
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-310",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "delivery_date": "2024-01-15",
+        "claim_date": "2026-06-01",
+        "estimated_cost": 700,
+        "failure_count": 2
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_delivery": 28.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

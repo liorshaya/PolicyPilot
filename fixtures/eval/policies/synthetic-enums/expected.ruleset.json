@@ -1,0 +1,347 @@
+{
+  "dslVersion": "1.0",
+  "id": "synthetic-enums",
+  "name": "Parcel Acceptance Policy",
+  "language": "en",
+  "fields": [
+    {
+      "name": "zone",
+      "type": "enum",
+      "values": [
+        "domestic",
+        "europe",
+        "north_america",
+        "asia",
+        "oceania",
+        "south_america",
+        "africa",
+        "middle_east"
+      ],
+      "required": true,
+      "description": "Destination zone",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "destination zones: domestic, europe, north_america, asia, oceania, south_america, africa and middle_east",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "weight_kg",
+      "type": "number",
+      "unit": "kg",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "Parcel weight",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "limited to 20 kg",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "contents",
+      "type": "enum",
+      "values": [
+        "documents",
+        "clothing",
+        "books",
+        "electronics",
+        "fragile",
+        "artwork",
+        "batteries",
+        "aerosols",
+        "perishables",
+        "live_animals",
+        "currency",
+        "other"
+      ],
+      "required": true,
+      "description": "Declared contents",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "The following contents are refused for every zone",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "service",
+      "type": "enum",
+      "values": [
+        "standard",
+        "express",
+        "priority"
+      ],
+      "required": true,
+      "description": "Service level",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Service levels are standard, express and priority",
+        "confidence": 0.95
+      }
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: shipping desk"
+  },
+  "rules": [
+    {
+      "id": "R-100",
+      "label": "Reject: refused contents",
+      "priority": 100,
+      "condition": {
+        "field": "contents",
+        "op": "in",
+        "value": [
+          "batteries",
+          "aerosols",
+          "perishables",
+          "live_animals",
+          "currency"
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The declared contents are refused for every zone"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "The following contents are refused for every zone: batteries, aerosols, perishables, live_animals and currency",
+        "confidence": 0.95
+      },
+      "tags": [
+        "contents"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "Reject: above 20 kg to africa or south_america",
+      "priority": 110,
+      "condition": {
+        "all": [
+          {
+            "field": "zone",
+            "op": "in",
+            "value": [
+              "africa",
+              "south_america"
+            ]
+          },
+          {
+            "field": "weight_kg",
+            "op": "gt",
+            "value": 20
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Parcels to africa and south_america are limited to 20 kg"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "Parcels to africa and south_america are limited to 20 kg",
+        "confidence": 0.95
+      },
+      "tags": [
+        "weight"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "Reject: above 30 kg to other international zones",
+      "priority": 120,
+      "condition": {
+        "all": [
+          {
+            "field": "zone",
+            "op": "not_in",
+            "value": [
+              "domestic",
+              "africa",
+              "south_america"
+            ]
+          },
+          {
+            "field": "weight_kg",
+            "op": "gt",
+            "value": 30
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Parcels to this international zone are limited to 30 kg"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "parcels to every other international zone are limited to 30 kg",
+        "confidence": 0.95
+      },
+      "tags": [
+        "weight"
+      ]
+    },
+    {
+      "id": "R-130",
+      "label": "Reject: above 40 kg domestic",
+      "priority": 130,
+      "condition": {
+        "all": [
+          {
+            "field": "zone",
+            "op": "eq",
+            "value": "domestic"
+          },
+          {
+            "field": "weight_kg",
+            "op": "gt",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Domestic parcels are limited to 40 kg"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "domestic parcels are limited to 40 kg",
+        "confidence": 0.95
+      },
+      "tags": [
+        "weight"
+      ]
+    },
+    {
+      "id": "R-140",
+      "label": "Reject: priority service outside its zones",
+      "priority": 140,
+      "condition": {
+        "all": [
+          {
+            "field": "service",
+            "op": "eq",
+            "value": "priority"
+          },
+          {
+            "field": "zone",
+            "op": "not_in",
+            "value": [
+              "domestic",
+              "europe",
+              "north_america"
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Priority service is available only for domestic, europe and north_america"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Priority service is available only for domestic, europe and north_america",
+        "confidence": 0.95
+      },
+      "tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "Packaging desk: fragile, artwork or electronics abroad",
+      "priority": 300,
+      "condition": {
+        "all": [
+          {
+            "field": "contents",
+            "op": "in",
+            "value": [
+              "fragile",
+              "artwork",
+              "electronics"
+            ]
+          },
+          {
+            "field": "zone",
+            "op": "ne",
+            "value": "domestic"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "Fragile, artwork and electronics contents shipped abroad are referred to the packaging desk"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Fragile, artwork and electronics contents shipped outside the domestic zone are referred to the packaging desk",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Accept the parcel",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The parcel meets the acceptance conditions"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 9,
+        "quote": "A parcel that meets the conditions above is accepted",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Enums with many values: zones, contents and service levels"
+}

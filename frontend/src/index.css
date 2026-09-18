@@ -1,0 +1,56 @@
+/* Design tokens (Document 2, Frontend Architecture: UI chrome in English with Inter, content in the
+   document's language; Hebrew blocks render right-to-left with Heebo inside the left-to-right shell). */
+:root {
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-border: #d1d5db;
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-primary-contrast: #ffffff;
+  --color-focus: #93c5fd;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 10px 30px rgba(17, 24, 39, 0.08);
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-he: 'Heebo', 'Inter', system-ui, -apple-system, sans-serif;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Any block whose content is Hebrew sets dir="rtl" and picks up the Hebrew face. */
+[dir='rtl'] {
+  font-family: var(--font-he);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

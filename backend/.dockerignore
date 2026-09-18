@@ -1,0 +1,9 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.md
+*.log
+.git/
+.idea/
+*.iml
+.vscode/
+dependency-check-report.*

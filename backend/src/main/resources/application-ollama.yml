@@ -1,0 +1,27 @@
+# Local provider profile (Document 2, Configuration and Model Providers, "ollama" column).
+# Docker Compose reaches the ollama service by name; set OLLAMA_BASE_URL when Ollama runs on the host.
+spring:
+  ai:
+    model:
+      chat: ollama
+      embedding: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+      init:
+        # Models are pulled by scripts/ollama/pull-models.sh (compose service ollama-pull), never at startup
+        pull-model-strategy: never
+      chat:
+        model: qwen3:14b
+        # Thinking disabled for every prompt (Document 2); qwen3:8b is the small-machine alternative
+        think: false
+        temperature: 0
+      embedding:
+        model: bge-m3
+
+policypilot:
+  ai:
+    models:
+      strong: qwen3:14b
+      fast: qwen3:14b
+  embedding:
+    dimension: 1024

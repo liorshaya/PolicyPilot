@@ -1,0 +1,285 @@
+{
+  "dslVersion": "1.0",
+  "id": "synthetic-derived-chain",
+  "name": "חישוב עמלה מדורגת",
+  "language": "he",
+  "fields": [
+    {
+      "name": "amount",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "description": "סכום העסקה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מסכום העסקה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "base_fee",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "העמלה הבסיסית"
+    },
+    {
+      "name": "discounted_fee",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "העמלה לאחר ההנחה"
+    },
+    {
+      "name": "final_fee",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "העמלה הסופית כולל מע\"מ"
+    }
+  ],
+  "defaults": {
+    "outcome": "approve",
+    "reason": "עסקה שלא הוכרעה תאושר"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "עמלה בסיסית של 2%",
+      "priority": 10,
+      "condition": {
+        "field": "amount",
+        "op": "gt",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "base_fee",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "mul",
+                "args": [
+                  {
+                    "field": "amount"
+                  },
+                  0.02
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "העמלה הבסיסית היא 2% מסכום העסקה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "הנחה של 25% מעל 50,000",
+      "priority": 20,
+      "condition": {
+        "field": "amount",
+        "op": "gt",
+        "value": 50000
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discounted_fee",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "mul",
+                "args": [
+                  {
+                    "field": "base_fee"
+                  },
+                  0.75
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "לעסקה בסכום העולה על 50,000 ש\"ח תינתן הנחה של 25% על העמלה הבסיסית",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "ללא הנחה עד 50,000",
+      "priority": 30,
+      "condition": {
+        "all": [
+          {
+            "field": "amount",
+            "op": "gt",
+            "value": 0
+          },
+          {
+            "field": "amount",
+            "op": "lte",
+            "value": 50000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discounted_fee",
+          "value": {
+            "field": "base_fee"
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "לעסקה בסכום העולה על 50,000 ש\"ח תינתן הנחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-040",
+      "label": "תוספת מע\"מ של 17%",
+      "priority": 40,
+      "condition": {
+        "field": "amount",
+        "op": "gt",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "final_fee",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "mul",
+                "args": [
+                  {
+                    "field": "discounted_fee"
+                  },
+                  1.17
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "לעמלה לאחר ההנחה יתווסף מע\"מ בשיעור 17%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: סכום שלילי או אפס",
+      "priority": 100,
+      "condition": {
+        "field": "amount",
+        "op": "lte",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "עסקה בסכום שלילי או אפס נדחית"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "עסקה בסכום שלילי או אפס תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "אישור מנהל: עמלה סופית מעל 3,000",
+      "priority": 300,
+      "condition": {
+        "field": "final_fee",
+        "op": "gt",
+        "value": 3000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "עמלה סופית מעל 3,000 ש\"ח טעונה אישור מנהל"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "עסקה שעמלתה הסופית עולה על 3,000 ש\"ח תועבר לאישור מנהל",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור העסקה",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "העסקה מאושרת בעמלה שחושבה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "עסקה שלא הוכרעה תאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "עמלה בשרשרת נגזרות: בסיס, הנחה ומע\"מ"
+}

@@ -1,0 +1,86 @@
+{
+  "policy": "synthetic-referral-first",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-230"
+      ],
+      "planted": "text",
+      "note": "\"שימוש חורג\" is undefined"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        4
+      ],
+      "ruleIds": [
+        "R-210"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 refers high amounts to a manager, paragraph 4 rejects them automatically"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-220"
+      ],
+      "planted": "ruleset",
+      "note": "the draft rejects after 30 days while the text says 14",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-220",
+        "path": [
+          "condition",
+          "value"
+        ],
+        "value": 30
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-230"
+      ],
+      "planted": "ruleset",
+      "note": "the used-product clause has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-230"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-220",
+        "R-221"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the late-request rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-220",
+        "asId": "R-221"
+      }
+    }
+  ]
+}

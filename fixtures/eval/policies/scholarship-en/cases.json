@@ -1,0 +1,179 @@
+{
+  "policy": "scholarship-en",
+  "ruleset": "eval/policies/scholarship-en/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 90,
+        "credits": 34,
+        "income_per_person": 5000
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 6000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 90,
+        "credits": 34,
+        "income_per_person": 3000
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 9000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "degree": "phd",
+        "gpa": 90,
+        "credits": 34,
+        "income_per_person": 5000
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "scholarship_amount": 6000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 90,
+        "credits": 34,
+        "income_per_person": 5000,
+        "disciplinary_record": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "scholarship_amount": 6000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 90,
+        "credits": 29,
+        "income_per_person": 5000
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "scholarship_amount": 6000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 80,
+        "credits": 34,
+        "income_per_person": 5000
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 86,
+        "credits": 34,
+        "income_per_person": 5000
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-140",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 86,
+        "credits": 34,
+        "income_per_person": 5000,
+        "final_year": true
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 87.9,
+        "credits": 34,
+        "income_per_person": 5000,
+        "final_year": true
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "scholarship_amount": null
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "degree": "bachelor",
+        "gpa": 88,
+        "credits": 34,
+        "income_per_person": 3499.99
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "scholarship_amount": 9000.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

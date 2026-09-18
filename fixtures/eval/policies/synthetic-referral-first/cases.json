@@ -1,0 +1,146 @@
+{
+  "policy": "synthetic-referral-first",
+  "ruleset": "eval/policies/synthetic-referral-first/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "amount": 500,
+        "days_since_purchase": 3,
+        "used": false
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "amount": 12000,
+        "days_since_purchase": 30,
+        "used": true
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-210",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "amount": 12000,
+        "days_since_purchase": 3,
+        "used": false
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-210",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "amount": 10000,
+        "days_since_purchase": 15,
+        "used": false
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-220",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "amount": 500,
+        "days_since_purchase": 14,
+        "used": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-230",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "amount": 9999.99,
+        "days_since_purchase": 0,
+        "used": false
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "amount": 10000.01,
+        "days_since_purchase": 100,
+        "used": true
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-210",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "amount": 0,
+        "days_since_purchase": 14,
+        "used": false
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "amount": 2500,
+        "days_since_purchase": 20,
+        "used": false
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-220",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "amount": 10000,
+        "days_since_purchase": 1,
+        "used": false
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    }
+  ]
+}

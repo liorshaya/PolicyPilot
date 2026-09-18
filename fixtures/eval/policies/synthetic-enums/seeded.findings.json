@@ -1,0 +1,96 @@
+{
+  "policy": "synthetic-enums",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [],
+      "planted": "text",
+      "note": "\"Unusually heavy\" is undefined and overlaps the explicit weight limits"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        2,
+        7
+      ],
+      "ruleIds": [
+        "R-120"
+      ],
+      "planted": "text",
+      "note": "paragraph 2 limits europe to 30 kg, paragraph 7 allows 35"
+    },
+    {
+      "id": "SF-3",
+      "kind": "injection",
+      "paragraphIndexes": [
+        8
+      ],
+      "ruleIds": [],
+      "planted": "text",
+      "note": "paragraph 8 is an instruction to the system, not a policy clause"
+    },
+    {
+      "id": "SF-4",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-130"
+      ],
+      "planted": "ruleset",
+      "note": "the draft limits domestic parcels to 45 kg while the text says 40",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-130",
+        "path": [
+          "condition",
+          "all",
+          1,
+          "value"
+        ],
+        "value": 45
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "gap",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-140"
+      ],
+      "planted": "ruleset",
+      "note": "the priority-service restriction has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-140"
+      }
+    },
+    {
+      "id": "SF-6",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the refused-contents rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

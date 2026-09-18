@@ -1,0 +1,24 @@
+# OpenAI provider profile (Document 2, Configuration and Model Providers, "openai" column).
+# Property paths are the flat ones of Spring AI 2.0 (upgrade notes cited in Document 2).
+spring:
+  ai:
+    model:
+      chat: openai
+      embedding: openai
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${policypilot.ai.models.strong}
+        # Temperature is set per prompt by the adapter on day 7 (0 for author, review, change; 0.3 for explain, answer)
+        temperature: 0
+      embedding:
+        model: text-embedding-3-small
+        dimensions: 1536
+
+policypilot:
+  ai:
+    models:
+      strong: gpt-5.6-terra
+      fast: gpt-5.6-luna
+  embedding:
+    dimension: 1536

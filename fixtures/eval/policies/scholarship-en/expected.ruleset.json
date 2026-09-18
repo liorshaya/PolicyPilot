@@ -1,0 +1,371 @@
+{
+  "dslVersion": "1.0",
+  "id": "scholarship-en",
+  "name": "Excellence and Need Scholarship Policy",
+  "language": "en",
+  "fields": [
+    {
+      "name": "degree",
+      "type": "enum",
+      "values": [
+        "bachelor",
+        "master",
+        "phd"
+      ],
+      "required": true,
+      "description": "Degree program",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "Undergraduate students",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "gpa",
+      "type": "number",
+      "required": true,
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Grade point average in the previous academic year",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "a grade point average of at least 88 in the previous academic year",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "credits",
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "description": "Credit points completed in the previous year",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "at least 30 credit points in the previous year",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "income_per_person",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "Household income per person per month",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "household income per person is below 3,500 ILS per month",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "disciplinary_record",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Disciplinary record in the last two years",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "a serious disciplinary record in the last two years",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "final_year",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "The student is in the final year",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Students in their final year",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "scholarship_amount",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "Scholarship amount"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: scholarship committee"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "Excellence scholarship of 6,000",
+      "priority": 10,
+      "condition": {
+        "field": "gpa",
+        "op": "gte",
+        "value": 88
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 6000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "are eligible for an excellence scholarship of 6,000 ILS",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "Need supplement of 3,000",
+      "priority": 20,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "gte",
+            "value": 88
+          },
+          {
+            "field": "income_per_person",
+            "op": "lt",
+            "value": 3500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": {
+            "fn": "add",
+            "args": [
+              {
+                "field": "scholarship_amount"
+              },
+              3000
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "Students whose household income per person is below 3,500 ILS per month receive an additional need supplement of 3,000 ILS",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "Reject: graduate students",
+      "priority": 100,
+      "condition": {
+        "field": "degree",
+        "op": "ne",
+        "value": "bachelor"
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "Graduate students are not covered by this policy"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "Graduate students are not covered by this policy and are rejected",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "Reject: disciplinary record",
+      "priority": 110,
+      "condition": {
+        "field": "disciplinary_record",
+        "op": "eq",
+        "value": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "A disciplinary record in the last two years removes eligibility"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Students with a serious disciplinary record in the last two years are not eligible",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "Reject: fewer than 30 credit points",
+      "priority": 120,
+      "condition": {
+        "field": "credits",
+        "op": "lt",
+        "value": 30
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "At least 30 credit points in the previous year are required"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "Students must have completed at least 30 credit points in the previous year",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-130",
+      "label": "Reject: average below 85",
+      "priority": 130,
+      "condition": {
+        "field": "gpa",
+        "op": "lt",
+        "value": 85
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "An average below 85 is not eligible and not referred"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "an average of 85 to 87.9",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-140",
+      "label": "Reject: average 85 to 87.9 outside the final year",
+      "priority": 140,
+      "condition": {
+        "all": [
+          {
+            "field": "gpa",
+            "op": "lt",
+            "value": 88
+          },
+          {
+            "field": "final_year",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "An average below 88 is referred only in the final year"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "a grade point average of at least 88 in the previous academic year",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "Committee: final-year student with an average of 85 to 87.9",
+      "priority": 300,
+      "condition": {
+        "field": "gpa",
+        "op": "lt",
+        "value": 88
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "A final-year student with an average of 85 to 87.9 is referred to the scholarship committee"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Students in their final year who have an average of 85 to 87.9 are referred to the scholarship committee",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Approve the scholarship",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The student meets the excellence scholarship conditions"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "Applications that meet the conditions above are approved",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Excellence scholarship with a need supplement and a committee referral"
+}

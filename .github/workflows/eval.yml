@@ -1,0 +1,28 @@
+# Live evaluation (Document 6, CI Pipeline): a manual workflow, never a required check, because it needs the
+# provider key and is non-deterministic. Today it runs the offline admission check of the evaluation set; the
+# EvalRunner job that writes docs/eval/<date>.md is added on day 11 (Work Plan), reading OPENAI_API_KEY from the
+# repository secrets and restricted to manual runs.
+name: Evaluation (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admission:
+    name: evaluation-set-admission
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: The 18 labeled policies, 30 questions and 6 change requests are admitted by the reference
+        run: |
+          pip install --quiet "jsonschema==4.25.1"
+          python3 fixtures/reference/reference_check.py | tee reference-check.log
+          grep -q 'evaluation set OK' reference-check.log
+          tail -n 1 reference-check.log | grep -qx 'ALL OK'

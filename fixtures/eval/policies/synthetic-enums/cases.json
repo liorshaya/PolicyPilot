@@ -1,0 +1,216 @@
+{
+  "policy": "synthetic-enums",
+  "ruleset": "eval/policies/synthetic-enums/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "zone": "europe",
+        "weight_kg": 12,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "zone": "domestic",
+        "weight_kg": 39,
+        "contents": "books",
+        "service": "priority"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "zone": "europe",
+        "weight_kg": 12,
+        "contents": "batteries",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "zone": "domestic",
+        "weight_kg": 12,
+        "contents": "currency",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "zone": "africa",
+        "weight_kg": 21,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "zone": "south_america",
+        "weight_kg": 20,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "zone": "asia",
+        "weight_kg": 31,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "zone": "middle_east",
+        "weight_kg": 30,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "zone": "domestic",
+        "weight_kg": 41,
+        "contents": "books",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "zone": "oceania",
+        "weight_kg": 12,
+        "contents": "books",
+        "service": "priority"
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-140",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 11,
+      "input": {
+        "zone": "north_america",
+        "weight_kg": 12,
+        "contents": "books",
+        "service": "priority"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 12,
+      "input": {
+        "zone": "europe",
+        "weight_kg": 12,
+        "contents": "fragile",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 13,
+      "input": {
+        "zone": "domestic",
+        "weight_kg": 12,
+        "contents": "electronics",
+        "service": "standard"
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {},
+        "flags": []
+      }
+    },
+    {
+      "id": 14,
+      "input": {
+        "zone": "asia",
+        "weight_kg": 12,
+        "contents": "artwork",
+        "service": "express"
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {},
+        "flags": []
+      }
+    }
+  ]
+}

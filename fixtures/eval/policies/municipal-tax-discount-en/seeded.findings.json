@@ -1,0 +1,89 @@
+{
+  "policy": "municipal-tax-discount-en",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        1
+      ],
+      "ruleIds": [
+        "R-010"
+      ],
+      "planted": "text",
+      "note": "\"a recognized institution\" is undefined: recognized by whom"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        3,
+        7
+      ],
+      "ruleIds": [
+        "R-005"
+      ],
+      "planted": "text",
+      "note": "paragraph 3 says discounts are not combined, paragraph 7 grants both to a student reservist"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-030"
+      ],
+      "planted": "ruleset",
+      "note": "the draft grants 15% for 40 days while the text says 10%",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-030",
+        "path": [
+          "actions",
+          0,
+          "value",
+          "args",
+          1
+        ],
+        "value": 15
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-310"
+      ],
+      "planted": "ruleset",
+      "note": "the 30 June deadline has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-310"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        8
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the no-entitlement rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

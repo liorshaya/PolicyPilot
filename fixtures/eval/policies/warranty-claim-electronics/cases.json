@@ -1,0 +1,210 @@
+{
+  "policy": "warranty-claim-electronics",
+  "ruleset": "eval/policies/warranty-claim-electronics/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 3200
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2027-04-11",
+        "repair_cost": 400,
+        "purchase_price": 3200
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "months_since_purchase": 25.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2027-03-10",
+        "repair_cost": 400,
+        "purchase_price": 3200
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_purchase": 24.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 3200,
+        "physical_damage": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 3200,
+        "liquid_damage": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 3200,
+        "unauthorized_repair": true
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.125
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 2000,
+        "purchase_price": 3200
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.625
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 1920,
+        "purchase_price": 3200
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.6
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 6000,
+        "failure_count": 3
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-310",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.0667
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 4000,
+        "failure_count": 3
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.1
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 11,
+      "input": {
+        "purchase_date": "2025-03-10",
+        "claim_date": "2026-05-20",
+        "repair_cost": 400,
+        "purchase_price": 6000,
+        "failure_count": 2
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "months_since_purchase": 14.0,
+          "cost_ratio": 0.0667
+        },
+        "flags": []
+      }
+    }
+  ]
+}

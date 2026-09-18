@@ -1,0 +1,381 @@
+{
+  "dslVersion": "1.0",
+  "id": "municipal-tax-discount-en",
+  "name": "Municipal Property Tax Discount for Students and Reservists",
+  "language": "en",
+  "fields": [
+    {
+      "name": "is_student",
+      "type": "boolean",
+      "required": true,
+      "description": "Full-time student at a recognized institution",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "A full-time student at a recognized institution",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "years_since_start",
+      "type": "integer",
+      "unit": "years",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "Years since the start of studies",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "for up to 6 years from the start of studies",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "reserve_days",
+      "type": "integer",
+      "unit": "days",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "Reserve days served in the previous calendar year",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "served at least 20 reserve days in the previous calendar year",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "area_sqm",
+      "type": "number",
+      "unit": "sqm",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "Apartment area",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "an apartment of up to 120 square meters",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "municipal_debt",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "Outstanding municipal debt",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "outstanding municipal debt of more than 2,000 ILS",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "submission_date",
+      "type": "date",
+      "required": true,
+      "description": "Submission date",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "Applications submitted after 30 June 2026",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "discount_rate",
+      "type": "number",
+      "unit": "percent",
+      "derived": true,
+      "description": "The discount rate granted"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: discounts committee"
+  },
+  "rules": [
+    {
+      "id": "R-005",
+      "label": "Start from no discount; the higher entitlement wins",
+      "priority": 5,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 0
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "the higher discount applies",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-010",
+      "label": "Student discount of 25%",
+      "priority": 10,
+      "condition": {
+        "all": [
+          {
+            "field": "is_student",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "years_since_start",
+            "op": "lte",
+            "value": 6
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "field": "discount_rate"
+              },
+              25
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "entitled to a 25% discount",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "Reservist discount of 5% for 20 to 39 days",
+      "priority": 20,
+      "condition": {
+        "all": [
+          {
+            "field": "reserve_days",
+            "op": "gte",
+            "value": 20
+          },
+          {
+            "field": "reserve_days",
+            "op": "lt",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "field": "discount_rate"
+              },
+              5
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "at least 20 reserve days in the previous calendar year is entitled to a 5% discount",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "Reservist discount of 10% for 40 days or more",
+      "priority": 30,
+      "condition": {
+        "field": "reserve_days",
+        "op": "gte",
+        "value": 40
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "field": "discount_rate"
+              },
+              10
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "40 days or more entitle the reservist to a 10% discount",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "Reject: no entitlement",
+      "priority": 100,
+      "condition": {
+        "field": "discount_rate",
+        "op": "eq",
+        "value": 0
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The applicant meets none of the discount conditions"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "Applicants who meet none of the conditions above are rejected",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "Collection department: debt above 2,000",
+      "priority": 300,
+      "condition": {
+        "field": "municipal_debt",
+        "op": "gt",
+        "value": 2000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "Outstanding municipal debt above 2,000 ILS is referred to the collection department"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "outstanding municipal debt of more than 2,000 ILS is referred to the collection department",
+        "confidence": 0.95
+      },
+      "tags": [
+        "debt"
+      ]
+    },
+    {
+      "id": "R-310",
+      "label": "Discounts committee: submitted after 30 June",
+      "priority": 310,
+      "condition": {
+        "field": "submission_date",
+        "op": "gt",
+        "value": "2026-06-30"
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "Applications submitted after 30 June 2026 go to the discounts committee"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "Applications submitted after 30 June 2026 are referred to the discounts committee",
+        "confidence": 0.95
+      },
+      "tags": [
+        "deadline"
+      ]
+    },
+    {
+      "id": "R-410",
+      "label": "Flag: discount limited to 120 square meters",
+      "priority": 410,
+      "condition": {
+        "field": "area_sqm",
+        "op": "gt",
+        "value": 120
+      },
+      "actions": [
+        {
+          "type": "flag",
+          "code": "AREA_CAP_120",
+          "message": "The discount applies to the first 120 square meters only"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "A larger apartment receives the discount on the first 120 square meters only",
+        "confidence": 0.95
+      },
+      "tags": [
+        "advisory"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Approve at the applicable rate",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The application meets a discount condition"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "Applications that meet a condition are approved at the applicable rate",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Property tax discounts for students and reservists, with a debt check and a deadline"
+}

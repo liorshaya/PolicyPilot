@@ -1,0 +1,167 @@
+{
+  "policy": "rental-deposit-en",
+  "ruleset": "eval/policies/rental-deposit-en/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 8000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "damage_cost": 1200,
+        "unpaid_amount": 300
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 6500.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 10
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 4000.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "undeclared_pet": true
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 7500.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "unpaid_amount": 8500
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "refund_amount": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "damage_cost": 9000
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-300",
+        "derived": {
+          "refund_amount": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "damage_cost": 8000
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 29,
+        "undeclared_pet": true,
+        "damage_cost": 3000
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 500.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "unpaid_amount": 8000
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "refund_amount": 0.0
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "deposit": 8000,
+        "notice_days": 45,
+        "damage_cost": 8500,
+        "unpaid_amount": 8500
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "refund_amount": 0.0
+        },
+        "flags": []
+      }
+    }
+  ]
+}

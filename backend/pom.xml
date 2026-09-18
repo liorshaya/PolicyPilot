@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      PolicyPilot backend (Document 2, Architecture).
+      Every version below is pinned (Document 5, Supply Chain and Build Security); Spring Boot and Spring AI
+      through their BOMs, everything else explicitly. Versions were checked against Maven Central on 2026-09-18.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.8</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.liorshaya</groupId>
+    <artifactId>policypilot-backend</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>PolicyPilot backend</name>
+    <description>AI copilot over a deterministic rules engine: the model proposes and explains, the engine decides, a person approves.</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <spring-ai.version>2.0.1</spring-ai.version>
+        <springdoc.version>3.0.3</springdoc.version>
+        <archunit.version>1.5.0</archunit.version>
+
+        <jacoco.version>0.8.15</jacoco.version>
+        <pitest.version>1.30.0</pitest.version>
+        <pitest-junit5.version>1.2.3</pitest-junit5.version>
+        <cyclonedx.version>2.9.3</cyclonedx.version>
+        <dependency-check.version>13.0.0</dependency-check.version>
+
+        <!-- Document 6, Coverage Targets and Enforcement: PIT on engine and rules, at least 90%.
+             failWhenNoMutations flips to true on day 3, when the two packages hold their first classes. -->
+        <pitest.mutationThreshold>90</pitest.mutationThreshold>
+        <pitest.failWhenNoMutations>false</pitest.failWhenNoMutations>
+
+        <!-- JUnit 5 tag that excludes a flaky test from the gate while it keeps running (Document 6, CI Pipeline). -->
+        <quarantine.tag>quarantine</quarantine.tag>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Web layer: REST controllers and SSE endpoints (package web) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Persistence: Spring Data JPA with Flyway migrations on PostgreSQL + pgvector -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Operations: /actuator/health is the Railway health check (Document 2, Deployment Topology) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- API documentation served at /api/docs (Document 2, API Surface) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Model providers. Both starters are on the classpath; the active profile decides which beans exist
+             (Document 2, Configuration and Model Providers). Only ai.adapter may import org.springframework.ai;
+             the ArchUnit suite enforces it. The pgvector vector-store starter joins on day 8 with the rag package. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>application</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Unit tests (*Test): parallel by class (src/test/resources/junit-platform.properties).
+                 Quarantined tests run in a second execution that never fails the build. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <excludedGroups>${quarantine.tag}</excludedGroups>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>quarantine</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <groups>${quarantine.tag}</groups>
+                            <excludedGroups/>
+                            <testFailureIgnore>true</testFailureIgnore>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-quarantine</reportsDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Integration tests (*IT) against Testcontainers PostgreSQL with pgvector (Document 6, Test Levels). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>@{failsafeArgLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <excludedGroups>${quarantine.tag}</excludedGroups>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>quarantine-it</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <groups>${quarantine.tag}</groups>
+                            <excludedGroups/>
+                            <testFailureIgnore>true</testFailureIgnore>
+                            <reportsDirectory>${project.build.directory}/failsafe-reports-quarantine</reportsDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Coverage gates per package (Document 6, Coverage Targets and Enforcement).
+                 Unit and integration runs append to one execution file, so ./mvnw verify checks the merged coverage. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-unit-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>prepare-integration-agent</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco.exec</destFile>
+                            <propertyName>failsafeArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- Decides cases: 100% line and branch, mutation tested -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.engine</include>
+                                        <include>com.liorshaya.policypilot.engine.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>1.00</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>1.00</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.rules</include>
+                                        <include>com.liorshaya.policypilot.rules.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>1.00</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.95</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- Protects: 95% line, 90% branch -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.web.security</include>
+                                        <include>com.liorshaya.policypilot.web.security.*</include>
+                                        <include>com.liorshaya.policypilot.web.validation</include>
+                                        <include>com.liorshaya.policypilot.web.validation.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.95</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- ai use cases, validation loop, marker resolver: 90% line, 85% branch (adapter excluded) -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.ai</include>
+                                        <include>com.liorshaya.policypilot.ai.*</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>com.liorshaya.policypilot.ai.adapter</exclude>
+                                        <exclude>com.liorshaya.policypilot.ai.adapter.*</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.85</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- common: shared helpers are reused everywhere; not in Document 6, held to the ai level -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.common</include>
+                                        <include>com.liorshaya.policypilot.common.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.85</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- rag: 85% line, 80% branch -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.rag</include>
+                                        <include>com.liorshaya.policypilot.rag.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.85</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- Orchestrates: 80% line, 75% branch -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.policy</include>
+                                        <include>com.liorshaya.policypilot.policy.*</include>
+                                        <include>com.liorshaya.policypilot.decision</include>
+                                        <include>com.liorshaya.policypilot.decision.*</include>
+                                        <include>com.liorshaya.policypilot.change</include>
+                                        <include>com.liorshaya.policypilot.change.*</include>
+                                        <include>com.liorshaya.policypilot.audit</include>
+                                        <include>com.liorshaya.policypilot.audit.*</include>
+                                        <include>com.liorshaya.policypilot.demo</include>
+                                        <include>com.liorshaya.policypilot.demo.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.75</minimum></limit>
+                                    </limits>
+                                </rule>
+                                <!-- Adapts: ai.adapter, controllers and DTOs, configuration classes: 70% line, 60% branch -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.liorshaya.policypilot.ai.adapter</include>
+                                        <include>com.liorshaya.policypilot.ai.adapter.*</include>
+                                        <include>com.liorshaya.policypilot.web</include>
+                                        <include>com.liorshaya.policypilot.web.*</include>
+                                        <include>com.liorshaya.policypilot.config</include>
+                                        <include>com.liorshaya.policypilot.config.*</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>com.liorshaya.policypilot.web.security</exclude>
+                                        <exclude>com.liorshaya.policypilot.web.security.*</exclude>
+                                        <exclude>com.liorshaya.policypilot.web.validation</exclude>
+                                        <exclude>com.liorshaya.policypilot.web.validation.*</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.70</minimum></limit>
+                                        <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.60</minimum></limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- CI stage 3: ./mvnw -Pmutation test-compile pitest:mutationCoverage -->
+        <profile>
+            <id>mutation</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>${pitest.version}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>${pitest-junit5.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <targetClasses>
+                                <param>com.liorshaya.policypilot.engine.*</param>
+                                <param>com.liorshaya.policypilot.rules.*</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>com.liorshaya.policypilot.engine.*</param>
+                                <param>com.liorshaya.policypilot.rules.*</param>
+                            </targetTests>
+                            <mutators>
+                                <mutator>DEFAULTS</mutator>
+                                <mutator>CONDITIONALS_BOUNDARY</mutator>
+                                <mutator>NEGATE_CONDITIONALS</mutator>
+                            </mutators>
+                            <mutationThreshold>${pitest.mutationThreshold}</mutationThreshold>
+                            <failWhenNoMutations>${pitest.failWhenNoMutations}</failWhenNoMutations>
+                            <excludedGroups>
+                                <param>${quarantine.tag}</param>
+                            </excludedGroups>
+                            <outputFormats>
+                                <param>XML</param>
+                                <param>HTML</param>
+                            </outputFormats>
+                            <timestampedReports>false</timestampedReports>
+                            <threads>2</threads>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- CI stage 4: ./mvnw -Psupply-chain -DskipTests dependency-check:check (needs NVD_API_KEY, see .env.example) -->
+        <profile>
+            <id>supply-chain</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>${dependency-check.version}</version>
+                        <configuration>
+                            <!-- CVSS 7.0 and above is High; a finding fails the build unless it is listed, with a reason,
+                                 in dependency-check-suppressions.xml (Document 5: "without a documented exception") -->
+                            <failBuildOnCVSS>7.0</failBuildOnCVSS>
+                            <suppressionFiles>
+                                <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                            <nugetconfAnalyzerEnabled>false</nugetconfAnalyzerEnabled>
+                            <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- CI stage 8 on tags: ./mvnw -Psbom -DskipTests cyclonedx:makeAggregateBom -->
+        <profile>
+            <id>sbom</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.cyclonedx</groupId>
+                        <artifactId>cyclonedx-maven-plugin</artifactId>
+                        <version>${cyclonedx.version}</version>
+                        <configuration>
+                            <outputName>sbom-backend</outputName>
+                            <outputFormat>json</outputFormat>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

@@ -1,1 +1,62 @@
-/.DS_Store
+# ---------------------------------------------------------------------------
+# PolicyPilot root .gitignore
+# Secrets never enter the repository (Document 5, Data Protection): the real
+# values live in .env (ignored here) and in the Railway and Vercel settings.
+# ---------------------------------------------------------------------------
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Operating system
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+
+# Editors and IDEs
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Java / Maven (backend/)
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.log
+backend/hs_err_pid*
+backend/dependency-check-report.*
+backend/.flattened-pom.xml
+
+# Node / Vite (frontend/)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/playwright/.cache/
+frontend/*.local
+frontend/.eslintcache
+frontend/*.tsbuildinfo
+
+# Python (fixtures/reference, fixtures/tools, scripts/)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build reports that CI regenerates (committed copies live under docs/quality/ only)
+sbom-*.json
+trivy-*.json
+
+# Logs
+logs/

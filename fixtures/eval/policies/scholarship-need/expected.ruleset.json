@@ -1,0 +1,408 @@
+{
+  "dslVersion": "1.0",
+  "id": "scholarship-need",
+  "name": "מלגת סיוע כלכלי",
+  "language": "he",
+  "fields": [
+    {
+      "name": "household_income",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "minimum": 0,
+      "description": "סך הכנסות משק הבית לחודש",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "סך הכנסות משק הבית",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "persons",
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "description": "מספר הנפשות במשק הבית",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "מספר הנפשות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "single_parent",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "הורה יחיד",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "סטודנט שהוא הורה יחיד",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "disability_percent",
+      "type": "integer",
+      "unit": "percent",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100,
+      "description": "אחוזי נכות מוכרת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "בעל נכות מוכרת של 40% לפחות",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "other_scholarship",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "סכום מלגה אחרת",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "מלגה אחרת בסכום העולה על 10,000 ש\"ח",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "study_year",
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "description": "שנת הלימודים",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "סטודנט בשנת לימודיו הראשונה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "income_per_capita",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "הכנסה לנפש"
+    },
+    {
+      "name": "scholarship_amount",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "גובה המלגה"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "בקשה שלא הוכרעה תועבר לוועדת המלגות"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "חישוב ההכנסה לנפש",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "income_per_capita",
+          "value": {
+            "fn": "round",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "field": "household_income"
+                  },
+                  {
+                    "field": "persons"
+                  }
+                ]
+              },
+              2
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "ההכנסה לנפש מחושבת כסך הכנסות משק הבית חלקי מספר הנפשות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "מלגה של 7,000: הכנסה לנפש נמוכה מ-2,500",
+      "priority": 20,
+      "condition": {
+        "field": "income_per_capita",
+        "op": "lt",
+        "value": 2500
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 7000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "לסטודנט שהכנסתו לנפש נמוכה מ-2,500 ש\"ח 7,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "מלגה של 4,000: הכנסה לנפש 2,500 עד 4,499",
+      "priority": 30,
+      "condition": {
+        "all": [
+          {
+            "field": "income_per_capita",
+            "op": "gte",
+            "value": 2500
+          },
+          {
+            "field": "income_per_capita",
+            "op": "lt",
+            "value": 4500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 4000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "גובה המלגה הוא 4,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-040",
+      "label": "מלגה של 4,000: הורה יחיד או נכות, הכנסה לנפש 4,500 עד 6,000",
+      "priority": 40,
+      "condition": {
+        "all": [
+          {
+            "field": "income_per_capita",
+            "op": "between",
+            "value": [
+              4500,
+              6000
+            ]
+          },
+          {
+            "any": [
+              {
+                "field": "single_parent",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "field": "disability_percent",
+                "op": "gte",
+                "value": 40
+              }
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "scholarship_amount",
+          "value": 4000
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "סטודנט שהוא הורה יחיד או בעל נכות מוכרת של 40% לפחות זכאי למלגה גם אם ההכנסה לנפש היא עד 6,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: מלגה אחרת מעל 10,000",
+      "priority": 100,
+      "condition": {
+        "field": "other_scholarship",
+        "op": "gt",
+        "value": 10000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "מקבל מלגה אחרת בסכום העולה על 10,000 ש\"ח"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "סטודנט המקבל מלגה אחרת בסכום העולה על 10,000 ש\"ח אינו זכאי למלגת סיוע",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: הכנסה לנפש מעל 6,000",
+      "priority": 110,
+      "condition": {
+        "field": "income_per_capita",
+        "op": "gt",
+        "value": 6000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ההכנסה לנפש עולה על התקרה של 6,000 ש\"ח"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "ההכנסה לנפש היא עד 6,000 ש\"ח",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "דחייה: הכנסה לנפש 4,500 ומעלה ללא מעמד מיוחד",
+      "priority": 120,
+      "condition": {
+        "all": [
+          {
+            "field": "income_per_capita",
+            "op": "gte",
+            "value": 4500
+          },
+          {
+            "field": "single_parent",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "field": "disability_percent",
+            "op": "lt",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ההכנסה לנפש אינה נמוכה מ-4,500 ש\"ח"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "מלגת סיוע תינתן לסטודנט שהכנסת משק הבית שלו לנפש נמוכה מ-4,500 ש\"ח לחודש",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "ועדת מלגות: שנת לימודים ראשונה",
+      "priority": 300,
+      "condition": {
+        "field": "study_year",
+        "op": "eq",
+        "value": 1
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "סטודנט בשנה הראשונה נבדק על ידי ועדת המלגות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 6,
+        "quote": "סטודנט בשנת לימודיו הראשונה יועבר לבדיקת ועדת המלגות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור המלגה",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הסטודנט עומד בתנאי מלגת הסיוע"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 8,
+        "quote": "בקשה העומדת בתנאים תאושר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "מלגת סיוע לפי הכנסה לנפש ומעמד מיוחד"
+}

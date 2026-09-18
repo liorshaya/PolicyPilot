@@ -1,0 +1,10 @@
+# Semgrep target exclusions. Semgrep's built-in default list skips test/ and tests/ directories, which would
+# hide the test-without-assertion rule from the very files it exists for, so this file replaces the default.
+.git/
+node_modules/
+dist/
+coverage/
+target/
+playwright-report/
+test-results/
+frontend/package-lock.json

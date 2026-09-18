@@ -1,0 +1,87 @@
+{
+  "policy": "arnona-discount-seniors",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        2
+      ],
+      "ruleIds": [
+        "R-010"
+      ],
+      "planted": "text",
+      "note": "\"קצבה דומה\" is undefined: which benefits count as an income supplement"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        3,
+        6
+      ],
+      "ruleIds": [
+        "R-100"
+      ],
+      "planted": "text",
+      "note": "paragraph 3 excludes owners of more than one apartment, paragraph 6 admits owners who rent out the second one"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        1
+      ],
+      "ruleIds": [
+        "R-020"
+      ],
+      "planted": "ruleset",
+      "note": "the draft grants 30% while the text says 25%",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-020",
+        "path": [
+          "actions",
+          0,
+          "value"
+        ],
+        "value": 30
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-300"
+      ],
+      "planted": "ruleset",
+      "note": "the municipal-debt referral has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-300"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the second-apartment rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

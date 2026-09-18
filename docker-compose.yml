@@ -1,0 +1,86 @@
+# PolicyPilot local stack (Document 2, Deployment Topology, "Local").
+#   docker compose up            database + backend (openai profile, key from .env) + frontend dev server
+#   make up                      the same, then waits for the health check and prints the addresses
+#   make up-ollama               adds Ollama with the two local models and switches the backend to the ollama profile
+name: policypilot
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: policypilot
+      POSTGRES_USER: policypilot
+      POSTGRES_PASSWORD: policypilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U policypilot -d policypilot"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+    image: policypilot-backend:local
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://policypilot:policypilot@db:5432/policypilot
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_BASE_URL: http://ollama:11434
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # The runtime image carries no curl or wget on purpose (Document 5); bash's /dev/tcp does the check.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+
+  frontend:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:0.34.2
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  ollama-pull:
+    profiles: [ollama]
+    image: ollama/ollama:0.34.2
+    depends_on:
+      - ollama
+    entrypoint: ["/bin/sh", "/pull-models.sh"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    volumes:
+      - ./scripts/ollama/pull-models.sh:/pull-models.sh:ro
+    restart: "no"
+
+volumes:
+  db-data:
+  ollama-data:
+  frontend-node-modules:

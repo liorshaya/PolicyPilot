@@ -1,0 +1,336 @@
+{
+  "policy": "consumer-lending-en",
+  "ruleset": "eval/policies/consumer-lending-en/expected.ruleset.json",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 2,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 1,
+        "has_guarantor": true
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 3,
+      "input": {
+        "age": 20,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-100",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 4,
+      "input": {
+        "age": 70,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-110",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 5,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 4000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-120",
+        "derived": {
+          "monthly_installment": 130.58,
+          "debt_to_income": 0.0812
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 6,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 84,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-130",
+        "derived": {
+          "monthly_installment": 680.7,
+          "debt_to_income": 0.1423
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 7,
+      "input": {
+        "age": 33,
+        "employment_type": "unemployed",
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-140",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 8,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 3,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-150",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 9,
+      "input": {
+        "age": 33,
+        "employment_type": "self_employed",
+        "employment_months": 12,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-160",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 10,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 6500,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-170",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2932
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 11,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 3500,
+        "requested_amount": 60000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-200",
+        "derived": {
+          "monthly_installment": 1958.65,
+          "debt_to_income": 0.6065
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 12,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 2
+      },
+      "expected": {
+        "outcome": "reject",
+        "decidingRuleId": "R-220",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 13,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 2500,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-320",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.4229
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 14,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 9000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 40000,
+        "term_months": 36,
+        "credit_events_24m": 1
+      },
+      "expected": {
+        "outcome": "refer",
+        "decidingRuleId": "R-330",
+        "derived": {
+          "monthly_installment": 1305.76,
+          "debt_to_income": 0.2118
+        },
+        "flags": []
+      }
+    },
+    {
+      "id": 15,
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "employment_months": 20,
+        "monthly_income": 15000,
+        "existing_monthly_debt": 600,
+        "requested_amount": 90000,
+        "term_months": 60,
+        "credit_events_24m": 0
+      },
+      "expected": {
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "derived": {
+          "monthly_installment": 1947.85,
+          "debt_to_income": 0.1699
+        },
+        "flags": []
+      }
+    }
+  ]
+}

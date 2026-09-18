@@ -1,0 +1,87 @@
+{
+  "policy": "scholarship-need",
+  "note": "planted: text means the defect is in the policy text; ruleset means the runner applies the mutation to expected.ruleset.json to build the draft the reviewer is given",
+  "findings": [
+    {
+      "id": "SF-1",
+      "kind": "ambiguity",
+      "paragraphIndexes": [
+        3
+      ],
+      "ruleIds": [
+        "R-040"
+      ],
+      "planted": "text",
+      "note": "\"נכות מוכרת\" is undefined: recognized by which authority"
+    },
+    {
+      "id": "SF-2",
+      "kind": "conflict",
+      "paragraphIndexes": [
+        1,
+        7
+      ],
+      "ruleIds": [
+        "R-120"
+      ],
+      "planted": "text",
+      "note": "paragraph 1 requires income per person below 4,500, paragraph 7 admits up to 5,000"
+    },
+    {
+      "id": "SF-3",
+      "kind": "unsupported",
+      "paragraphIndexes": [
+        4
+      ],
+      "ruleIds": [
+        "R-030"
+      ],
+      "planted": "ruleset",
+      "note": "the draft grants 4,500 while the text says 4,000",
+      "mutation": {
+        "op": "set",
+        "ruleId": "R-030",
+        "path": [
+          "actions",
+          0,
+          "value"
+        ],
+        "value": 4500
+      }
+    },
+    {
+      "id": "SF-4",
+      "kind": "gap",
+      "paragraphIndexes": [
+        6
+      ],
+      "ruleIds": [
+        "R-300"
+      ],
+      "planted": "ruleset",
+      "note": "the first-year referral has no rule in the draft",
+      "mutation": {
+        "op": "remove",
+        "ruleId": "R-300"
+      }
+    },
+    {
+      "id": "SF-5",
+      "kind": "duplicate",
+      "paragraphIndexes": [
+        5
+      ],
+      "ruleIds": [
+        "R-100",
+        "R-101"
+      ],
+      "planted": "ruleset",
+      "note": "the draft states the other-scholarship rejection twice",
+      "mutation": {
+        "op": "duplicate",
+        "ruleId": "R-100",
+        "asId": "R-101"
+      }
+    }
+  ]
+}

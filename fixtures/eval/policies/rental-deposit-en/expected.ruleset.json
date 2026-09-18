@@ -1,0 +1,312 @@
+{
+  "dslVersion": "1.0",
+  "id": "rental-deposit-en",
+  "name": "Security Deposit Refund Policy",
+  "language": "en",
+  "fields": [
+    {
+      "name": "deposit",
+      "type": "number",
+      "unit": "ILS",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "Security deposit",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "The security deposit is refunded",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "notice_days",
+      "type": "integer",
+      "unit": "days",
+      "required": true,
+      "minimum": 0,
+      "description": "Days of written notice given",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "less than 30 days of written notice",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "damage_cost",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "Invoiced repair costs beyond normal wear and tear",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "Repair costs beyond normal wear and tear are deducted against invoices",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "unpaid_amount",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "Unpaid rent or utilities",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Unpaid rent or utilities are deducted",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "undeclared_pet",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "A pet not declared in the lease",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Pets not declared in the lease",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "refund_amount",
+      "type": "number",
+      "unit": "ILS",
+      "derived": true,
+      "description": "Refund after deductions"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "Not decided by the rules: property manager"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "Deduct repairs and unpaid amounts",
+      "priority": 10,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "refund_amount",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "fn": "sub",
+                "args": [
+                  {
+                    "field": "deposit"
+                  },
+                  {
+                    "fn": "add",
+                    "args": [
+                      {
+                        "field": "damage_cost"
+                      },
+                      {
+                        "field": "unpaid_amount"
+                      }
+                    ]
+                  }
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "Unpaid rent or utilities are deducted",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "Forfeit half of the deposit for less than 30 days of notice",
+      "priority": 20,
+      "condition": {
+        "field": "notice_days",
+        "op": "lt",
+        "value": 30
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "refund_amount",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "fn": "sub",
+                "args": [
+                  {
+                    "field": "refund_amount"
+                  },
+                  {
+                    "fn": "mul",
+                    "args": [
+                      {
+                        "field": "deposit"
+                      },
+                      0.5
+                    ]
+                  }
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "A tenant who gives less than 30 days of written notice forfeits half of the deposit",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-030",
+      "label": "Cleaning fee of 500 for an undeclared pet",
+      "priority": 30,
+      "condition": {
+        "field": "undeclared_pet",
+        "op": "eq",
+        "value": true
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "refund_amount",
+          "value": {
+            "fn": "max",
+            "args": [
+              {
+                "fn": "sub",
+                "args": [
+                  {
+                    "field": "refund_amount"
+                  },
+                  500
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "Pets not declared in the lease incur a cleaning fee of 500 ILS",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "Reject: unpaid amount exceeds the deposit",
+      "priority": 100,
+      "condition": {
+        "field": "unpaid_amount",
+        "op": "gt",
+        "value": {
+          "field": "deposit"
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "The unpaid amount exceeds the deposit; no refund is made"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "If the unpaid amount exceeds the deposit, no refund is made",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "Legal review: claimed damage exceeds the deposit",
+      "priority": 300,
+      "condition": {
+        "field": "damage_cost",
+        "op": "gt",
+        "value": {
+          "field": "deposit"
+        }
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "Claimed damage above the deposit is referred to legal review"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "If the claimed damage exceeds the deposit, the case is referred to legal review",
+        "confidence": 0.95
+      },
+      "tags": [
+        "review"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "Approve the refund",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "The refund meets the conditions and is approved at the computed amount"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "Refunds that meet the conditions above are approved",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "Deposit refunds with deductions, a rejection and a legal referral"
+}

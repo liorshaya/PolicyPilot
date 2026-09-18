@@ -1,0 +1,570 @@
+{
+  "note": "30 questions with the chunks retrieval must return (p:<paragraph>, r:<ruleId>), the citation markers the answer must carry ([[sim:*]] = any simulation marker), the tool the answer needs, the refusal flag and words the answer must contain",
+  "questions": [
+    {
+      "id": "Q-01",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "למה בקשה מספר 17 הופנתה לבדיקה?",
+      "expectedChunks": [
+        "p:7",
+        "r:R-330"
+      ],
+      "expectedMarkers": [
+        "[[d:17]]",
+        "[[p:7]]"
+      ],
+      "expectedTool": "getDecision",
+      "refusal": false,
+      "answerContains": [
+        "ערב"
+      ],
+      "notes": "demo step 3, first question; decision 17 is referred by R-330"
+    },
+    {
+      "id": "Q-02",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "האם בקשה 17 הייתה מאושרת אם היה ערב?",
+      "expectedChunks": [
+        "r:R-330",
+        "r:R-900"
+      ],
+      "expectedMarkers": [
+        "[[sim:*]]",
+        "[[r:R-900]]"
+      ],
+      "expectedTool": "simulate",
+      "refusal": false,
+      "answerContains": [
+        "מאושר"
+      ],
+      "notes": "demo step 3, the what-if; simulate(17, {has_guarantor: true}) approves by R-900 with STABLE_INCOME_MANUAL_CHECK"
+    },
+    {
+      "id": "Q-03",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מהי תקופת ההחזר המקסימלית להלוואה?",
+      "expectedChunks": [
+        "p:2",
+        "r:R-130"
+      ],
+      "expectedMarkers": [
+        "[[p:2]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "84"
+      ],
+      "notes": "demo step 3"
+    },
+    {
+      "id": "Q-04",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מהי הריבית המקסימלית שהבנק רשאי לגבות?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": [],
+      "notes": "demo step 3: the policy states the rate used for the installment, not a maximum"
+    },
+    {
+      "id": "Q-05",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "en",
+      "question": "What happens to an applicant with two or more adverse credit events?",
+      "expectedChunks": [
+        "p:7",
+        "r:R-220"
+      ],
+      "expectedMarkers": [
+        "[[p:7]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "reject"
+      ]
+    },
+    {
+      "id": "Q-06",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מהו יחס החוב להכנסה המקסימלי ואיך הוא מחושב?",
+      "expectedChunks": [
+        "p:6",
+        "r:R-020",
+        "r:R-200"
+      ],
+      "expectedMarkers": [
+        "[[p:6]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "40"
+      ]
+    },
+    {
+      "id": "Q-07",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מה עושה הכלל R-320?",
+      "expectedChunks": [
+        "r:R-320",
+        "p:6"
+      ],
+      "expectedMarkers": [
+        "[[r:R-320]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "35"
+      ],
+      "notes": "a rule id named verbatim; fusion must include its chunk"
+    },
+    {
+      "id": "Q-08",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "כמה מתוך 200 הבקשות נדחו?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": "getDecisionStats",
+      "refusal": false,
+      "answerContains": [
+        "60"
+      ],
+      "notes": "answered from getDecisionStats over cases-expected.json: 113 approved, 60 rejected, 27 referred"
+    },
+    {
+      "id": "Q-09",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "en",
+      "question": "Can a 74-year-old retiree get a loan for 60 months?",
+      "expectedChunks": [
+        "p:8",
+        "r:R-116"
+      ],
+      "expectedMarkers": [
+        "[[p:8]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "78"
+      ],
+      "notes": "the term would end after age 78, so no"
+    },
+    {
+      "id": "Q-10",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "האם אפשר לקבל את ההלוואה בדולרים?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": []
+    },
+    {
+      "id": "Q-11",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מהי ההכנסה החודשית המינימלית הנדרשת?",
+      "expectedChunks": [
+        "p:4",
+        "r:R-170"
+      ],
+      "expectedMarkers": [
+        "[[p:4]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "8,000"
+      ]
+    },
+    {
+      "id": "Q-12",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "he",
+      "question": "מה המשמעות של הסימון STABLE_INCOME_MANUAL_CHECK?",
+      "expectedChunks": [
+        "r:R-420",
+        "p:4"
+      ],
+      "expectedMarkers": [
+        "[[r:R-420]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "יציב"
+      ]
+    },
+    {
+      "id": "Q-13",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "en",
+      "question": "What is the minimum age for a personal loan?",
+      "expectedChunks": [
+        "p:1",
+        "r:R-100"
+      ],
+      "expectedMarkers": [
+        "[[p:1]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "21"
+      ]
+    },
+    {
+      "id": "Q-14",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "en",
+      "question": "Which rules can refer an application to an underwriter or to manual review?",
+      "expectedChunks": [
+        "r:R-310",
+        "r:R-320",
+        "r:R-330"
+      ],
+      "expectedMarkers": [
+        "[[r:R-320]]"
+      ],
+      "expectedTool": "listRules",
+      "refusal": false,
+      "answerContains": [],
+      "notes": "at least one referral rule cited; listRules is acceptable when retrieval returns few rule chunks"
+    },
+    {
+      "id": "Q-15",
+      "policy": "consumer-lending",
+      "ruleset": "policies/consumer-lending/ruleset.v1.json",
+      "policyText": "policies/consumer-lending/policy.he.md",
+      "language": "en",
+      "question": "How many days does the bank take to approve a loan?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": []
+    },
+    {
+      "id": "Q-16",
+      "policy": "consumer-lending-strict",
+      "ruleset": "eval/policies/consumer-lending-strict/expected.ruleset.json",
+      "policyText": "eval/policies/consumer-lending-strict/policy.he.md",
+      "language": "he",
+      "question": "כמה חודשי ותק נדרשים משכיר במסלול המחמיר?",
+      "expectedChunks": [
+        "p:3",
+        "r:R-150"
+      ],
+      "expectedMarkers": [
+        "[[p:3]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "12"
+      ]
+    },
+    {
+      "id": "Q-17",
+      "policy": "consumer-lending-strict",
+      "ruleset": "eval/policies/consumer-lending-strict/expected.ruleset.json",
+      "policyText": "eval/policies/consumer-lending-strict/policy.he.md",
+      "language": "he",
+      "question": "מה קורה אם בקשה קודמת שלי נדחתה לפני ארבעה חודשים?",
+      "expectedChunks": [
+        "p:8",
+        "r:R-330"
+      ],
+      "expectedMarkers": [
+        "[[p:8]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "ידנית"
+      ]
+    },
+    {
+      "id": "Q-18",
+      "policy": "consumer-lending-guarantor",
+      "ruleset": "eval/policies/consumer-lending-guarantor/expected.ruleset.json",
+      "policyText": "eval/policies/consumer-lending-guarantor/policy.he.md",
+      "language": "he",
+      "question": "מתי חובה להעמיד ערב?",
+      "expectedChunks": [
+        "p:5",
+        "r:R-180"
+      ],
+      "expectedMarkers": [
+        "[[p:5]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "100,000"
+      ]
+    },
+    {
+      "id": "Q-19",
+      "policy": "arnona-discount-seniors",
+      "ruleset": "eval/policies/arnona-discount-seniors/expected.ruleset.json",
+      "policyText": "eval/policies/arnona-discount-seniors/policy.he.md",
+      "language": "he",
+      "question": "מה ההנחה למי שמקבל השלמת הכנסה?",
+      "expectedChunks": [
+        "p:2",
+        "r:R-010"
+      ],
+      "expectedMarkers": [
+        "[[p:2]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "100%"
+      ]
+    },
+    {
+      "id": "Q-20",
+      "policy": "arnona-discount-seniors",
+      "ruleset": "eval/policies/arnona-discount-seniors/expected.ruleset.json",
+      "policyText": "eval/policies/arnona-discount-seniors/policy.he.md",
+      "language": "he",
+      "question": "עד מתי אפשר להגיש בקשה בלי שתועבר לוועדה?",
+      "expectedChunks": [
+        "p:5",
+        "r:R-310"
+      ],
+      "expectedMarkers": [
+        "[[p:5]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "31"
+      ]
+    },
+    {
+      "id": "Q-21",
+      "policy": "arnona-discount-income",
+      "ruleset": "eval/policies/arnona-discount-income/expected.ruleset.json",
+      "policyText": "eval/policies/arnona-discount-income/policy.he.md",
+      "language": "he",
+      "question": "איך מחשבים את ההכנסה לנפש?",
+      "expectedChunks": [
+        "p:4",
+        "r:R-020"
+      ],
+      "expectedMarkers": [
+        "[[p:4]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "נפשות"
+      ]
+    },
+    {
+      "id": "Q-22",
+      "policy": "arnona-discount-income",
+      "ruleset": "eval/policies/arnona-discount-income/expected.ruleset.json",
+      "policyText": "eval/policies/arnona-discount-income/policy.he.md",
+      "language": "he",
+      "question": "האם יש הנחה בארנונה לחיילים משוחררים?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": []
+    },
+    {
+      "id": "Q-23",
+      "policy": "rental-deposit-return",
+      "ruleset": "eval/policies/rental-deposit-return/expected.ruleset.json",
+      "policyText": "eval/policies/rental-deposit-return/policy.he.md",
+      "language": "he",
+      "question": "מה קורה אם לא מסרתי הודעה מוקדמת של 60 יום?",
+      "expectedChunks": [
+        "p:2",
+        "r:R-030"
+      ],
+      "expectedMarkers": [
+        "[[p:2]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "חודש"
+      ]
+    },
+    {
+      "id": "Q-24",
+      "policy": "scholarship-merit",
+      "ruleset": "eval/policies/scholarship-merit/expected.ruleset.json",
+      "policyText": "eval/policies/scholarship-merit/policy.he.md",
+      "language": "he",
+      "question": "מה גובה המלגה לסטודנט עם ממוצע 96?",
+      "expectedChunks": [
+        "p:5",
+        "r:R-010"
+      ],
+      "expectedMarkers": [
+        "[[p:5]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "8,000"
+      ]
+    },
+    {
+      "id": "Q-25",
+      "policy": "scholarship-need",
+      "ruleset": "eval/policies/scholarship-need/expected.ruleset.json",
+      "policyText": "eval/policies/scholarship-need/policy.he.md",
+      "language": "he",
+      "question": "האם הורה יחיד עם הכנסה לנפש של 5,500 ש\"ח זכאי למלגה?",
+      "expectedChunks": [
+        "p:3",
+        "r:R-040"
+      ],
+      "expectedMarkers": [
+        "[[p:3]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "6,000"
+      ]
+    },
+    {
+      "id": "Q-26",
+      "policy": "warranty-claim-electronics",
+      "ruleset": "eval/policies/warranty-claim-electronics/expected.ruleset.json",
+      "policyText": "eval/policies/warranty-claim-electronics/policy.he.md",
+      "language": "he",
+      "question": "האם האחריות מכסה גם את הסוללה של המוצר?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": [],
+      "notes": "the policy never mentions batteries"
+    },
+    {
+      "id": "Q-27",
+      "policy": "municipal-tax-discount-en",
+      "ruleset": "eval/policies/municipal-tax-discount-en/expected.ruleset.json",
+      "policyText": "eval/policies/municipal-tax-discount-en/policy.en.md",
+      "language": "en",
+      "question": "What discount does a reservist with 45 reserve days get?",
+      "expectedChunks": [
+        "p:2",
+        "r:R-030"
+      ],
+      "expectedMarkers": [
+        "[[p:2]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "10%"
+      ]
+    },
+    {
+      "id": "Q-28",
+      "policy": "scholarship-en",
+      "ruleset": "eval/policies/scholarship-en/expected.ruleset.json",
+      "policyText": "eval/policies/scholarship-en/policy.en.md",
+      "language": "en",
+      "question": "Is there a scholarship for graduate students under this policy?",
+      "expectedChunks": [
+        "p:6",
+        "r:R-100"
+      ],
+      "expectedMarkers": [
+        "[[p:6]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "not"
+      ]
+    },
+    {
+      "id": "Q-29",
+      "policy": "synthetic-enums",
+      "ruleset": "eval/policies/synthetic-enums/expected.ruleset.json",
+      "policyText": "eval/policies/synthetic-enums/policy.en.md",
+      "language": "en",
+      "question": "Can I ship batteries to europe?",
+      "expectedChunks": [
+        "p:3",
+        "r:R-100"
+      ],
+      "expectedMarkers": [
+        "[[p:3]]"
+      ],
+      "expectedTool": null,
+      "refusal": false,
+      "answerContains": [
+        "refused"
+      ]
+    },
+    {
+      "id": "Q-30",
+      "policy": "warranty-claim-en",
+      "ruleset": "eval/policies/warranty-claim-en/expected.ruleset.json",
+      "policyText": "eval/policies/warranty-claim-en/policy.en.md",
+      "language": "en",
+      "question": "Does the warranty cover accidental drops?",
+      "expectedChunks": [],
+      "expectedMarkers": [],
+      "expectedTool": null,
+      "refusal": true,
+      "answerContains": [],
+      "notes": "drops are not among the listed exclusions nor covered explicitly; the honest answer is the not-covered sentence"
+    }
+  ]
+}

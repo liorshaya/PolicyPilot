@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Pre-commit hook (Document 5, Supply Chain: gitleaks as a pre-commit hook). Install once with: make hooks
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed, so the secret scan cannot run and the commit is refused." >&2
+  echo "            install it with:  brew install gitleaks   and commit again." >&2
+  exit 1
+fi
+
+gitleaks git --pre-commit --staged --redact --no-banner --exit-code 1
