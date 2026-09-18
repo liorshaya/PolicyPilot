@@ -1,4 +1,7 @@
-# Weekly dependency update pull requests (Document 5, Supply Chain and Build Security).
+# Weekly dependency updates (Document 5, Supply Chain and Build Security), limited to the version lines the
+# documents pin. Leaving a line (Java 21, Spring Boot 4.0.x, Spring AI 2.0.x, a new major of any library) is a
+# deliberate change made by hand after the documents change, never a weekly pull request. Updates are grouped
+# into one pull request per area, and each one must pass CI like any other change.
 version: 2
 updates:
   - package-ecosystem: maven
@@ -7,19 +10,59 @@ updates:
       interval: weekly
       day: sunday
     open-pull-requests-limit: 5
+    groups:
+      backend:
+        update-types: [minor, patch]
+    ignore:
+      # Document 2, Configuration and Model Providers: Spring Boot 4.0.x and Spring AI 2.0.x
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.springframework.ai:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # springdoc 3.1 is built for Spring Boot 4.1, so springdoc stays on 3.0.x with Spring Boot 4.0.x
+      - dependency-name: "org.springdoc:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
       day: sunday
     open-pull-requests-limit: 5
+    groups:
+      frontend:
+        update-types: [minor, patch]
+    ignore:
+      # TypeScript minors can leave the range typescript-eslint supports (npm ci then fails), so TypeScript moves by hand
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Majors move by hand: among them @types/node, which follows the Node 24 line the project runs on,
+      # and jsdom 30, which needs a newer Node than the owner's machine has
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: sunday
+    groups:
+      actions:
+        patterns: ["*"]
+
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: weekly
       day: sunday
+    ignore:
+      # Document 2, ADR-10: Java 21. The runtime image keeps its 21 tag and still receives digest refreshes,
+      # which carry the base image security patches
+      - dependency-name: "eclipse-temurin"
+        versions: [">= 22"]
+      # The build image tag embeds the JDK (3.9.16-eclipse-temurin-21-noble) and Dependabot reads that number as
+      # part of the version, so it proposes other JDKs. The build stage is not shipped (multi-stage) and moves
+      # by hand together with the Maven wrapper version.
+      - dependency-name: "maven"

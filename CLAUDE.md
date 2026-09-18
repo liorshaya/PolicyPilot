@@ -64,6 +64,7 @@ cd backend && ./mvnw verify               unit, architecture, integration tests 
 cd frontend && npm test                   Vitest; npm run lint; npm run e2e (Playwright)
 python3 fixtures/reference/reference_check.py     must end with ALL OK
 python3 fixtures/tools/generate_cases.py          must produce no diff
+gh run list --limit 10                            recent CI runs; gh run view <id> --log-failed for the failing step
 ```
 
 ## Working rules (Document 6, Working Method and Definition of Done)
@@ -82,6 +83,10 @@ python3 fixtures/tools/generate_cases.py          must produce no diff
   pass; PIT on `engine` and `rules` becomes a hard gate on day 3 (`pitest.failWhenNoMutations` in the pom).
 - No secrets anywhere in the repository: `.env` is ignored, `.env.example` lists names only, gitleaks runs in
   CI and as the pre-commit hook (`make hooks`).
+- CI stage 6 loads the image, scans it with Trivy and pushes only an image that passed. A High or Critical
+  finding with a fix is resolved by moving the library to the fixed version, never by relaxing the scan.
+- Dependabot (`.github/dependabot.yml`) opens grouped weekly pull requests inside the documented version lines
+  only. Leaving a line (Java 21, Spring Boot 4.0.x, Spring AI 2.0.x, a library major) is a document change first.
 
 ## What never changes without changing the document first
 
@@ -122,6 +127,8 @@ text, demo questions and the model's free-text output are in Hebrew. `RUNBOOK.md
 ## Open values and known tensions (do not guess; ask the owner)
 
 - `policypilot.ai.daily-token-budget` has no number in the documents; it is unset in `application.yml`.
+- `backend/pom.xml` overrides `tomcat.version` (11.0.26): Spring Boot 4.0.8 manages Tomcat 11.0.24, which has
+  three critical CVEs. Remove the override once a Spring Boot 4.0.x release manages 11.0.25 or later.
 - The chat model names `gpt-5.6-terra` and `gpt-5.6-luna` are taken from Document 2 and must be confirmed
   against the provider's model list on day 7, when a key is first used.
 - `rag` needs the `EmbeddingGateway` interface, which lives in `ai`, while Document 2 lists `ai.adapter` as
