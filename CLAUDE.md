@@ -111,6 +111,14 @@ text, demo questions and the model's free-text output are in Hebrew. `RUNBOOK.md
 5. Last hour: Definition of Done for the day's tasks, the demo-step check on the cloud site, the worklog line:
    `date | day N | done | slipped | decisions | coverage per package, PIT score, batch time, first-token time`.
 
+## Schedule (decided 2026-09-18)
+
+The interview is on Monday 2026-10-05, so the plan runs as the two-week version of Document 7 (Scope ladder). Day 1
+is done; days 2 to 9 keep their Work Plan content, except that day 9 builds only the `decision` and `simulate` tools;
+day 10 (Sun Oct 4) is rehearsal, video, README and freeze. Rungs 2 to 10 and the evaluation runner are cut: do not
+build the reviewer, explain, the guided panel, the `stats` and `rules` tools, the change flow, the resets or the
+evaluation runner unless the owner adds one back. Dates and struck-through boxes: `docs/progress-checklist.md`.
+
 ## Where to look
 
 | Question | Document and section |
@@ -127,7 +135,8 @@ text, demo questions and the model's free-text output are in Hebrew. `RUNBOOK.md
 
 ## Open values and known tensions (do not guess; ask the owner)
 
-- `policypilot.ai.daily-token-budget` has no number in the documents; it is unset in `application.yml`.
+- `policypilot.ai.daily-token-budget` has no number in the documents; it is unset in `application.yml`. The owner
+  capped OpenAI at 5 USD per day (2026-09-18): on day 7 set the budget just below that, in tokens at the confirmed prices.
 - `backend/pom.xml` overrides `tomcat.version` (11.0.26): Spring Boot 4.0.8 manages Tomcat 11.0.24, which has
   three critical CVEs. Remove the override once a Spring Boot 4.0.x release manages 11.0.25 or later.
 - The chat model names `gpt-5.6-terra` and `gpt-5.6-luna` are taken from Document 2 and must be confirmed
