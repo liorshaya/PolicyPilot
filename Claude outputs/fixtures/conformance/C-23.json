@@ -1,0 +1,95 @@
+{
+  "id": "C-23",
+  "name": "Date ordering",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c23",
+    "name": "conformance c23",
+    "language": "en",
+    "fields": [
+      {
+        "name": "d1",
+        "type": "date",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "d1",
+          "op": "lt",
+          "value": "2026-01-01"
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "d1": "2025-12-31"
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-100",
+    "trace": [
+      {
+        "ruleId": "R-100",
+        "status": "fired",
+        "comparisons": [
+          {
+            "field": "d1",
+            "op": "lt",
+            "expected": "2026-01-01",
+            "actual": "2025-12-31",
+            "result": true
+          }
+        ]
+      },
+      {
+        "ruleId": "R-900",
+        "status": "skipped"
+      }
+    ]
+  }
+}

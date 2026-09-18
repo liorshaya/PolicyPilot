@@ -1,0 +1,172 @@
+{
+  "id": "C-15",
+  "name": "Derived chain",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c15",
+    "name": "conformance c15",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "a",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "name": "b",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-10",
+        "label": "conformance rule R-10",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "a",
+            "value": 10
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-20",
+        "label": "conformance rule R-20",
+        "priority": 20,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "b",
+            "value": {
+              "fn": "mul",
+              "args": [
+                {
+                  "field": "a"
+                },
+                2
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "b",
+          "op": "eq",
+          "value": 20
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 1
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-100",
+    "derived": {
+      "a": 10,
+      "b": 20
+    },
+    "trace": [
+      {
+        "ruleId": "R-10",
+        "status": "fired",
+        "actions": [
+          {
+            "type": "set",
+            "field": "a",
+            "from": null,
+            "to": 10
+          }
+        ]
+      },
+      {
+        "ruleId": "R-20",
+        "status": "fired",
+        "actions": [
+          {
+            "type": "set",
+            "field": "b",
+            "from": null,
+            "to": 20
+          }
+        ]
+      },
+      {
+        "ruleId": "R-100",
+        "status": "fired"
+      },
+      {
+        "ruleId": "R-900",
+        "status": "skipped"
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "id": "C-14",
+  "name": "Derived field supplied",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c14",
+    "name": "conformance c14",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "a",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-10",
+        "label": "conformance rule R-10",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "a",
+            "value": 1
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 1,
+    "a": 5
+  },
+  "expected": {
+    "status": "CASE_INVALID",
+    "problems": [
+      {
+        "code": "CASE_DERIVED_SUPPLIED",
+        "field": "a"
+      }
+    ]
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "id": "C-17",
+  "name": "Decimal exactness",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c17",
+    "name": "conformance c17",
+    "language": "en",
+    "fields": [
+      {
+        "name": "a",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-10",
+        "label": "conformance rule R-10",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "a",
+            "value": {
+              "fn": "add",
+              "args": [
+                0.1,
+                0.2
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "a",
+          "op": "eq",
+          "value": 0.3
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {},
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-100",
+    "derived": {
+      "a": 0.3
+    },
+    "trace": [
+      {
+        "ruleId": "R-10",
+        "status": "fired"
+      },
+      {
+        "ruleId": "R-100",
+        "status": "fired",
+        "comparisons": [
+          {
+            "field": "a",
+            "op": "eq",
+            "actual": 0.3,
+            "result": true
+          }
+        ]
+      },
+      {
+        "ruleId": "R-900",
+        "status": "skipped"
+      }
+    ]
+  }
+}

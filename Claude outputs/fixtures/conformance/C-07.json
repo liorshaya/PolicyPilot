@@ -1,0 +1,165 @@
+{
+  "id": "C-07",
+  "name": "Every step traced",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c07",
+    "name": "conformance c07",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "x",
+          "op": "lt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-110",
+        "label": "conformance rule R-110",
+        "priority": 110,
+        "condition": {
+          "field": "x",
+          "op": "gt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-120",
+        "label": "conformance rule R-120",
+        "priority": 120,
+        "condition": {
+          "field": "x",
+          "op": "gt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-300",
+        "label": "conformance rule R-300",
+        "priority": 300,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "refer by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 5
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-110",
+    "trace": [
+      {
+        "ruleId": "R-100",
+        "status": "not_fired"
+      },
+      {
+        "ruleId": "R-110",
+        "status": "fired"
+      },
+      {
+        "ruleId": "R-120",
+        "status": "skipped"
+      },
+      {
+        "ruleId": "R-300",
+        "status": "skipped"
+      },
+      {
+        "ruleId": "R-900",
+        "status": "skipped"
+      }
+    ]
+  }
+}

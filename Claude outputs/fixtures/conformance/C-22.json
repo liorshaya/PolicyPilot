@@ -1,0 +1,100 @@
+{
+  "id": "C-22",
+  "name": "matches",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c22",
+    "name": "conformance c22",
+    "language": "en",
+    "fields": [
+      {
+        "name": "s",
+        "type": "string",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "s",
+          "op": "matches",
+          "value": "^IL[0-9]{2}"
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "checks": [
+    {
+      "case": {
+        "s": "IL12"
+      },
+      "expected": {
+        "status": "OK",
+        "outcome": "reject",
+        "decidingRuleId": "R-100"
+      }
+    },
+    {
+      "case": {
+        "s": "XX12"
+      },
+      "expected": {
+        "status": "OK",
+        "outcome": "approve",
+        "decidingRuleId": "R-900",
+        "trace": [
+          {
+            "ruleId": "R-100",
+            "status": "not_fired"
+          },
+          {
+            "ruleId": "R-900",
+            "status": "fired"
+          }
+        ]
+      }
+    }
+  ]
+}

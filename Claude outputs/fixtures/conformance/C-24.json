@@ -1,0 +1,120 @@
+{
+  "id": "C-24",
+  "name": "months_between",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c24",
+    "name": "conformance c24",
+    "language": "en",
+    "fields": [
+      {
+        "name": "d1",
+        "type": "date",
+        "required": true
+      },
+      {
+        "name": "d2",
+        "type": "date",
+        "required": true
+      },
+      {
+        "name": "m",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-10",
+        "label": "conformance rule R-10",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "m",
+            "value": {
+              "fn": "months_between",
+              "args": [
+                {
+                  "field": "d1"
+                },
+                {
+                  "field": "d2"
+                }
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "m",
+          "op": "eq",
+          "value": 13
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "d1": "2025-01-15",
+    "d2": "2026-03-10"
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-100",
+    "derived": {
+      "m": 13
+    }
+  }
+}

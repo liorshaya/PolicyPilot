@@ -1,0 +1,35 @@
+{
+  "id": "C-31",
+  "name": "Simulation leaves the original untouched",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": "policies/consumer-lending/ruleset.v1.json",
+  "policyText": "policies/consumer-lending/policy.he.md",
+  "context": "PUBLISH",
+  "notes": "The API returns basedOnDecisionId and stores nothing; the reference proves the base evaluation is unchanged",
+  "case": {
+    "age": 34,
+    "employment_type": "salaried",
+    "employment_months": 30,
+    "monthly_income": 9500,
+    "existing_monthly_debt": 1200,
+    "requested_amount": 60000,
+    "term_months": 48,
+    "credit_events_24m": 1
+  },
+  "overrides": {
+    "has_guarantor": true
+  },
+  "expected": {
+    "simulation": true,
+    "status": "OK",
+    "outcome": "approve",
+    "decidingRuleId": "R-900",
+    "overrides": {
+      "has_guarantor": true
+    }
+  },
+  "traceStatus": {
+    "R-330": "not_fired",
+    "R-900": "fired"
+  }
+}

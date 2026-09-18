@@ -1,0 +1,2345 @@
+{
+  "fixtureSet": "cases-200",
+  "rulesetId": "consumer-lending",
+  "rulesetVersion": 1,
+  "summary": {
+    "outcomes": {
+      "approve": 113,
+      "reject": 60,
+      "refer": 27
+    },
+    "topDecidingRules": [
+      {
+        "ruleId": "R-900",
+        "count": 113
+      },
+      {
+        "ruleId": "R-320",
+        "count": 11
+      },
+      {
+        "ruleId": "R-330",
+        "count": 11
+      },
+      {
+        "ruleId": "R-200",
+        "count": 8
+      },
+      {
+        "ruleId": "R-220",
+        "count": 8
+      }
+    ]
+  },
+  "regression": {
+    "changeRequestId": "cr-0001",
+    "flips": [
+      {
+        "id": 8,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 11,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 33,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 72,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 93,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 99,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 100,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 139,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 152,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 161,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 174,
+        "from": "approve",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      },
+      {
+        "id": 185,
+        "from": "refer",
+        "to": "reject",
+        "decidingRuleId": "R-170"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": 1,
+      "outcome": "reject",
+      "decidingRuleId": "R-100",
+      "derived": {
+        "monthly_installment": 2289.24,
+        "debt_to_income": 0.2747
+      },
+      "flags": []
+    },
+    {
+      "id": 2,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 498.2,
+        "debt_to_income": 0.1781
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 3,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 961.97,
+        "debt_to_income": 0.6766
+      },
+      "flags": []
+    },
+    {
+      "id": 4,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2268.56,
+        "debt_to_income": 0.2009
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 5,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2588.04,
+        "debt_to_income": 0.1858
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 6,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1110.15,
+        "debt_to_income": 0.1934
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 7,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 1494.59,
+        "debt_to_income": 0.2699
+      },
+      "flags": []
+    },
+    {
+      "id": 8,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.2018
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 9,
+      "outcome": "reject",
+      "decidingRuleId": "R-150",
+      "derived": {
+        "monthly_installment": 1939.78,
+        "debt_to_income": 0.1342
+      },
+      "flags": []
+    },
+    {
+      "id": 10,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 4420.16,
+        "debt_to_income": 0.1989
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 11,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 248.85,
+        "debt_to_income": 0.1645
+      },
+      "flags": []
+    },
+    {
+      "id": 12,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1245.5,
+        "debt_to_income": 0.2918
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 13,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1692.18,
+        "debt_to_income": 0.124
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 14,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 2364.08,
+        "debt_to_income": 0.3927
+      },
+      "flags": []
+    },
+    {
+      "id": 15,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3402.57,
+        "debt_to_income": 0.2049
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 16,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2878.14,
+        "debt_to_income": 0.2027
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 17,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 1493.1,
+        "debt_to_income": 0.2835
+      },
+      "flags": []
+    },
+    {
+      "id": 18,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 2512.18,
+        "debt_to_income": 0.2455
+      },
+      "flags": []
+    },
+    {
+      "id": 19,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3380.67,
+        "debt_to_income": 0.2612
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 20,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1203.98,
+        "debt_to_income": 0.2432
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 21,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2649.75,
+        "debt_to_income": 0.1968
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 22,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 2090.96,
+        "debt_to_income": 0.1078
+      },
+      "flags": []
+    },
+    {
+      "id": 23,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 788.36,
+        "debt_to_income": 0.1718
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 24,
+      "outcome": "reject",
+      "decidingRuleId": "R-100",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1665
+      },
+      "flags": []
+    },
+    {
+      "id": 25,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 975.64,
+        "debt_to_income": 0.291
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 26,
+      "outcome": "reject",
+      "decidingRuleId": "R-140",
+      "derived": {
+        "monthly_installment": 3434.37,
+        "debt_to_income": 0.2117
+      },
+      "flags": []
+    },
+    {
+      "id": 27,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1468.22,
+        "debt_to_income": 0.2242
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 28,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1112.99,
+        "debt_to_income": 0.2336
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 29,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 981.43,
+        "debt_to_income": 0.2683
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 30,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1748.99,
+        "debt_to_income": 0.2423
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 31,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2986.21,
+        "debt_to_income": 0.1513
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 32,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1448.02,
+        "debt_to_income": 0.0581
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 33,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2304.18,
+        "debt_to_income": 0.2838
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 34,
+      "outcome": "reject",
+      "decidingRuleId": "R-160",
+      "derived": {
+        "monthly_installment": 2200.39,
+        "debt_to_income": 0.1713
+      },
+      "flags": []
+    },
+    {
+      "id": 35,
+      "outcome": "refer",
+      "decidingRuleId": "R-310",
+      "derived": {
+        "monthly_installment": 2861.78,
+        "debt_to_income": 0.1616
+      },
+      "flags": []
+    },
+    {
+      "id": 36,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.169
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 37,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2512.18,
+        "debt_to_income": 0.2668
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 38,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 2451.47,
+        "debt_to_income": 0.2163
+      },
+      "flags": []
+    },
+    {
+      "id": 39,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1448.02,
+        "debt_to_income": 0.2313
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 40,
+      "outcome": "reject",
+      "decidingRuleId": "R-130",
+      "derived": {
+        "monthly_installment": 2124.28,
+        "debt_to_income": 0.1772
+      },
+      "flags": []
+    },
+    {
+      "id": 41,
+      "outcome": "reject",
+      "decidingRuleId": "R-120",
+      "derived": {
+        "monthly_installment": 4977.01,
+        "debt_to_income": 0.3558
+      },
+      "flags": []
+    },
+    {
+      "id": 42,
+      "outcome": "reject",
+      "decidingRuleId": "R-110",
+      "derived": {
+        "monthly_installment": 2101.5,
+        "debt_to_income": 0.2092
+      },
+      "flags": []
+    },
+    {
+      "id": 43,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 648.92,
+        "debt_to_income": 0.2018
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 44,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1879
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 45,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 788.82,
+        "debt_to_income": 0.1999
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 46,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3654.78,
+        "debt_to_income": 0.1701
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 47,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1685.39,
+        "debt_to_income": 0.1251
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 48,
+      "outcome": "reject",
+      "decidingRuleId": "R-115",
+      "derived": {
+        "monthly_installment": 8220.44,
+        "debt_to_income": 0.2986
+      },
+      "flags": []
+    },
+    {
+      "id": 49,
+      "outcome": "reject",
+      "decidingRuleId": "R-115",
+      "derived": {
+        "monthly_installment": 4579.16,
+        "debt_to_income": 0.186
+      },
+      "flags": []
+    },
+    {
+      "id": 50,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1222.77,
+        "debt_to_income": 0.2596
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 51,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 581.23,
+        "debt_to_income": 0.2454
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 52,
+      "outcome": "reject",
+      "decidingRuleId": "R-150",
+      "derived": {
+        "monthly_installment": 2381.18,
+        "debt_to_income": 0.2409
+      },
+      "flags": []
+    },
+    {
+      "id": 53,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 548.22,
+        "debt_to_income": 0.239
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 54,
+      "outcome": "reject",
+      "decidingRuleId": "R-110",
+      "derived": {
+        "monthly_installment": 685.27,
+        "debt_to_income": 0.2952
+      },
+      "flags": []
+    },
+    {
+      "id": 55,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1319.3,
+        "debt_to_income": 0.1229
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 56,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 180.26,
+        "debt_to_income": 0.1754
+      },
+      "flags": []
+    },
+    {
+      "id": 57,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3608.33,
+        "debt_to_income": 0.2452
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 58,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1464.11,
+        "debt_to_income": 0.0875
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 59,
+      "outcome": "reject",
+      "decidingRuleId": "R-130",
+      "derived": {
+        "monthly_installment": 1330.71,
+        "debt_to_income": 0.1243
+      },
+      "flags": []
+    },
+    {
+      "id": 60,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1176.59,
+        "debt_to_income": 0.1899
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 61,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1367.39,
+        "debt_to_income": 0.1205
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 62,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 332.13,
+        "debt_to_income": 0.1164
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 63,
+      "outcome": "reject",
+      "decidingRuleId": "R-120",
+      "derived": {
+        "monthly_installment": 197.2,
+        "debt_to_income": 0.0821
+      },
+      "flags": []
+    },
+    {
+      "id": 64,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1387.97,
+        "debt_to_income": 0.2091
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 65,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3974.97,
+        "debt_to_income": 0.2658
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 66,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 594.84,
+        "debt_to_income": 0.1282
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 67,
+      "outcome": "reject",
+      "decidingRuleId": "R-130",
+      "derived": {
+        "monthly_installment": 1215.97,
+        "debt_to_income": 0.1027
+      },
+      "flags": []
+    },
+    {
+      "id": 68,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2667.78,
+        "debt_to_income": 0.2842
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 69,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 1642.41,
+        "debt_to_income": 0.3784
+      },
+      "flags": []
+    },
+    {
+      "id": 70,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1681.43,
+        "debt_to_income": 0.2739
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 71,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2091.58,
+        "debt_to_income": 0.2958
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 72,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 804.45,
+        "debt_to_income": 0.1793
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 73,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 836.63,
+        "debt_to_income": 0.0783
+      },
+      "flags": []
+    },
+    {
+      "id": 74,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 3879.57,
+        "debt_to_income": 0.1983
+      },
+      "flags": []
+    },
+    {
+      "id": 75,
+      "outcome": "reject",
+      "decidingRuleId": "R-130",
+      "derived": {
+        "monthly_installment": 1801.98,
+        "debt_to_income": 0.1218
+      },
+      "flags": []
+    },
+    {
+      "id": 76,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1772
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 77,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 1233.49,
+        "debt_to_income": 0.2717
+      },
+      "flags": []
+    },
+    {
+      "id": 78,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2379.37,
+        "debt_to_income": 0.2626
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 79,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1798
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 80,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 248.85,
+        "debt_to_income": 0.2032
+      },
+      "flags": []
+    },
+    {
+      "id": 81,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1598.97,
+        "debt_to_income": 0.142
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 82,
+      "outcome": "reject",
+      "decidingRuleId": "R-115",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1776
+      },
+      "flags": []
+    },
+    {
+      "id": 83,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 5527.85,
+        "debt_to_income": 0.2704
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 84,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2712.47,
+        "debt_to_income": 0.2121
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 85,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 731.39,
+        "debt_to_income": 0.6914
+      },
+      "flags": []
+    },
+    {
+      "id": 86,
+      "outcome": "refer",
+      "decidingRuleId": "R-310",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1677
+      },
+      "flags": []
+    },
+    {
+      "id": 87,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1656
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 88,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2147.18,
+        "debt_to_income": 0.1763
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 89,
+      "outcome": "reject",
+      "decidingRuleId": "R-160",
+      "derived": {
+        "monthly_installment": 2257.78,
+        "debt_to_income": 0.1228
+      },
+      "flags": []
+    },
+    {
+      "id": 90,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 5072.19,
+        "debt_to_income": 0.2231
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 91,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 4722.38,
+        "debt_to_income": 0.2965
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 92,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2712.47,
+        "debt_to_income": 0.2452
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 93,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 675.74,
+        "debt_to_income": 0.1756
+      },
+      "flags": []
+    },
+    {
+      "id": 94,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1586.25,
+        "debt_to_income": 0.2616
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 95,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1461.91,
+        "debt_to_income": 0.1235
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 96,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1367.57,
+        "debt_to_income": 0.1126
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 97,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 2698.59,
+        "debt_to_income": 0.3902
+      },
+      "flags": []
+    },
+    {
+      "id": 98,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 739.05,
+        "debt_to_income": 0.2272
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 99,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1592.64,
+        "debt_to_income": 0.2292
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 100,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1536.12,
+        "debt_to_income": 0.2814
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 101,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 1049.39,
+        "debt_to_income": 0.258
+      },
+      "flags": []
+    },
+    {
+      "id": 102,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 2165.0,
+        "debt_to_income": 0.2465
+      },
+      "flags": []
+    },
+    {
+      "id": 103,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1383.66,
+        "debt_to_income": 0.2592
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 104,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 756.19,
+        "debt_to_income": 0.1089
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 105,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2013.56,
+        "debt_to_income": 0.0986
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 106,
+      "outcome": "refer",
+      "decidingRuleId": "R-310",
+      "derived": {
+        "monthly_installment": 6471.41,
+        "debt_to_income": 0.2884
+      },
+      "flags": []
+    },
+    {
+      "id": 107,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 995.4,
+        "debt_to_income": 0.1258
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 108,
+      "outcome": "reject",
+      "decidingRuleId": "R-160",
+      "derived": {
+        "monthly_installment": 1657.18,
+        "debt_to_income": 0.1272
+      },
+      "flags": []
+    },
+    {
+      "id": 109,
+      "outcome": "reject",
+      "decidingRuleId": "R-116",
+      "derived": {
+        "monthly_installment": 160.89,
+        "debt_to_income": 0.1364
+      },
+      "flags": []
+    },
+    {
+      "id": 110,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1681
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 111,
+      "outcome": "reject",
+      "decidingRuleId": "R-110",
+      "derived": {
+        "monthly_installment": 4165.76,
+        "debt_to_income": 0.1678
+      },
+      "flags": []
+    },
+    {
+      "id": 112,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3307.17,
+        "debt_to_income": 0.2993
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 113,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1219.37,
+        "debt_to_income": 0.2875
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 114,
+      "outcome": "reject",
+      "decidingRuleId": "R-120",
+      "derived": {
+        "monthly_installment": 128.71,
+        "debt_to_income": 0.122
+      },
+      "flags": []
+    },
+    {
+      "id": 115,
+      "outcome": "reject",
+      "decidingRuleId": "R-150",
+      "derived": {
+        "monthly_installment": 2786.77,
+        "debt_to_income": 0.2011
+      },
+      "flags": []
+    },
+    {
+      "id": 116,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1206.68,
+        "debt_to_income": 0.2972
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 117,
+      "outcome": "reject",
+      "decidingRuleId": "R-140",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1683
+      },
+      "flags": []
+    },
+    {
+      "id": 118,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 919.3,
+        "debt_to_income": 0.2872
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 119,
+      "outcome": "reject",
+      "decidingRuleId": "R-116",
+      "derived": {
+        "monthly_installment": 324.46,
+        "debt_to_income": 0.0694
+      },
+      "flags": []
+    },
+    {
+      "id": 120,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2861.78,
+        "debt_to_income": 0.2899
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 121,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2027.22,
+        "debt_to_income": 0.1828
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 122,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 5390.8,
+        "debt_to_income": 0.2914
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 123,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2433.45,
+        "debt_to_income": 0.2504
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 124,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1608.91,
+        "debt_to_income": 0.2207
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 125,
+      "outcome": "reject",
+      "decidingRuleId": "R-120",
+      "derived": {
+        "monthly_installment": 80.45,
+        "debt_to_income": 0.0823
+      },
+      "flags": []
+    },
+    {
+      "id": 126,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 4460.03,
+        "debt_to_income": 0.1682
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 127,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1224.32,
+        "debt_to_income": 0.0943
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 128,
+      "outcome": "reject",
+      "decidingRuleId": "R-140",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1646
+      },
+      "flags": []
+    },
+    {
+      "id": 129,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1679
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 130,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 373.28,
+        "debt_to_income": 0.257
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 131,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 2438.73,
+        "debt_to_income": 0.5598
+      },
+      "flags": []
+    },
+    {
+      "id": 132,
+      "outcome": "reject",
+      "decidingRuleId": "R-116",
+      "derived": {
+        "monthly_installment": 482.67,
+        "debt_to_income": 0.0566
+      },
+      "flags": []
+    },
+    {
+      "id": 133,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1907
+      },
+      "flags": []
+    },
+    {
+      "id": 134,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 1224.32,
+        "debt_to_income": 0.1997
+      },
+      "flags": []
+    },
+    {
+      "id": 135,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 6304.49,
+        "debt_to_income": 0.2783
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 136,
+      "outcome": "refer",
+      "decidingRuleId": "R-310",
+      "derived": {
+        "monthly_installment": 2162.38,
+        "debt_to_income": 0.2513
+      },
+      "flags": []
+    },
+    {
+      "id": 137,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 2639.38,
+        "debt_to_income": 0.5906
+      },
+      "flags": []
+    },
+    {
+      "id": 138,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1096.43,
+        "debt_to_income": 0.1783
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 139,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.3675
+      },
+      "flags": []
+    },
+    {
+      "id": 140,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 4340.05,
+        "debt_to_income": 0.205
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 141,
+      "outcome": "reject",
+      "decidingRuleId": "R-160",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1801
+      },
+      "flags": []
+    },
+    {
+      "id": 142,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1158.41,
+        "debt_to_income": 0.1347
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 143,
+      "outcome": "reject",
+      "decidingRuleId": "R-100",
+      "derived": {
+        "monthly_installment": 2671.18,
+        "debt_to_income": 0.1967
+      },
+      "flags": []
+    },
+    {
+      "id": 144,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1351.48,
+        "debt_to_income": 0.1037
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 145,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1651
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 146,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 2595.68,
+        "debt_to_income": 0.4597
+      },
+      "flags": []
+    },
+    {
+      "id": 147,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.1668
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 148,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 530.94,
+        "debt_to_income": 0.0455
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 149,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 933.17,
+        "debt_to_income": 0.1719
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 150,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2906.17,
+        "debt_to_income": 0.1559
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 151,
+      "outcome": "reject",
+      "decidingRuleId": "R-100",
+      "derived": {
+        "monthly_installment": 228.34,
+        "debt_to_income": 0.1858
+      },
+      "flags": []
+    },
+    {
+      "id": 152,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 522.74,
+        "debt_to_income": 0.3657
+      },
+      "flags": []
+    },
+    {
+      "id": 153,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 1099.56,
+        "debt_to_income": 0.4467
+      },
+      "flags": []
+    },
+    {
+      "id": 154,
+      "outcome": "reject",
+      "decidingRuleId": "R-140",
+      "derived": {
+        "monthly_installment": 4006.77,
+        "debt_to_income": 0.2768
+      },
+      "flags": []
+    },
+    {
+      "id": 155,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 5253.75,
+        "debt_to_income": 0.187
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 156,
+      "outcome": "reject",
+      "decidingRuleId": "R-110",
+      "derived": {
+        "monthly_installment": 1460.07,
+        "debt_to_income": 0.0833
+      },
+      "flags": []
+    },
+    {
+      "id": 157,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 332.13,
+        "debt_to_income": 0.173
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 158,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.3848
+      },
+      "flags": []
+    },
+    {
+      "id": 159,
+      "outcome": "reject",
+      "decidingRuleId": "R-115",
+      "derived": {
+        "monthly_installment": 5509.44,
+        "debt_to_income": 0.2141
+      },
+      "flags": []
+    },
+    {
+      "id": 160,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1515.36,
+        "debt_to_income": 0.1994
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 161,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 456.85,
+        "debt_to_income": 0.3924
+      },
+      "flags": []
+    },
+    {
+      "id": 162,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 563.12,
+        "debt_to_income": 0.1835
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 163,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2123.76,
+        "debt_to_income": 0.1297
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 164,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1876
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 165,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 826.79,
+        "debt_to_income": 0.2402
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 166,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 306.43,
+        "debt_to_income": 0.5479
+      },
+      "flags": []
+    },
+    {
+      "id": 167,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2878.14,
+        "debt_to_income": 0.2779
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 168,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2236.38,
+        "debt_to_income": 0.2593
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 169,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.1655
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 170,
+      "outcome": "reject",
+      "decidingRuleId": "R-116",
+      "derived": {
+        "monthly_installment": 739.05,
+        "debt_to_income": 0.2376
+      },
+      "flags": []
+    },
+    {
+      "id": 171,
+      "outcome": "reject",
+      "decidingRuleId": "R-116",
+      "derived": {
+        "monthly_installment": 2343.32,
+        "debt_to_income": 0.2792
+      },
+      "flags": []
+    },
+    {
+      "id": 172,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 594.84,
+        "debt_to_income": 0.3644
+      },
+      "flags": []
+    },
+    {
+      "id": 173,
+      "outcome": "reject",
+      "decidingRuleId": "R-150",
+      "derived": {
+        "monthly_installment": 2559.63,
+        "debt_to_income": 0.2269
+      },
+      "flags": []
+    },
+    {
+      "id": 174,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 874.51,
+        "debt_to_income": 0.2013
+      },
+      "flags": [
+        "INCOME_NEAR_MINIMUM",
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 175,
+      "outcome": "refer",
+      "decidingRuleId": "R-310",
+      "derived": {
+        "monthly_installment": 822.33,
+        "debt_to_income": 0.2977
+      },
+      "flags": []
+    },
+    {
+      "id": 176,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 497.7,
+        "debt_to_income": 0.0469
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 177,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 3658.1,
+        "debt_to_income": 0.2736
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 178,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1307.78,
+        "debt_to_income": 0.2129
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 179,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 502.53,
+        "debt_to_income": 0.2932
+      },
+      "flags": []
+    },
+    {
+      "id": 180,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 248.85,
+        "debt_to_income": 0.2113
+      },
+      "flags": []
+    },
+    {
+      "id": 181,
+      "outcome": "reject",
+      "decidingRuleId": "R-100",
+      "derived": {
+        "monthly_installment": 995.4,
+        "debt_to_income": 0.2375
+      },
+      "flags": []
+    },
+    {
+      "id": 182,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2588.04,
+        "debt_to_income": 0.234
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 183,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2830.18,
+        "debt_to_income": 0.2927
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 184,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 342.49,
+        "debt_to_income": 0.1936
+      },
+      "flags": []
+    },
+    {
+      "id": 185,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 432.61,
+        "debt_to_income": 0.1436
+      },
+      "flags": []
+    },
+    {
+      "id": 186,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 724.01,
+        "debt_to_income": 0.2628
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 187,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 1951.29,
+        "debt_to_income": 0.2665
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 188,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 2737.35,
+        "debt_to_income": 0.2582
+      },
+      "flags": []
+    },
+    {
+      "id": 189,
+      "outcome": "reject",
+      "decidingRuleId": "R-200",
+      "derived": {
+        "monthly_installment": 5771.8,
+        "debt_to_income": 0.5863
+      },
+      "flags": []
+    },
+    {
+      "id": 190,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2140.11,
+        "debt_to_income": 0.1754
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 191,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 2329.92,
+        "debt_to_income": 0.2125
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 192,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 884.9,
+        "debt_to_income": 0.1905
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 193,
+      "outcome": "approve",
+      "decidingRuleId": "R-900",
+      "derived": {
+        "monthly_installment": 413.4,
+        "debt_to_income": 0.0782
+      },
+      "flags": [
+        "STABLE_INCOME_MANUAL_CHECK"
+      ]
+    },
+    {
+      "id": 194,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 2003.38,
+        "debt_to_income": 0.1618
+      },
+      "flags": []
+    },
+    {
+      "id": 195,
+      "outcome": "refer",
+      "decidingRuleId": "R-330",
+      "derived": {
+        "monthly_installment": 2812.01,
+        "debt_to_income": 0.2571
+      },
+      "flags": []
+    },
+    {
+      "id": 196,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 965.34,
+        "debt_to_income": 0.3561
+      },
+      "flags": []
+    },
+    {
+      "id": 197,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 2989.17,
+        "debt_to_income": 0.3746
+      },
+      "flags": []
+    },
+    {
+      "id": 198,
+      "outcome": "reject",
+      "decidingRuleId": "R-220",
+      "derived": {
+        "monthly_installment": 2214.77,
+        "debt_to_income": 0.2251
+      },
+      "flags": []
+    },
+    {
+      "id": 199,
+      "outcome": "refer",
+      "decidingRuleId": "R-320",
+      "derived": {
+        "monthly_installment": 4006.77,
+        "debt_to_income": 0.3837
+      },
+      "flags": []
+    },
+    {
+      "id": 200,
+      "outcome": "reject",
+      "decidingRuleId": "R-170",
+      "derived": {
+        "monthly_installment": 1135.61,
+        "debt_to_income": 0.2531
+      },
+      "flags": []
+    }
+  ]
+}

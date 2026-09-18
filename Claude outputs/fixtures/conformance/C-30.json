@@ -1,0 +1,54 @@
+{
+  "id": "C-30",
+  "name": "Out-of-range case",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": "policies/consumer-lending/ruleset.v1.json",
+  "policyText": "policies/consumer-lending/policy.he.md",
+  "context": "PUBLISH",
+  "checks": [
+    {
+      "case": {
+        "age": 34,
+        "employment_type": "salaried",
+        "employment_months": 30,
+        "monthly_income": 9500,
+        "existing_monthly_debt": 1200,
+        "requested_amount": 60000,
+        "term_months": 0,
+        "credit_events_24m": 1
+      },
+      "expected": {
+        "status": "CASE_INVALID",
+        "problems": [
+          {
+            "code": "CASE_OUT_OF_RANGE",
+            "field": "term_months",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "case": {
+        "age": 34,
+        "employment_type": "salaried",
+        "employment_months": 30,
+        "monthly_income": 9500,
+        "existing_monthly_debt": -5000,
+        "requested_amount": 60000,
+        "term_months": 48,
+        "credit_events_24m": 1
+      },
+      "expected": {
+        "status": "CASE_INVALID",
+        "problems": [
+          {
+            "code": "CASE_OUT_OF_RANGE",
+            "field": "existing_monthly_debt",
+            "value": -5000
+          }
+        ]
+      }
+    }
+  ]
+}

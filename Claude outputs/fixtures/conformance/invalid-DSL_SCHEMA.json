@@ -1,0 +1,70 @@
+{
+  "code": "DSL_SCHEMA",
+  "name": "an unknown top-level key",
+  "spec": "Document 3, Static Validation",
+  "context": "PUBLISH",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "invalid-fixture",
+    "name": "conformance invalid-fixture",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "x",
+          "op": "lt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ],
+    "extra": 1
+  }
+}

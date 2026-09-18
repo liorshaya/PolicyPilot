@@ -1,0 +1,844 @@
+{
+  "code": "PROVENANCE_PENDING_AT_PUBLISH",
+  "name": "publishing a version that still carries pending provenance",
+  "spec": "Document 3, Static Validation",
+  "context": "PUBLISH",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "consumer-lending",
+    "name": "מדיניות אשראי צרכני - הלוואות אישיות",
+    "language": "he",
+    "description": "כללי אישור להלוואה אישית: זכאות, יכולת החזר והיסטוריית אשראי.",
+    "fields": [
+      {
+        "name": "age",
+        "type": "integer",
+        "unit": "years",
+        "required": true,
+        "minimum": 0,
+        "maximum": 120,
+        "description": "גיל המבקש בעת הגשת הבקשה",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 1,
+          "quote": "גילו 21 עד 70 בעת הגשת הבקשה"
+        }
+      },
+      {
+        "name": "requested_amount",
+        "type": "number",
+        "unit": "ILS",
+        "required": true,
+        "minimum": 0,
+        "description": "סכום ההלוואה המבוקש",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "סכום ההלוואה יהיה בין 10,000 ל-150,000 ש\"ח"
+        }
+      },
+      {
+        "name": "term_months",
+        "type": "integer",
+        "unit": "months",
+        "required": true,
+        "minimum": 1,
+        "description": "תקופת ההחזר בחודשים",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "תקופת ההחזר בין 12 ל-84 חודשים"
+        }
+      },
+      {
+        "name": "employment_type",
+        "type": "enum",
+        "values": [
+          "salaried",
+          "self_employed",
+          "retired",
+          "unemployed"
+        ],
+        "required": true,
+        "description": "מעמד תעסוקתי",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "שכיר בעל ותק של 6 חודשים לפחות במקום עבודתו הנוכחי, או עצמאי הפועל 24 חודשים לפחות, או גמלאי"
+        }
+      },
+      {
+        "name": "employment_months",
+        "type": "integer",
+        "unit": "months",
+        "required": false,
+        "minimum": 0,
+        "description": "ותק במקום העבודה הנוכחי, או חודשי פעילות כעצמאי",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "בעל ותק של 6 חודשים לפחות"
+        }
+      },
+      {
+        "name": "monthly_income",
+        "type": "number",
+        "unit": "ILS",
+        "required": true,
+        "minimum": 0,
+        "description": "הכנסה חודשית נטו; לעצמאי, הממוצע ב-12 החודשים האחרונים",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 4,
+          "quote": "ההכנסה החודשית נטו של המבקש לא תפחת מ-8,000 ש\"ח"
+        }
+      },
+      {
+        "name": "existing_monthly_debt",
+        "type": "number",
+        "unit": "ILS",
+        "required": true,
+        "minimum": 0,
+        "description": "סך ההחזרים החודשיים הקיימים",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 6,
+          "quote": "סך ההחזרים החודשיים הקיימים"
+        }
+      },
+      {
+        "name": "credit_events_24m",
+        "type": "integer",
+        "required": true,
+        "minimum": 0,
+        "description": "מספר אירועי אשראי שליליים ב-24 החודשים האחרונים",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 7,
+          "quote": "אירועי אשראי שליליים או יותר ב-24 החודשים האחרונים"
+        }
+      },
+      {
+        "name": "has_guarantor",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "האם הועמד ערב",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 7,
+          "quote": "יידרש להעמיד ערב"
+        }
+      },
+      {
+        "name": "monthly_installment",
+        "type": "number",
+        "unit": "ILS",
+        "derived": true,
+        "description": "ההחזר החודשי של ההלוואה המבוקשת לפי לוח שפיצר"
+      },
+      {
+        "name": "debt_to_income",
+        "type": "number",
+        "derived": true,
+        "description": "יחס החוב להכנסה: החזרים קיימים בתוספת ההחזר החדש, חלקי ההכנסה"
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "בקשה שלא הוכרעה על ידי הכללים תועבר לבדיקה ידנית"
+    },
+    "rules": [
+      {
+        "id": "R-010",
+        "label": "חישוב ההחזר החודשי לפי לוח שפיצר בריבית שנתית של 9%",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "monthly_installment",
+            "value": {
+              "fn": "round",
+              "args": [
+                {
+                  "fn": "div",
+                  "args": [
+                    {
+                      "fn": "mul",
+                      "args": [
+                        {
+                          "field": "requested_amount"
+                        },
+                        0.0075
+                      ]
+                    },
+                    {
+                      "fn": "sub",
+                      "args": [
+                        1,
+                        {
+                          "fn": "pow",
+                          "args": [
+                            1.0075,
+                            {
+                              "fn": "sub",
+                              "args": [
+                                0,
+                                {
+                                  "field": "term_months"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                2
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 5,
+          "quote": "ההחזר החודשי של ההלוואה יחושב לפי לוח שפיצר בריבית שנתית של 9%",
+          "confidence": 0.93
+        },
+        "tags": [
+          "derivation"
+        ]
+      },
+      {
+        "id": "R-020",
+        "label": "חישוב יחס החוב להכנסה",
+        "priority": 20,
+        "condition": {
+          "field": "monthly_income",
+          "op": "gt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "debt_to_income",
+            "value": {
+              "fn": "round",
+              "args": [
+                {
+                  "fn": "div",
+                  "args": [
+                    {
+                      "fn": "add",
+                      "args": [
+                        {
+                          "field": "existing_monthly_debt"
+                        },
+                        {
+                          "field": "monthly_installment"
+                        }
+                      ]
+                    },
+                    {
+                      "field": "monthly_income"
+                    }
+                  ]
+                },
+                4
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 6,
+          "quote": "סך ההחזרים החודשיים הקיימים בתוספת ההחזר החודשי של ההלוואה המבוקשת, חלקי ההכנסה החודשית נטו",
+          "confidence": 0.95
+        },
+        "tags": [
+          "derivation",
+          "affordability"
+        ]
+      },
+      {
+        "id": "R-100",
+        "label": "דחייה: גיל נמוך מ-21",
+        "priority": 100,
+        "condition": {
+          "field": "age",
+          "op": "lt",
+          "value": 21
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "גיל המבקש נמוך מגיל המינימום 21"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 1,
+          "quote": "גילו 21 עד 70 בעת הגשת הבקשה",
+          "confidence": 0.97
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-110",
+        "label": "דחייה: גיל מעל 70 (למעט גמלאים)",
+        "priority": 110,
+        "condition": {
+          "all": [
+            {
+              "field": "age",
+              "op": "gt",
+              "value": 70
+            },
+            {
+              "field": "employment_type",
+              "op": "ne",
+              "value": "retired"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "גיל המבקש עולה על גיל המקסימום 70"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 1,
+          "quote": "גילו 21 עד 70 בעת הגשת הבקשה",
+          "confidence": 0.9
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-115",
+        "label": "דחייה: גמלאי מעל גיל 75",
+        "priority": 115,
+        "condition": {
+          "all": [
+            {
+              "field": "employment_type",
+              "op": "eq",
+              "value": "retired"
+            },
+            {
+              "field": "age",
+              "op": "gt",
+              "value": 75
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "גמלאי מעל גיל 75 אינו זכאי להלוואה"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 8,
+          "quote": "גמלאים עד גיל 75 רשאים לקבל הלוואה",
+          "confidence": 0.92
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-116",
+        "label": "דחייה: תקופת ההחזר של גמלאי מסתיימת בגיל 78 או אחריו",
+        "priority": 116,
+        "condition": {
+          "all": [
+            {
+              "field": "employment_type",
+              "op": "eq",
+              "value": "retired"
+            },
+            {
+              "field": "age",
+              "op": "gte",
+              "value": {
+                "fn": "sub",
+                "args": [
+                  78,
+                  {
+                    "fn": "div",
+                    "args": [
+                      {
+                        "field": "term_months"
+                      },
+                      12
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "תקופת ההחזר חייבת להסתיים לפני גיל 78"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 8,
+          "quote": "תקופת ההחזר תסתיים לפני הגיעם לגיל 78",
+          "confidence": 0.9
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-120",
+        "label": "דחייה: סכום ההלוואה מחוץ לטווח 10,000 עד 150,000",
+        "priority": 120,
+        "condition": {
+          "not": {
+            "field": "requested_amount",
+            "op": "between",
+            "value": [
+              10000,
+              150000
+            ]
+          }
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "סכום ההלוואה חייב להיות בין 10,000 ל-150,000 ש\"ח"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "סכום ההלוואה יהיה בין 10,000 ל-150,000 ש\"ח",
+          "confidence": 0.98
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-130",
+        "label": "דחייה: תקופת ההחזר מחוץ לטווח 12 עד 84 חודשים",
+        "priority": 130,
+        "condition": {
+          "not": {
+            "field": "term_months",
+            "op": "between",
+            "value": [
+              12,
+              84
+            ]
+          }
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "תקופת ההחזר חייבת להיות בין 12 ל-84 חודשים"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "תקופת ההחזר בין 12 ל-84 חודשים",
+          "confidence": 0.98
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-140",
+        "label": "דחייה: מבקש מובטל",
+        "priority": 140,
+        "condition": {
+          "field": "employment_type",
+          "op": "eq",
+          "value": "unemployed"
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "מובטל אינו זכאי להלוואה"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "מובטל אינו זכאי להלוואה",
+          "confidence": 0.99
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-150",
+        "label": "דחייה: שכיר עם ותק נמוך מ-6 חודשים",
+        "priority": 150,
+        "condition": {
+          "all": [
+            {
+              "field": "employment_type",
+              "op": "eq",
+              "value": "salaried"
+            },
+            {
+              "field": "employment_months",
+              "op": "lt",
+              "value": 6
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "נדרש ותק של 6 חודשים לפחות במקום העבודה הנוכחי"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "שכיר בעל ותק של 6 חודשים לפחות במקום עבודתו הנוכחי",
+          "confidence": 0.96
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-160",
+        "label": "דחייה: עצמאי הפועל פחות מ-24 חודשים",
+        "priority": 160,
+        "condition": {
+          "all": [
+            {
+              "field": "employment_type",
+              "op": "eq",
+              "value": "self_employed"
+            },
+            {
+              "field": "employment_months",
+              "op": "lt",
+              "value": 24
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "נדרשת פעילות כעצמאי במשך 24 חודשים לפחות"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "עצמאי הפועל 24 חודשים לפחות",
+          "confidence": 0.96
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-170",
+        "label": "דחייה: הכנסה חודשית נטו נמוכה מ-8,000",
+        "priority": 170,
+        "condition": {
+          "field": "monthly_income",
+          "op": "lt",
+          "value": 9000
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "ההכנסה החודשית נטו נמוכה מהמינימום 8,000 ש\"ח"
+          }
+        ],
+        "provenance": {
+          "kind": "pending",
+          "changeRequestId": "cr-0001",
+          "rationale": "threshold raised per request"
+        },
+        "tags": [
+          "eligibility"
+        ]
+      },
+      {
+        "id": "R-200",
+        "label": "דחייה: יחס חוב להכנסה מעל 40%",
+        "priority": 200,
+        "condition": {
+          "field": "debt_to_income",
+          "op": "gt",
+          "value": 0.4
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "יחס החוב להכנסה עולה על 40%"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 6,
+          "quote": "לא יעלה על 40%",
+          "confidence": 0.97
+        },
+        "tags": [
+          "affordability"
+        ]
+      },
+      {
+        "id": "R-220",
+        "label": "דחייה: שני אירועי אשראי שליליים או יותר",
+        "priority": 220,
+        "condition": {
+          "field": "credit_events_24m",
+          "op": "gte",
+          "value": 2
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "שני אירועי אשראי שליליים או יותר ב-24 החודשים האחרונים"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 7,
+          "quote": "שני אירועי אשראי שליליים או יותר ב-24 החודשים האחרונים, בקשתו תידחה",
+          "confidence": 0.97
+        },
+        "tags": [
+          "credit_history"
+        ]
+      },
+      {
+        "id": "R-310",
+        "label": "בדיקה ידנית: ותק לא דווח",
+        "priority": 310,
+        "condition": {
+          "all": [
+            {
+              "field": "employment_type",
+              "op": "in",
+              "value": [
+                "salaried",
+                "self_employed"
+              ]
+            },
+            {
+              "field": "employment_months",
+              "op": "absent"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "לא ניתן לאמת ותק תעסוקתי ללא נתון"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "ותק חסר אינו ניתן לאימות אוטומטי; הופנה לבדיקה ידנית בהחלטת האנליסט",
+          "actor": "demo-analyst"
+        },
+        "tags": [
+          "eligibility",
+          "data_quality"
+        ]
+      },
+      {
+        "id": "R-320",
+        "label": "בדיקת חתם: יחס חוב להכנסה בין 35% ל-40%",
+        "priority": 320,
+        "condition": {
+          "field": "debt_to_income",
+          "op": "between",
+          "value": [
+            0.35,
+            0.4
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "יחס החוב להכנסה בין 35% ל-40% מחייב בדיקת חתם"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 6,
+          "quote": "בקשה שיחס החוב שלה בין 35% ל-40% תועבר לבדיקת חתם",
+          "confidence": 0.95
+        },
+        "tags": [
+          "affordability"
+        ]
+      },
+      {
+        "id": "R-330",
+        "label": "בדיקת חתם: אירוע אשראי אחד ללא ערב",
+        "priority": 330,
+        "condition": {
+          "all": [
+            {
+              "field": "credit_events_24m",
+              "op": "eq",
+              "value": 1
+            },
+            {
+              "field": "has_guarantor",
+              "op": "eq",
+              "value": false
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "נדרש ערב בשל אירוע אשראי אחד ב-24 החודשים האחרונים"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 7,
+          "quote": "מבקש עם אירוע אחד יידרש להעמיד ערב",
+          "confidence": 0.88
+        },
+        "tags": [
+          "credit_history"
+        ]
+      },
+      {
+        "id": "R-410",
+        "label": "סימון: הכנסה קרובה למינימום",
+        "priority": 410,
+        "condition": {
+          "field": "monthly_income",
+          "op": "between",
+          "value": [
+            8000,
+            9000
+          ]
+        },
+        "actions": [
+          {
+            "type": "flag",
+            "code": "INCOME_NEAR_MINIMUM",
+            "message": "ההכנסה בטווח של 1,000 ש\"ח מעל המינימום"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "סימון לתשומת לב החתם, ללא השפעה על ההחלטה",
+          "actor": "demo-analyst"
+        },
+        "tags": [
+          "advisory"
+        ]
+      },
+      {
+        "id": "R-420",
+        "label": "סימון: יציבות ההכנסה נבדקת ידנית",
+        "priority": 420,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "flag",
+            "code": "STABLE_INCOME_MANUAL_CHECK",
+            "message": "המדיניות דורשת הכנסה יציבה; הקריטריון אינו מוגדר ונבדק ידנית"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 4,
+          "quote": "המבקש יציג הכנסה יציבה",
+          "confidence": 0.9
+        },
+        "tags": [
+          "advisory",
+          "manual_criteria"
+        ]
+      },
+      {
+        "id": "R-900",
+        "label": "אישור: כל התנאים מתקיימים",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "הבקשה עומדת בכל תנאי המדיניות"
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 9,
+          "quote": "בקשה העומדת בכל התנאים לעיל תאושר",
+          "confidence": 0.96
+        },
+        "tags": [
+          "outcome"
+        ]
+      }
+    ]
+  },
+  "policyText": "policies/consumer-lending/policy.he.md"
+}

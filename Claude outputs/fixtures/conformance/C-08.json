@@ -1,0 +1,122 @@
+{
+  "id": "C-08",
+  "name": "Full comparison recording",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c08",
+    "name": "conformance c08",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "all": [
+            {
+              "field": "x",
+              "op": "gt",
+              "value": 100
+            },
+            {
+              "field": "x",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "field": "x",
+              "op": "lt",
+              "value": 1000
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 5
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "approve",
+    "trace": [
+      {
+        "ruleId": "R-100",
+        "status": "not_fired",
+        "comparisons": [
+          {
+            "field": "x",
+            "op": "gt",
+            "expected": 100,
+            "actual": 5,
+            "result": false
+          },
+          {
+            "field": "x",
+            "op": "gt",
+            "expected": 0,
+            "actual": 5,
+            "result": true
+          },
+          {
+            "field": "x",
+            "op": "lt",
+            "expected": 1000,
+            "actual": 5,
+            "result": true
+          }
+        ]
+      },
+      {
+        "ruleId": "R-900",
+        "status": "fired"
+      }
+    ]
+  }
+}

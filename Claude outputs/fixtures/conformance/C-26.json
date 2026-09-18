@@ -1,0 +1,13 @@
+{
+  "id": "C-26",
+  "name": "Byte-identical trace",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": "policies/consumer-lending/ruleset.v1.json",
+  "policyText": "policies/consumer-lending/policy.he.md",
+  "context": "PUBLISH",
+  "cases": "policies/consumer-lending/cases-200.json",
+  "expected": {
+    "byteIdentical": true,
+    "count": 200
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "C-06",
+  "name": "Default outcome",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c06",
+    "name": "conformance c06",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "nothing decided"
+    },
+    "rules": [
+      {
+        "id": "R-100",
+        "label": "conformance rule R-100",
+        "priority": 100,
+        "condition": {
+          "field": "x",
+          "op": "gt",
+          "value": 100
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 1
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "refer",
+    "reason": "nothing decided",
+    "decidingRuleId": null,
+    "terminal": false,
+    "candidates": []
+  }
+}

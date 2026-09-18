@@ -1,0 +1,32 @@
+{
+  "id": "C-27",
+  "name": "Rejection precedes referral",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": "policies/consumer-lending/ruleset.v1.json",
+  "policyText": "policies/consumer-lending/policy.he.md",
+  "context": "PUBLISH",
+  "case": {
+    "age": 34,
+    "employment_type": "salaried",
+    "employment_months": 30,
+    "monthly_income": 9500,
+    "existing_monthly_debt": 2020,
+    "requested_amount": 60000,
+    "term_months": 48,
+    "credit_events_24m": 2
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "reject",
+    "decidingRuleId": "R-220",
+    "derived": {
+      "debt_to_income": 0.3698
+    }
+  },
+  "traceStatus": {
+    "R-220": "fired",
+    "R-320": "skipped",
+    "R-330": "skipped",
+    "R-900": "skipped"
+  }
+}

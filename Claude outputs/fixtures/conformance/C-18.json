@@ -1,0 +1,79 @@
+{
+  "id": "C-18",
+  "name": "Division rounding",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c18",
+    "name": "conformance c18",
+    "language": "en",
+    "fields": [
+      {
+        "name": "a",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-10",
+        "label": "conformance rule R-10",
+        "priority": 10,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "a",
+            "value": {
+              "fn": "div",
+              "args": [
+                1,
+                3
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {},
+  "expected": {
+    "status": "OK",
+    "outcome": "approve",
+    "derived": {
+      "a": 0.333333333333
+    }
+  }
+}

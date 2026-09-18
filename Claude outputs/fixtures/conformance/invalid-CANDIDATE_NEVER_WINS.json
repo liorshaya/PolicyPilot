@@ -1,0 +1,69 @@
+{
+  "code": "CANDIDATE_NEVER_WINS",
+  "name": "a non-terminal candidate before an always terminal approve",
+  "spec": "Document 3, Static Validation",
+  "context": "PUBLISH",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "invalid-fixture",
+    "name": "conformance invalid-fixture",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-300",
+        "label": "conformance rule R-300",
+        "priority": 300,
+        "condition": {
+          "field": "x",
+          "op": "gt",
+          "value": 5
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": false,
+            "reason": "refer by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  }
+}

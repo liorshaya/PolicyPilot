@@ -1,0 +1,101 @@
+{
+  "id": "C-11",
+  "name": "Default applied",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c11",
+    "name": "conformance c11",
+    "language": "en",
+    "fields": [
+      {
+        "name": "x",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "has_guarantor",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-300",
+        "label": "conformance rule R-300",
+        "priority": 300,
+        "condition": {
+          "field": "has_guarantor",
+          "op": "eq",
+          "value": false
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "refer by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "x": 1
+  },
+  "expected": {
+    "status": "OK",
+    "outcome": "refer",
+    "decidingRuleId": "R-300",
+    "trace": [
+      {
+        "ruleId": "R-300",
+        "status": "fired",
+        "comparisons": [
+          {
+            "field": "has_guarantor",
+            "op": "eq",
+            "expected": false,
+            "actual": false,
+            "result": true
+          }
+        ]
+      },
+      {
+        "ruleId": "R-900",
+        "status": "skipped"
+      }
+    ]
+  }
+}

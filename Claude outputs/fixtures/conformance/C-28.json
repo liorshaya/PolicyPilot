@@ -1,0 +1,126 @@
+{
+  "id": "C-28",
+  "name": "Absent derived field is loud",
+  "spec": "Document 3, Conformance Suite",
+  "ruleset": {
+    "dslVersion": "1.0",
+    "id": "c28",
+    "name": "conformance c28",
+    "language": "en",
+    "fields": [
+      {
+        "name": "income",
+        "type": "number",
+        "required": true,
+        "minimum": 0
+      },
+      {
+        "name": "d",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "defaults": {
+      "outcome": "refer",
+      "reason": "default outcome of the fixture"
+    },
+    "rules": [
+      {
+        "id": "R-20",
+        "label": "conformance rule R-20",
+        "priority": 20,
+        "condition": {
+          "field": "income",
+          "op": "gt",
+          "value": 0
+        },
+        "actions": [
+          {
+            "type": "set",
+            "field": "d",
+            "value": {
+              "fn": "div",
+              "args": [
+                100,
+                {
+                  "field": "income"
+                }
+              ]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-200",
+        "label": "conformance rule R-200",
+        "priority": 200,
+        "condition": {
+          "field": "d",
+          "op": "gt",
+          "value": 0.5
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "reject by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "conformance rule R-900",
+        "priority": 900,
+        "condition": {
+          "always": true
+        },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "approve by fixture rule"
+          }
+        ],
+        "provenance": {
+          "kind": "analyst",
+          "note": "conformance fixture, written by hand from Document 3",
+          "actor": "spec"
+        }
+      }
+    ]
+  },
+  "case": {
+    "income": 0
+  },
+  "expected": {
+    "status": "ERROR",
+    "errorCode": "EVAL_DERIVED_ABSENT",
+    "errorRuleId": "R-200",
+    "trace": [
+      {
+        "ruleId": "R-20",
+        "status": "not_fired"
+      },
+      {
+        "ruleId": "R-200",
+        "status": "error",
+        "error": {
+          "code": "EVAL_DERIVED_ABSENT",
+          "detail": "d"
+        }
+      }
+    ]
+  }
+}
