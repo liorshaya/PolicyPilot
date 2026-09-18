@@ -67,8 +67,8 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] Fixtures committed as delivered (tree, conformance and invalid files, generator, change request, cases): `change-request-1.json`, `generate_cases.py` with `cases-200.json` and `cases-expected.json`; reference self-test and generator assertions in stage 2; CI re-runs the generator and diffs
 - [x] Railway: API service from `backend/`, database, environment variables, health check, deploy only from green `main`
 - [x] Vercel: project from `frontend/`, `VITE_API_BASE_URL`, the domain, the static access gate page
-- [ ] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest (health check done; the phone photo is pending; the digest deploy is an open decision)
-- [ ] `docs/worklog.md` started; gate G0 proof written in it (written, except the phone photo)
+- [ ] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest (health check and the gate page done; the digest deploy is an open decision)
+- [x] `docs/worklog.md` started; gate G0 proof written in it
 
 ## Phase 1, Core (days 2 to 7)
 
@@ -230,7 +230,7 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 ## Gates
 
-- [ ] G0, day 1: compose plus one command under 5 minutes; CI stages 1, 2, 4 and 6 green; health check on Railway; gate page on Vercel; fixtures committed with the reference self-test in stage 2
+- [x] G0, day 1: compose plus one command under 5 minutes; CI stages 1, 2, 4 and 6 green; health check on Railway; gate page on Vercel; fixtures committed with the reference self-test in stage 2
 - [ ] G1, day 7: C-01 to C-31 pass in Java and Python; `engine` and `rules` at 100% line and PIT at least 90%; 200 cases under 1 s and twice byte-identical; decisions persisted; author schema-valid in at least 9 of 10 recorded runs; steps 1 (without flags) and 2 through the panel on the cloud site
 - [ ] ~~G2, day 11: step 1 complete and step 3 on the cloud site; retrieval recall at 8, citation and refusal accuracy at target; RT-01 to RT-03 and RT-05 to RT-10 pass; first token under 3 s for cached questions~~ (not in the two-week version)
 - [ ] ~~G3, day 15: step 4 end to end with exactly 12 flips and version 1 unchanged; RT-04; change correctness 5 of 6; second-domain fixture loaded; report with both provider columns~~ (rung 10)
