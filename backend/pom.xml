@@ -26,6 +26,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <!-- Spring Boot 4.0.8 manages Tomcat 11.0.24, which carries three critical CVEs fixed in 11.0.25
+             (CVE-2026-65182, CVE-2026-65905, CVE-2026-68525), found by Trivy in CI stage 6 on 2026-09-18.
+             Remove this override once a Spring Boot 4.0.x release manages Tomcat 11.0.25 or later. -->
+        <tomcat.version>11.0.26</tomcat.version>
         <spring-ai.version>2.0.1</spring-ai.version>
         <springdoc.version>3.0.3</springdoc.version>
         <archunit.version>1.5.0</archunit.version>

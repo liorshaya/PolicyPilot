@@ -217,7 +217,7 @@ jobs:
       packages: write
     outputs:
       image: ${{ steps.tags.outputs.image }}
-      digest: ${{ steps.build.outputs.digest }}
+      digest: ${{ steps.push.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -228,22 +228,19 @@ jobs:
           tags="${image}:sha-${GITHUB_SHA::7}"
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then tags="${tags},${image}:main"; fi
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then tags="${tags},${image}:${GITHUB_REF_NAME}"; fi
-          echo "image=${image}" >> "$GITHUB_OUTPUT"
-          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
-          echo "scan_ref=${image}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        if: github.event_name != 'pull_request'
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build the backend image (pushed to GHCR on main and tags)
-        id: build
+          {
+            echo "image=${image}"
+            echo "tags=${tags}"
+            echo "scan_ref=${image}:sha-${GITHUB_SHA::7}"
+          } >> "$GITHUB_OUTPUT"
+      # Nothing leaves the runner before the scan: the image is loaded into the local engine, scanned, and only
+      # an image that passed is pushed (Document 5: a failing security gate stops the deployment).
+      - name: Build the backend image into the local engine
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: backend
-          push: ${{ github.event_name != 'pull_request' }}
-          load: ${{ github.event_name == 'pull_request' }}
+          load: true
+          push: false
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -256,14 +253,40 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the scanned image to GitHub Container Registry (main and tags only)
+        id: push
+        if: github.event_name != 'pull_request'
+        env:
+          TAGS: ${{ steps.tags.outputs.tags }}
+          SCAN_REF: ${{ steps.tags.outputs.scan_ref }}
+        run: |
+          IFS=',' read -ra tag_list <<< "$TAGS"
+          for tag in "${tag_list[@]}"; do
+            docker push --quiet "$tag"
+          done
+          digest=$(docker buildx imagetools inspect "$SCAN_REF" --format '{{.Manifest.Digest}}')
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
       - name: Record the image digest
+        env:
+          SCAN_REF: ${{ steps.tags.outputs.scan_ref }}
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           {
             echo "### Backend image"
             echo ""
-            echo "- image: \`${{ steps.tags.outputs.scan_ref }}\`"
-            echo "- digest: \`${{ steps.build.outputs.digest }}\`"
-            echo "- pushed: ${{ github.event_name != 'pull_request' }}"
+            echo "- image: \`${SCAN_REF}\`"
+            echo "- Trivy: passed (High and Critical, fixed vulnerabilities only)"
+            if [ -n "$DIGEST" ]; then
+              echo "- pushed digest: \`${DIGEST}\`"
+            else
+              echo "- pushed: no (pull request build)"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
