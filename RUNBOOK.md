@@ -230,7 +230,8 @@ echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 
    ```
 
    אם Railway מתחיל לפרוס מיד והשירות נופל, זה צפוי: חסרים לו עדיין המשתנים. ממשיכים בשלבים.
-2. בהגדרות השירות: שם השירות `postgres`, ואזור (Region) EU West, Amsterdam. זה האזור הקרוב לישראל.
+2. Railway קורא לשירות `pgvector` לפי שם האימג', ומשאירים את השם הזה. בהגדרות השירות, בחלק Regions & Replicas,
+   בוחרים EU West, Amsterdam, עם עותק אחד. זה האזור הקרוב לישראל.
 3. דיסק קבוע: לחיצה ימנית על השירות, Attach Volume, ונתיב העגינה:
 
    ```
@@ -274,7 +275,7 @@ echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 
    | --- | --- |
    | `OPENAI_API_KEY` | המפתח מסעיף 7.2 |
    | `SPRING_PROFILES_ACTIVE` | `openai,cloud` |
-   | `DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
+   | `DATABASE_URL` | `${{pgvector.DATABASE_URL}}` |
    | `POLICYPILOT_ACCESS_CODE` | הערך משלב א |
    | `POLICYPILOT_COOKIE_SECRET` | הערך משלב א |
    | `POLICYPILOT_ADMIN_CODE` | הערך משלב א |
