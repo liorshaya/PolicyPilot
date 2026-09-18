@@ -82,7 +82,8 @@ gh run list --limit 10                            recent CI runs; gh run view <i
   changed); a red pipeline is fixed before any new test is written. Coverage thresholds are never lowered to
   pass; PIT on `engine` and `rules` becomes a hard gate on day 3 (`pitest.failWhenNoMutations` in the pom).
 - No secrets anywhere in the repository: `.env` is ignored, `.env.example` lists names only, gitleaks runs in
-  CI and as the pre-commit hook (`make hooks`).
+  CI and as the pre-commit hook (`make hooks`). Stage 1 scans every branch it fetches: a secret on any branch turns
+  stage 1 red for every run until that branch or commit is gone. `main` is protected: pull requests only.
 - CI stage 6 loads the image, scans it with Trivy and pushes only an image that passed. A High or Critical
   finding with a fix is resolved by moving the library to the fixed version, never by relaxing the scan.
 - Dependabot (`.github/dependabot.yml`) opens grouped weekly pull requests inside the documented version lines
