@@ -205,39 +205,107 @@ main עצמו לא מקבל דחיפות ישירות.
 
 ### 7.3 Railway (השרת ומסד הנתונים)
 
-1. ליצור פרויקט חדש.
-2. להוסיף מסד נתונים מהתבנית **pgvector** (PostgreSQL עם ההרחבה). התבנית קיימת בקטלוג של Railway.
-3. להוסיף שירות מהריפו ב-GitHub. בהגדרות השירות: **Root Directory** = `backend`. Railway מזהה את ה-Dockerfile
-   ובונה ממנו.
-4. משתני הסביבה של השירות (Variables). השמות חייבים להיות בדיוק אלה:
+עושים את Railway לפני Vercel: כתובת השרת נכנסת לתוך האפליקציה בזמן הבנייה, ולכן כדאי שהיא תהיה מוכנה קודם.
+
+**שלב א: ארבעה ערכים סודיים.** מריצים בטרמינל פעם אחת. הפלט הוא ארבע שורות, כל אחת עם שם וערך חדש. שומרים
+אותן במנהל הסיסמאות. את קוד הגישה מקלידים בדף השער של הדמו, ולכן הוא שמונה אותיות קטנות שנוח להקליד.
+
+```
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+echo "POLICYPILOT_ACCESS_CODE=$(LC_ALL=C tr -dc 'a-z' </dev/urandom | head -c 8)"
+echo "POLICYPILOT_COOKIE_SECRET=$(openssl rand -hex 32)"
+echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 16)"
+```
+
+**שלב ב: פרויקט.** נכנסים ל-railway.com עם חשבון ה-GitHub, יוצרים פרויקט חדש מסוג Empty Project, ובהגדרות
+הפרויקט משנים את השם ל-PolicyPilot.
+
+**שלב ג: מסד הנתונים.** לא משתמשים בתבנית pgvector מהקטלוג של Railway: היא מריצה PostgreSQL 18, והפרויקט עובד
+על 16, בדיוק כמו במחשב וב-CI. במקום זה יוצרים שירות מהאימג' עצמו.
+
+1. בלוח הפרויקט: Create, ואז Docker Image, ומקלידים את שם האימג':
+
+   ```
+   pgvector/pgvector:pg16
+   ```
+
+   אם Railway מתחיל לפרוס מיד והשירות נופל, זה צפוי: חסרים לו עדיין המשתנים. ממשיכים בשלבים.
+2. בהגדרות השירות: שם השירות `postgres`, ואזור (Region) EU West, Amsterdam. זה האזור הקרוב לישראל.
+3. דיסק קבוע: לחיצה ימנית על השירות, Attach Volume, ונתיב העגינה:
+
+   ```
+   /var/lib/postgresql/data
+   ```
+
+4. משתני הסביבה של השירות (Variables):
+
+   | שם | ערך |
+   | --- | --- |
+   | `POSTGRES_USER` | `postgres` |
+   | `POSTGRES_PASSWORD` | הערך משלב א |
+   | `POSTGRES_DB` | `policypilot` |
+   | `PGDATA` | `/var/lib/postgresql/data/pgdata` |
+   | `DATABASE_URL` | `postgresql://${{POSTGRES_USER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:5432/${{POSTGRES_DB}}` |
+
+   את השורה האחרונה מעתיקים כמו שהיא. Railway ממלא בעצמו את החלקים שבסוגריים המסולסלים.
+5. לוחצים Deploy. בלוג של השירות צריכה להופיע השורה `database system is ready to accept connections`.
+6. לא מוסיפים למסד כתובת ציבורית. השרת מגיע אליו דרך הרשת הפנימית של Railway בלבד.
+
+**שלב ד: השרת.**
+
+1. בלוח הפרויקט: Create, ואז GitHub Repo, ובוחרים `liorshaya/PolicyPilot`. אם Railway מבקש הרשאה ב-GitHub,
+   מאשרים לו גישה למאגר הזה.
+2. בהגדרות השירות:
+
+   | הגדרה | ערך |
+   | --- | --- |
+   | שם השירות | `backend` |
+   | Root Directory | `/backend` |
+   | Branch | `main` |
+   | Wait for CI | מופעל. אם המתג לא מופיע, מאשרים את ההרשאות המעודכנות של Railway בדף ההתקנות של GitHub, בכתובת github.com/settings/installations |
+   | Railway Config File | `/backend/railway.json` |
+   | Region | EU West, Amsterdam, כמו המסד |
+
+   קובץ ההגדרות שבריפו כבר קובע את השאר: בנייה מה-Dockerfile, בדיקת בריאות בנתיב `/actuator/health`, הפעלה
+   מחדש כשהשרת נופל, מופע אחד בלבד, ובנייה מחדש רק כשמשתנה משהו בתיקיית backend.
+3. משתני הסביבה של השירות:
 
    | שם | ערך |
    | --- | --- |
    | `OPENAI_API_KEY` | המפתח מסעיף 7.2 |
-   | `POLICYPILOT_ACCESS_CODE` | קוד הגישה לדמו: שמונה אותיות קטנות באנגלית, שנוח להקליד בכל מקלדת |
-   | `POLICYPILOT_COOKIE_SECRET` | מחרוזת אקראית ארוכה (32 תווים ומעלה) |
-   | `POLICYPILOT_ADMIN_CODE` | קוד נפרד לאיפוס הדמו |
    | `SPRING_PROFILES_ACTIVE` | `openai,cloud` |
-   | `DATABASE_URL` | הפניה למסד הנתונים: בוחרים "Add Reference" ומצביעים על המשתנה DATABASE_URL של שירות ה-Postgres. השרת מקבל את הפורמט של Railway כמו שהוא. |
+   | `DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
+   | `POLICYPILOT_ACCESS_CODE` | הערך משלב א |
+   | `POLICYPILOT_COOKIE_SECRET` | הערך משלב א |
+   | `POLICYPILOT_ADMIN_CODE` | הערך משלב א |
 
-5. **Health check:** בהגדרות השירות, Healthcheck Path = `/actuator/health`. Railway מפעיל מחדש שירות שלא עונה.
-6. **פריסה רק מ-main ירוק:** בהגדרות השירות, תחת Deploy, להפעיל את האפשרות שממתינה לבדיקות של GitHub לפני
-   פריסה (Wait for CI). כך פריסה קורית רק כשה-CI ירוק.
-7. **דומיין ציבורי:** ליצור דומיין לשירות (Railway נותן כתובת `*.up.railway.app`). זו הכתובת שהאפליקציה תפנה אליה.
-8. **הוכחה:** מהדפדפן בטלפון פותחים את הכתובת עם `/actuator/health` בסופה ורואים `{"status":"UP"}`.
+   את `PORT` לא מגדירים: Railway מספק אותו לבד, והשרת מקשיב עליו.
+4. לוחצים Deploy. הבנייה הראשונה לוקחת כמה דקות. בלוג מופיעות השורות `Using detected Dockerfile!` ובסוף
+   `Started PolicyPilotApplication`. הפריסה נחשבת גמורה רק אחרי שבדיקת הבריאות ענתה.
+5. כתובת ציבורית: Settings, Networking, Generate Domain. Railway מזהה לבד את הפורט. מקבלים כתובת שמסתיימת
+   ב-`.up.railway.app`, ושומרים אותה בשביל Vercel.
+6. **הוכחה:** פותחים מהטלפון את הכתובת עם `/actuator/health` בסופה. בתשובה צריך להופיע `"status":"UP"`.
 
-   אין צורך במשתנה `PORT`: Railway מספק אותו והשרת מקשיב עליו אוטומטית.
+מעכשיו כל שינוי בתיקיית backend שנכנס ל-main נפרס לבד. הפריסה ממתינה במצב WAITING עד שה-CI מסתיים, ואם
+ה-CI נכשל, היא מדלגת על ה-commit הזה.
 
 ### 7.4 Vercel (האפליקציה)
 
-1. לייבא את הריפו מ-GitHub. **Root Directory** = `frontend`. Framework = Vite (מזוהה אוטומטית).
-2. משתנה סביבה: `VITE_API_BASE_URL` = הכתובת הציבורית של השרת ב-Railway, עם `https://` ובלי לוכסן בסוף.
-3. דומיין: להוסיף `policypilot.liorshaya.com` בהגדרות הפרויקט; Vercel מציג את רשומת ה-DNS (CNAME) שצריך
-   להוסיף אצל ספק הדומיין של liorshaya.com.
-4. **הוכחה:** דף השער נפתח מהטלפון בכתובת הזו.
+1. מייבאים את הריפו מ-GitHub. Project Name: `policypilot`. Root Directory: `frontend`. Application Preset: Vite,
+   מזוהה לבד.
+2. את Build and Output Settings משאירים כמו שהם: קובץ ההגדרות של Vercel שבתיקייה קובע את אותם ערכים.
+3. **משתני הסביבה.** Vercel מזהה שבעה שמות מקובץ הדוגמה שבשורש הריפו. כולם של השרת, וביניהם מפתח OpenAI.
+   מוחקים את כל השבעה ולא ממלאים בהם כלום. מוסיפים משתנה אחד בלבד, `VITE_API_BASE_URL`, שהערך שלו הוא
+   הכתובת מסעיף 7.3, עם `https://` בהתחלה ובלי לוכסן בסוף.
+4. Deploy.
+5. דומיין: בהגדרות הפרויקט, בלשונית Domains, מוסיפים `policypilot.liorshaya.com`. Vercel מציג את רשומת ה-DNS
+   שצריך להוסיף אצל ספק הדומיין של liorshaya.com.
+6. **הוכחה:** דף השער נפתח מהטלפון בכתובת הזו.
 
-הערה ליום 4: כשהדלת הקדמית תיבנה, השרת יצטרך לדעת את הכתובת של האפליקציה ב-Vercel (בשביל CORS). זה משתנה
-סביבה נוסף שיתווסף אז.
+אם משנים את `VITE_API_BASE_URL` אחרי הפריסה, צריך ללחוץ Redeploy: הכתובת נצרבת לתוך האפליקציה בזמן הבנייה.
+
+הערה ליום 4: כשהדלת הקדמית תיבנה, השרת יצטרך לדעת את הכתובת של האפליקציה ב-Vercel, בשביל CORS. זה משתנה
+סביבה נוסף ב-Railway שיתווסף אז.
 
 ### 7.5 Ollama (אופציונלי, למודל מקומי)
 
@@ -292,7 +360,9 @@ ollama pull bge-m3
 | ה-CI אדום בשלב 6, בסריקת האימג' | נמצאה חולשה חמורה, שיש לה תיקון, באחת הספריות שבתוך האימג' | לעדכן את הספרייה לגרסה המתוקנת. כך טופל Tomcat ב-18.9: הגרסה המתוקנת ננעלה בקובץ הבנייה של השרת |
 | pull request של Dependabot אדום | העדכון לא מסתדר עם שאר הגרסאות | לא למזג. לבקש מ-Claude לבדוק, או לסגור אם הוא מציע גרסה שהמסמכים לא מתירים |
 | ה-CI מציג אזהרה בשלב 4 על Dependency-Check | אין סוד `NVD_API_KEY` | סעיף 7.1 |
-| השרת ב-Railway לא עולה, בלוג שגיאת חיבור למסד | `DATABASE_URL` לא מוגדר כהפניה למסד | סעיף 7.3, שורה 4 |
+| השרת ב-Railway לא עולה, בלוג שגיאת חיבור למסד | `DATABASE_URL` של השרת לא מפנה למסד, או שהמסד עצמו לא רץ | סעיף 7.3, שלב ד3; ובלוג של שירות המסד לבדוק שמופיעה השורה על קבלת חיבורים |
+| הפריסה ב-Railway תקועה במצב WAITING | Railway ממתין שה-CI יסתיים ב-GitHub | תקין. זה לוקח כמה דקות; אם ה-CI נכשל, הפריסה מדלגת על ה-commit |
+| הפריסה ב-Railway נכשלת אחרי חמש דקות בבדיקת הבריאות | השרת לא עלה: חסר משתנה, בדרך כלל מפתח OpenAI, או שאין חיבור למסד | לפתוח את הלוג של הפריסה ולחפש את השגיאה הראשונה |
 | השרת ב-Railway עולה אבל האפליקציה לא מצליחה לדבר איתו | `VITE_API_BASE_URL` שגוי, או שהדלת הקדמית של יום 4 עדיין לא קיימת | לבדוק את הכתובת ב-Vercel; עד יום 4 האפליקציה היא דף שער סטטי בלבד |
 
 ---

@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # PolicyPilot backend image (Document 5, Supply Chain: multi-stage, pinned images referenced by digest,
 # non-root runtime user, no tools beyond the base image). Built once in CI stage 6, scanned by Trivy.
 
@@ -7,12 +6,14 @@
 FROM maven:3.9.16-eclipse-temurin-21-noble@sha256:c2a2c58516d160f43b50f12baa427ca86989e0bc942609e04aff61da5d9a7d74 AS build
 WORKDIR /workspace
 
-# Resolve dependencies first so that source changes do not invalidate the dependency layer.
+# Resolve dependencies first so that source changes do not invalidate the dependency layer. The layer itself is
+# the cache: no BuildKit cache mount, because Railway accepts one only with a service-specific id, and the same
+# Dockerfile has to build unchanged on Railway, in CI and locally.
 COPY pom.xml ./
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q dependency:go-offline
+RUN mvn -B -ntp -q dependency:go-offline
 
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q -DskipTests package \
+RUN mvn -B -ntp -q -DskipTests package \
     && java -Djarmode=tools -jar target/application.jar extract --layers --destination extracted
 
 # ---- runtime stage -----------------------------------------------------------------------------
@@ -30,5 +31,6 @@ COPY --from=build --chown=app:app /workspace/extracted/application/ ./
 
 USER app
 EXPOSE 8080
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
-ENTRYPOINT ["java", "-jar", "application.jar"]
+# JVM options go on the command line rather than in JAVA_TOOL_OPTIONS, whose "Picked up" notice would be the only
+# non-JSON line in the cloud log (Document 5, Logs). JAVA_TOOL_OPTIONS stays free for a one-off override.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-XX:+ExitOnOutOfMemoryError", "-jar", "application.jar"]

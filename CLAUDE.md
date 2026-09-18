@@ -16,7 +16,7 @@ with its tests. Leave every folder you touch tidier than you found it.
 
 | Path | Contents |
 | --- | --- |
-| `backend/` | Maven project: Java 21, Spring Boot 4.0.x, Spring AI 2.0.x; `Dockerfile`; Flyway migrations; prompts from day 7 |
+| `backend/` | Maven project: Java 21, Spring Boot 4.0.x, Spring AI 2.0.x; `Dockerfile`; `railway.json` (Railway build and deploy settings); Flyway migrations; prompts from day 7 |
 | `frontend/` | Vite project: React 19, TypeScript strict, TanStack Query; `vercel.json` with the SPA rewrite |
 | `fixtures/` | The DSL schema, the demo policy with its rule set and 200 cases, the conformance suite, the evaluation set, the Python reference |
 | `docs/` | Documents 1 to 7, `progress-checklist.md`, `worklog.md`, `agent-briefing.he.md`; `quality/` and `eval/` reports |
@@ -134,4 +134,6 @@ text, demo questions and the model's free-text output are in Hebrew. `RUNBOOK.md
 - `rag` needs the `EmbeddingGateway` interface, which lives in `ai`, while Document 2 lists `ai.adapter` as
   its dependency; the ArchUnit rule encodes the table as written, so day 8 starts with a one-word document fix.
 - Document 2 says Railway builds from `backend/Dockerfile`, Document 5 says Railway deploys the image digest
-  CI stage 6 produced; stage 6 pushes the image to GHCR so either path is possible (see `RUNBOOK.md`).
+  CI stage 6 produced. Railway builds from the Dockerfile today (`backend/railway.json`, Wait for CI on); stage 6
+  pushes the scanned image to GHCR, so switching to the digest stays possible. The Railway database runs
+  `pgvector/pgvector:pg16` as a plain image service, because Railway's pgvector templates run PostgreSQL 18.
