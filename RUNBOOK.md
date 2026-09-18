@@ -223,7 +223,8 @@ echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 
 **שלב ג: מסד הנתונים.** לא משתמשים בתבנית pgvector מהקטלוג של Railway: היא מריצה PostgreSQL 18, והפרויקט עובד
 על 16, בדיוק כמו במחשב וב-CI. במקום זה יוצרים שירות מהאימג' עצמו.
 
-1. בלוח הפרויקט: Create, ואז Docker Image, ומקלידים את שם האימג':
+1. בלוח הפרויקט: Add, ואז Docker Image. מקלידים את שם האימג' ולוחצים Enter. לא לוחצים על הקישור ל-Docker Hub
+   שמופיע מתחת לשדה: הוא מוביל לאימג' בלי הגרסה, ולאימג' הזה אין גרסת ברירת מחדל.
 
    ```
    pgvector/pgvector:pg16
@@ -254,13 +255,13 @@ echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 
 
 **שלב ד: השרת.**
 
-1. בלוח הפרויקט: Create, ואז GitHub Repo, ובוחרים `liorshaya/PolicyPilot`. אם Railway מבקש הרשאה ב-GitHub,
-   מאשרים לו גישה למאגר הזה.
+1. באותו פרויקט שבו נמצא המסד, לא בפרויקט חדש: Add, ואז GitHub Repo, ובוחרים `liorshaya/PolicyPilot`. אם
+   Railway מבקש הרשאה ב-GitHub, מאשרים לו גישה למאגר הזה. Railway קורא לשירות PolicyPilot, ומשאירים את השם.
+   אם הוא מתחיל לבנות מיד ונכשל, זה צפוי: עוד לא הוגדרה לו התיקייה backend.
 2. בהגדרות השירות:
 
    | הגדרה | ערך |
    | --- | --- |
-   | שם השירות | `backend` |
    | Root Directory | `/backend` |
    | Branch | `main` |
    | Wait for CI | מופעל. אם המתג לא מופיע, מאשרים את ההרשאות המעודכנות של Railway בדף ההתקנות של GitHub, בכתובת github.com/settings/installations |
@@ -279,12 +280,19 @@ echo "POLICYPILOT_ADMIN_CODE=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 
    | `POLICYPILOT_ACCESS_CODE` | הערך משלב א |
    | `POLICYPILOT_COOKIE_SECRET` | הערך משלב א |
    | `POLICYPILOT_ADMIN_CODE` | הערך משלב א |
+   | `PORT` | `8080` |
 
-   את `PORT` לא מגדירים: Railway מספק אותו לבד, והשרת מקשיב עליו.
+   את `PORT` קובעים במפורש. כל עוד השרת לא עלה, Railway לא יודע על איזה פורט הוא מקשיב, ובלי המשתנה הכתובת
+   הציבורית ובדיקת הבריאות עלולות לפנות לפורט אחר.
+
+   בודקים את `DATABASE_URL` אחרי השמירה: כשמעבירים עליו את העכבר, Railway מציג את הערך שיוצא מההפניה. הוא צריך
+   להתחיל ב-`postgresql://postgres:` ולהכיל `pgvector.railway.internal`. אם הוא ריק, ההפניה שגויה, והשרת ייפול
+   עם השגיאה `Failed to configure a DataSource: 'url' attribute is not specified`.
 4. לוחצים Deploy. הבנייה הראשונה לוקחת כמה דקות. בלוג מופיעות השורות `Using detected Dockerfile!` ובסוף
    `Started PolicyPilotApplication`. הפריסה נחשבת גמורה רק אחרי שבדיקת הבריאות ענתה.
-5. כתובת ציבורית: Settings, Networking, Generate Domain. Railway מזהה לבד את הפורט. מקבלים כתובת שמסתיימת
-   ב-`.up.railway.app`, ושומרים אותה בשביל Vercel.
+5. כתובת ציבורית: Settings, Networking, Generate Domain. בשדה הפורט מקלידים `8080`: המספר האפור שמופיע שם הוא
+   רק דוגמה, והכפתור לא נלחץ עד שמקלידים ערך. מקבלים כתובת שמסתיימת ב-`.up.railway.app`, ושומרים אותה
+   בשביל Vercel.
 6. **הוכחה:** פותחים מהטלפון את הכתובת עם `/actuator/health` בסופה. בתשובה צריך להופיע `"status":"UP"`.
 
 מעכשיו כל שינוי בתיקיית backend שנכנס ל-main נפרס לבד. הפריסה ממתינה במצב WAITING עד שה-CI מסתיים, ואם
