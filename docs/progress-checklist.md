@@ -29,27 +29,27 @@ One box per task of the Work Plan (Document 7), ticked as it is done and never b
 
 ## Day 0 (optional, Sunday Sep 20, one hour)
 
-- [ ] GitHub repository created, `main` protected (stages 1 to 6 required once CI exists)
-- [ ] Railway account and project; the pgvector template database
-- [ ] Vercel account and project; DNS for `policypilot.liorshaya.com`
+- [x] GitHub repository created, `main` protected (stages 1 to 6 required once CI exists)
+- [x] Railway account and project; the pgvector template database (a `pgvector/pgvector:pg16` image service instead: the Railway templates run PostgreSQL 18)
+- [x] Vercel account and project; DNS for `policypilot.liorshaya.com`
 - [ ] OpenAI API key with a monthly spending limit set to the demo budget
 - [ ] `qwen3:14b` and `bge-m3` pulled into the local Ollama
 - [ ] Interview date known, calendar re-mapped if it lands before day 20
 
 ## Phase 0, Foundations (day 1, Tue Sep 22)
 
-- [ ] Repository layout, `backend` skeleton (Java 21, Spring Boot 4.0.x, Spring AI 2.0.x BOM, Flyway, Actuator, springdoc), the eleven packages, JaCoCo and PIT thresholds
-- [ ] `frontend` skeleton (React 19, TypeScript strict, Vite, TanStack Query, Vitest, Playwright, MSW, ESLint); `make up` as the one command after `docker compose up`
-- [ ] Tests: ArchUnit module rules, forbidden APIs, Spring AI only in `ai.adapter`; context loads per profile; Vitest smoke; Playwright gate page
-- [ ] Docker Compose: PostgreSQL 16 with pgvector, Ollama with the pull script, API image, web dev server; Flyway V1 with the `vector` extension
-- [ ] Tests: Testcontainers base class; Flyway and extension integration test; the compose run timed under 5 minutes
-- [ ] CI: the eight stages with budgets, gitleaks, fixture privacy check, schema-copy check, generated-client check, JaCoCo and Vitest thresholds, PIT, Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report, Testcontainers stage, image build with Trivy and digest, Playwright on pull requests, reports and SBOM on tags, quarantine tag, branch protection
-- [ ] Test of the tests: a planted fake key on a throwaway branch fails stage 1
-- [ ] Fixtures committed as delivered (tree, conformance and invalid files, generator, change request, cases): `change-request-1.json`, `generate_cases.py` with `cases-200.json` and `cases-expected.json`; reference self-test and generator assertions in stage 2; CI re-runs the generator and diffs
-- [ ] Railway: API service from `backend/`, database, environment variables, health check, deploy only from green `main`
-- [ ] Vercel: project from `frontend/`, `VITE_API_BASE_URL`, the domain, the static access gate page
-- [ ] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest
-- [ ] `docs/worklog.md` started; gate G0 proof written in it
+- [x] Repository layout, `backend` skeleton (Java 21, Spring Boot 4.0.x, Spring AI 2.0.x BOM, Flyway, Actuator, springdoc), the eleven packages, JaCoCo and PIT thresholds
+- [x] `frontend` skeleton (React 19, TypeScript strict, Vite, TanStack Query, Vitest, Playwright, MSW, ESLint); `make up` as the one command after `docker compose up`
+- [x] Tests: ArchUnit module rules, forbidden APIs, Spring AI only in `ai.adapter`; context loads per profile; Vitest smoke; Playwright gate page
+- [x] Docker Compose: PostgreSQL 16 with pgvector, Ollama with the pull script, API image, web dev server; Flyway V1 with the `vector` extension
+- [x] Tests: Testcontainers base class; Flyway and extension integration test; the compose run timed under 5 minutes (68 s on a clean runner)
+- [x] CI: the eight stages with budgets, gitleaks, fixture privacy check, schema-copy check, generated-client check, JaCoCo and Vitest thresholds, PIT, Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report, Testcontainers stage, image build with Trivy and digest, Playwright on pull requests, reports and SBOM on tags, quarantine tag, branch protection
+- [x] Test of the tests: a planted fake key on a throwaway branch fails stage 1 (pull request #14)
+- [x] Fixtures committed as delivered (tree, conformance and invalid files, generator, change request, cases): `change-request-1.json`, `generate_cases.py` with `cases-200.json` and `cases-expected.json`; reference self-test and generator assertions in stage 2; CI re-runs the generator and diffs
+- [x] Railway: API service from `backend/`, database, environment variables, health check, deploy only from green `main`
+- [x] Vercel: project from `frontend/`, `VITE_API_BASE_URL`, the domain, the static access gate page
+- [ ] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest (health check done; the phone photo is pending; the digest deploy is an open decision)
+- [ ] `docs/worklog.md` started; gate G0 proof written in it (written, except the phone photo)
 
 ## Phase 1, Core (days 2 to 7)
 
