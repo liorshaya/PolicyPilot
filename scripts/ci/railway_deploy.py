@@ -18,6 +18,8 @@ import urllib.error
 import urllib.request
 
 API = "https://backboard.railway.com/graphql/v2"
+# Railway's edge rejects the default Python user agent (Cloudflare error 1010), so every request names itself.
+USER_AGENT = "policypilot-ci/1.0 (+https://github.com/liorshaya/PolicyPilot)"
 SETTINGS_FILE = pathlib.Path(__file__).resolve().parents[2] / "backend" / "railway.json"
 APPLIED_SETTINGS = ("numReplicas", "sleepApplication", "healthcheckPath", "healthcheckTimeout",
                     "restartPolicyType", "restartPolicyMaxRetries")
@@ -37,7 +39,8 @@ def gql(query, variables=None):
     request = urllib.request.Request(
         API,
         data=json.dumps({"query": query, "variables": variables or {}}).encode(),
-        headers={"Content-Type": "application/json", "Project-Access-Token": env("RAILWAY_TOKEN")},
+        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT,
+                 "Project-Access-Token": env("RAILWAY_TOKEN")},
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -102,7 +105,8 @@ def wait_for(deployment_id):
 def healthy(url, attempts=10):
     for attempt in range(1, attempts + 1):
         try:
-            with urllib.request.urlopen(url, timeout=15) as response:
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(request, timeout=15) as response:
                 body = response.read().decode()
                 if response.status == 200 and '"status":"UP"' in body:
                     return body
