@@ -67,7 +67,7 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] Fixtures committed as delivered (tree, conformance and invalid files, generator, change request, cases): `change-request-1.json`, `generate_cases.py` with `cases-200.json` and `cases-expected.json`; reference self-test and generator assertions in stage 2; CI re-runs the generator and diffs
 - [x] Railway: API service from `backend/`, database, environment variables, health check, deploy only from green `main`
 - [x] Vercel: project from `frontend/`, `VITE_API_BASE_URL`, the domain, the static access gate page
-- [ ] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest (health check and the gate page done; the digest deploy is an open decision)
+- [x] Proofs: health check from outside, gate page from a phone, deploy uses the stage 6 digest (the gate page on an emulated iPhone and confirmed by the owner; Railway runs the stage 6 digest since 2026-09-18)
 - [x] `docs/worklog.md` started; gate G0 proof written in it
 
 ## Phase 1, Core (days 2 to 7)

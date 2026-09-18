@@ -1,6 +1,7 @@
 # PolicyPilot CI (Document 6, CI Pipeline): eight stages ordered so the cheapest gates fail first, 15 minutes
 # in total. Stages 1 to 6 are required checks for merging to main; stage 7 runs on pull requests; stage 8 is
-# informational. Every action is pinned to a commit SHA (Document 5, Supply Chain and Build Security).
+# informational. After stages 1 to 6 pass on main, the deploy job ships the image stage 6 scanned to Railway.
+# Every action is pinned to a commit SHA (Document 5, Supply Chain and Build Security).
 name: CI
 
 on:
@@ -316,6 +317,37 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           if-no-files-found: ignore
+
+  deploy:
+    name: deploy-railway
+    # Railway runs the exact image stage 6 built, scanned and pushed (Documents 5 and 7), and only after stages 1 to 6
+    # passed. On pull requests from this repository the job only checks the Railway token and the target service.
+    needs: [hygiene, fast-tests, mutation, static, integration, build-and-scan]
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-railway-production
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      # Not secrets: the backend service on Railway and its public health check (RUNBOOK section 7.3)
+      RAILWAY_SERVICE_ID: 04f3ad8b-b457-4b90-9c7e-405e9f42b334
+      HEALTH_URL: https://policypilot-production-88ae.up.railway.app/actuator/health
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check the Railway token and the target service
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/ci/railway_deploy.py check
+      - name: Deploy the scanned image by digest, wait for it, check health
+        if: github.event_name == 'push'
+        env:
+          IMAGE: ${{ needs.build-and-scan.outputs.image }}
+          DIGEST: ${{ needs.build-and-scan.outputs.digest }}
+        run: python3 scripts/ci/railway_deploy.py deploy "$IMAGE" "$DIGEST"
 
   reports:
     name: 8-reports
