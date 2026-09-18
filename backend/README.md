@@ -10,6 +10,8 @@ laid out and how to run it.
 backend/
   pom.xml                         pinned versions, JaCoCo gates per package, PIT, Dependency-Check, SBOM profiles
   Dockerfile                      multi-stage, pinned images by digest, non-root runtime
+  railway.json                    Railway build and deploy settings: Dockerfile builder, health check, restart policy,
+                                  one replica, rebuild only when backend/ changes (RUNBOOK section 7.3)
   src/main/java/com/liorshaya/policypilot/
     PolicyPilotApplication.java
     config/                       Spring configuration and PolicyPilotProperties (prefix policypilot.)
