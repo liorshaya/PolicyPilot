@@ -1,0 +1,76 @@
+# Compose smoke run on a clean machine (Document 1, Definition of Done line 1; Document 7, day 1 Docker Compose task):
+# `docker compose up` plus one command, `make up`, brings the whole system up in under 5 minutes. A fresh GitHub runner
+# starts with no images, no build layers and no Maven or npm caches, which makes it the clean-machine measurement.
+# It runs when a file that shapes the local stack changes, and on demand. It is not a required check.
+name: Compose smoke (clean machine)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/compose-smoke.yml
+      - docker-compose.yml
+      - docker-compose.ollama.yml
+      - Makefile
+      - scripts/wait-for-health.sh
+      - backend/Dockerfile
+      - backend/pom.xml
+      - frontend/package.json
+      - frontend/package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  compose-smoke:
+    name: compose-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The openai profile refuses to start without a key; the smoke run never calls the provider.
+      OPENAI_API_KEY: compose-smoke-placeholder
+      BUDGET_SECONDS: '300'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The runner starts clean
+        run: |
+          echo "images before the run: $(docker images -q | wc -l)"
+          docker images --format '{{.Repository}}:{{.Tag}}'
+      - name: make up, then wait until the web app serves the gate page
+        run: |
+          start=$(date +%s)
+          make up
+          backend_ready=$(( $(date +%s) - start ))
+          until curl -fsS http://localhost:5173 | grep -q '<title>PolicyPilot</title>'; do
+            if [ $(( $(date +%s) - start )) -ge "$BUDGET_SECONDS" ]; then
+              echo "::error::the web app did not serve the gate page within ${BUDGET_SECONDS}s"
+              exit 1
+            fi
+            sleep 3
+          done
+          total=$(( $(date +%s) - start ))
+          {
+            echo "### Compose smoke on a clean runner"
+            echo ""
+            echo "| Measure | Seconds |"
+            echo "| --- | --- |"
+            echo "| \`make up\` until the backend health check answers UP | ${backend_ready} |"
+            echo "| Until the web app also serves the gate page | ${total} |"
+            echo "| Budget (Definition of Done) | ${BUDGET_SECONDS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "total ${total}s (backend ${backend_ready}s), budget ${BUDGET_SECONDS}s"
+          if [ "$total" -gt "$BUDGET_SECONDS" ]; then
+            echo "::error::the system took ${total}s to come up, over the ${BUDGET_SECONDS}s budget"
+            exit 1
+          fi
+      - name: Health and gate page answer
+        run: |
+          curl -fsS http://localhost:8080/actuator/health
+          echo
+          curl -fsS http://localhost:5173 | grep -o '<title>[^<]*</title>'
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+      - name: Stop the stack
+        if: always()
+        run: make down
