@@ -16,6 +16,7 @@ public final class ApiPaths {
     public static final String RULESET_VERSION_SIMULATE = RULESET_VERSION + "/simulate";
     public static final String DECISIONS = V1 + "/decisions";
     public static final String DECISION = DECISIONS + "/{id}";
+    public static final String DECISION_EXPORT = DECISION + "/export";
     public static final String DOCS = "/api/docs";
 
     private ApiPaths() {}

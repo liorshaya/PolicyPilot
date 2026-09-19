@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -76,8 +77,8 @@ public class ApiExceptionHandler {
         return responses.entity(ErrorCode.NOT_FOUND, List.of());
     }
 
-    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    ResponseEntity<ErrorEnvelope> mediaType(HttpMediaTypeNotSupportedException exception) {
+    @ExceptionHandler({HttpMediaTypeNotSupportedException.class, HttpMediaTypeNotAcceptableException.class})
+    ResponseEntity<ErrorEnvelope> mediaType(Exception exception) {
         return responses.entity(ErrorCode.UNSUPPORTED_MEDIA_TYPE, List.of());
     }
 

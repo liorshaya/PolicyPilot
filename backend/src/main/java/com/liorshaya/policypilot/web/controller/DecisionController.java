@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.web.controller;
 
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.decision.service.CaseInvalidException;
+import com.liorshaya.policypilot.decision.service.DecisionCsv;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.decision.service.DecisionView;
 import com.liorshaya.policypilot.rules.json.RuleSetFormatException;
@@ -32,12 +33,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -49,6 +53,9 @@ import tools.jackson.databind.node.ObjectNode;
  */
 @RestController
 public class DecisionController {
+
+    /** The media type a decision is exported in beside JSON (Document 2, export). */
+    static final String TEXT_CSV = "text/csv";
 
     private final RulesetService rulesets;
     private final DecisionService decisions;
@@ -111,6 +118,26 @@ public class DecisionController {
     @GetMapping(ApiPaths.DECISION)
     public ObjectNode decision(@PathVariable UUID id, @AuthenticationPrincipal SandboxSession session) {
         return DecisionResponses.of(stored(id, session));
+    }
+
+    @Operation(summary = "Export a decision with its trace as JSON or CSV (Accept header)")
+    @ApiResponse(responseCode = "200", description = "The decision as JSON, or one CSV row per trace step",
+            content = {@Content(mediaType = "application/json", schema = @Schema(type = "object")),
+                    @Content(mediaType = "text/csv", schema = @Schema(type = "string"))})
+    @ApiResponse(responseCode = "404", description = "No such decision in this sandbox",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @GetMapping(value = ApiPaths.DECISION_EXPORT,
+            produces = {MediaType.APPLICATION_JSON_VALUE, DecisionController.TEXT_CSV})
+    public ResponseEntity<?> export(@PathVariable UUID id, @AuthenticationPrincipal SandboxSession session,
+            @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept) {
+        DecisionView decision = stored(id, session);
+        boolean csv = accept != null && accept.contains(TEXT_CSV);
+        // the file name is built from route constants and the id, never from anything the caller sent (Document 5)
+        return ResponseEntity.ok()
+                .contentType(csv ? MediaType.valueOf(TEXT_CSV + ";charset=UTF-8") : MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"decision-" + decision.id() + (csv ? ".csv\"" : ".json\""))
+                .body(csv ? DecisionCsv.of(decision) : DecisionResponses.of(decision));
     }
 
     @Operation(summary = "Outcome counts and the top deciding rules of this sandbox on this version")
