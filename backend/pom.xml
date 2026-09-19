@@ -33,6 +33,9 @@
         <spring-ai.version>2.0.1</spring-ai.version>
         <springdoc.version>3.0.3</springdoc.version>
         <archunit.version>1.5.0</archunit.version>
+        <!-- Document 3, JSON Schema: the networknt validator on draft 2020-12; the 3.x line runs on Jackson 3,
+             the Jackson line Spring Boot 4 manages. -->
+        <json-schema-validator.version>3.0.7</json-schema-validator.version>
 
         <jacoco.version>0.8.15</jacoco.version>
         <pitest.version>1.30.0</pitest.version>
@@ -102,6 +105,13 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Rules DSL: the rule set JSON Schema validator (Document 3, JSON Schema) -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>${json-schema-validator.version}</version>
         </dependency>
 
         <!-- Model providers. Both starters are on the classpath; the active profile decides which beans exist

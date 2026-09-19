@@ -1,0 +1,70 @@
+package com.liorshaya.policypilot.rules.validation;
+
+import static com.liorshaya.policypilot.rules.validation.Layer.SCHEMA;
+import static com.liorshaya.policypilot.rules.validation.Layer.SEMANTIC;
+import static com.liorshaya.policypilot.rules.validation.Layer.STRUCTURAL;
+import static com.liorshaya.policypilot.rules.validation.Severity.ERROR;
+import static com.liorshaya.policypilot.rules.validation.Severity.INFO;
+import static com.liorshaya.policypilot.rules.validation.Severity.WARNING;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+/** The validator conformance of Document 3: the code table and the invalid fixtures. */
+class InvalidFixturesTest {
+
+    /** Document 3, Static Validation: the table transcribed row by row, in its order. */
+    private static final Map<String, List<Object>> DOCUMENT_TABLE = new LinkedHashMap<>();
+
+    static {
+        row("DSL_SCHEMA", SCHEMA, ERROR);
+        row("DSL_VERSION_UNSUPPORTED", SCHEMA, ERROR);
+        row("FIELD_DUPLICATE", SEMANTIC, ERROR);
+        row("FIELD_UNKNOWN", SEMANTIC, ERROR);
+        row("FIELD_TYPE_MISMATCH", SEMANTIC, ERROR);
+        row("FIELD_DOMAIN_INVALID", SEMANTIC, ERROR);
+        row("ENUM_VALUE_UNKNOWN", SEMANTIC, ERROR);
+        row("EXPR_TYPE_MISMATCH", SEMANTIC, ERROR);
+        row("EXPR_ARITY", SEMANTIC, ERROR);
+        row("BETWEEN_RANGE_INVALID", SEMANTIC, ERROR);
+        row("REGEX_INVALID", SEMANTIC, ERROR);
+        row("RESERVED_IDENTIFIER", SEMANTIC, ERROR);
+        row("RULE_ID_DUPLICATE", SEMANTIC, ERROR);
+        row("DERIVED_WRITE_ONLY", SEMANTIC, ERROR);
+        row("DERIVED_REQUIRED", SCHEMA, ERROR);
+        row("PROVENANCE_PARAGRAPH_MISSING", SEMANTIC, ERROR);
+        row("PROVENANCE_QUOTE_MISMATCH", SEMANTIC, ERROR);
+        row("PROVENANCE_ANALYST_FROM_MODEL", SEMANTIC, ERROR);
+        row("PROVENANCE_PENDING_FROM_MODEL", SEMANTIC, ERROR);
+        row("PROVENANCE_PENDING_AT_PUBLISH", SEMANTIC, ERROR);
+        row("DERIVED_CYCLE", STRUCTURAL, ERROR);
+        row("DERIVED_ORDER", STRUCTURAL, ERROR);
+        row("DERIVED_NEVER_SET", STRUCTURAL, WARNING);
+        row("FIELD_UNUSED", STRUCTURAL, WARNING);
+        row("RULE_UNREACHABLE", STRUCTURAL, WARNING);
+        row("RULE_OVERLAP_CONFLICT", STRUCTURAL, WARNING);
+        row("REFER_PRECEDES_REJECT", STRUCTURAL, WARNING);
+        row("CANDIDATE_NEVER_WINS", STRUCTURAL, WARNING);
+        row("DIVISION_BY_UNGUARDED_FIELD", STRUCTURAL, WARNING);
+        row("MISSING_FIELD_UNDER_NOT", STRUCTURAL, WARNING);
+        row("PRIORITY_BAND_UNUSUAL", STRUCTURAL, INFO);
+        row("NO_TERMINAL_APPROVE", STRUCTURAL, INFO);
+    }
+
+    @Test
+    void codeSeverityAndLayerMatchTheDocumentTable() {
+        Map<String, List<Object>> implemented = new LinkedHashMap<>();
+        Arrays.stream(ValidationCode.values())
+                .forEach(code -> implemented.put(code.name(), List.of(code.layer(), code.severity())));
+
+        assertThat(implemented).containsExactlyInAnyOrderEntriesOf(DOCUMENT_TABLE);
+    }
+
+    private static void row(String code, Layer layer, Severity severity) {
+        DOCUMENT_TABLE.put(code, List.of(layer, severity));
+    }
+}
