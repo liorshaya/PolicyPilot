@@ -80,11 +80,11 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] Tests: invalid fixtures parameterized; normalizer with Hebrew, niqqud, U+202E, zero-width; context tests; one positive and one negative per static check
 - [x] `rules` at 100% line; the lending rule set validates clean in PUBLISH; every invalid file fails with the Python code (PIT 990 of 990)
 
-**Day 3, Wed Sep 23: `engine`**
+**Day 3, Wed Sep 23: `engine`** (done early, on Sat Sep 19)
 
-- [ ] Compiled rule set, `BigDecimal` expressions, operators with RE2J `matches`, combinators, priority order, terminal stop, derived order, EVAL\_DERIVED\_ABSENT, ERROR with partial trace, severity resolution, trace format, simulation
-- [ ] Tests: C-01 to C-31 parameterized; golden equality with `sample-decision.json` and `cases-expected.json`; jqwik properties; C-26 and 200 twice byte-identical; no `Clock` in `engine`; micro-benchmark; the ReDoS pattern timing
-- [ ] PIT on `engine` and `rules` at least 90%, hard gate from today
+- [x] Compiled rule set, `BigDecimal` expressions, operators with RE2J `matches`, combinators, priority order, terminal stop, derived order, EVAL\_DERIVED\_ABSENT, ERROR with partial trace, severity resolution, trace format, simulation
+- [x] Tests: C-01 to C-31 parameterized; golden equality with `sample-decision.json` and `cases-expected.json`; jqwik properties; C-26 and 200 twice byte-identical; no `Clock` in `engine`; micro-benchmark; the ReDoS pattern timing
+- [x] PIT on `engine` and `rules` at least 90%, hard gate from today (1207 of 1207 killed)
 
 **Day 4, Thu Sep 24: front door, `policy`, `demo`**
 
