@@ -163,7 +163,7 @@ final class RuleSetWriter {
         return out;
     }
 
-    private ObjectNode provenance(Provenance provenance) {
+    ObjectNode provenance(Provenance provenance) {
         ObjectNode out = nodes.objectNode();
         switch (provenance) {
             case Provenance.Quoted q -> {

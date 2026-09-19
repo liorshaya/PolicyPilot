@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.rules.json;
 
+import com.liorshaya.policypilot.rules.model.Provenance;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.StreamReadConstraints;
@@ -56,5 +57,10 @@ public final class RuleSetMapper {
     /** Writes the records back as a tree; omitted optional attributes stay omitted. */
     public ObjectNode toJson(RuleSet ruleSet) {
         return new RuleSetWriter(mapper.getNodeFactory()).ruleSet(ruleSet);
+    }
+
+    /** Writes one provenance as the DSL writes it; the trace copies each rule's provenance (Document 3). */
+    public ObjectNode toJson(Provenance provenance) {
+        return new RuleSetWriter(mapper.getNodeFactory()).provenance(provenance);
     }
 }
