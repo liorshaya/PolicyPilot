@@ -86,12 +86,12 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] Tests: C-01 to C-31 parameterized; golden equality with `sample-decision.json` and `cases-expected.json`; jqwik properties; C-26 and 200 twice byte-identical; no `Clock` in `engine`; micro-benchmark; the ReDoS pattern timing
 - [x] PIT on `engine` and `rules` at least 90%, hard gate from today (1207 of 1207 killed)
 
-**Day 4, Thu Sep 24: front door, `policy`, `demo`**
+**Day 4, Thu Sep 24: front door, `policy`, `demo`** (done early, on Sat Sep 19)
 
-- [ ] `POST /auth/code`, signed cookie, constant-time compare, lockout; session filter on `/api/**`; custom header and Origin check; Bucket4j limits; body and upload limits; error envelope; JSON logging with redaction; security counters
-- [ ] `policy`: splitter, normalization, PDF in memory with limits, `POST /policies`, `GET /policies/{id}`, migrations
-- [ ] `demo`: `sandbox_id` from the cookie, protected rows with fork on write, lending policy fixture loaded
-- [ ] Tests: OpenAPI authentication walk; wrong code, expired, tampered, missing header, foreign Origin, lockout timing; cookie units; `.exe`, 60-page and JavaScript PDFs; oversized bodies; limits with `Retry-After` and the SSE cap; cross-sandbox 404; fork on protected write; splitter and log encoder units; contract tests
+- [x] `POST /auth/code`, signed cookie, constant-time compare, lockout; session filter on `/api/**`; custom header and Origin check; Bucket4j limits; body and upload limits; error envelope; JSON logging with redaction; security counters (the API on `api.policypilot.liorshaya.com`, cookie `SameSite=Lax`; the web app's gate exchanges the code)
+- [x] `policy`: splitter, normalization, PDF in memory with limits, `POST /policies`, `GET /policies/{id}`, migrations
+- [x] `demo`: `sandbox_id` from the cookie, protected rows with fork on write, lending policy fixture loaded (fork at the service level; the first route that writes to a protected row arrives on day 5)
+- [x] Tests: OpenAPI authentication walk; wrong code, expired, tampered, missing header, foreign Origin, lockout timing; cookie units; `.exe`, 60-page and JavaScript PDFs; oversized bodies; limits with `Retry-After` and the SSE cap; cross-sandbox 404; fork on protected write; splitter and log encoder units; contract tests (the SSE cap as units until the first stream on day 7)
 
 **Day 5, Sun Sep 27: versions, decisions, audit**
 
