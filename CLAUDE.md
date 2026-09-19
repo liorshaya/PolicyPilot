@@ -21,13 +21,13 @@ with its tests. Leave every folder you touch tidier than you found it.
 | `fixtures/` | The DSL schema, the demo policy with its rule set and 200 cases, the conformance suite, the evaluation set, the Python reference |
 | `docs/` | Documents 1 to 7, `progress-checklist.md`, `worklog.md`, `agent-briefing.he.md`; `quality/` and `eval/` reports |
 | `docker-compose.yml` | `db` (pgvector), `backend`, `frontend`; `ollama` and `ollama-pull` behind `--profile ollama` (`docker-compose.ollama.yml`) |
-| `.github/workflows/` | `ci.yml` (the eight stages), `eval.yml` (manual live evaluation), `compose-smoke.yml` (`make up` timed on a clean runner) |
+| `.github/workflows/` | `ci.yml` (the eight stages, then the Railway deploy of the stage 6 digest), `eval.yml` (manual live evaluation), `compose-smoke.yml` (`make up` timed on a clean runner) |
 | `scripts/` | CI hygiene checks and the job summary, the Ollama pull script, the git pre-commit hook, `wait-for-health.sh` |
 | `Makefile`, `RUNBOOK.md` | `make up` is the one command after `docker compose up`; the runbook is the owner's operating guide, in Hebrew |
 
-Folder names: the documents call the two projects `api/` and `web/`; on 2026-09-18 the repository named them
-`backend/` and `frontend/` and the exported documents were patched to match. The Java package `web` keeps its
-name: it is the HTTP layer of the backend, not the frontend.
+Folder names: the two projects are `backend/` and `frontend/`. The documents called them `api/` and `web/` until
+the living documents were renamed on 2026-09-19. The Java package `web` keeps its name: it is the HTTP layer of the
+backend, not the frontend.
 
 ## Backend packages (Document 2, Backend Module Structure)
 
@@ -143,5 +143,3 @@ evaluation runner unless the owner adds one back. Dates and struck-through boxes
   against the provider's model list on day 7, when a key is first used.
 - `rag` needs the `EmbeddingGateway` interface, which lives in `ai`, while Document 2 lists `ai.adapter` as
   its dependency; the ArchUnit rule encodes the table as written, so day 8 starts with a one-word document fix.
-- Railway never builds: the CI job `deploy-railway` deploys the digest stage 6 scanned, after stages 1 to 6 pass
-  (Documents 5 and 7). Document 2 still says Railway builds from the Dockerfile: a fix for the living document.

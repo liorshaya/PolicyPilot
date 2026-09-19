@@ -1,6 +1,6 @@
 # PolicyPilot Rules DSL Specification
 
-2026-09-16 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 3 of the PolicyPilot set. It defines the JSON format in which rules are written, validated, executed and diffed, following the scope in the [Project Brief](01-project-brief.md) and the engine semantics in the [Architecture](02-architecture.md). Document 4 (AI Pipeline and Prompt Specification) describes how the model produces documents in this format.
 

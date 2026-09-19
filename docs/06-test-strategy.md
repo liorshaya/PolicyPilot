@@ -1,6 +1,6 @@
 # PolicyPilot Test Strategy
 
-2026-09-17 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 6 of the PolicyPilot set. It turns the test plans scattered across the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md), the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md) and the [Security Specification](05-security-specification.md) into one discipline: what gets tested at which level, what coverage is required where, what a task must include before it counts as done, and how the tests are written alongside the code rather than after it. The work plan (Document 7) schedules every test named here next to its feature.
 
