@@ -2,7 +2,9 @@ package com.liorshaya.policypilot.policy.service;
 
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.policy.entity.PolicyDocumentEntity;
+import com.liorshaya.policypilot.policy.entity.PolicyVersionEntity;
 import com.liorshaya.policypilot.policy.repository.PolicyDocumentRepository;
+import com.liorshaya.policypilot.policy.repository.PolicyVersionRepository;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
@@ -21,11 +23,14 @@ public class PolicyService {
     static final String ENTITY = "policy";
 
     private final PolicyDocumentRepository documents;
+    private final PolicyVersionRepository versions;
     private final SecurityEvents events;
     private final PolicyDocuments builder;
 
-    public PolicyService(PolicyDocumentRepository documents, SecurityEvents events, Clock clock) {
+    public PolicyService(PolicyDocumentRepository documents, PolicyVersionRepository versions, SecurityEvents events,
+            Clock clock) {
         this.documents = documents;
+        this.versions = versions;
         this.events = events;
         this.builder = new PolicyDocuments(clock);
     }
@@ -72,5 +77,29 @@ public class PolicyService {
             events.authorizationDenied(ENTITY, sandboxId, id.toString());
         }
         return visible.map(PolicyDocuments::view);
+    }
+
+    /**
+     * The policy version {@code policyVersionId} as a rule set cites it. No sandbox check: only a rule set that already
+     * references the version asks, and the rule set was checked against the caller's sandbox.
+     */
+    @Transactional(readOnly = true)
+    public Optional<PolicyVersionRef> version(UUID policyVersionId) {
+        return versions.findById(policyVersionId).map(PolicyService::ref);
+    }
+
+    /** Version {@code versionNo} of the document {@code policyId}, if the sandbox may see the document. */
+    @Transactional(readOnly = true)
+    public Optional<PolicyVersionRef> version(UUID policyId, int versionNo, UUID sandboxId) {
+        return documents.findVisible(policyId, sandboxId)
+                .flatMap(document -> versions.findByDocument(document.getId(), versionNo))
+                .map(PolicyService::ref);
+    }
+
+    private static PolicyVersionRef ref(PolicyVersionEntity version) {
+        return new PolicyVersionRef(version.getId(), version.getDocumentId(), version.getVersionNo(),
+                version.getParagraphs().stream()
+                        .map(p -> new PolicyVersionRef.Paragraph(p.getId(), p.getIndex(), p.getText()))
+                        .toList());
     }
 }

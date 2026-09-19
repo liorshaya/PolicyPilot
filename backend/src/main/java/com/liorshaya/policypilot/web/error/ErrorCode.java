@@ -12,6 +12,7 @@ public enum ErrorCode {
     SESSION_INVALID(HttpStatus.UNAUTHORIZED, "A valid session is required; enter the access code."),
     CSRF_REJECTED(HttpStatus.FORBIDDEN, "The request did not come from the PolicyPilot web app."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not found."),
+    VERSION_STATUS_CONFLICT(HttpStatus.CONFLICT, "The rule set version's status does not allow this."),
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The request body is too large."),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The content type or charset is not supported."),
     POLICY_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The policy is not valid."),

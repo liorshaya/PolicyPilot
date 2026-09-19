@@ -50,6 +50,16 @@ class AuthenticationWalkIT extends ApiIntegrationTest {
                 "POST /api/v1/auth/code", "POST /api/v1/policies", "GET /api/v1/policies/{id}");
     }
 
+    // Expected: Document 2, API Surface, the rule set routes of day 5
+    @Test
+    void theWalkCoversEveryRouteOfTheDayFiveApiTable() {
+        assertThat(documentedRoutes()).contains(
+                "GET /api/v1/rulesets",
+                "GET /api/v1/rulesets/{id}/versions/{no}",
+                "PUT /api/v1/rulesets/{id}/versions/{no}/rules",
+                "POST /api/v1/rulesets/{id}/versions/{no}/publish");
+    }
+
     @Test
     void apiDocsRequireTheCookie() {
         HttpResponse<String> response = api().get("/api/docs").send();

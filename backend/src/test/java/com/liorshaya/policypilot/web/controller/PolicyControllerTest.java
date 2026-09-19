@@ -55,7 +55,7 @@ class PolicyControllerTest {
         JsonMapper json = JsonMapper.builder().build();
         SecurityEvents events = new SecurityEvents(registry, "salt".getBytes(StandardCharsets.UTF_8));
         PolicyController controller = new PolicyController(
-                new PolicyService(null, events, Clock.fixed(NOW, ZoneOffset.UTC)),
+                new PolicyService(null, null, events, Clock.fixed(NOW, ZoneOffset.UTC)),
                 new UploadReader(new PdfTextExtractor()), events);
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ApiExceptionHandler(new ErrorResponses(new TraceIds(new SimpleTracer()), json)))

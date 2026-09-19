@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.demo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.liorshaya.policypilot.demo.service.LendingFixture;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.web.validation.InputNormalizer;
 import java.io.IOException;
@@ -36,4 +37,12 @@ class LendingFixtureTest {
     void theTextIsAlreadyNormalized() {
         assertThat(InputNormalizer.normalize(fixture.text())).isEqualTo(fixture.text());
     }
+
+    // Document 6, Versioning: the copy in the backend resources is the committed fixture, byte for byte
+    @Test
+    void theRuleSetIsTheCommittedVersionOne() {
+        assertThat(new RuleSetMapper().readTree(LendingFixture.load().ruleSetJson()))
+                .isEqualTo(Fixtures.lendingV1());
+    }
+
 }

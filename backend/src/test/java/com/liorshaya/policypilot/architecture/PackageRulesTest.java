@@ -59,10 +59,13 @@ class PackageRulesTest {
     static final ArchRule policy = moduleRule("policy", "rules");
 
     @ArchTest
-    static final ArchRule decision = moduleRule("decision", "engine", "rules");
+    static final ArchRule ruleset = moduleRule("ruleset", "rules", "engine", "policy", "audit");
 
     @ArchTest
-    static final ArchRule ai = moduleRule("ai", "rules", "engine", "policy", "decision", "rag", "ai.adapter");
+    static final ArchRule decision = moduleRule("decision", "ruleset", "engine", "rules");
+
+    @ArchTest
+    static final ArchRule ai = moduleRule("ai", "rules", "engine", "policy", "ruleset", "decision", "rag", "ai.adapter");
 
     @ArchTest
     static final ArchRule aiAdapter = moduleRule("ai.adapter", "ai");
@@ -71,13 +74,13 @@ class PackageRulesTest {
     static final ArchRule rag = moduleRule("rag", "policy", "rules", "ai.adapter");
 
     @ArchTest
-    static final ArchRule change = moduleRule("change", "ai", "engine", "decision", "audit");
+    static final ArchRule change = moduleRule("change", "ai", "ruleset", "engine", "decision", "audit");
 
     @ArchTest
     static final ArchRule audit = moduleRule("audit");
 
     @ArchTest
-    static final ArchRule demo = moduleRule("demo", "policy", "decision", "audit");
+    static final ArchRule demo = moduleRule("demo", "policy", "ruleset", "decision", "audit");
 
     @ArchTest
     static final ArchRule nothingDependsOnWeb = noClasses()
@@ -115,7 +118,7 @@ class PackageRulesTest {
     /** Document 2: cross-package access goes through service interfaces, never through another package's repository. */
     @ArchTest
     static void repositoriesArePrivateToTheirModule(JavaClasses appClasses) {
-        for (String module : List.of("policy", "decision", "rag", "change", "audit", "demo")) {
+        for (String module : List.of("policy", "ruleset", "decision", "rag", "change", "audit", "demo")) {
             classes().that().resideInAPackage(ROOT + "." + module + ".repository..")
                     .should().onlyBeAccessed().byAnyPackage(ROOT + "." + module + "..")
                     .as(module + ".repository is private to " + module)
