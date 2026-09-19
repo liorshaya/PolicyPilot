@@ -58,6 +58,10 @@ public class PolicyVersionEntity {
         return id;
     }
 
+    public UUID getDocumentId() {
+        return document.getId();
+    }
+
     public int getVersionNo() {
         return versionNo;
     }

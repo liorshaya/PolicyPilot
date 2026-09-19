@@ -34,6 +34,9 @@
         <tomcat.version>11.0.26</tomcat.version>
         <spring-ai.version>2.0.1</spring-ai.version>
         <springdoc.version>3.0.3</springdoc.version>
+        <!-- springdoc 3.0.3 brings swagger-core 2.2.47 but an older swagger-annotations through a transitive
+             dependency; the two must be the same version, or reading a @Schema annotation fails at runtime -->
+        <swagger.version>2.2.47</swagger.version>
         <archunit.version>1.5.0</archunit.version>
         <!-- Document 6, Backend Test Design: property-based tests of the engine. -->
         <jqwik.version>1.10.1</jqwik.version>
@@ -71,6 +74,16 @@
                 <version>${spring-ai.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -419,6 +432,8 @@
                                     <includes>
                                         <include>com.liorshaya.policypilot.policy</include>
                                         <include>com.liorshaya.policypilot.policy.*</include>
+                                        <include>com.liorshaya.policypilot.ruleset</include>
+                                        <include>com.liorshaya.policypilot.ruleset.*</include>
                                         <include>com.liorshaya.policypilot.decision</include>
                                         <include>com.liorshaya.policypilot.decision.*</include>
                                         <include>com.liorshaya.policypilot.change</include>

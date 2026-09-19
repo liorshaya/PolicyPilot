@@ -36,6 +36,10 @@ public class PolicyParagraphEntity {
         this.text = text;
     }
 
+    public UUID getId() {
+        return id;
+    }
+
     public int getIndex() {
         return index;
     }

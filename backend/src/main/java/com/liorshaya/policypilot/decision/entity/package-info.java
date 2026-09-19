@@ -1,2 +1,2 @@
-/** JPA entities owned by the decision module; published rule set versions have no setters (NFR-3). */
+/** JPA entities owned by the decision module: cases and decisions. */
 package com.liorshaya.policypilot.decision.entity;
