@@ -72,13 +72,13 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 ## Phase 1, Core (days 2 to 7)
 
-**Day 2, Tue Sep 22: `rules`**
+**Day 2, Tue Sep 22: `rules`** (done early, on Sat Sep 19)
 
-- [ ] Conformance and invalid fixture files already committed and run by the reference; the Java validator and engine load the same files
-- [ ] DSL 1.0 model as records, strict Jackson, JSON Schema validation
-- [ ] Validator with the four contexts and every static check code; quote normalizer; case validator
-- [ ] Tests: invalid fixtures parameterized; normalizer with Hebrew, niqqud, U+202E, zero-width; context tests; one positive and one negative per static check
-- [ ] `rules` at 100% line; the lending rule set validates clean in PUBLISH; every invalid file fails with the Python code
+- [x] Conformance and invalid fixture files already committed and run by the reference; the Java validator and engine load the same files (the validator loads all 31 C files and 32 `invalid-*` files; the engine loads them on day 3)
+- [x] DSL 1.0 model as records, strict Jackson, JSON Schema validation
+- [x] Validator with the four contexts and every static check code; quote normalizer; case validator
+- [x] Tests: invalid fixtures parameterized; normalizer with Hebrew, niqqud, U+202E, zero-width; context tests; one positive and one negative per static check
+- [x] `rules` at 100% line; the lending rule set validates clean in PUBLISH; every invalid file fails with the Python code (PIT 990 of 990)
 
 **Day 3, Wed Sep 23: `engine`**
 
