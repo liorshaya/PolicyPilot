@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.architecture;
 import static com.tngtech.archunit.core.domain.JavaCall.Predicates.target;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
 import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
@@ -51,4 +52,13 @@ class ForbiddenApisTest {
             .should().dependOnClassesThat(belongToAnyOf(Clock.class, Random.class, SecureRandom.class, ThreadLocalRandom.class)
                     .or(resideInAnyPackage("java.net..", "java.nio.file..", "java.io..")))
             .because("NFR-1: the same case against the same version always yields the same decision and trace");
+
+    /** Document 7, day 3: no clock in engine, read directly or through a {@code now()} of java.time (NFR-1). */
+    @ArchTest
+    static final ArchRule engineReadsNoClock = noClasses()
+            .that().resideInAnyPackage(PackageRulesTest.ROOT + ".engine..")
+            .should().callMethodWhere(target(owner(assignableTo(System.class)))
+                    .and(target(name("currentTimeMillis")).or(target(name("nanoTime")))))
+            .orShould().callMethodWhere(target(owner(resideInAPackage("java.time.."))).and(target(name("now"))))
+            .because("NFR-1: a decision may not depend on when it is made");
 }

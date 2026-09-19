@@ -33,6 +33,8 @@
         <spring-ai.version>2.0.1</spring-ai.version>
         <springdoc.version>3.0.3</springdoc.version>
         <archunit.version>1.5.0</archunit.version>
+        <!-- Document 6, Backend Test Design: property-based tests of the engine. -->
+        <jqwik.version>1.10.1</jqwik.version>
         <!-- Document 3, JSON Schema: the networknt validator on draft 2020-12; the 3.x line runs on Jackson 3,
              the Jackson line Spring Boot 4 manages. -->
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
@@ -43,12 +45,15 @@
         <pitest.version>1.30.0</pitest.version>
         <pitest-junit5.version>1.2.3</pitest-junit5.version>
         <cyclonedx.version>2.9.3</cyclonedx.version>
+        <jmh.version>1.37</jmh.version>
+        <build-helper.version>3.6.2</build-helper.version>
+        <exec-plugin.version>3.6.4</exec-plugin.version>
         <dependency-check.version>13.0.0</dependency-check.version>
 
-        <!-- Document 6, Coverage Targets and Enforcement: PIT on engine and rules, at least 90%.
-             failWhenNoMutations flips to true on day 3, when the two packages hold their first classes. -->
+        <!-- Document 6, Coverage Targets and Enforcement: PIT on engine and rules, at least 90%, a hard gate since
+             day 3 (Document 7), when both packages hold their classes. -->
         <pitest.mutationThreshold>90</pitest.mutationThreshold>
-        <pitest.failWhenNoMutations>false</pitest.failWhenNoMutations>
+        <pitest.failWhenNoMutations>true</pitest.failWhenNoMutations>
 
         <!-- JUnit 5 tag that excludes a flaky test from the gate while it keeps running (Document 6, CI Pipeline). -->
         <quarantine.tag>quarantine</quarantine.tag>
@@ -163,6 +168,12 @@
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
             <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.jqwik</groupId>
+            <artifactId>jqwik</artifactId>
+            <version>${jqwik.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -469,6 +480,84 @@
                                 <format>HTML</format>
                                 <format>JSON</format>
                             </formats>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Document 6, Performance and Determinism: the engine micro-benchmark, reported, not a gate.
+             ./mvnw -Pbenchmark -DskipTests test-compile exec:exec -->
+        <profile>
+            <id>benchmark</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-core</artifactId>
+                    <version>${jmh.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-generator-annprocess</artifactId>
+                    <version>${jmh.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${build-helper.version}</version>
+                        <executions>
+                            <execution>
+                                <id>benchmark-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jmh/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <!-- JMH generates its harness with an annotation processor, named here because newer JDKs no
+                             longer run processors found on the class path. -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-testCompile</id>
+                                <configuration>
+                                    <annotationProcessorPaths>
+                                        <path>
+                                            <groupId>org.openjdk.jmh</groupId>
+                                            <artifactId>jmh-generator-annprocess</artifactId>
+                                            <version>${jmh.version}</version>
+                                        </path>
+                                    </annotationProcessorPaths>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec-plugin.version}</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>org.openjdk.jmh.Main</argument>
+                                <argument>EngineBenchmark</argument>
+                            </arguments>
                         </configuration>
                     </plugin>
                 </plugins>
