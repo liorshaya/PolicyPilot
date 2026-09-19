@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -33,57 +34,65 @@ class SemanticValidatorTest {
 
     @Test
     void fieldDuplicateReportedAtTheSecondField() {
-        assertOnly(invalidFixture("FIELD_DUPLICATE"), ValidationCode.FIELD_DUPLICATE, "/fields/1/name");
+        assertThat(codesAndPaths(invalidFixture("FIELD_DUPLICATE")))
+                .containsExactly(tuple(ValidationCode.FIELD_DUPLICATE, "/fields/1/name"));
     }
 
     @Test
     void fieldUnknownReportedInACondition() {
-        assertOnly(invalidFixture("FIELD_UNKNOWN"), ValidationCode.FIELD_UNKNOWN, "/rules/0/condition/field");
-        assertOnly(publish(lending(b -> b.rule("R-140", r -> r.set("condition", json("{\"any\": ["
+        assertThat(codesAndPaths(invalidFixture("FIELD_UNKNOWN")))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/0/condition/field"));
+        assertThat(codesAndPaths(publish(lending(b -> b.rule("R-140", r -> r.set("condition", json("{\"any\": ["
                         + "{\"field\": \"employment_type\", \"op\": \"eq\", \"value\": \"unemployed\"},"
-                        + "{\"field\": \"benefits\", \"op\": \"present\"}]}"))))),
-                ValidationCode.FIELD_UNKNOWN, "/rules/8/condition/any/1/field");
+                        + "{\"field\": \"benefits\", \"op\": \"present\"}]}")))))))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/8/condition/any/1/field"));
     }
 
     @Test
     void fieldUnknownReportedInAnExpressionAndInASetTarget() {
-        assertOnly(publish(lending(b -> b.rule("R-020", r -> edit(r, "/actions/0/value/args/0/args/0/args/0")
-                        .put("field", "existing_debt")))),
-                ValidationCode.FIELD_UNKNOWN, "/rules/1/actions/0/value/args/0/args/0/args/0");
-        assertOnly(publish(lending(b -> b.rule("R-010", r -> edit(r, "/actions/0").put("field", "installment")))),
-                ValidationCode.FIELD_UNKNOWN, "/rules/0/actions/0/field");
-        assertOnly(publish(lending(b -> b.rule("R-170", r -> edit(r, "/condition")
-                        .set("value", json("{\"field\": \"minimum_income\"}"))))),
-                ValidationCode.FIELD_UNKNOWN, "/rules/11/condition/value");
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-020", r -> edit(r, "/actions/0/value/args/0/args/0/args/0")
+                        .put("field", "existing_debt"))))))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/1/actions/0/value/args/0/args/0/args/0"));
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-010", r -> edit(r, "/actions/0").put("field", "installment"))))))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/0/actions/0/field"));
+        assertThat(codesAndPaths(publish(lending(b -> b.rule("R-170", r -> edit(r, "/condition")
+                        .set("value", json("{\"field\": \"minimum_income\"}")))))))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/11/condition/value"));
     }
 
     // ------------------------------------------------------------------ FIELD_TYPE_MISMATCH
 
     @Test
     void fieldTypeMismatchReportedForGtOnABoolean() {
-        assertOnly(invalidFixture("FIELD_TYPE_MISMATCH"), ValidationCode.FIELD_TYPE_MISMATCH, "/rules/0/condition/op");
+        assertThat(codesAndPaths(invalidFixture("FIELD_TYPE_MISMATCH")))
+                .containsExactly(tuple(ValidationCode.FIELD_TYPE_MISMATCH, "/rules/0/condition/op"));
     }
 
     @Test
     void fieldTypeMismatchReportedForAStringAgainstANumberAndMatchesOnAnEnum() {
-        assertOnly(publish(lending(b -> b.rule("R-170", r -> edit(r, "/condition").put("value", "8000")))),
-                ValidationCode.FIELD_TYPE_MISMATCH, "/rules/11/condition/value");
-        assertOnly(publish(lending(b -> b.rule("R-140", r -> edit(r, "/condition")
-                        .put("op", "matches").put("value", "unemp.*")))),
-                ValidationCode.FIELD_TYPE_MISMATCH, "/rules/8/condition/op");
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-170", r -> edit(r, "/condition").put("value", "8000"))))))
+                .containsExactly(tuple(ValidationCode.FIELD_TYPE_MISMATCH, "/rules/11/condition/value"));
+        assertThat(codesAndPaths(publish(lending(b -> b.rule("R-140", r -> edit(r, "/condition")
+                        .put("op", "matches").put("value", "unemp.*"))))))
+                .containsExactly(tuple(ValidationCode.FIELD_TYPE_MISMATCH, "/rules/8/condition/op"));
     }
 
     /** The other places a value can fail to fit its field, each at its own node. */
     @ParameterizedTest(name = "{0}")
     @MethodSource("typeMismatches")
-    void fieldTypeMismatchReportedWhereverAValueDoesNotFit(String name, Consumer<RuleSetBuilder> change, String pointer) {
-        assertOnly(publish(lending(change)), ValidationCode.FIELD_TYPE_MISMATCH, pointer);
+    void fieldTypeMismatchReportedWhereverAValueDoesNotFit(
+            String name, Consumer<RuleSetBuilder> change, String pointer) {
+        assertThat(codesAndPaths(publish(lending(change))))
+                .containsExactly(tuple(ValidationCode.FIELD_TYPE_MISMATCH, pointer));
     }
 
     @Test
     void fieldTypeMismatchReportedForAFractionAgainstAnIntegerField() {
-        assertOnly(publish(lending(b -> b.rule("R-100", r -> edit(r, "/condition").put("value", 20.5)))),
-                ValidationCode.FIELD_TYPE_MISMATCH, "/rules/2/condition/value");
+        assertThat(codesAndPaths(publish(lending(b -> b.rule("R-100", r -> edit(r, "/condition").put("value", 20.5))))))
+                .containsExactly(tuple(ValidationCode.FIELD_TYPE_MISMATCH, "/rules/2/condition/value"));
     }
 
     @Test
@@ -114,18 +123,19 @@ class SemanticValidatorTest {
 
     @Test
     void fieldDomainInvalidReportedForMinimumAboveMaximum() {
-        assertOnly(invalidFixture("FIELD_DOMAIN_INVALID"), ValidationCode.FIELD_DOMAIN_INVALID, "/fields/0");
+        assertThat(codesAndPaths(invalidFixture("FIELD_DOMAIN_INVALID")))
+                .containsExactly(tuple(ValidationCode.FIELD_DOMAIN_INVALID, "/fields/0"));
         // exclusive bounds stand in for the inclusive ones when those are absent
-        assertOnly(publish(lending(b -> b.field("age", f -> f.remove("minimum")).field("age",
-                        f -> f.put("exclusiveMinimum", 121)))),
-                ValidationCode.FIELD_DOMAIN_INVALID, "/fields/0");
+        assertThat(codesAndPaths(publish(lending(b -> b.field("age", f -> f.remove("minimum")).field("age",
+                        f -> f.put("exclusiveMinimum", 121))))))
+                .containsExactly(tuple(ValidationCode.FIELD_DOMAIN_INVALID, "/fields/0"));
     }
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"})
     void fieldDomainInvalidReportedForADomainOnANonNumericField(String bound) {
-        assertOnly(publish(lending(b -> b.field("employment_type", f -> f.put(bound, 0)))),
-                ValidationCode.FIELD_DOMAIN_INVALID, "/fields/3/" + bound);
+        assertThat(codesAndPaths(publish(lending(b -> b.field("employment_type", f -> f.put(bound, 0))))))
+                .containsExactly(tuple(ValidationCode.FIELD_DOMAIN_INVALID, "/fields/3/" + bound));
     }
 
     @Test
@@ -143,34 +153,37 @@ class SemanticValidatorTest {
 
     @Test
     void enumValueUnknownReportedForEq() {
-        assertOnly(invalidFixture("ENUM_VALUE_UNKNOWN"), ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/0/condition/value");
+        assertThat(codesAndPaths(invalidFixture("ENUM_VALUE_UNKNOWN")))
+                .containsExactly(tuple(ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/0/condition/value"));
     }
 
     @Test
     void enumValueUnknownReportedForInNotInAndNe() {
-        assertOnly(publish(lending(b -> b.rule("R-310", r -> ((ArrayNode) r.at("/condition/all/0/value"))
-                        .set(1, "freelancer")))),
-                ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/14/condition/all/0/value/1");
-        assertOnly(publish(lending(b -> b.rule("R-310", r -> edit(r, "/condition/all/0").put("op", "not_in")
-                        .set("value", json("[\"freelancer\", \"salaried\"]"))))),
-                ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/14/condition/all/0/value/0");
-        assertOnly(publish(lending(b -> b.rule("R-110", r -> edit(r, "/condition/all/1").put("value", "pensioner")))),
-                ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/3/condition/all/1/value");
+        assertThat(codesAndPaths(publish(lending(b -> b.rule("R-310", r -> ((ArrayNode) r.at("/condition/all/0/value"))
+                        .set(1, "freelancer"))))))
+                .containsExactly(tuple(ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/14/condition/all/0/value/1"));
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-310", r -> edit(r, "/condition/all/0").put("op", "not_in")
+                        .set("value", json("[\"freelancer\", \"salaried\"]")))))))
+                .containsExactly(tuple(ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/14/condition/all/0/value/0"));
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-110", r -> edit(r, "/condition/all/1").put("value", "pensioner"))))))
+                .containsExactly(tuple(ValidationCode.ENUM_VALUE_UNKNOWN, "/rules/3/condition/all/1/value"));
     }
 
     // ------------------------------------------------------------------ EXPR_TYPE_MISMATCH, EXPR_ARITY
 
     @Test
     void exprTypeMismatchReportedForArithmeticOnAString() {
-        assertOnly(invalidFixture("EXPR_TYPE_MISMATCH"), ValidationCode.EXPR_TYPE_MISMATCH,
-                "/rules/0/actions/0/value/args/0");
+        assertThat(codesAndPaths(invalidFixture("EXPR_TYPE_MISMATCH")))
+                .containsExactly(tuple(ValidationCode.EXPR_TYPE_MISMATCH, "/rules/0/actions/0/value/args/0"));
     }
 
     @Test
     void exprTypeMismatchReportedForMonthsBetweenOnANumberAndADateInArithmetic() {
-        assertOnly(publish(withDates(
-                        "{\"fn\": \"months_between\", \"args\": [{\"field\": \"birth_date\"}, {\"field\": \"age\"}]}")),
-                ValidationCode.EXPR_TYPE_MISMATCH, "/rules/5/condition/all/1/value/args/1");
+        assertThat(codesAndPaths(publish(withDates("{\"fn\": \"months_between\", \"args\": "
+                        + "[{\"field\": \"birth_date\"}, {\"field\": \"age\"}]}"))))
+                .containsExactly(tuple(ValidationCode.EXPR_TYPE_MISMATCH, "/rules/5/condition/all/1/value/args/1"));
         assertThat(publish(withDates("{\"fn\": \"add\", \"args\": [{\"field\": \"birth_date\"}, 1]}")))
                 .extracting(Finding::code, Finding::path, Finding::message)
                 .containsExactly(tuple(ValidationCode.EXPR_TYPE_MISMATCH, "/rules/5/condition/all/1/value/args/0",
@@ -193,14 +206,16 @@ class SemanticValidatorTest {
 
     @Test
     void exprArityReportedForAbsWithTwoArguments() {
-        assertOnly(invalidFixture("EXPR_ARITY"), ValidationCode.EXPR_ARITY, "/rules/0/actions/0/value");
+        assertThat(codesAndPaths(invalidFixture("EXPR_ARITY")))
+                .containsExactly(tuple(ValidationCode.EXPR_ARITY, "/rules/0/actions/0/value"));
     }
 
     @Test
     void exprArityReportedForAddWithOneArgument() {
-        assertOnly(publish(lending(b -> b.rule("R-020", r -> ((ArrayNode) r.at("/actions/0/value/args/0/args/0/args"))
-                        .remove(1)))),
-                ValidationCode.EXPR_ARITY, "/rules/1/actions/0/value/args/0/args/0");
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-020", r -> ((ArrayNode) r.at("/actions/0/value/args/0/args/0/args"))
+                        .remove(1))))))
+                .containsExactly(tuple(ValidationCode.EXPR_ARITY, "/rules/1/actions/0/value/args/0/args/0"));
     }
 
     @Test
@@ -216,12 +231,13 @@ class SemanticValidatorTest {
 
     @Test
     void betweenRangeInvalidReportedForLowAboveHigh() {
-        assertOnly(invalidFixture("BETWEEN_RANGE_INVALID"), ValidationCode.BETWEEN_RANGE_INVALID,
-                "/rules/0/condition/value");
-        assertOnly(publish(datesBuilder().rule("R-900", r -> r.set("condition", json(
-                        "{\"field\": \"application_date\", \"op\": \"between\", \"value\": [\"2026-12-31\", \"2026-01-01\"]}")))
-                        .build()),
-                ValidationCode.BETWEEN_RANGE_INVALID, "/rules/19/condition/value");
+        assertThat(codesAndPaths(invalidFixture("BETWEEN_RANGE_INVALID")))
+                .containsExactly(tuple(ValidationCode.BETWEEN_RANGE_INVALID, "/rules/0/condition/value"));
+        assertThat(codesAndPaths(publish(datesBuilder().rule("R-900", r -> r.set("condition", json(
+                        "{\"field\": \"application_date\", \"op\": \"between\","
+                                + " \"value\": [\"2026-12-31\", \"2026-01-01\"]}")))
+                        .build())))
+                .containsExactly(tuple(ValidationCode.BETWEEN_RANGE_INVALID, "/rules/19/condition/value"));
     }
 
     @Test
@@ -238,13 +254,15 @@ class SemanticValidatorTest {
 
     @Test
     void regexInvalidReportedForALookahead() {
-        assertOnly(invalidFixture("REGEX_INVALID"), ValidationCode.REGEX_INVALID, "/rules/0/condition/value");
+        assertThat(codesAndPaths(invalidFixture("REGEX_INVALID")))
+                .containsExactly(tuple(ValidationCode.REGEX_INVALID, "/rules/0/condition/value"));
     }
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"(a)\\1", "[a-"})
     void regexInvalidReportedForABackreferenceAndAPatternThatDoesNotCompile(String pattern) {
-        assertOnly(publish(withIban(pattern)), ValidationCode.REGEX_INVALID, "/rules/19/condition/value");
+        assertThat(codesAndPaths(publish(withIban(pattern))))
+                .containsExactly(tuple(ValidationCode.REGEX_INVALID, "/rules/19/condition/value"));
     }
 
     @Test
@@ -257,11 +275,12 @@ class SemanticValidatorTest {
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"today", "now", "null", "true", "false"})
     void reservedIdentifierReportedForEveryReservedWord(String word) {
-        assertOnly(publish(lending(b -> b.document(d -> fields(d)
-                        .add(json("{\"name\": \"" + word + "\", \"type\": \"number\"}"))))),
-                ValidationCode.RESERVED_IDENTIFIER, "/fields/11/name");
+        assertThat(codesAndPaths(publish(lending(b -> b.document(d -> fields(d)
+                        .add(json("{\"name\": \"" + word + "\", \"type\": \"number\"}")))))))
+                .containsExactly(tuple(ValidationCode.RESERVED_IDENTIFIER, "/fields/11/name"));
         if (word.equals("today")) {
-            assertOnly(invalidFixture("RESERVED_IDENTIFIER"), ValidationCode.RESERVED_IDENTIFIER, "/fields/0/name");
+            assertThat(codesAndPaths(invalidFixture("RESERVED_IDENTIFIER")))
+                    .containsExactly(tuple(ValidationCode.RESERVED_IDENTIFIER, "/fields/0/name"));
         }
     }
 
@@ -275,33 +294,36 @@ class SemanticValidatorTest {
 
     @Test
     void ruleIdDuplicateReportedAtTheSecondRule() {
-        assertOnly(invalidFixture("RULE_ID_DUPLICATE"), ValidationCode.RULE_ID_DUPLICATE, "/rules/1/id");
+        assertThat(codesAndPaths(invalidFixture("RULE_ID_DUPLICATE")))
+                .containsExactly(tuple(ValidationCode.RULE_ID_DUPLICATE, "/rules/1/id"));
     }
 
     @Test
     void derivedWriteOnlyReportedForASetOnACaseField() {
-        assertOnly(invalidFixture("DERIVED_WRITE_ONLY"), ValidationCode.DERIVED_WRITE_ONLY, "/rules/0/actions/0/field");
+        assertThat(codesAndPaths(invalidFixture("DERIVED_WRITE_ONLY")))
+                .containsExactly(tuple(ValidationCode.DERIVED_WRITE_ONLY, "/rules/0/actions/0/field"));
     }
 
     // ------------------------------------------------------------------ provenance against the policy text
 
     @Test
     void provenanceParagraphMissingReportedForARule() {
-        assertOnly(invalidFixture("PROVENANCE_PARAGRAPH_MISSING"), ValidationCode.PROVENANCE_PARAGRAPH_MISSING,
-                "/rules/2/provenance/paragraph");
+        assertThat(codesAndPaths(invalidFixture("PROVENANCE_PARAGRAPH_MISSING")))
+                .containsExactly(tuple(ValidationCode.PROVENANCE_PARAGRAPH_MISSING, "/rules/2/provenance/paragraph"));
     }
 
     @Test
     void provenanceParagraphMissingReportedForAFieldSource() {
-        assertOnly(publish(lending(b -> b.field("age", f -> edit(f, "/source").put("paragraph", 10)))),
-                ValidationCode.PROVENANCE_PARAGRAPH_MISSING, "/fields/0/source/paragraph");
+        assertThat(codesAndPaths(publish(lending(b -> b.field("age", f -> edit(f, "/source").put("paragraph", 10))))))
+                .containsExactly(tuple(ValidationCode.PROVENANCE_PARAGRAPH_MISSING, "/fields/0/source/paragraph"));
     }
 
     @Test
     void lastParagraphIsValidAndOnePastItIsMissing() {
         assertThat(publish(lending(b -> { }))).isEmpty();
-        assertOnly(publish(lending(b -> b.rule("R-900", r -> edit(r, "/provenance").put("paragraph", 10)))),
-                ValidationCode.PROVENANCE_PARAGRAPH_MISSING, "/rules/19/provenance/paragraph");
+        assertThat(codesAndPaths(publish(lending(b -> b
+                .rule("R-900", r -> edit(r, "/provenance").put("paragraph", 10))))))
+                .containsExactly(tuple(ValidationCode.PROVENANCE_PARAGRAPH_MISSING, "/rules/19/provenance/paragraph"));
     }
 
     @Test
@@ -359,7 +381,8 @@ class SemanticValidatorTest {
                 mismatch("between bounds with a high bound of the wrong type", b -> b.rule("R-120",
                         r -> edit(r, "/condition/not").set("value", json("[10000, \"high\"]"))),
                         "/rules/6/condition/not/value"),
-                mismatch("a boolean against a number", b -> b.rule("R-100", r -> edit(r, "/condition").put("value", true)),
+                mismatch("a boolean against a number",
+                        b -> b.rule("R-100", r -> edit(r, "/condition").put("value", true)),
                         "/rules/2/condition/value"),
                 mismatch("a date that does not exist", b -> b
                         .document(d -> fields(d).add(json("{\"name\": \"application_date\", \"type\": \"date\"}")))
@@ -376,8 +399,9 @@ class SemanticValidatorTest {
                         .rule("R-900", r -> r.set("condition", json(
                                 "{\"field\": \"application_date\", \"op\": \"lt\", \"value\": \"+12026-01-01\"}"))),
                         "/rules/19/condition/value"),
-                mismatch("a number in an enum list", b -> b.rule("R-310", r -> ((ArrayNode) r.at("/condition/all/0/value"))
-                        .set(1, 5)), "/rules/14/condition/all/0/value/1"),
+                mismatch("a number in an enum list",
+                        b -> b.rule("R-310", r -> ((ArrayNode) r.at("/condition/all/0/value")).set(1, 5)),
+                        "/rules/14/condition/all/0/value/1"),
                 mismatch("lt on an enum", b -> b.rule("R-140", r -> edit(r, "/condition").put("op", "lt")),
                         "/rules/8/condition/op"),
                 mismatch("eq with a list", b -> b.rule("R-140", r -> edit(r, "/condition")
@@ -389,9 +413,10 @@ class SemanticValidatorTest {
                 mismatch("a string set into a number", b -> b.rule("R-010", r -> edit(r, "/actions/0")
                         .put("value", "high")), "/rules/0/actions/0/value"),
                 mismatch("an expression set into a boolean", b -> b
-                        .document(d -> fields(d).add(json("{\"name\": \"flagged\", \"type\": \"boolean\", \"derived\": true}")))
-                        .rule("R-420", r -> ((ArrayNode) r.get("actions"))
-                                .add(json("{\"type\": \"set\", \"field\": \"flagged\", \"value\": {\"field\": \"age\"}}"))),
+                        .document(d -> fields(d)
+                                .add(json("{\"name\": \"flagged\", \"type\": \"boolean\", \"derived\": true}")))
+                        .rule("R-420", r -> ((ArrayNode) r.get("actions")).add(json(
+                                "{\"type\": \"set\", \"field\": \"flagged\", \"value\": {\"field\": \"age\"}}"))),
                         "/rules/18/actions/1/value"));
     }
 
@@ -399,8 +424,9 @@ class SemanticValidatorTest {
         return arguments(name, change, pointer);
     }
 
-    private static void assertOnly(List<Finding> findings, ValidationCode code, String pointer) {
-        assertThat(findings).extracting(Finding::code, Finding::path).containsExactly(tuple(code, pointer));
+    /** The code and pointer of each finding, in order, for a direct assertion. */
+    private static List<Tuple> codesAndPaths(List<Finding> findings) {
+        return findings.stream().map(finding -> tuple(finding.code(), finding.path())).toList();
     }
 
     private static JsonNode lending(Consumer<RuleSetBuilder> change) {
