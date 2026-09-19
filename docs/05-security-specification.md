@@ -1,6 +1,6 @@
 # PolicyPilot Security Specification
 
-2026-09-17 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 5 of the PolicyPilot set. It defines the threat model and every security control of the system, with injection in all its forms as the center of gravity, because a rules engine driven by a language model has two attack surfaces a normal web application does not: the text it reads and the text it produces. It builds on the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md) and the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md), the Test Strategy (Document 6) carries its tests in the traceability matrix, and the work plan (Document 7) schedules the controls it lists.
 
@@ -133,9 +133,9 @@ One shared access code opens a per-visitor sandbox; the code proves the visitor 
 sequenceDiagram
   participant B as Browser (Vercel origin)
   participant API as Railway API
-  B->>API: POST /auth/code {code}  (CORS preflight allowed for the Vercel origin only)
+  B->>API: POST /auth/code {code} with X-PolicyPilot-Client: web  (Origin checked, CORS preflight allowed for the web app's origin only)
   API->>API: constant-time compare with POLICYPILOT_ACCESS_CODE; rate limit 5/min/IP; lockout 15 min after 20 failures
-  API-->>B: Set-Cookie pp_session=<sandboxId>.<issuedAt>.<HMAC>; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=86400
+  API-->>B: Set-Cookie pp_session=<sandboxId>.<issuedAt>.<HMAC>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400
   B->>API: any /api/** request with the cookie and header X-PolicyPilot-Client: web
   API->>API: verify HMAC (POLICYPILOT_COOKIE_SECRET), expiry, Origin header, custom header; resolve sandbox
 ```
@@ -143,9 +143,9 @@ sequenceDiagram
 | Concern | Control |
 | --- | --- |
 | Code strength and handling | 8 lowercase letters chosen from the environment (about 37 bits), typeable on any keyboard; compared in constant time; never logged; rotated by changing the variable, which invalidates nothing else because sessions are signed separately |
-| Brute force | 5 attempts per minute per IP on `/auth/code`, 20 failures lock the IP for 15 minutes; every failure is a security event |
-| Cookie | HMAC-SHA256 over `sandboxId.issuedAt` with a 32-byte secret from the environment; `HttpOnly` so scripts cannot read it, `Secure` so it only travels over TLS, `SameSite=None` because the web app and the API are on different sites, 24-hour expiry, renewed on use |
-| CSRF | Three independent defenses, any one sufficient: CORS allows only the Vercel origin and localhost with credentials; every state-changing request must carry `X-PolicyPilot-Client: web`, which a cross-site form cannot add; the `Origin` header is checked on every non-GET request and must match the allowlist |
+| Brute force | 5 attempts per minute per IP on `/auth/code`; 20 failures within 15 minutes lock the IP for 15 minutes, and during the lockout every exchange from that IP, the correct code included, gets 429 with Retry-After (no oracle); every failure is a security event |
+| Cookie | HMAC-SHA256 over `sandboxId.issuedAt` with a 32-byte secret from the environment; `HttpOnly` so scripts cannot read it, `Secure` so it only travels over TLS, `SameSite=Lax` because the API is served from api.policypilot.liorshaya.com, the same site as the web app, so the cookie is first-party (a cross-site cookie is a third-party cookie, which Safari and other browsers block); 24-hour expiry, re-issued with a new issuedAt when it is older than one hour |
+| CSRF | Three independent defenses, any one sufficient: CORS allows only the Vercel origin and localhost with credentials; every state-changing request must carry `X-PolicyPilot-Client: web`, which a cross-site form cannot add; the `Origin` header is checked on every non-GET request and must be present and match the allowlist; the code exchange itself carries both, so a login cannot be forged either |
 | Authorization (sandbox) | Every mutable entity (rule set, version, case, decision, change request, chat session) carries a `sandbox_id`; every repository method that loads by id takes the sandbox id from the session, never from the request, so an id guessed from another sandbox returns 404 (no existence oracle); the seeded rows carry the `protected` flag and a null sandbox id, and any write against them is refused and forks a sandbox copy instead |
 | Authorization (protected demo) | Publishing, approving and resetting a protected version are impossible through the API for any session; the nightly reset job runs inside the API on a schedule, not through an endpoint |
 | Session revocation | Rotating `POLICYPILOT_COOKIE_SECRET` invalidates every session at once; the nightly reset deletes sandboxes older than 24 hours together with their sessions |
@@ -161,8 +161,8 @@ Every request is parsed into a typed DTO with explicit limits before any busines
 
 | Input | Limits | Normalization and checks |
 | --- | --- | --- |
-| Policy text | 40 KB, 200 paragraphs, 4,000 characters per paragraph | UTF-8 only; NFC normalization; format characters (Unicode category `Cf`, including bidi overrides U+202A to U+202E, U+2066 to U+2069, zero-width U+200B, U+200C, U+200D, U+FEFF) stripped except a plain line separator; control characters other than newline and tab rejected; paragraph split on blank lines |
-| Uploads | `.txt`, `.md`, `.pdf`; 2 MB; one file per request | Type by magic bytes; PDF parsed in memory with PDFBox, 50 pages, 10 s timeout, text only; extracted text then follows the policy text rules |
+| Policy text | 40 KB (40,960 bytes of UTF-8 after normalization), 200 paragraphs, 4,000 characters (code points) per paragraph | UTF-8 only; NFC normalization; format characters (Unicode category `Cf`, including bidi overrides U+202A to U+202E, U+2066 to U+2069, zero-width U+200B, U+200C, U+200D, U+FEFF) stripped except a plain line separator; carriage returns (CRLF or a lone CR) become newlines; control characters other than newline and tab rejected; paragraph split on blank lines (a line of spaces or tabs only is blank) |
+| Uploads | `.txt`, `.md`, `.pdf`; 2 MB; one file per request | Type by magic bytes: %PDF- is a PDF, valid UTF-8 without NUL is text or Markdown, anything else is refused; PDF parsed in memory with PDFBox, 50 pages, 10 s timeout, text only, and refused when it carries JavaScript, embedded files or encryption; extracted text then follows the policy text rules |
 | Rule set JSON (manual edits) | 1 MB body, 500 rules, 100 fields, nesting depth 8 in conditions and expressions, string lengths as in the schema | Schema first, then the full Document 3 validator; unknown keys rejected |
 | Case input | 100 fields, values by declared type and domain | `CASE_INVALID` details are returned to the caller with the field names; batch of at most 500 cases per request |
 | Chat message | 2 KB | Same Unicode normalization as policy text; `<` escaped before prompting |
@@ -201,7 +201,7 @@ There is no personal data in PolicyPilot by construction, and the controls below
 | Topic | Control |
 | --- | --- |
 | Personal data | All applicants, cases, policies and decisions are synthetic fixtures; the case schema is numbers, enums, booleans and dates, with no free-text field, so a visitor cannot type a real name into a case; policy text is the only free text and it is a policy, not a person; the README states that no real data may be loaded into the demo |
-| Secrets | `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `DATABASE_URL` live only in Railway and Vercel environment settings; `.env.example` documents names, never values; gitleaks runs in CI and as a pre-commit hook; the API never returns them (the `/system/provider` endpoint returns model names only) and the log encoder redacts values matching the key prefixes and the cookie name |
+| Secrets | `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `DATABASE_URL` live only in Railway and Vercel environment settings, and the API refuses to start in any profile without an access code of 8 lowercase letters and a cookie secret of at least 32 bytes; `.env.example` documents names, never values; gitleaks runs in CI and as a pre-commit hook; the API never returns them (the `/system/provider` endpoint returns model names only) and the log encoder redacts values matching the key prefixes and the cookie name |
 | Transport | TLS terminated by Railway and Vercel; the API refuses plain HTTP behind the proxy by honoring `X-Forwarded-Proto` and setting HSTS; the database is reached over Railway's private network only, never through the public proxy |
 | At rest | Railway's volume encryption as provided; no additional application-level encryption for synthetic data; backups are Railway snapshots plus the fixtures in the repository, which can rebuild the demo from scratch |
 | Provider data policies | The OpenAI API is used under its API data-usage terms, which do not train on API inputs by default; the README links the provider's current policy page rather than restating it, so the statement cannot go stale; the local profile sends nothing outside the machine |
@@ -271,7 +271,7 @@ Every security-relevant event is a structured log line with a trace id and a Mic
 | Denylist hit in a stream | Prompt version, pattern class | `security.output.denylist` |
 | Nightly reset | Sandboxes deleted, re-seeded flag | `demo.reset` |
 
-**Redaction**: the Logback encoder masks any value matching the provider key prefix, the cookie name, the access code and the admin code, and hashes IPs with a per-deployment salt; request bodies and prompts are never logged in the cloud profile.
+**Redaction**: the Logback encoder masks any value matching the provider key prefix, the cookie name, the access code and the admin code, and hashes IPs with a per-deployment salt (an HMAC key derived from POLICYPILOT\_COOKIE\_SECRET, so no further variable exists); request bodies and prompts are never logged in the cloud profile.
 
 **Pre-demo check** (two days before and the morning of): the counters for the last 7 days in the admin panel; any non-zero `security.protected.write_attempt`, `ai.budget.stopped` or `security.output.denylist` is investigated; the protected rule set's checksum matches the fixture; the ledger is well below its cap; the circuit breaker is closed.
 

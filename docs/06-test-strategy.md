@@ -231,7 +231,7 @@ fixtures/
 
 **Golden files**: `cases-expected.json` (outcome, deciding rule, derived values and flags per case) and `sample-decision.json` (the full trace of case 17) are golden files produced by the reference implementation and checked by the Java engine; a change in engine semantics requires regenerating them with the reference, which makes every semantic change visible in a diff.
 
-**Versioning**: fixtures carry the DSL version in their file (`dslVersion`), and a schema change bumps it; the `schemas/` copies are compared with the API resources in CI so the fixtures and the running code cannot drift apart; recordings are keyed by prompt version, so old recordings stay valid for old prompts and are pruned when a prompt version is retired.
+**Versioning**: fixtures carry the DSL version in their file (`dslVersion`), and a schema change bumps it; the `schemas/` copies are compared with the API resources in CI so the fixtures and the running code cannot drift apart; the same check covers the demo fixtures the seed job loads (policy.he.md and ruleset.v1.json of the lending policy), which are copied into the backend resources because the image is built from backend/; recordings are keyed by prompt version, so old recordings stay valid for old prompts and are pruned when a prompt version is retired.
 
 **Privacy of fixtures**: names, ids and free text are generated, and a CI check rejects any fixture containing an email address, a phone number or a nine-digit number that could read as an identity number.
 

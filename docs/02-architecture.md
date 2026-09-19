@@ -73,7 +73,7 @@ One Maven project, one Spring Boot application, eleven packages under `com.liors
 | --- | --- | --- |
 | `rules` | The Rules DSL model: `RuleSet`, `Rule`, `Condition`, `Action`, `Provenance`; the JSON Schema; the validator with its contexts | JDK, Jackson |
 | `engine` | `RuleEngine`, `CompiledRuleSet`, `Trace`, operators and combinators, simulation (a pure re-evaluation) | `rules` |
-| `policy` | Policy documents and their versions, paragraph splitting, input normalization, storage | `rules` (for provenance ids), persistence |
+| `policy` | Policy documents and their versions, paragraph splitting and the policy text limits, storage | `rules` (for provenance ids), persistence |
 | `decision` | Case model, `DecisionService` (single, batch, simulate), decision persistence and statistics, exports | `engine`, `rules`, persistence |
 | `ai` | `LlmGateway`, `EmbeddingGateway`, prompt registry, structured output contracts, validation loop, marker resolver, tool argument validation, the five use cases (author, review, explain, answer, change) | `rules`, `engine` (read-only, for regression), `policy`, `decision`, `rag` |
 | `ai.adapter` | The only package that imports Spring AI: `SpringAiLlmGateway`, `SpringAiEmbeddingGateway`, provider configuration, schema variant derivation, token budget guard, response cache | Spring AI, `ai` interfaces |
@@ -81,7 +81,7 @@ One Maven project, one Spring Boot application, eleven packages under `com.liors
 | `change` | Change requests, impact analysis, diff, regression run, approval (pending to analyst provenance), versioning | `ai`, `engine`, `decision`, `audit` |
 | `audit` | `AuditEntry`, append-only log service | persistence |
 | `demo` | Sandbox service (fork on write to protected rows), nightly reset and re-seed, manual reset with the admin code, fixture loading | `policy`, `decision`, `audit`, persistence |
-| `web` | REST controllers, SSE endpoints, DTOs, error mapping, access-code exchange and filter, CSRF defenses, rate limiting | every package above, but nothing depends on it |
+| `web` | REST controllers, SSE endpoints, DTOs, error mapping, access-code exchange and filter, CSRF defenses, rate limiting, input normalization and upload reading (type by magic bytes, PDF text in memory) | every package above, but nothing depends on it |
 
 ```mermaid
 flowchart TD
@@ -300,7 +300,7 @@ Reading the diagram: arrows point from parent to child; `rule` links back to `po
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `policy_document` | `id`, `sandbox_id`, `title`, `language`, `created_at` | Logical document; content lives in versions |
+| `policy_document` | `id`, `sandbox_id`, `protected`, `title`, `language`, `created_at` | Logical document; content lives in versions; protected marks the seeded demo policy, whose sandbox\_id is null (a check constraint ties the two) |
 | `policy_version` | `id`, `document_id`, `version_no`, `raw_text`, `created_at` | Immutable once a rule set is generated from it |
 | `policy_paragraph` | `id`, `policy_version_id`, `index`, `text` | The provenance unit; index is stable within a version |
 | `ruleset` | `id`, `sandbox_id`, `protected`, `name`, `domain`, `default_outcome` | Logical rule set ("Consumer lending policy"); `protected` marks the seeded demo rows that no session may modify |
@@ -323,7 +323,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 
 | Method and path | Purpose | Notes |
 | --- | --- | --- |
-| `POST /policies` | Create a policy document with its first version (text or uploaded file) | Returns the paragraph split so the UI can show it immediately |
+| `POST /policies` | Create a policy document with its first version (text or uploaded file) | JSON {title, language: he or en, text} or multipart (file, title, language); returns 201 with the paragraph split so the UI can show it immediately |
 | `GET /policies/{id}` | Policy with its versions and paragraphs |  |
 | `POST /policies/{id}/rulesets` | Generate a draft rule set from the latest policy version | SSE stream: progress events (`parsing`, `authoring`, `validating`, `reviewing`), then the draft and findings |
 | `GET /rulesets/{id}/versions/{no}` | A rule set version with rules, findings and status |  |
@@ -346,6 +346,24 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | POST /admin/reset | Re-seed the protected demo data and delete stale sandboxes on demand, for the presenter | Requires the session cookie and the POLICYPILOT\_ADMIN\_CODE header; writes a RESET audit entry; the same job runs nightly on a schedule |
 
 **Error envelope**: `{ "code": "RULESET_INVALID", "message": "...", "details": [ { "path": "/rules/3/condition/field", "problem": "unknown field 'monthly_incom'" } ], "traceId": "..." }`; each path is the JSON pointer of a validation finding (Document 3, Error reporting shape), the node the decision table highlights; codes are an enum shared with the client, and validation failures use HTTP 422, provider failures 503 with `code: PROVIDER_UNAVAILABLE`, missing or wrong access code 401, rate limit 429 with `Retry-After`.
+
+**Error codes** (the enum; a message never repeats the offending value):
+
+| Code | HTTP | When |
+| --- | --- | --- |
+| `REQUEST_INVALID` | 400 | Malformed JSON, an unknown property, a path id that is not a UUID or an `R-` id |
+| `ACCESS_CODE_INVALID` | 401 | `POST /auth/code` with a wrong code |
+| `SESSION_INVALID` | 401 | An `/api/**` request with a missing, tampered or expired cookie |
+| `CSRF_REJECTED` | 403 | A state-changing request without `X-PolicyPilot-Client: web`, or with a missing or foreign `Origin` |
+| `NOT_FOUND` | 404 | An unknown id, or an id of another sandbox (the two are indistinguishable) |
+| `PAYLOAD_TOO_LARGE` | 413 | A body over 1 MB or an upload over 2 MB |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | A content type the route does not take, or a charset other than UTF-8 |
+| `POLICY_INVALID` | 422 | Policy text over its limits or with a control character |
+| `UPLOAD_REJECTED` | 422 | An upload that is not PDF or UTF-8 text, or a PDF over 50 pages, with JavaScript, embedded files or encryption, without text, or over 10 s |
+| `RULESET_INVALID` | 422 | A rule set that fails the Document 3 validator |
+| `RATE_LIMITED` | 429 | A rate limit or the code-exchange lockout, with `Retry-After` |
+| `INTERNAL_ERROR` | 500 | Anything unexpected; no internals in the body |
+| `PROVIDER_UNAVAILABLE` | 503 | The model provider failed or its circuit is open |
 
 **SSE conventions**: every stream event has an `event` name and a JSON `data` payload; the client reconnects with `Last-Event-ID` for generation and change streams, which are idempotent per request id; chat streams are not resumable and the client shows a retry button instead.
 
@@ -408,7 +426,7 @@ The stack is pinned to Spring AI 2.0.x on Spring Boot 4.0.x and Java 21, and the
 
 Notes that come from the Spring AI 2.0 upgrade guide ([upgrade notes](https://docs.spring.io/spring-ai/reference/upgrade-notes.html)) and that the adapter must respect: tool execution runs through `ToolCallingAdvisor` on the `ChatClient`, not inside the model; chat memory requires an explicit conversation id (the chat session id); model property paths are flat (`spring.ai.openai.embedding.model`, no `.options`); options objects are immutable and use `mutate()`.
 
-**Application properties owned by PolicyPilot** (prefix `policypilot.`): `access-code`, `cookie-secret`, `admin-code` (all three from environment variables only), `rate-limit.per-minute` (default 20), `rate-limit.per-sandbox-per-hour` (60), `rate-limit.concurrent-streams` (3), `ai.models.strong`, `ai.models.fast`, `ai.prompt-versions.*`, `ai.timeouts.author-seconds` (60), `ai.timeouts.chat-first-token-seconds` (20), `ai.max-repair-attempts` (2), `ai.daily-token-budget`, `ai.log-payloads` (false in the cloud), `embedding.dimension` (1536 or 1024), `rag.top-k` (8), `rag.min-score` (0.35), `demo.reset-cron` (`0 0 3 * * *`), `demo.fixture-set` (`cases-200`). All have defaults in `application.yml`; secrets only through environment variables.
+**Application properties owned by PolicyPilot** (prefix `policypilot.`): `access-code`, `cookie-secret`, `admin-code` (all three from environment variables only), `rate-limit.per-minute` (default 20), `rate-limit.per-sandbox-per-hour` (60), `rate-limit.concurrent-streams` (3), web.allowed-origins (the CORS and Origin allowlist: http://localhost:5173 by default, https://policypilot.liorshaya.com in the cloud profile), `ai.models.strong`, `ai.models.fast`, `ai.prompt-versions.*`, `ai.timeouts.author-seconds` (60), `ai.timeouts.chat-first-token-seconds` (20), `ai.max-repair-attempts` (2), `ai.daily-token-budget`, `ai.log-payloads` (false in the cloud), `embedding.dimension` (1536 or 1024), `rag.top-k` (8), `rag.min-score` (0.35), `demo.reset-cron` (`0 0 3 * * *`), `demo.fixture-set` (`cases-200`). All have defaults in `application.yml`; secrets only through environment variables.
 
 **Model selection per prompt**: the prompt registry maps each prompt name to a model name, so the expensive model is used only where accuracy matters (authoring, review, change) and the cheaper model where fluency matters (explain, answer); with Ollama both map to the same local model.
 
@@ -418,7 +436,7 @@ The threat model is a public demo with synthetic data and a paid model API behin
 
 | Control | Design | Where |
 | --- | --- | --- |
-| Access code | One shared code from `POLICYPILOT_ACCESS_CODE`; the web app exchanges it once at `POST /auth/code` for an HttpOnly, Secure, SameSite=None cookie signed with an HMAC; a servlet filter rejects any `/api/**` request without a valid cookie (401); the exchange is rate limited (5 per minute per IP, lockout after 20 failures) and compared in constant time | `web.security.AccessCodeFilter` |
+| Access code | One shared code from `POLICYPILOT_ACCESS_CODE`; the web app exchanges it once at `POST /auth/code` for an HttpOnly, Secure, SameSite=Lax cookie signed with an HMAC; a servlet filter rejects any `/api/**` request without a valid cookie (401); the exchange is rate limited (5 per minute per IP, lockout after 20 failures) and compared in constant time | `web.security.AccessCodeFilter` |
 | CSRF | Three independent defenses: CORS allows only the Vercel origin and localhost with credentials; every state-changing request must carry the custom header `X-PolicyPilot-Client: web`; the `Origin` header is checked on every non-GET request | `web.security.WebSecurityConfig` |
 | Rate limiting | Bucket4j token buckets per client IP and per sandbox: 20 model-calling requests per minute per IP, 60 per hour per sandbox, 3 concurrent streams; other endpoints 120 per minute; 429 with `Retry-After` | `web.security.RateLimitFilter`, in-memory buckets (single instance) |
 | Spend caps | A hard monthly limit set in the OpenAI dashboard; in the API, a daily token budget counter in the database (`token_ledger`) that switches the provider to cached responses when exceeded, with a banner in the UI | `ai.adapter.TokenBudgetGuard` |
@@ -499,7 +517,7 @@ Reading the diagram: Vercel builds and deploys the web app on every push to `mai
 | Environment | `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `POLICYPILOT_ADMIN_CODE`, `SPRING_PROFILES_ACTIVE=openai,cloud`, `DATABASE_URL` from the database service reference | `VITE_API_BASE_URL` |
 | Health | `/actuator/health` as the Railway health check; restart on failure | Vercel static, nothing to check |
 | Scaling | One instance (rate limits are in-memory, so a second instance would need a shared store); vertical resize if needed | CDN |
-| Domain | Railway-provided domain for the API, `policypilot.liorshaya.com` on Vercel for the web app |  |
+| Domain | api.policypilot.liorshaya.com for the API (a Railway custom domain, CNAME at Namecheap), so the API and the web app are one site and the session cookie is first-party, `policypilot.liorshaya.com` on Vercel for the web app |  |
 | Cost | Railway usage-based, expected under 10 USD per month for the API plus the database at demo traffic | Free tier |
 
 **Release discipline**: every phase ends with a git tag (`v0.1-core`, `v0.2-chat`, `v0.3-change`, `v1.0-demo`); Railway and Vercel deploy from `main` only (Railway through the CI job that deploys the scanned image by digest), feature work happens on branches with pull request previews on Vercel, and the demo rehearsal runs against the tagged `main` build two days before the interview, after which `main` is frozen.
