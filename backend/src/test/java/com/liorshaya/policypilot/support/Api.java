@@ -9,13 +9,15 @@ import java.net.http.HttpResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * A plain HTTP client for the running API in integration tests: every header is explicit, so a test shows exactly
  * what the browser would send (cookie, {@code Origin}, {@code X-PolicyPilot-Client}) and which client IP the API sees
- * ({@code X-Forwarded-For}, honoured from the loopback proxy as Railway's proxy is honoured in the cloud).
+ * ({@code X-Forwarded-For}, honoured from the loopback proxy as Railway's proxy is honoured in the cloud). A request
+ * whose test names no IP comes from an address of its own.
  */
 public final class Api {
 
@@ -25,6 +27,8 @@ public final class Api {
     public static final String ACCESS_CODE = "testcode";
 
     private static final Pattern SESSION_COOKIE = Pattern.compile("pp_session=([^;]*)");
+    /** Requests without an explicit client IP each come from their own address, so no two tests share a bucket. */
+    private static final AtomicInteger NEXT_CLIENT = new AtomicInteger();
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final String base;
@@ -73,6 +77,8 @@ public final class Api {
         private Call(String method, String path) {
             this.method = method;
             this.path = path;
+            int client = NEXT_CLIENT.incrementAndGet();
+            from("10." + (client >> 16 & 0xff) + "." + (client >> 8 & 0xff) + "." + (client & 0xff));
         }
 
         public Call header(String name, String value) {

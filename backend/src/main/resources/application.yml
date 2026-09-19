@@ -26,6 +26,13 @@ spring:
   autoconfigure:
     # No user store: the only credential is the access code, exchanged for the signed cookie (Document 5)
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  servlet:
+    multipart:
+      # One policy file of at most 2 MB per request, kept in memory: nothing uploaded is ever written to disk
+      # (Document 5, File and path injection; limits table: uploads 2 MB)
+      max-file-size: 2MB
+      max-request-size: 2112KB
+      file-size-threshold: 3MB
   jackson:
     deserialization:
       # Unknown properties are an error on every request body (Document 5, JSON and deserialization)
