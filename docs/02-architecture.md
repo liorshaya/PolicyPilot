@@ -329,6 +329,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | Method and path | Purpose | Notes |
 | --- | --- | --- |
 | `POST /policies` | Create a policy document with its first version (text or uploaded file) | JSON {title, language: he or en, text} or multipart (file, title, language); returns 201 with the paragraph split so the UI can show it immediately |
+| `GET /policies` | The policy documents the caller's sandbox can see: its own and the protected ones | Each with its title, language, `protected`, `forkedFromId` and the number of paragraphs of its latest version, so the web app can open one without knowing its id |
 | `GET /policies/{id}` | Policy with its versions and paragraphs |  |
 | `POST /policies/{id}/rulesets` | Generate a draft rule set from the latest policy version | SSE stream: progress events (`parsing`, `authoring`, `validating`, `reviewing`), then the draft and findings |
 | `GET /rulesets` | The rule sets the caller's sandbox can see: its own and the protected ones | Each with its policy, `protected`, `forkedFromId` and the number and status of every version, so the web app finds the seeded rule set |

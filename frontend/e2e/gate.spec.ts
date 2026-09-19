@@ -8,7 +8,8 @@ test.describe('access gate', () => {
   test('renders the gate with the code field and a disabled button', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'PolicyPilot' })).toBeVisible()
+    await expect(page.getByRole('img', { name: 'PolicyPilot' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Enter the workspace' })).toBeVisible()
     await expect(page.getByLabel('Access code')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Enter' })).toBeDisabled()
   })
@@ -34,9 +35,7 @@ test.describe('access gate', () => {
     await page.getByLabel('Access code').fill('qwertyui')
     await page.getByRole('button', { name: 'Enter' }).click()
 
-    await expect(
-      page.getByText('You are signed in. The policy workspace opens here.'),
-    ).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Workspace' })).toBeVisible()
     expect(clientHeader).toBe('web')
   })
 

@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.web.error.ApiException;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorDetail;
 import com.liorshaya.policypilot.web.request.CreatePolicyRequest;
+import com.liorshaya.policypilot.web.response.PoliciesResponse;
 import com.liorshaya.policypilot.web.response.PolicyResponse;
 import com.liorshaya.policypilot.web.security.SandboxSession;
 import com.liorshaya.policypilot.web.validation.PolicyInput;
@@ -64,6 +65,12 @@ public class PolicyController {
             @RequestParam("title") String title, @RequestParam("language") String language,
             @AuthenticationPrincipal SandboxSession session) {
         return created(session, title, language, () -> uploads.read(bytes(file)));
+    }
+
+    @Operation(summary = "The policies this session can see: the seeded ones and its own")
+    @GetMapping(ApiPaths.POLICIES)
+    public PoliciesResponse list(@AuthenticationPrincipal SandboxSession session) {
+        return PoliciesResponse.of(policies.visible(session.sandboxId()));
     }
 
     @Operation(summary = "A policy with its versions and paragraphs")

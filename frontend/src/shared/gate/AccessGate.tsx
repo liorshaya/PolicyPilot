@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { exchangeAccessCode } from '../../api/auth'
+import { Button } from '../ui/Button'
+import { Field } from '../ui/Field'
+import { Logo } from '../ui/Logo'
 import './AccessGate.css'
 import { refusalMessage } from './refusalMessage'
 
@@ -36,43 +39,42 @@ export function AccessGate({ onEntered }: AccessGateProps) {
   return (
     <main className="gate">
       <section className="gate__card" aria-labelledby="gate-title">
+        <div className="gate__brand">
+          <Logo width={168} />
+        </div>
         <p className="gate__eyebrow">Protected demo</p>
         <h1 id="gate-title" className="gate__title">
-          PolicyPilot
+          Enter the workspace
         </h1>
         <p className="gate__lead">
           The model proposes and explains, the rules engine decides, a person approves every policy
           change.
         </p>
         <form className="gate__form" onSubmit={(event) => void handleSubmit(event)}>
-          <label className="gate__label" htmlFor="access-code">
-            Access code
-          </label>
-          <input
-            id="access-code"
-            name="accessCode"
-            className="gate__input"
-            type="password"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={CODE_MAX_LENGTH}
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            aria-describedby={message ? 'gate-message' : undefined}
-          />
-          <button
+          <Field label="Access code" htmlFor="access-code" error={message}>
+            <input
+              id="access-code"
+              name="accessCode"
+              className="input gate__input"
+              type="password"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={CODE_MAX_LENGTH}
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              aria-invalid={message ? true : undefined}
+            />
+          </Field>
+          <Button
             type="submit"
-            className="gate__button"
-            disabled={code.trim() === '' || submitting}
+            variant="primary"
+            size="lg"
+            loading={submitting}
+            disabled={code.trim() === ''}
           >
-            {submitting ? 'Checking…' : 'Enter'}
-          </button>
-          {message && (
-            <p id="gate-message" className="gate__message" role="alert">
-              {message}
-            </p>
-          )}
+            {submitting ? 'Checking' : 'Enter'}
+          </Button>
         </form>
         <p className="gate__hint">
           Enter the code you received with the invitation. Everything behind this gate is synthetic

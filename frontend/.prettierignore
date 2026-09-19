@@ -4,3 +4,5 @@ playwright-report
 test-results
 node_modules
 package-lock.json
+# generated from the OpenAPI document by npm run generate:api
+src/api/generated

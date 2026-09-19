@@ -20,6 +20,14 @@ public interface PolicyDocumentRepository extends JpaRepository<PolicyDocumentEn
             """)
     Optional<PolicyDocumentEntity> findVisible(@Param("id") UUID id, @Param("sandboxId") UUID sandboxId);
 
+    /** Every policy the sandbox sees: the protected ones first, then its own, each oldest first. */
+    @Query("""
+            select d from PolicyDocumentEntity d
+            where d.sandboxId = :sandboxId or d.protectedRow = true
+            order by d.protectedRow desc, d.createdAt, d.id
+            """)
+    List<PolicyDocumentEntity> findAllVisible(@Param("sandboxId") UUID sandboxId);
+
     /** The sandbox's copy of a protected policy, if it has one. */
     Optional<PolicyDocumentEntity> findBySandboxIdAndForkedFromId(UUID sandboxId, UUID forkedFromId);
 
