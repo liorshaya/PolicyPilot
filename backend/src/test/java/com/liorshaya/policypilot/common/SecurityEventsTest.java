@@ -8,6 +8,7 @@ import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +56,7 @@ class SecurityEventsTest {
     void everyEventWritesOneLogLineNamedAfterItsCounter() {
         raiseEveryEventOnce();
 
-        assertThat(logs.list).extracting(ILoggingEvent::getMessage).containsExactly(
+        assertThat(mine()).extracting(ILoggingEvent::getMessage).containsExactly(
                 "security.auth.failed", "security.auth.lockout", "security.session.invalid",
                 "security.authz.denied", "security.ratelimit.hit", "security.input.rejected",
                 "security.protected.write_attempt");
@@ -66,7 +67,7 @@ class SecurityEventsTest {
         events.authFailed(IP, 3, false);
         events.rateLimitHit("auth", IP);
 
-        assertThat(logs.list).flatExtracting(ILoggingEvent::getKeyValuePairs).extracting(pair -> String.valueOf(pair.value))
+        assertThat(mine()).flatExtracting(ILoggingEvent::getKeyValuePairs).extracting(pair -> String.valueOf(pair.value))
                 .doesNotContain(IP).contains(events.hash(IP));
     }
 
@@ -74,7 +75,7 @@ class SecurityEventsTest {
     void requestedIdIsLoggedHashed() {
         events.authorizationDenied("policy", SANDBOX, "0f4c1c9e-0000-4000-8000-000000000001");
 
-        assertThat(logs.list.getFirst().getKeyValuePairs()).extracting(pair -> String.valueOf(pair.value))
+        assertThat(mine().getFirst().getKeyValuePairs()).extracting(pair -> String.valueOf(pair.value))
                 .doesNotContain("0f4c1c9e-0000-4000-8000-000000000001");
     }
 
@@ -97,8 +98,17 @@ class SecurityEventsTest {
     void inputRejectionLogsTheCodeNeverTheValue() {
         events.inputRejected("POST /api/v1/policies", "POLICY_INVALID");
 
-        assertThat(logs.list.getFirst().getKeyValuePairs()).extracting(pair -> pair.key)
+        assertThat(mine().getFirst().getKeyValuePairs()).extracting(pair -> pair.key)
                 .containsExactly("endpoint", "code");
+    }
+
+    /**
+     * The lines this test wrote: other test classes run in parallel and log security events through the same logger,
+     * and a test method runs on one thread.
+     */
+    private List<ILoggingEvent> mine() {
+        String thread = Thread.currentThread().getName();
+        return logs.list.stream().filter(event -> event.getThreadName().equals(thread)).toList();
     }
 
     private void raiseEveryEventOnce() {
