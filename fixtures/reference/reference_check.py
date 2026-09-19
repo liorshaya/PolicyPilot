@@ -76,6 +76,7 @@ def F(code, path, message):
     return {"code": code, "severity": SEVERITY[code], "path": path, "message": message}
 
 MIN_QUOTE_CHARS = 3
+MAX_STRING_CHARS = 2000   # Document 3, Types: a string is at most 2,000 characters; a longer case value is CASE_OUT_OF_RANGE
 
 def norm(s):
     """Document 3, Quote normalization: NFKD; combining marks (niqqud), punctuation (P*) and format characters
@@ -491,7 +492,9 @@ def validate_case(rs, raw):
                 if "exclusiveMaximum" in f and v >= D(str(f["exclusiveMaximum"])): problems.append({"code": "CASE_OUT_OF_RANGE", "field": n, "value": raw[n]}); continue
         elif t == "boolean": ok = isinstance(v, bool)
         elif t == "enum": ok = isinstance(v, str) and v in f["values"]
-        elif t == "string": ok = isinstance(v, str)
+        elif t == "string":
+            ok = isinstance(v, str)
+            if ok and len(v) > MAX_STRING_CHARS: problems.append({"code": "CASE_OUT_OF_RANGE", "field": n, "value": raw[n]}); continue
         elif t == "date": ok = is_date(v)
         if not ok: problems.append({"code": "CASE_TYPE_MISMATCH", "field": n, "value": raw[n]}); continue
         case[n] = v
@@ -961,6 +964,13 @@ if __name__ == "__main__":
             evaluate(rs, c); assert False, name
         except CaseInvalid as e:
             assert e.problems[0]["code"] == code, (name, e.problems)
+    # a string field: at most 2,000 characters, counted as characters, not bytes or UTF-16 units
+    notes = {"fields": [{"name": "note", "type": "string"}]}
+    assert validate_case(notes, {"note": "\U0001F600" * MAX_STRING_CHARS}) == {"note": "\U0001F600" * MAX_STRING_CHARS}
+    try:
+        validate_case(notes, {"note": "x" * (MAX_STRING_CHARS + 1)}); assert False, "a 2,001-character string"
+    except CaseInvalid as e:
+        assert [p["code"] for p in e.problems] == ["CASE_OUT_OF_RANGE"], e.problems
     print("case validation OK")
 
     # C-28: a guard that fails followed by a reader -> EVAL_DERIVED_ABSENT (synthetic rule set)

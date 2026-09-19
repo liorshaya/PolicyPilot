@@ -291,7 +291,7 @@ flowchart TD
   H --> Z
 ```
 
-1. **Case validation**: every `required` field is present; every supplied value matches its type (integers have no fraction, enums are in `values`, dates parse); every numeric value is inside the field's declared domain (`minimum`, `maximum` and their exclusive forms); no derived field is supplied. Failure is a case error (`CASE_INVALID` with the list of problems: `CASE_REQUIRED_MISSING`, `CASE_TYPE_MISMATCH`, `CASE_OUT_OF_RANGE`, `CASE_DERIVED_SUPPLIED`), not a decision, and nothing is stored as a decision.
+1. **Case validation**: every `required` field is present; every supplied value matches its type (integers have no fraction, enums are in `values`, dates parse); every numeric value is inside the field's declared domain (`minimum`, `maximum` and their exclusive forms), and every string is at most 2,000 characters; no derived field is supplied. Failure is a case error (`CASE_INVALID` with the list of problems: `CASE_REQUIRED_MISSING`, `CASE_TYPE_MISMATCH`, `CASE_OUT_OF_RANGE`, `CASE_DERIVED_SUPPLIED`), not a decision, and nothing is stored as a decision.
 2. **Defaults**: an absent optional field with a `default` takes it; an absent optional field without one stays absent (see Missing values in Conditions).
 3. **Ordering**: enabled rules sorted by `priority` ascending, then `id` ascending; disabled rules appear in the trace with status `disabled` and are not evaluated.
 4. **Condition evaluation**: the tree is evaluated fully (no short-circuit), so the trace shows every comparison the rule made; the cost is negligible and the explanation is complete.
