@@ -4,9 +4,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** A policy as other modules and the API see it: the document, its versions and their paragraphs. */
-public record PolicyView(
-        UUID id, String title, PolicyLanguage language, boolean isProtected, Instant createdAt, List<Version> versions) {
+/**
+ * A policy as other modules and the API see it: the document, its versions and their paragraphs; a sandbox's copy of
+ * a protected policy names its origin in {@code forkedFromId}.
+ */
+public record PolicyView(UUID id, String title, PolicyLanguage language, boolean isProtected, UUID forkedFromId,
+        Instant createdAt, List<Version> versions) {
 
     public PolicyView {
         versions = List.copyOf(versions);

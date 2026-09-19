@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.web.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.liorshaya.policypilot.policy.service.PolicyView;
 import java.time.Instant;
@@ -8,13 +9,15 @@ import java.util.UUID;
 
 /**
  * A policy with its versions and paragraphs (Document 2, API Surface: {@code POST /policies} returns the paragraph
- * split so the UI can show it immediately; {@code GET /policies/{id}}).
+ * split so the UI can show it immediately; {@code GET /policies/{id}}). {@code forkedFromId} appears only on a sandbox's
+ * copy of a protected policy.
  */
 public record PolicyResponse(
         UUID id,
         String title,
         String language,
         @JsonProperty("protected") boolean isProtected,
+        @JsonInclude(JsonInclude.Include.NON_NULL) UUID forkedFromId,
         Instant createdAt,
         List<Version> versions) {
 
@@ -26,7 +29,7 @@ public record PolicyResponse(
 
     public static PolicyResponse of(PolicyView policy) {
         return new PolicyResponse(policy.id(), policy.title(), policy.language().code(), policy.isProtected(),
-                policy.createdAt(), policy.versions().stream()
+                policy.forkedFromId(), policy.createdAt(), policy.versions().stream()
                         .map(version -> new Version(version.versionNo(), version.createdAt(), version.paragraphs().stream()
                                 .map(paragraph -> new Paragraph(paragraph.index(), paragraph.text()))
                                 .toList()))

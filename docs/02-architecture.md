@@ -300,7 +300,7 @@ Reading the diagram: arrows point from parent to child; `rule` links back to `po
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `policy_document` | `id`, `sandbox_id`, `protected`, `title`, `language`, `created_at` | Logical document; content lives in versions; protected marks the seeded demo policy, whose sandbox\_id is null (a check constraint ties the two) |
+| `policy_document` | `id`, `sandbox_id`, `protected`, `forked_from_id`, `title`, `language`, `created_at` | Logical document; content lives in versions; protected marks the seeded demo policy, whose sandbox\_id is null (a check constraint ties the two); forked\_from\_id points a sandbox's copy of a protected policy at its origin, one copy per sandbox |
 | `policy_version` | `id`, `document_id`, `version_no`, `raw_text`, `created_at` | Immutable once a rule set is generated from it |
 | `policy_paragraph` | `id`, `policy_version_id`, `index`, `text` | The provenance unit; index is stable within a version |
 | `ruleset` | `id`, `sandbox_id`, `protected`, `name`, `domain`, `default_outcome` | Logical rule set ("Consumer lending policy"); `protected` marks the seeded demo rows that no session may modify |
