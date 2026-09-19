@@ -23,6 +23,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  autoconfigure:
+    # No user store: the only credential is the access code, exchanged for the signed cookie (Document 5)
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   jackson:
     deserialization:
       # Unknown properties are an error on every request body (Document 5, JSON and deserialization)
@@ -50,6 +53,13 @@ logging:
     json:
       customizer: com.liorshaya.policypilot.config.logging.RedactingJsonMembersCustomizer
 
+springdoc:
+  # The OpenAPI document and its UI, behind the session cookie like every /api/** route (Document 5)
+  api-docs:
+    path: /api/docs
+  swagger-ui:
+    path: /api/docs/ui
+
 management:
   endpoints:
     web:
@@ -67,6 +77,9 @@ policypilot:
   access-code: ${POLICYPILOT_ACCESS_CODE:}
   cookie-secret: ${POLICYPILOT_COOKIE_SECRET:}
   admin-code: ${POLICYPILOT_ADMIN_CODE:}
+  web:
+    # The CORS allowlist and the Origin check (Document 5, CSRF); the cloud profile names the Vercel domain
+    allowed-origins: http://localhost:5173
   rate-limit:
     per-minute: 20
     per-sandbox-per-hour: 60

@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.web.error;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  * The container's error page, for failures outside Spring MVC (a malformed request line, a rejected multipart):
  * answers with the envelope instead of Spring Boot's default body, which could carry the exception message.
  */
+@Hidden
 @RestController
 public class EnvelopeErrorController implements ErrorController {
 

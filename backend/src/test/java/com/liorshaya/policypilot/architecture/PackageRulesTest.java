@@ -6,6 +6,7 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsid
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -107,8 +108,9 @@ class PackageRulesTest {
     static final ArchRule nobodyDependsOnConfigurationClassesExceptTheProperties = noClasses()
             .that().resideOutsideOfPackage(pkg("config"))
             .should().dependOnClassesThat(resideInAPackage(pkg("config"))
-                    .and(DescribedPredicate.not(JavaClass.Predicates.simpleName("PolicyPilotProperties"))))
-            .because("modules read the typed properties; the wiring classes are Spring's business");
+                    .and(DescribedPredicate.not(JavaClass.Predicates.belongToAnyOf(PolicyPilotProperties.class))))
+            .because("modules read the typed properties (the record and its nested records); the wiring classes are"
+                    + " Spring's business");
 
     /** Document 2: cross-package access goes through service interfaces, never through another package's repository. */
     @ArchTest

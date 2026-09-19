@@ -6,10 +6,12 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -32,6 +34,7 @@ public record PolicyPilotProperties(
         @NotNull(message = "POLICYPILOT_COOKIE_SECRET is required") String cookieSecret,
         String adminCode,
         @NotNull @Valid RateLimit rateLimit,
+        @NotNull @Valid Web web,
         @NotNull @Valid Ai ai,
         @NotNull @Valid Embedding embedding,
         @NotNull @Valid Rag rag,
@@ -47,6 +50,9 @@ public record PolicyPilotProperties(
 
     /** Bucket4j limits (Document 5, Availability and Abuse Resistance). */
     public record RateLimit(@Positive int perMinute, @Positive int perSandboxPerHour, @Positive int concurrentStreams) {}
+
+    /** The web app's origins: the CORS allowlist and the Origin check (Document 5, CSRF). */
+    public record Web(@NotEmpty List<@NotBlank String> allowedOrigins) {}
 
     /** Model roles, prompt versions, timeouts and the repair and budget limits (Document 4). */
     public record Ai(
