@@ -358,7 +358,8 @@ class SemanticValidatorTest {
         JsonNode document = lending(b -> b.rule("R-320", r -> r.put("priority", 210))
                 .rule("R-100", r -> edit(r, "/condition").put("field", "age_years")));
 
-        assertOnly(publish(document), ValidationCode.FIELD_UNKNOWN, "/rules/2/condition/field");
+        assertThat(codesAndPaths(publish(document)))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/2/condition/field"));
     }
 
     // ------------------------------------------------------------------ the finding shape
