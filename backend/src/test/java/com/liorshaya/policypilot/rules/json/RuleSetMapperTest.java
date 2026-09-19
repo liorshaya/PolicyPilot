@@ -20,6 +20,7 @@ import com.liorshaya.policypilot.rules.model.Rule;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.rules.model.StringLiteral;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 /** The DSL 1.0 records and their strict, lossless JSON mapping (Document 3; Document 5, JSON and deserialization). */
+@Requirement({"FR-3", "NFR-7"})
 class RuleSetMapperTest {
 
     private static final JsonNodeFactory NODES = JsonNodeFactory.instance;

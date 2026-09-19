@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.rules.model.NumberLiteral;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.rules.model.StringLiteral;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import tools.jackson.databind.node.ObjectNode;
  * Case validation (Document 3, Evaluation Semantics, steps 1 and 2). Expected values come from the conformance
  * fixtures and from {@code validate_case} in {@code reference_check.py} run on the same input.
  */
+@Requirement("FR-8")
 class CaseValidatorTest {
 
     private static final RuleSetMapper MAPPER = new RuleSetMapper();

@@ -21,10 +21,11 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
-import java.util.stream.Stream;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,6 +40,7 @@ import tools.jackson.databind.node.ObjectNode;
  * Layer 3 (Document 3, Static Validation). Every expected list is the one {@code reference_check.py} returns for
  * the same document, code for code and in the same order; the pointers name the rule, field or node concerned.
  */
+@Requirement({"FR-3", "FR-6"})
 class StructuralChecksTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

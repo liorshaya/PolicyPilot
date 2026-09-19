@@ -15,6 +15,7 @@ import com.liorshaya.policypilot.rules.model.Operator;
 import com.liorshaya.policypilot.rules.model.StringLiteral;
 import com.liorshaya.policypilot.rules.validation.Constraint.EnumSet;
 import com.liorshaya.policypilot.rules.validation.Constraint.Interval;
+import com.liorshaya.policypilot.support.Requirement;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
  * {@code Interval} and {@code EnumSet} classes of {@code reference_check.py}: bounds are compared numerically, and
  * where two bounds are equal the open one is the tighter.
  */
+@Requirement({"FR-3", "FR-6"})
 class ConstraintTest {
 
     private static final Map<String, Field> FIELDS = Map.of(

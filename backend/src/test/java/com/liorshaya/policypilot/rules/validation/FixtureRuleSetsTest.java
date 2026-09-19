@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.rules.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -12,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.JsonNode;
 
 /** The committed rule sets validate in Java as they do in the reference. */
+@Requirement({"FR-3", "FR-6"})
 class FixtureRuleSetsTest {
 
     /** Document 7, day 2: the lending rule set validates clean in PUBLISH; the reference asserts no finding at all. */
