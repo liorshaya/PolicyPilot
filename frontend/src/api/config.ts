@@ -1,6 +1,6 @@
 /**
- * API configuration. The generated client, the SSE helper and the access-code exchange join this folder on
- * days 4 and 6 (Document 2, Frontend Architecture).
+ * API configuration. The access-code exchange lives beside it (auth.ts); the generated client and the SSE helper
+ * join this folder on day 6 (Document 2, Frontend Architecture).
  */
 const DEFAULT_API_BASE_URL = 'http://localhost:8080'
 
