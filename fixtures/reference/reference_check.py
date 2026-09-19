@@ -75,12 +75,20 @@ for _code, _sev in (("DERIVED_CYCLE", "error"), ("DERIVED_ORDER", "error"), ("DE
 def F(code, path, message):
     return {"code": code, "severity": SEVERITY[code], "path": path, "message": message}
 
+MIN_QUOTE_CHARS = 3
+
 def norm(s):
+    """Document 3, Quote normalization: NFKD; combining marks (niqqud), punctuation (P*) and format characters
+    (Cf: bidi controls, zero-width characters) removed; lower case; whitespace runs collapsed to one space."""
     s = unicodedata.normalize("NFKD", s)
-    s = "".join(ch for ch in s if not unicodedata.category(ch).startswith("M"))
+    s = "".join(ch for ch in s if unicodedata.category(ch)[0] not in "MP" and unicodedata.category(ch) != "Cf")
     s = s.lower()
-    s = re.sub(r"[\"'“”‘’«»,.;:!?()\[\]{}\-–—/%]", "", s)
     return re.sub(r"\s+", " ", s).strip()
+
+def quote_in(quote, paragraph):
+    """A quote passes when, normalized, it keeps at least three characters and occurs in the normalized paragraph."""
+    q = norm(quote)
+    return len(q) >= MIN_QUOTE_CHARS and q in norm(paragraph)
 
 def is_cmp(c):
     return isinstance(c, dict) and "field" in c and "op" in c
@@ -244,7 +252,7 @@ def semantic_layer(rs, paras, context, model_rule_ids):
         if s:
             if not (1 <= s["paragraph"] <= len(paras)):
                 out.append(F("PROVENANCE_PARAGRAPH_MISSING", f"/fields/{i}/source", f["name"]))
-            elif norm(s["quote"]) not in norm(paras[s["paragraph"] - 1]):
+            elif not quote_in(s["quote"], paras[s["paragraph"] - 1]):
                 out.append(F("PROVENANCE_QUOTE_MISMATCH", f"/fields/{i}/source", f["name"]))
     seen = set()
     for i, r in enumerate(rs["rules"]):
@@ -255,7 +263,7 @@ def semantic_layer(rs, paras, context, model_rule_ids):
         if p["kind"] == "quoted":
             if not (1 <= p["paragraph"] <= len(paras)):
                 out.append(F("PROVENANCE_PARAGRAPH_MISSING", path + "/provenance", rid))
-            elif norm(p["quote"]) not in norm(paras[p["paragraph"] - 1]):
+            elif not quote_in(p["quote"], paras[p["paragraph"] - 1]):
                 out.append(F("PROVENANCE_QUOTE_MISMATCH", path + "/provenance", rid))
         elif p["kind"] == "analyst" and (context == "AUTHORING" or (context == "CHANGE_PROPOSAL" and rid in (model_rule_ids or set()))):
             out.append(F("PROVENANCE_ANALYST_FROM_MODEL", path + "/provenance", rid))
@@ -888,6 +896,14 @@ if __name__ == "__main__":
     next(x for x in old["rules"] if x["id"] == "R-320")["actions"][0]["terminal"] = False
     assert "CANDIDATE_NEVER_WINS" in [x["code"] for x in validate(old, paras, "PUBLISH")]
     print("static checks OK")
+
+    # quote normalization (Document 3): Hebrew punctuation, niqqud, bidi and zero-width characters, minimum length
+    assert quote_in("סכום ההלוואה יהיה בין 10000 ל150000 ש״ח", paras[1])      # gershayim; commas and maqaf dropped
+    assert quote_in("גִּילוֹ 21 עד 70", paras[0])                                # niqqud
+    assert quote_in("גילו\u200b 21 עד\u202e 70", paras[0])                   # zero-width space, right-to-left override
+    assert not quote_in("...", paras[0])                                       # nothing left after normalization
+    assert not quote_in("גיל 21 עד 70", paras[0])                              # a paraphrase is not a citation
+    print("quote normalization OK")
 
     # provenance contexts
     prop = copy.deepcopy(rs)

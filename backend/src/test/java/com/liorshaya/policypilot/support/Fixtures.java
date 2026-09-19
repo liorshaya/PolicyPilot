@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 import tools.jackson.databind.JsonNode;
@@ -38,6 +39,16 @@ public final class Fixtures {
     /** A fresh, mutable copy of the published lending rule set, version 1. */
     public static ObjectNode lendingV1() {
         return (ObjectNode) json("policies/consumer-lending/ruleset.v1.json");
+    }
+
+    /** The nine paragraphs of the lending policy, split on blank lines as the reference splits them. */
+    public static List<String> lendingParagraphs() {
+        return paragraphs("policies/consumer-lending/policy.he.md");
+    }
+
+    /** A policy text file split into paragraphs: blocks separated by a blank line, trimmed, empty ones dropped. */
+    public static List<String> paragraphs(String relative) {
+        return Arrays.stream(read(path(relative)).split("\n\n")).map(String::strip).filter(p -> !p.isEmpty()).toList();
     }
 
     /** The conformance fixtures C-01 to C-31, in name order. */
