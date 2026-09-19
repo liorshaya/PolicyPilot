@@ -32,6 +32,15 @@ jobs:
       BUDGET_SECONDS: '300'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Throwaway demo secrets for this run
+        # The backend refuses to start without them (Document 5); fresh values per run, never stored anywhere
+        run: |
+          code=$(LC_ALL=C tr -dc 'a-z' </dev/urandom | head -c 8 || true)
+          echo "::add-mask::$code"
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          echo "POLICYPILOT_ACCESS_CODE=$code" >> "$GITHUB_ENV"
+          echo "POLICYPILOT_COOKIE_SECRET=$secret" >> "$GITHUB_ENV"
       - name: The runner starts clean
         run: |
           echo "images before the run: $(docker images -q | wc -l)"

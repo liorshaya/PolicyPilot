@@ -1,0 +1,5 @@
+# Test-only values for the demo secrets, loaded on top of the main application.yml (Spring Boot reads
+# classpath:/config/application.yml after classpath:/application.yml). Deliberately not secret-shaped.
+policypilot:
+  access-code: testcode
+  cookie-secret: not-a-secret-only-for-the-tests-of-policypilot

@@ -35,6 +35,10 @@ services:
       DATABASE_URL: postgresql://policypilot:policypilot@db:5432/policypilot
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-openai}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Required since day 4 (Document 5): compose stops here with this message instead of starting a backend that
+      # would refuse to boot. Values come from .env; RUNBOOK.md section 4 shows how to generate them.
+      POLICYPILOT_ACCESS_CODE: ${POLICYPILOT_ACCESS_CODE:?set POLICYPILOT_ACCESS_CODE in .env (8 lowercase letters, RUNBOOK.md section 4)}
+      POLICYPILOT_COOKIE_SECRET: ${POLICYPILOT_COOKIE_SECRET:?set POLICYPILOT_COOKIE_SECRET in .env (at least 32 bytes, RUNBOOK.md section 4)}
       OLLAMA_BASE_URL: http://ollama:11434
     ports:
       - "8080:8080"
