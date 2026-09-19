@@ -78,7 +78,7 @@ Coverage is enforced by the build, per package, with mutation testing where line
 
 **Web app (Vitest `coverage.thresholds`)**: 80% statements and branches on `src/features/**`; 100% on `src/api/sse.ts`, `src/features/chat/markers.ts` and `src/features/rules/cellGrammar.ts`; no threshold on `src/shared/ui` primitives. Playwright covers the four demo steps and the access gate and is not counted in coverage.
 
-**Gates in CI** (order in the CI section): the JaCoCo check goal fails the build below any per-package threshold; PIT fails below 90% on the two core packages; Vitest fails below its thresholds; a pull request cannot merge without these and the security gates. A threshold is lowered only by a pull request that changes this document, with the reason in the changelog.
+**Gates in CI** (order in the CI section): the JaCoCo check goal fails the build below any per-package threshold, each package measured where its row above says: the unit-measured packages (engine, rules, web.security, web.validation, ai without its adapter, common) on unit tests alone in stage 2, and every package, the orchestrating and adapting ones included, on unit and integration tests together in stage 5; PIT fails below 90% on the two core packages; Vitest fails below its thresholds; a pull request cannot merge without these and the security gates. A threshold is lowered only by a pull request that changes this document, with the reason in the changelog.
 
 **What coverage does not measure** is stated so nobody games it: assertions (a test without assertions is caught by a Semgrep rule for `@Test` methods with no `assert`), correctness of expected values (the reference implementation and the labeled fixtures are the check), and the quality of the AI outputs (the evaluation report is the check).
 
@@ -242,10 +242,10 @@ One GitHub Actions workflow on every push, ordered so the cheapest and most info
 | Stage | Contents | Budget | Gate |
 | --- | --- | --- | --- |
 | 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date | 1 min | hard |
-| 2 Fast tests | API unit, architecture and conformance tests with JaCoCo; web Vitest with coverage; Python reference self-test | 3 min | hard, including coverage thresholds |
+| 2 Fast tests | API unit, architecture and conformance tests with JaCoCo; web Vitest with coverage; Python reference self-test | 3 min | hard, including the coverage thresholds of the unit-measured packages |
 | 3 Mutation | PIT on `engine` and `rules` | 3 min | hard, 90% |
 | 4 Static and supply chain | Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report | 2 min | hard |
-| 5 Integration and contract | Testcontainers PostgreSQL; `*IT` tests; contract walk; recorded AI tests; red-team fixtures; security integration tests | 5 min | hard |
+| 5 Integration and contract | Testcontainers PostgreSQL; `*IT` tests; contract walk; recorded AI tests; red-team fixtures; security integration tests | 5 min | hard, including every package's coverage threshold on unit and integration tests together |
 | 6 Build and scan | Docker image build, Trivy scan, image digest recorded | 2 min | hard |
 | 7 End to end (pull requests) | Compose up with the built image and the recorded gateway; Playwright demo flows; RTL snapshots | 4 min | hard on pull requests |
 | 8 Reports | JaCoCo and PIT reports, traceability matrix regeneration, performance numbers in the job summary, SBOM on tags | 1 min | informational |
