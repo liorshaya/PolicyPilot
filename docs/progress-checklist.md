@@ -93,12 +93,12 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] `demo`: `sandbox_id` from the cookie, protected rows with fork on write, lending policy fixture loaded (fork at the service level; the first route that writes to a protected row arrives on day 5)
 - [x] Tests: OpenAPI authentication walk; wrong code, expired, tampered, missing header, foreign Origin, lockout timing; cookie units; `.exe`, 60-page and JavaScript PDFs; oversized bodies; limits with `Retry-After` and the SSE cap; cross-sandbox 404; fork on protected write; splitter and log encoder units; contract tests (the SSE cap as units until the first stream on day 7)
 
-**Day 5, Sun Sep 27: versions, decisions, audit**
+**Day 5, Sun Sep 27: versions, decisions, audit** (done early, on Sat Sep 20)
 
-- [ ] Rule set tables; `GET .../versions/{no}`; `PUT .../rules` with 422 pointers; `POST .../publish` transaction; immutability trigger; append-only audit grants; `audit` package
-- [ ] `decision`: `POST .../decide` (case, list, `fixtureSet: "cases-200"`), persistence, `GET /decisions/{id}`, `GET .../stats`, `POST .../simulate`, JSON and CSV exports; version 1 and the 200 cases seeded as protected rows
-- [ ] Tests: contract tests per route; publish transaction and `UPDATE` refusal; append-only grant; replay equals stored; batch under 1 s, single under 50 ms; simulate stores nothing; CSV prefixing; cross-sandbox 404 per entity; publish on protected refused
-- [ ] The 200 cases decide through the API under 1 s with aggregates equal to `cases-expected.json`
+- [x] Rule set tables; `GET .../versions/{no}`; `PUT .../rules` with 422 pointers; `POST .../publish` transaction; immutability trigger; append-only audit grants; `audit` package (plus `GET /rulesets`, so the web app finds the seeded rule set, and the `ruleset` package that owns them)
+- [x] `decision`: `POST .../decide` (case, list, `fixtureSet: "cases-200"`), persistence, `GET /decisions/{id}`, `GET .../stats`, `POST .../simulate`, JSON and CSV exports; version 1 and the 200 cases seeded as protected rows
+- [x] Tests: contract tests per route; publish transaction and `UPDATE` refusal; append-only grant; replay equals stored; batch under 1 s, single under 50 ms; simulate stores nothing; CSV prefixing; cross-sandbox 404 per entity; publish on protected refused
+- [x] The 200 cases decide through the API under 1 s with aggregates equal to `cases-expected.json` (106 ms locally, on Testcontainers)
 
 **Day 6, Mon Sep 28: `frontend` screens**
 
