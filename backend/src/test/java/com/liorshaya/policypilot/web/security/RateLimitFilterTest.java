@@ -221,4 +221,28 @@ class RateLimitFilterTest {
         }
         return passed;
     }
+
+    // Document 5, Availability: Batch decide, 5 requests per minute per sandbox
+    @Test
+    void batchDecideAllowsFivePerMinutePerSandbox() {
+        UUID sandbox = UUID.randomUUID();
+
+        for (int i = 0; i < RateLimits.BATCH_PER_MINUTE_PER_SANDBOX; i++) {
+            assertThat(limits.tryConsume(RateLimits.EndpointClass.BATCH, "203.0.113.7", sandbox)).isEmpty();
+        }
+
+        assertThat(limits.tryConsume(RateLimits.EndpointClass.BATCH, "203.0.113.7", sandbox)).isPresent();
+    }
+
+    // Document 5: the batch limit is per sandbox, so the address it comes from does not matter
+    @Test
+    void theBatchLimitFollowsTheSandboxNotTheAddress() {
+        UUID sandbox = UUID.randomUUID();
+        for (int i = 0; i < RateLimits.BATCH_PER_MINUTE_PER_SANDBOX; i++) {
+            limits.tryConsume(RateLimits.EndpointClass.BATCH, "203.0.113.7", sandbox);
+        }
+
+        assertThat(limits.tryConsume(RateLimits.EndpointClass.BATCH, "203.0.113.8", sandbox)).isPresent();
+        assertThat(limits.tryConsume(RateLimits.EndpointClass.BATCH, "203.0.113.7", UUID.randomUUID())).isEmpty();
+    }
 }

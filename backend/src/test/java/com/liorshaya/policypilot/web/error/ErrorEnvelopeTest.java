@@ -185,7 +185,7 @@ class ErrorEnvelopeTest {
     @CsvSource({
         "REQUEST_INVALID, 400", "ACCESS_CODE_INVALID, 401", "SESSION_INVALID, 401", "CSRF_REJECTED, 403",
         "NOT_FOUND, 404", "VERSION_STATUS_CONFLICT, 409", "PAYLOAD_TOO_LARGE, 413", "UNSUPPORTED_MEDIA_TYPE, 415", "POLICY_INVALID, 422",
-        "UPLOAD_REJECTED, 422", "RULESET_INVALID, 422", "RATE_LIMITED, 429", "INTERNAL_ERROR, 500",
+        "UPLOAD_REJECTED, 422", "RULESET_INVALID, 422", "CASE_INVALID, 422", "RATE_LIMITED, 429", "INTERNAL_ERROR, 500",
         "PROVIDER_UNAVAILABLE, 503"})
     void everyErrorCodeMapsToItsDocumentedStatus(String code, int status) {
         assertThat(ErrorCode.valueOf(code).status().value()).isEqualTo(status);
@@ -193,7 +193,7 @@ class ErrorEnvelopeTest {
 
     @Test
     void theEnumHasExactlyTheDocumentedCodes() {
-        assertThat(ErrorCode.values()).hasSize(14);
+        assertThat(ErrorCode.values()).hasSize(15);
     }
 
     @Test

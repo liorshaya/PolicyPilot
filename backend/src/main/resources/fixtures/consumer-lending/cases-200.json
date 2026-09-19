@@ -1,0 +1,2787 @@
+{
+  "fixtureSet": "cases-200",
+  "rulesetId": "consumer-lending",
+  "rulesetVersion": 1,
+  "seed": 20260922,
+  "generator": "fixtures/tools/generate_cases.py",
+  "count": 200,
+  "strata": {
+    "young": 5,
+    "over_age": 4,
+    "retired_over_75": 4,
+    "retiree_term_limit": 5,
+    "amount_out_of_range": 4,
+    "term_out_of_range": 4,
+    "unemployed": 4,
+    "salaried_low_seniority": 4,
+    "self_employed_low_seniority": 4,
+    "income_below_minimum": 6,
+    "ratio_too_high": 8,
+    "two_credit_events": 8,
+    "seniority_missing": 5,
+    "ratio_in_referral_band": 8,
+    "one_credit_event_no_guarantor": 8,
+    "guarantor_present": 5,
+    "income_near_minimum_approve": 6,
+    "income_near_minimum_referral_band": 3,
+    "income_near_minimum_one_event": 3,
+    "approve": 102
+  },
+  "cases": [
+    {
+      "id": 1,
+      "stratum": "young",
+      "input": {
+        "age": 18,
+        "employment_type": "salaried",
+        "monthly_income": 28835,
+        "requested_amount": 127000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 112,
+        "existing_monthly_debt": 5633
+      }
+    },
+    {
+      "id": 2,
+      "stratum": "approve",
+      "input": {
+        "age": 55,
+        "employment_type": "salaried",
+        "monthly_income": 16399,
+        "requested_amount": 24000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 144,
+        "existing_monthly_debt": 2422
+      }
+    },
+    {
+      "id": 3,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 50,
+        "employment_type": "self_employed",
+        "monthly_income": 18739,
+        "requested_amount": 11000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 121,
+        "existing_monthly_debt": 11716
+      }
+    },
+    {
+      "id": 4,
+      "stratum": "approve",
+      "input": {
+        "age": 60,
+        "employment_type": "salaried",
+        "monthly_income": 18801,
+        "requested_amount": 141000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 167,
+        "existing_monthly_debt": 1509
+      }
+    },
+    {
+      "id": 5,
+      "stratum": "guarantor_present",
+      "input": {
+        "age": 46,
+        "employment_type": "self_employed",
+        "monthly_income": 29894,
+        "requested_amount": 104000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 193,
+        "existing_monthly_debt": 2966,
+        "has_guarantor": true
+      }
+    },
+    {
+      "id": 6,
+      "stratum": "approve",
+      "input": {
+        "age": 48,
+        "employment_type": "self_employed",
+        "monthly_income": 29238,
+        "requested_amount": 69000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 30,
+        "existing_monthly_debt": 4545
+      }
+    },
+    {
+      "id": 7,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 62,
+        "employment_type": "self_employed",
+        "monthly_income": 19675,
+        "requested_amount": 47000,
+        "term_months": 36,
+        "credit_events_24m": 2,
+        "employment_months": 222,
+        "existing_monthly_debt": 3815
+      }
+    },
+    {
+      "id": 8,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 61,
+        "employment_type": "salaried",
+        "monthly_income": 8438,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 235,
+        "existing_monthly_debt": 828
+      }
+    },
+    {
+      "id": 9,
+      "stratum": "salaried_low_seniority",
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 18265,
+        "requested_amount": 61000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 3,
+        "existing_monthly_debt": 511
+      }
+    },
+    {
+      "id": 10,
+      "stratum": "approve",
+      "input": {
+        "age": 26,
+        "employment_type": "salaried",
+        "monthly_income": 23441,
+        "requested_amount": 139000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 29,
+        "existing_monthly_debt": 242
+      }
+    },
+    {
+      "id": 11,
+      "stratum": "income_near_minimum_one_event",
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 8583,
+        "requested_amount": 10000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 195,
+        "existing_monthly_debt": 1163,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 12,
+      "stratum": "approve",
+      "input": {
+        "age": 58,
+        "employment_type": "salaried",
+        "monthly_income": 27141,
+        "requested_amount": 60000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 23,
+        "existing_monthly_debt": 6675
+      }
+    },
+    {
+      "id": 13,
+      "stratum": "approve",
+      "input": {
+        "age": 45,
+        "employment_type": "self_employed",
+        "monthly_income": 17813,
+        "requested_amount": 68000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 125,
+        "existing_monthly_debt": 516
+      }
+    },
+    {
+      "id": 14,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 43,
+        "employment_type": "self_employed",
+        "monthly_income": 11299,
+        "requested_amount": 95000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 130,
+        "existing_monthly_debt": 2073
+      }
+    },
+    {
+      "id": 15,
+      "stratum": "approve",
+      "input": {
+        "age": 54,
+        "employment_type": "salaried",
+        "monthly_income": 24922,
+        "requested_amount": 107000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 184,
+        "existing_monthly_debt": 1704
+      }
+    },
+    {
+      "id": 16,
+      "stratum": "approve",
+      "input": {
+        "age": 72,
+        "employment_type": "retired",
+        "monthly_income": 14740,
+        "requested_amount": 63000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 110
+      }
+    },
+    {
+      "id": 17,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "employment_months": 30,
+        "monthly_income": 9500,
+        "existing_monthly_debt": 1200,
+        "requested_amount": 60000,
+        "term_months": 48,
+        "credit_events_24m": 1
+      }
+    },
+    {
+      "id": 18,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 62,
+        "employment_type": "salaried",
+        "monthly_income": 11879,
+        "requested_amount": 79000,
+        "term_months": 36,
+        "credit_events_24m": 4,
+        "employment_months": 39,
+        "existing_monthly_debt": 404
+      }
+    },
+    {
+      "id": 19,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 21620,
+        "requested_amount": 74000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2266
+      }
+    },
+    {
+      "id": 20,
+      "stratum": "approve",
+      "input": {
+        "age": 49,
+        "employment_type": "self_employed",
+        "monthly_income": 10642,
+        "requested_amount": 58000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 99,
+        "existing_monthly_debt": 1384
+      }
+    },
+    {
+      "id": 21,
+      "stratum": "approve",
+      "input": {
+        "age": 69,
+        "employment_type": "retired",
+        "monthly_income": 28834,
+        "requested_amount": 147000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3026
+      }
+    },
+    {
+      "id": 22,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "monthly_income": 24612,
+        "requested_amount": 116000,
+        "term_months": 72,
+        "credit_events_24m": 3,
+        "employment_months": 81,
+        "existing_monthly_debt": 561
+      }
+    },
+    {
+      "id": 23,
+      "stratum": "approve",
+      "input": {
+        "age": 69,
+        "employment_type": "retired",
+        "monthly_income": 19902,
+        "requested_amount": 49000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2630
+      }
+    },
+    {
+      "id": 24,
+      "stratum": "young",
+      "input": {
+        "age": 20,
+        "employment_type": "salaried",
+        "monthly_income": 26493,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 144,
+        "existing_monthly_debt": 3536
+      }
+    },
+    {
+      "id": 25,
+      "stratum": "approve",
+      "input": {
+        "age": 62,
+        "employment_type": "self_employed",
+        "monthly_income": 22138,
+        "requested_amount": 47000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 77,
+        "existing_monthly_debt": 5467
+      }
+    },
+    {
+      "id": 26,
+      "stratum": "unemployed",
+      "input": {
+        "age": 42,
+        "employment_type": "unemployed",
+        "monthly_income": 21232,
+        "requested_amount": 108000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1060
+      }
+    },
+    {
+      "id": 27,
+      "stratum": "approve",
+      "input": {
+        "age": 31,
+        "employment_type": "salaried",
+        "monthly_income": 18802,
+        "requested_amount": 59000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 172,
+        "existing_monthly_debt": 2747
+      }
+    },
+    {
+      "id": 28,
+      "stratum": "approve",
+      "input": {
+        "age": 58,
+        "employment_type": "self_employed",
+        "monthly_income": 10055,
+        "requested_amount": 35000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 210,
+        "existing_monthly_debt": 1236
+      }
+    },
+    {
+      "id": 29,
+      "stratum": "approve",
+      "input": {
+        "age": 47,
+        "employment_type": "salaried",
+        "monthly_income": 28045,
+        "requested_amount": 61000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 198,
+        "existing_monthly_debt": 6542
+      }
+    },
+    {
+      "id": 30,
+      "stratum": "approve",
+      "input": {
+        "age": 47,
+        "employment_type": "salaried",
+        "monthly_income": 11019,
+        "requested_amount": 55000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 32,
+        "existing_monthly_debt": 921
+      }
+    },
+    {
+      "id": 31,
+      "stratum": "approve",
+      "input": {
+        "age": 53,
+        "employment_type": "self_employed",
+        "monthly_income": 20530,
+        "requested_amount": 120000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 48,
+        "existing_monthly_debt": 120
+      }
+    },
+    {
+      "id": 32,
+      "stratum": "approve",
+      "input": {
+        "age": 52,
+        "employment_type": "self_employed",
+        "monthly_income": 29671,
+        "requested_amount": 90000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 27,
+        "existing_monthly_debt": 277
+      }
+    },
+    {
+      "id": 33,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 43,
+        "employment_type": "self_employed",
+        "monthly_income": 8530,
+        "requested_amount": 111000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 90,
+        "existing_monthly_debt": 117
+      }
+    },
+    {
+      "id": 34,
+      "stratum": "self_employed_low_seniority",
+      "input": {
+        "age": 26,
+        "employment_type": "self_employed",
+        "monthly_income": 24244,
+        "requested_amount": 106000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 9,
+        "existing_monthly_debt": 1953
+      }
+    },
+    {
+      "id": 35,
+      "stratum": "seniority_missing",
+      "input": {
+        "age": 36,
+        "employment_type": "salaried",
+        "monthly_income": 19018,
+        "requested_amount": 115000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 211
+      }
+    },
+    {
+      "id": 36,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 22953,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3005
+      }
+    },
+    {
+      "id": 37,
+      "stratum": "approve",
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 16692,
+        "requested_amount": 79000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 186,
+        "existing_monthly_debt": 1941
+      }
+    },
+    {
+      "id": 38,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 43,
+        "employment_type": "salaried",
+        "monthly_income": 13753,
+        "requested_amount": 136000,
+        "term_months": 72,
+        "credit_events_24m": 1,
+        "employment_months": 20,
+        "existing_monthly_debt": 523,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 39,
+      "stratum": "approve",
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 29286,
+        "requested_amount": 90000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 236,
+        "existing_monthly_debt": 5325
+      }
+    },
+    {
+      "id": 40,
+      "stratum": "term_out_of_range",
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 19101,
+        "requested_amount": 145000,
+        "term_months": 96,
+        "credit_events_24m": 0,
+        "employment_months": 207,
+        "existing_monthly_debt": 1260
+      }
+    },
+    {
+      "id": 41,
+      "stratum": "amount_out_of_range",
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 27390,
+        "requested_amount": 200000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 214,
+        "existing_monthly_debt": 4769
+      }
+    },
+    {
+      "id": 42,
+      "stratum": "over_age",
+      "input": {
+        "age": 71,
+        "employment_type": "salaried",
+        "monthly_income": 14043,
+        "requested_amount": 46000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 153,
+        "existing_monthly_debt": 836
+      }
+    },
+    {
+      "id": 43,
+      "stratum": "approve",
+      "input": {
+        "age": 46,
+        "employment_type": "salaried",
+        "monthly_income": 29981,
+        "requested_amount": 36000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 39,
+        "existing_monthly_debt": 5402
+      }
+    },
+    {
+      "id": 44,
+      "stratum": "approve",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 11543,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1294
+      }
+    },
+    {
+      "id": 45,
+      "stratum": "approve",
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 20046,
+        "requested_amount": 38000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 167,
+        "existing_monthly_debt": 3219
+      }
+    },
+    {
+      "id": 46,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 22213,
+        "requested_amount": 80000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 124
+      }
+    },
+    {
+      "id": 47,
+      "stratum": "approve",
+      "input": {
+        "age": 42,
+        "employment_type": "self_employed",
+        "monthly_income": 23521,
+        "requested_amount": 53000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 161,
+        "existing_monthly_debt": 1256
+      }
+    },
+    {
+      "id": 48,
+      "stratum": "retired_over_75",
+      "input": {
+        "age": 85,
+        "employment_type": "retired",
+        "monthly_income": 27559,
+        "requested_amount": 94000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 8
+      }
+    },
+    {
+      "id": 49,
+      "stratum": "retired_over_75",
+      "input": {
+        "age": 79,
+        "employment_type": "retired",
+        "monthly_income": 29882,
+        "requested_amount": 144000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 979
+      }
+    },
+    {
+      "id": 50,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 18232,
+        "requested_amount": 76000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3511
+      }
+    },
+    {
+      "id": 51,
+      "stratum": "approve",
+      "input": {
+        "age": 64,
+        "employment_type": "salaried",
+        "monthly_income": 27936,
+        "requested_amount": 28000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 158,
+        "existing_monthly_debt": 6273
+      }
+    },
+    {
+      "id": 52,
+      "stratum": "salaried_low_seniority",
+      "input": {
+        "age": 48,
+        "employment_type": "salaried",
+        "monthly_income": 19137,
+        "requested_amount": 148000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 1,
+        "existing_monthly_debt": 2229
+      }
+    },
+    {
+      "id": 53,
+      "stratum": "approve",
+      "input": {
+        "age": 25,
+        "employment_type": "salaried",
+        "monthly_income": 29858,
+        "requested_amount": 12000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 143,
+        "existing_monthly_debt": 6589
+      }
+    },
+    {
+      "id": 54,
+      "stratum": "over_age",
+      "input": {
+        "age": 73,
+        "employment_type": "salaried",
+        "monthly_income": 26489,
+        "requested_amount": 15000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 232,
+        "existing_monthly_debt": 7133
+      }
+    },
+    {
+      "id": 55,
+      "stratum": "approve",
+      "input": {
+        "age": 45,
+        "employment_type": "salaried",
+        "monthly_income": 28544,
+        "requested_amount": 82000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 142,
+        "existing_monthly_debt": 2190
+      }
+    },
+    {
+      "id": 56,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 52,
+        "employment_type": "self_employed",
+        "monthly_income": 3548,
+        "requested_amount": 10000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 150,
+        "existing_monthly_debt": 442
+      }
+    },
+    {
+      "id": 57,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 26056,
+        "requested_amount": 145000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2781
+      }
+    },
+    {
+      "id": 58,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 23975,
+        "requested_amount": 91000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 633
+      }
+    },
+    {
+      "id": 59,
+      "stratum": "term_out_of_range",
+      "input": {
+        "age": 62,
+        "employment_type": "salaried",
+        "monthly_income": 25539,
+        "requested_amount": 14000,
+        "term_months": 11,
+        "credit_events_24m": 0,
+        "employment_months": 73,
+        "existing_monthly_debt": 1843
+      }
+    },
+    {
+      "id": 60,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 19807,
+        "requested_amount": 37000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2584
+      }
+    },
+    {
+      "id": 61,
+      "stratum": "approve",
+      "input": {
+        "age": 57,
+        "employment_type": "salaried",
+        "monthly_income": 13014,
+        "requested_amount": 43000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 31,
+        "existing_monthly_debt": 201
+      }
+    },
+    {
+      "id": 62,
+      "stratum": "approve",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "monthly_income": 22823,
+        "requested_amount": 16000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 238,
+        "existing_monthly_debt": 2325
+      }
+    },
+    {
+      "id": 63,
+      "stratum": "amount_out_of_range",
+      "input": {
+        "age": 72,
+        "employment_type": "retired",
+        "monthly_income": 16772,
+        "requested_amount": 9500,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1180
+      }
+    },
+    {
+      "id": 64,
+      "stratum": "approve",
+      "input": {
+        "age": 26,
+        "employment_type": "salaried",
+        "monthly_income": 21399,
+        "requested_amount": 77000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 96,
+        "existing_monthly_debt": 3086
+      }
+    },
+    {
+      "id": 65,
+      "stratum": "approve",
+      "input": {
+        "age": 60,
+        "employment_type": "salaried",
+        "monthly_income": 16935,
+        "requested_amount": 125000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 117,
+        "existing_monthly_debt": 527
+      }
+    },
+    {
+      "id": 66,
+      "stratum": "approve",
+      "input": {
+        "age": 64,
+        "employment_type": "salaried",
+        "monthly_income": 10385,
+        "requested_amount": 33000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 83,
+        "existing_monthly_debt": 736
+      }
+    },
+    {
+      "id": 67,
+      "stratum": "term_out_of_range",
+      "input": {
+        "age": 32,
+        "employment_type": "salaried",
+        "monthly_income": 22236,
+        "requested_amount": 83000,
+        "term_months": 96,
+        "credit_events_24m": 0,
+        "employment_months": 42,
+        "existing_monthly_debt": 1067
+      }
+    },
+    {
+      "id": 68,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 9906,
+        "requested_amount": 148000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 20,
+        "existing_monthly_debt": 148
+      }
+    },
+    {
+      "id": 69,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 25,
+        "employment_type": "self_employed",
+        "monthly_income": 20954,
+        "requested_amount": 66000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 45,
+        "existing_monthly_debt": 6286
+      }
+    },
+    {
+      "id": 70,
+      "stratum": "approve",
+      "input": {
+        "age": 56,
+        "employment_type": "self_employed",
+        "monthly_income": 26967,
+        "requested_amount": 81000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 228,
+        "existing_monthly_debt": 5704
+      }
+    },
+    {
+      "id": 71,
+      "stratum": "approve",
+      "input": {
+        "age": 29,
+        "employment_type": "self_employed",
+        "monthly_income": 9827,
+        "requested_amount": 130000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 159,
+        "existing_monthly_debt": 815
+      }
+    },
+    {
+      "id": 72,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 8590,
+        "requested_amount": 50000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 736
+      }
+    },
+    {
+      "id": 73,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 27,
+        "employment_type": "salaried",
+        "monthly_income": 11877,
+        "requested_amount": 52000,
+        "term_months": 84,
+        "credit_events_24m": 1,
+        "employment_months": 66,
+        "existing_monthly_debt": 93
+      }
+    },
+    {
+      "id": 74,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 63,
+        "employment_type": "salaried",
+        "monthly_income": 23005,
+        "requested_amount": 122000,
+        "term_months": 36,
+        "credit_events_24m": 2,
+        "employment_months": 197,
+        "existing_monthly_debt": 682
+      }
+    },
+    {
+      "id": 75,
+      "stratum": "term_out_of_range",
+      "input": {
+        "age": 54,
+        "employment_type": "salaried",
+        "monthly_income": 25761,
+        "requested_amount": 123000,
+        "term_months": 96,
+        "credit_events_24m": 0,
+        "employment_months": 71,
+        "existing_monthly_debt": 1336
+      }
+    },
+    {
+      "id": 76,
+      "stratum": "approve",
+      "input": {
+        "age": 52,
+        "employment_type": "self_employed",
+        "monthly_income": 16050,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 86,
+        "existing_monthly_debt": 1970
+      }
+    },
+    {
+      "id": 77,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 56,
+        "employment_type": "self_employed",
+        "monthly_income": 10818,
+        "requested_amount": 27000,
+        "term_months": 24,
+        "credit_events_24m": 1,
+        "employment_months": 119,
+        "existing_monthly_debt": 1706,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 78,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 28229,
+        "requested_amount": 132000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 5033
+      }
+    },
+    {
+      "id": 79,
+      "stratum": "approve",
+      "input": {
+        "age": 64,
+        "employment_type": "self_employed",
+        "monthly_income": 14670,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 232,
+        "existing_monthly_debt": 1763
+      }
+    },
+    {
+      "id": 80,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 72,
+        "employment_type": "retired",
+        "monthly_income": 2327,
+        "requested_amount": 10000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 224
+      }
+    },
+    {
+      "id": 81,
+      "stratum": "approve",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "monthly_income": 15545,
+        "requested_amount": 35000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 202,
+        "existing_monthly_debt": 608
+      }
+    },
+    {
+      "id": 82,
+      "stratum": "retired_over_75",
+      "input": {
+        "age": 77,
+        "employment_type": "retired",
+        "monthly_income": 15811,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1934
+      }
+    },
+    {
+      "id": 83,
+      "stratum": "approve",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 25032,
+        "requested_amount": 121000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1241
+      }
+    },
+    {
+      "id": 84,
+      "stratum": "approve",
+      "input": {
+        "age": 35,
+        "employment_type": "salaried",
+        "monthly_income": 13546,
+        "requested_amount": 109000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 238,
+        "existing_monthly_debt": 160
+      }
+    },
+    {
+      "id": 85,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 20779,
+        "requested_amount": 23000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 13636
+      }
+    },
+    {
+      "id": 86,
+      "stratum": "seniority_missing",
+      "input": {
+        "age": 43,
+        "employment_type": "salaried",
+        "monthly_income": 12878,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1703
+      }
+    },
+    {
+      "id": 87,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 28013,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3764
+      }
+    },
+    {
+      "id": 88,
+      "stratum": "approve",
+      "input": {
+        "age": 30,
+        "employment_type": "salaried",
+        "monthly_income": 12351,
+        "requested_amount": 47000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 37,
+        "existing_monthly_debt": 30
+      }
+    },
+    {
+      "id": 89,
+      "stratum": "self_employed_low_seniority",
+      "input": {
+        "age": 43,
+        "employment_type": "self_employed",
+        "monthly_income": 19308,
+        "requested_amount": 71000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 21,
+        "existing_monthly_debt": 113
+      }
+    },
+    {
+      "id": 90,
+      "stratum": "approve",
+      "input": {
+        "age": 31,
+        "employment_type": "salaried",
+        "monthly_income": 25667,
+        "requested_amount": 58000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 38,
+        "existing_monthly_debt": 655
+      }
+    },
+    {
+      "id": 91,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 21993,
+        "requested_amount": 54000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1798
+      }
+    },
+    {
+      "id": 92,
+      "stratum": "approve",
+      "input": {
+        "age": 49,
+        "employment_type": "salaried",
+        "monthly_income": 11088,
+        "requested_amount": 109000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 232,
+        "existing_monthly_debt": 6
+      }
+    },
+    {
+      "id": 93,
+      "stratum": "income_near_minimum_one_event",
+      "input": {
+        "age": 50,
+        "employment_type": "self_employed",
+        "monthly_income": 8694,
+        "requested_amount": 42000,
+        "term_months": 84,
+        "credit_events_24m": 1,
+        "employment_months": 97,
+        "existing_monthly_debt": 851,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 94,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 27818,
+        "requested_amount": 88000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 5691
+      }
+    },
+    {
+      "id": 95,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 20779,
+        "requested_amount": 32000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1104
+      }
+    },
+    {
+      "id": 96,
+      "stratum": "approve",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "monthly_income": 24305,
+        "requested_amount": 85000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 204,
+        "existing_monthly_debt": 1369
+      }
+    },
+    {
+      "id": 97,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 34,
+        "employment_type": "self_employed",
+        "monthly_income": 14639,
+        "requested_amount": 130000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 74,
+        "existing_monthly_debt": 3014
+      }
+    },
+    {
+      "id": 98,
+      "stratum": "approve",
+      "input": {
+        "age": 41,
+        "employment_type": "salaried",
+        "monthly_income": 21079,
+        "requested_amount": 41000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 231,
+        "existing_monthly_debt": 4051
+      }
+    },
+    {
+      "id": 99,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 48,
+        "employment_type": "salaried",
+        "monthly_income": 8594,
+        "requested_amount": 64000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 172,
+        "existing_monthly_debt": 377
+      }
+    },
+    {
+      "id": 100,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 26,
+        "employment_type": "self_employed",
+        "monthly_income": 8882,
+        "requested_amount": 74000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 141,
+        "existing_monthly_debt": 963
+      }
+    },
+    {
+      "id": 101,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 70,
+        "employment_type": "retired",
+        "monthly_income": 6770,
+        "requested_amount": 33000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 697
+      }
+    },
+    {
+      "id": 102,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 15945,
+        "requested_amount": 87000,
+        "term_months": 48,
+        "credit_events_24m": 4,
+        "employment_months": 144,
+        "existing_monthly_debt": 1765
+      }
+    },
+    {
+      "id": 103,
+      "stratum": "approve",
+      "input": {
+        "age": 32,
+        "employment_type": "self_employed",
+        "monthly_income": 29688,
+        "requested_amount": 86000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 225,
+        "existing_monthly_debt": 6311
+      }
+    },
+    {
+      "id": 104,
+      "stratum": "approve",
+      "input": {
+        "age": 60,
+        "employment_type": "salaried",
+        "monthly_income": 17749,
+        "requested_amount": 47000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 206,
+        "existing_monthly_debt": 1176
+      }
+    },
+    {
+      "id": 105,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 24013,
+        "requested_amount": 97000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 355
+      }
+    },
+    {
+      "id": 106,
+      "stratum": "seniority_missing",
+      "input": {
+        "age": 42,
+        "employment_type": "self_employed",
+        "monthly_income": 23600,
+        "requested_amount": 74000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 334
+      }
+    },
+    {
+      "id": 107,
+      "stratum": "approve",
+      "input": {
+        "age": 26,
+        "employment_type": "salaried",
+        "monthly_income": 17836,
+        "requested_amount": 40000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 57,
+        "existing_monthly_debt": 1248
+      }
+    },
+    {
+      "id": 108,
+      "stratum": "self_employed_low_seniority",
+      "input": {
+        "age": 32,
+        "employment_type": "self_employed",
+        "monthly_income": 24593,
+        "requested_amount": 103000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 0,
+        "existing_monthly_debt": 1472
+      }
+    },
+    {
+      "id": 109,
+      "stratum": "retiree_term_limit",
+      "input": {
+        "age": 74,
+        "employment_type": "retired",
+        "monthly_income": 20393,
+        "requested_amount": 10000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2621
+      }
+    },
+    {
+      "id": 110,
+      "stratum": "guarantor_present",
+      "input": {
+        "age": 41,
+        "employment_type": "self_employed",
+        "monthly_income": 12620,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 1,
+        "employment_months": 140,
+        "existing_monthly_debt": 1664,
+        "has_guarantor": true
+      }
+    },
+    {
+      "id": 111,
+      "stratum": "over_age",
+      "input": {
+        "age": 71,
+        "employment_type": "self_employed",
+        "monthly_income": 26938,
+        "requested_amount": 131000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 113,
+        "existing_monthly_debt": 355
+      }
+    },
+    {
+      "id": 112,
+      "stratum": "approve",
+      "input": {
+        "age": 55,
+        "employment_type": "salaried",
+        "monthly_income": 12067,
+        "requested_amount": 104000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 159,
+        "existing_monthly_debt": 305
+      }
+    },
+    {
+      "id": 113,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 14236,
+        "requested_amount": 49000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 155,
+        "existing_monthly_debt": 2873
+      }
+    },
+    {
+      "id": 114,
+      "stratum": "amount_out_of_range",
+      "input": {
+        "age": 32,
+        "employment_type": "salaried",
+        "monthly_income": 26670,
+        "requested_amount": 8000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 64,
+        "existing_monthly_debt": 3126
+      }
+    },
+    {
+      "id": 115,
+      "stratum": "salaried_low_seniority",
+      "input": {
+        "age": 25,
+        "employment_type": "salaried",
+        "monthly_income": 23542,
+        "requested_amount": 61000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 4,
+        "existing_monthly_debt": 1948
+      }
+    },
+    {
+      "id": 116,
+      "stratum": "approve",
+      "input": {
+        "age": 57,
+        "employment_type": "salaried",
+        "monthly_income": 10706,
+        "requested_amount": 75000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 132,
+        "existing_monthly_debt": 1975
+      }
+    },
+    {
+      "id": 117,
+      "stratum": "unemployed",
+      "input": {
+        "age": 68,
+        "employment_type": "unemployed",
+        "monthly_income": 12421,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1634
+      }
+    },
+    {
+      "id": 118,
+      "stratum": "approve",
+      "input": {
+        "age": 41,
+        "employment_type": "salaried",
+        "monthly_income": 29114,
+        "requested_amount": 51000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 55,
+        "existing_monthly_debt": 7443
+      }
+    },
+    {
+      "id": 119,
+      "stratum": "retiree_term_limit",
+      "input": {
+        "age": 73,
+        "employment_type": "retired",
+        "monthly_income": 12294,
+        "requested_amount": 18000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 529
+      }
+    },
+    {
+      "id": 120,
+      "stratum": "approve",
+      "input": {
+        "age": 62,
+        "employment_type": "salaried",
+        "monthly_income": 15347,
+        "requested_amount": 115000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 222,
+        "existing_monthly_debt": 1588
+      }
+    },
+    {
+      "id": 121,
+      "stratum": "approve",
+      "input": {
+        "age": 25,
+        "employment_type": "self_employed",
+        "monthly_income": 21199,
+        "requested_amount": 126000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 115,
+        "existing_monthly_debt": 1848
+      }
+    },
+    {
+      "id": 122,
+      "stratum": "approve",
+      "input": {
+        "age": 36,
+        "employment_type": "self_employed",
+        "monthly_income": 18871,
+        "requested_amount": 118000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 42,
+        "existing_monthly_debt": 109
+      }
+    },
+    {
+      "id": 123,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 18984,
+        "requested_amount": 135000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2320
+      }
+    },
+    {
+      "id": 124,
+      "stratum": "approve",
+      "input": {
+        "age": 33,
+        "employment_type": "salaried",
+        "monthly_income": 9866,
+        "requested_amount": 100000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 38,
+        "existing_monthly_debt": 569
+      }
+    },
+    {
+      "id": 125,
+      "stratum": "amount_out_of_range",
+      "input": {
+        "age": 47,
+        "employment_type": "salaried",
+        "monthly_income": 23725,
+        "requested_amount": 5000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 19,
+        "existing_monthly_debt": 1871
+      }
+    },
+    {
+      "id": 126,
+      "stratum": "approve",
+      "input": {
+        "age": 54,
+        "employment_type": "salaried",
+        "monthly_income": 27520,
+        "requested_amount": 51000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 56,
+        "existing_monthly_debt": 168
+      }
+    },
+    {
+      "id": 127,
+      "stratum": "approve",
+      "input": {
+        "age": 51,
+        "employment_type": "salaried",
+        "monthly_income": 23955,
+        "requested_amount": 14000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 120,
+        "existing_monthly_debt": 1035
+      }
+    },
+    {
+      "id": 128,
+      "stratum": "unemployed",
+      "input": {
+        "age": 47,
+        "employment_type": "unemployed",
+        "monthly_income": 15589,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2109
+      }
+    },
+    {
+      "id": 129,
+      "stratum": "approve",
+      "input": {
+        "age": 55,
+        "employment_type": "self_employed",
+        "monthly_income": 24442,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 64,
+        "existing_monthly_debt": 3229
+      }
+    },
+    {
+      "id": 130,
+      "stratum": "approve",
+      "input": {
+        "age": 45,
+        "employment_type": "salaried",
+        "monthly_income": 19021,
+        "requested_amount": 15000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 66,
+        "existing_monthly_debt": 4515
+      }
+    },
+    {
+      "id": 131,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 9275,
+        "requested_amount": 98000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 82,
+        "existing_monthly_debt": 2753
+      }
+    },
+    {
+      "id": 132,
+      "stratum": "retiree_term_limit",
+      "input": {
+        "age": 74,
+        "employment_type": "retired",
+        "monthly_income": 23577,
+        "requested_amount": 30000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 851
+      }
+    },
+    {
+      "id": 133,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 50,
+        "employment_type": "salaried",
+        "monthly_income": 5600,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 216,
+        "existing_monthly_debt": 611
+      }
+    },
+    {
+      "id": 134,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 36,
+        "employment_type": "self_employed",
+        "monthly_income": 19498,
+        "requested_amount": 14000,
+        "term_months": 12,
+        "credit_events_24m": 2,
+        "employment_months": 112,
+        "existing_monthly_debt": 2669
+      }
+    },
+    {
+      "id": 135,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 25423,
+        "requested_amount": 138000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 770
+      }
+    },
+    {
+      "id": 136,
+      "stratum": "seniority_missing",
+      "input": {
+        "age": 47,
+        "employment_type": "salaried",
+        "monthly_income": 15627,
+        "requested_amount": 68000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1764
+      }
+    },
+    {
+      "id": 137,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 23099,
+        "requested_amount": 83000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 11004
+      }
+    },
+    {
+      "id": 138,
+      "stratum": "approve",
+      "input": {
+        "age": 69,
+        "employment_type": "retired",
+        "monthly_income": 24152,
+        "requested_amount": 24000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3209
+      }
+    },
+    {
+      "id": 139,
+      "stratum": "income_near_minimum_referral_band",
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 8379,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 46,
+        "existing_monthly_debt": 2205
+      }
+    },
+    {
+      "id": 140,
+      "stratum": "approve",
+      "input": {
+        "age": 32,
+        "employment_type": "self_employed",
+        "monthly_income": 22060,
+        "requested_amount": 95000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 163,
+        "existing_monthly_debt": 182
+      }
+    },
+    {
+      "id": 141,
+      "stratum": "self_employed_low_seniority",
+      "input": {
+        "age": 58,
+        "employment_type": "self_employed",
+        "monthly_income": 14531,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 9,
+        "existing_monthly_debt": 1742
+      }
+    },
+    {
+      "id": 142,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "self_employed",
+        "monthly_income": 10333,
+        "requested_amount": 72000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 147,
+        "existing_monthly_debt": 233
+      }
+    },
+    {
+      "id": 143,
+      "stratum": "young",
+      "input": {
+        "age": 19,
+        "employment_type": "salaried",
+        "monthly_income": 14630,
+        "requested_amount": 84000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 85,
+        "existing_monthly_debt": 207
+      }
+    },
+    {
+      "id": 144,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 21255,
+        "requested_amount": 84000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 853
+      }
+    },
+    {
+      "id": 145,
+      "stratum": "approve",
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 29005,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 125,
+        "existing_monthly_debt": 3913
+      }
+    },
+    {
+      "id": 146,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 62,
+        "employment_type": "self_employed",
+        "monthly_income": 27431,
+        "requested_amount": 144000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 41,
+        "existing_monthly_debt": 10013
+      }
+    },
+    {
+      "id": 147,
+      "stratum": "approve",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 13558,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1805
+      }
+    },
+    {
+      "id": 148,
+      "stratum": "approve",
+      "input": {
+        "age": 48,
+        "employment_type": "self_employed",
+        "monthly_income": 27210,
+        "requested_amount": 33000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 129,
+        "existing_monthly_debt": 707
+      }
+    },
+    {
+      "id": 149,
+      "stratum": "guarantor_present",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 10286,
+        "requested_amount": 58000,
+        "term_months": 84,
+        "credit_events_24m": 1,
+        "existing_monthly_debt": 835,
+        "has_guarantor": true
+      }
+    },
+    {
+      "id": 150,
+      "stratum": "approve",
+      "input": {
+        "age": 30,
+        "employment_type": "salaried",
+        "monthly_income": 29772,
+        "requested_amount": 140000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 32,
+        "existing_monthly_debt": 1734
+      }
+    },
+    {
+      "id": 151,
+      "stratum": "young",
+      "input": {
+        "age": 20,
+        "employment_type": "self_employed",
+        "monthly_income": 25584,
+        "requested_amount": 11000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 43,
+        "existing_monthly_debt": 4524
+      }
+    },
+    {
+      "id": 152,
+      "stratum": "income_near_minimum_referral_band",
+      "input": {
+        "age": 35,
+        "employment_type": "self_employed",
+        "monthly_income": 8551,
+        "requested_amount": 29000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 111,
+        "existing_monthly_debt": 2604
+      }
+    },
+    {
+      "id": 153,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 56,
+        "employment_type": "self_employed",
+        "monthly_income": 28563,
+        "requested_amount": 61000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 25,
+        "existing_monthly_debt": 11659
+      }
+    },
+    {
+      "id": 154,
+      "stratum": "unemployed",
+      "input": {
+        "age": 64,
+        "employment_type": "unemployed",
+        "monthly_income": 23297,
+        "requested_amount": 126000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2443
+      }
+    },
+    {
+      "id": 155,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 29099,
+        "requested_amount": 115000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 187
+      }
+    },
+    {
+      "id": 156,
+      "stratum": "over_age",
+      "input": {
+        "age": 73,
+        "employment_type": "salaried",
+        "monthly_income": 19255,
+        "requested_amount": 81000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 202,
+        "existing_monthly_debt": 144
+      }
+    },
+    {
+      "id": 157,
+      "stratum": "approve",
+      "input": {
+        "age": 39,
+        "employment_type": "salaried",
+        "monthly_income": 9458,
+        "requested_amount": 16000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 230,
+        "existing_monthly_debt": 1304
+      }
+    },
+    {
+      "id": 158,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 54,
+        "employment_type": "salaried",
+        "monthly_income": 14606,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 109,
+        "existing_monthly_debt": 5163
+      }
+    },
+    {
+      "id": 159,
+      "stratum": "retired_over_75",
+      "input": {
+        "age": 84,
+        "employment_type": "retired",
+        "monthly_income": 28897,
+        "requested_amount": 63000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 677
+      }
+    },
+    {
+      "id": 160,
+      "stratum": "approve",
+      "input": {
+        "age": 48,
+        "employment_type": "self_employed",
+        "monthly_income": 26090,
+        "requested_amount": 73000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 108,
+        "existing_monthly_debt": 3688
+      }
+    },
+    {
+      "id": 161,
+      "stratum": "income_near_minimum_referral_band",
+      "input": {
+        "age": 34,
+        "employment_type": "salaried",
+        "monthly_income": 8886,
+        "requested_amount": 10000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 181,
+        "existing_monthly_debt": 3030
+      }
+    },
+    {
+      "id": 162,
+      "stratum": "approve",
+      "input": {
+        "age": 27,
+        "employment_type": "self_employed",
+        "monthly_income": 11578,
+        "requested_amount": 35000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 204,
+        "existing_monthly_debt": 1561
+      }
+    },
+    {
+      "id": 163,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 20610,
+        "requested_amount": 132000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 549
+      }
+    },
+    {
+      "id": 164,
+      "stratum": "approve",
+      "input": {
+        "age": 30,
+        "employment_type": "self_employed",
+        "monthly_income": 11629,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 83,
+        "existing_monthly_debt": 1307
+      }
+    },
+    {
+      "id": 165,
+      "stratum": "approve",
+      "input": {
+        "age": 66,
+        "employment_type": "retired",
+        "monthly_income": 10004,
+        "requested_amount": 26000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 1576
+      }
+    },
+    {
+      "id": 166,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 47,
+        "employment_type": "salaried",
+        "monthly_income": 9028,
+        "requested_amount": 17000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 101,
+        "existing_monthly_debt": 4640
+      }
+    },
+    {
+      "id": 167,
+      "stratum": "approve",
+      "input": {
+        "age": 25,
+        "employment_type": "salaried",
+        "monthly_income": 10357,
+        "requested_amount": 63000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 167,
+        "existing_monthly_debt": 0
+      }
+    },
+    {
+      "id": 168,
+      "stratum": "approve",
+      "input": {
+        "age": 58,
+        "employment_type": "salaried",
+        "monthly_income": 23518,
+        "requested_amount": 139000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 15,
+        "existing_monthly_debt": 3862
+      }
+    },
+    {
+      "id": 169,
+      "stratum": "approve",
+      "input": {
+        "age": 30,
+        "employment_type": "self_employed",
+        "monthly_income": 28203,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 92,
+        "existing_monthly_debt": 3793
+      }
+    },
+    {
+      "id": 170,
+      "stratum": "retiree_term_limit",
+      "input": {
+        "age": 73,
+        "employment_type": "retired",
+        "monthly_income": 12499,
+        "requested_amount": 41000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2231
+      }
+    },
+    {
+      "id": 171,
+      "stratum": "retiree_term_limit",
+      "input": {
+        "age": 73,
+        "employment_type": "retired",
+        "monthly_income": 29353,
+        "requested_amount": 130000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 5853
+      }
+    },
+    {
+      "id": 172,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 45,
+        "employment_type": "salaried",
+        "monthly_income": 22332,
+        "requested_amount": 33000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 18,
+        "existing_monthly_debt": 7544
+      }
+    },
+    {
+      "id": 173,
+      "stratum": "salaried_low_seniority",
+      "input": {
+        "age": 53,
+        "employment_type": "salaried",
+        "monthly_income": 13477,
+        "requested_amount": 142000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 3,
+        "existing_monthly_debt": 498
+      }
+    },
+    {
+      "id": 174,
+      "stratum": "income_near_minimum_approve",
+      "input": {
+        "age": 70,
+        "employment_type": "retired",
+        "monthly_income": 8522,
+        "requested_amount": 10000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 841
+      }
+    },
+    {
+      "id": 175,
+      "stratum": "seniority_missing",
+      "input": {
+        "age": 26,
+        "employment_type": "self_employed",
+        "monthly_income": 12353,
+        "requested_amount": 18000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 2855
+      }
+    },
+    {
+      "id": 176,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 20412,
+        "requested_amount": 20000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 42,
+        "existing_monthly_debt": 459
+      }
+    },
+    {
+      "id": 177,
+      "stratum": "approve",
+      "input": {
+        "age": 28,
+        "employment_type": "salaried",
+        "monthly_income": 13743,
+        "requested_amount": 147000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 188,
+        "existing_monthly_debt": 102
+      }
+    },
+    {
+      "id": 178,
+      "stratum": "guarantor_present",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 18954,
+        "requested_amount": 63000,
+        "term_months": 60,
+        "credit_events_24m": 1,
+        "existing_monthly_debt": 2728,
+        "has_guarantor": true
+      }
+    },
+    {
+      "id": 179,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 68,
+        "employment_type": "retired",
+        "monthly_income": 13048,
+        "requested_amount": 11000,
+        "term_months": 24,
+        "credit_events_24m": 2,
+        "existing_monthly_debt": 3323
+      }
+    },
+    {
+      "id": 180,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 2015,
+        "requested_amount": 10000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 78,
+        "existing_monthly_debt": 177
+      }
+    },
+    {
+      "id": 181,
+      "stratum": "young",
+      "input": {
+        "age": 18,
+        "employment_type": "self_employed",
+        "monthly_income": 12763,
+        "requested_amount": 40000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "employment_months": 103,
+        "existing_monthly_debt": 2036
+      }
+    },
+    {
+      "id": 182,
+      "stratum": "approve",
+      "input": {
+        "age": 71,
+        "employment_type": "retired",
+        "monthly_income": 12956,
+        "requested_amount": 104000,
+        "term_months": 48,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 444
+      }
+    },
+    {
+      "id": 183,
+      "stratum": "approve",
+      "input": {
+        "age": 67,
+        "employment_type": "retired",
+        "monthly_income": 24489,
+        "requested_amount": 89000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 4338
+      }
+    },
+    {
+      "id": 184,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 42,
+        "employment_type": "self_employed",
+        "monthly_income": 26799,
+        "requested_amount": 19000,
+        "term_months": 72,
+        "credit_events_24m": 1,
+        "employment_months": 138,
+        "existing_monthly_debt": 4847,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 185,
+      "stratum": "income_near_minimum_one_event",
+      "input": {
+        "age": 62,
+        "employment_type": "salaried",
+        "monthly_income": 8379,
+        "requested_amount": 24000,
+        "term_months": 72,
+        "credit_events_24m": 1,
+        "employment_months": 235,
+        "existing_monthly_debt": 771,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 186,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "self_employed",
+        "monthly_income": 9405,
+        "requested_amount": 45000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 53,
+        "existing_monthly_debt": 1748
+      }
+    },
+    {
+      "id": 187,
+      "stratum": "approve",
+      "input": {
+        "age": 36,
+        "employment_type": "salaried",
+        "monthly_income": 11455,
+        "requested_amount": 94000,
+        "term_months": 60,
+        "credit_events_24m": 0,
+        "employment_months": 39,
+        "existing_monthly_debt": 1101
+      }
+    },
+    {
+      "id": 188,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 45,
+        "employment_type": "salaried",
+        "monthly_income": 11071,
+        "requested_amount": 110000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 99,
+        "existing_monthly_debt": 121,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 189,
+      "stratum": "ratio_too_high",
+      "input": {
+        "age": 34,
+        "employment_type": "self_employed",
+        "monthly_income": 29702,
+        "requested_amount": 66000,
+        "term_months": 12,
+        "credit_events_24m": 0,
+        "employment_months": 133,
+        "existing_monthly_debt": 11642
+      }
+    },
+    {
+      "id": 190,
+      "stratum": "guarantor_present",
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 25617,
+        "requested_amount": 86000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "employment_months": 158,
+        "existing_monthly_debt": 2353,
+        "has_guarantor": true
+      }
+    },
+    {
+      "id": 191,
+      "stratum": "approve",
+      "input": {
+        "age": 29,
+        "employment_type": "salaried",
+        "monthly_income": 17831,
+        "requested_amount": 51000,
+        "term_months": 24,
+        "credit_events_24m": 0,
+        "employment_months": 219,
+        "existing_monthly_debt": 1460
+      }
+    },
+    {
+      "id": 192,
+      "stratum": "approve",
+      "input": {
+        "age": 70,
+        "employment_type": "retired",
+        "monthly_income": 21471,
+        "requested_amount": 55000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "existing_monthly_debt": 3206
+      }
+    },
+    {
+      "id": 193,
+      "stratum": "approve",
+      "input": {
+        "age": 40,
+        "employment_type": "salaried",
+        "monthly_income": 10989,
+        "requested_amount": 13000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 209,
+        "existing_monthly_debt": 446
+      }
+    },
+    {
+      "id": 194,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 63,
+        "employment_type": "self_employed",
+        "monthly_income": 17806,
+        "requested_amount": 63000,
+        "term_months": 36,
+        "credit_events_24m": 1,
+        "employment_months": 40,
+        "existing_monthly_debt": 878,
+        "has_guarantor": false
+      }
+    },
+    {
+      "id": 195,
+      "stratum": "one_credit_event_no_guarantor",
+      "input": {
+        "age": 69,
+        "employment_type": "retired",
+        "monthly_income": 26009,
+        "requested_amount": 113000,
+        "term_months": 48,
+        "credit_events_24m": 1,
+        "existing_monthly_debt": 3875
+      }
+    },
+    {
+      "id": 196,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 57,
+        "employment_type": "salaried",
+        "monthly_income": 23075,
+        "requested_amount": 60000,
+        "term_months": 84,
+        "credit_events_24m": 0,
+        "employment_months": 126,
+        "existing_monthly_debt": 7251
+      }
+    },
+    {
+      "id": 197,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 36,
+        "employment_type": "self_employed",
+        "monthly_income": 23390,
+        "requested_amount": 94000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 151,
+        "existing_monthly_debt": 5773
+      }
+    },
+    {
+      "id": 198,
+      "stratum": "two_credit_events",
+      "input": {
+        "age": 58,
+        "employment_type": "self_employed",
+        "monthly_income": 11647,
+        "requested_amount": 89000,
+        "term_months": 48,
+        "credit_events_24m": 3,
+        "employment_months": 236,
+        "existing_monthly_debt": 407
+      }
+    },
+    {
+      "id": 199,
+      "stratum": "ratio_in_referral_band",
+      "input": {
+        "age": 33,
+        "employment_type": "self_employed",
+        "monthly_income": 17968,
+        "requested_amount": 126000,
+        "term_months": 36,
+        "credit_events_24m": 0,
+        "employment_months": 149,
+        "existing_monthly_debt": 2888
+      }
+    },
+    {
+      "id": 200,
+      "stratum": "income_below_minimum",
+      "input": {
+        "age": 39,
+        "employment_type": "salaried",
+        "monthly_income": 5815,
+        "requested_amount": 63000,
+        "term_months": 72,
+        "credit_events_24m": 0,
+        "employment_months": 227,
+        "existing_monthly_debt": 336
+      }
+    }
+  ]
+}
