@@ -41,6 +41,7 @@
         <!-- Document 3, Conditions: matches runs on a linear-time engine (no backtracking, no lookaround). -->
         <re2j.version>1.8</re2j.version>
         <bucket4j.version>8.20.0</bucket4j.version>
+        <pdfbox.version>3.0.8</pdfbox.version>
 
         <jacoco.version>0.8.15</jacoco.version>
         <pitest.version>1.30.0</pitest.version>
@@ -114,6 +115,13 @@
             <groupId>com.bucket4j</groupId>
             <artifactId>bucket4j_jdk17-core</artifactId>
             <version>${bucket4j.version}</version>
+        </dependency>
+
+        <!-- Policy uploads: PDF text in memory, no scripts, no OCR (Document 5, File and path injection) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
 
         <!-- Operations: /actuator/health is the Railway health check (Document 2, Deployment Topology) -->

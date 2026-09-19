@@ -14,7 +14,7 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not found."),
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The request body is too large."),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The content type or charset is not supported."),
-    POLICY_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The policy text is not valid."),
+    POLICY_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The policy is not valid."),
     UPLOAD_REJECTED(HttpStatus.UNPROCESSABLE_CONTENT, "The uploaded file cannot be used as a policy."),
     RULESET_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The rule set is not valid."),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests; retry later."),

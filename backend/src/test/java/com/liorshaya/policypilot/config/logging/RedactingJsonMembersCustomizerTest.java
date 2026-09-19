@@ -55,9 +55,9 @@ class RedactingJsonMembersCustomizerTest {
 
     @Test
     void ansiEscapeIsEncodedNotEmitted() {
-        String line = encode("[31mred[0m label");
+        String line = encode("\u001B[31mred\u001B[0m label");
 
-        assertThat(line).doesNotContain("");
+        assertThat(line).doesNotContain("\u001B");
         assertThat(line).containsIgnoringCase("\\u001b[31mred");
     }
 

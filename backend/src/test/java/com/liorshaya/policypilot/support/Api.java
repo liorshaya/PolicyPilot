@@ -49,10 +49,18 @@ public final class Api {
         return new Call(method, path);
     }
 
+    /** Exchanges the access code from an address of its own and returns the session cookie value. */
+    public String login() {
+        return login(post("/api/v1/auth/code"));
+    }
+
     /** Exchanges the access code from {@code ip} and returns the session cookie value. */
     public String login(String ip) {
-        HttpResponse<String> response = post("/api/v1/auth/code").web().from(ip)
-                .json("{\"code\":\"" + ACCESS_CODE + "\"}").send();
+        return login(post("/api/v1/auth/code").from(ip));
+    }
+
+    private String login(Call exchange) {
+        HttpResponse<String> response = exchange.web().json("{\"code\":\"" + ACCESS_CODE + "\"}").send();
         return sessionCookie(response).orElseThrow(() -> new IllegalStateException(
                 "login failed with HTTP " + response.statusCode() + ": " + response.body()));
     }
@@ -103,6 +111,22 @@ public final class Api {
             header("Content-Type", "application/json");
             body = HttpRequest.BodyPublishers.ofString(json);
             return this;
+        }
+
+        /** A multipart form with the policy fields and one file part, as the web app's upload sends it. */
+        public Call multipart(String title, String language, String fileName, byte[] file) {
+            String boundary = "policypilot-test-boundary";
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            java.nio.charset.Charset utf8 = java.nio.charset.StandardCharsets.UTF_8;
+            for (String[] field : new String[][] {{"title", title}, {"language", language}}) {
+                out.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + field[0]
+                        + "\"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + field[1] + "\r\n").getBytes(utf8));
+            }
+            out.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
+                    + "\"\r\nContent-Type: application/octet-stream\r\n\r\n").getBytes(utf8));
+            out.writeBytes(file);
+            out.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(utf8));
+            return body("multipart/form-data; boundary=" + boundary, out.toByteArray());
         }
 
         public Call body(String contentType, byte[] bytes) {
