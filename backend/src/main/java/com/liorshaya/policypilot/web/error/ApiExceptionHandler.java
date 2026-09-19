@@ -45,6 +45,9 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ErrorEnvelope> unreadable(HttpMessageNotReadableException exception) {
+        if (causedBy(exception, PayloadTooLargeException.class)) {
+            return responses.entity(ErrorCode.PAYLOAD_TOO_LARGE, List.of());
+        }
         List<ErrorDetail> details = new ArrayList<>();
         if (exception.getCause() instanceof UnrecognizedPropertyException unknown) {
             // The pointer names the object that holds the property, never the caller's property name
@@ -87,6 +90,15 @@ public class ApiExceptionHandler {
     ResponseEntity<ErrorEnvelope> unexpected(Exception exception) {
         LOG.error("unexpected failure", exception);
         return responses.entity(ErrorCode.INTERNAL_ERROR, List.of());
+    }
+
+    private static boolean causedBy(Throwable throwable, Class<? extends Throwable> type) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (type.isInstance(cause)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** The JSON pointer of a Jackson path: property names and array indexes, {@code ~} and {@code /} escaped. */

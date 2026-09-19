@@ -8,6 +8,8 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -74,28 +76,26 @@ class AuthControllerContractIT extends ApiIntegrationTest {
         assertThat(output.getAll()).doesNotContain(Api.ACCESS_CODE);
     }
 
-    // Expected: Document 5, Brute force: 20 failures within 15 minutes lock the IP for 15 minutes (900 s)
+    // Expected: Document 5, Brute force: 20 failures within 15 minutes lock the IP for 15 minutes. The failures are
+    // spread over four minutes to stay within the 5 per minute limit, so the lock starts at +3 min and ends at +18 min.
     @Test
     void twentyFailuresLockTheIpAndTheLockLiftsAfterFifteenMinutes() {
         String ip = "198.51.100.16";
-        for (int i = 0; i < 20; i++) {
-            assertThat(exchange(ip, "wrongone").statusCode()).isEqualTo(401);
-        }
+        assertThat(failTwentyTimes(ip)).containsOnly(401);
+        clock.advance(Duration.ofMinutes(1));
 
         HttpResponse<String> locked = exchange(ip, Api.ACCESS_CODE);
         assertThat(locked.statusCode()).isEqualTo(429);
-        assertThat(locked.headers().firstValue("Retry-After")).contains("900");
+        assertThat(locked.headers().firstValue("Retry-After")).contains("840");
 
-        clock.advance(Duration.ofMinutes(15));
+        clock.advance(Duration.ofMinutes(14));
         assertThat(exchange(ip, Api.ACCESS_CODE).statusCode()).isEqualTo(204);
     }
 
     @Test
     void theCorrectCodeIsRefusedDuringTheLockout() {
         String ip = "198.51.100.17";
-        for (int i = 0; i < 20; i++) {
-            exchange(ip, "wrongone");
-        }
+        failTwentyTimes(ip);
         clock.advance(Duration.ofMinutes(14));
 
         HttpResponse<String> response = exchange(ip, Api.ACCESS_CODE);
@@ -108,9 +108,7 @@ class AuthControllerContractIT extends ApiIntegrationTest {
 
     @Test
     void lockoutIsPerIp() {
-        for (int i = 0; i < 20; i++) {
-            exchange("198.51.100.18", "wrongone");
-        }
+        failTwentyTimes("198.51.100.18");
 
         assertThat(exchange("198.51.100.19", Api.ACCESS_CODE).statusCode()).isEqualTo(204);
     }
@@ -120,9 +118,7 @@ class AuthControllerContractIT extends ApiIntegrationTest {
         double failedBefore = registry.counter("security.auth.failed").count();
         double lockoutsBefore = registry.counter("security.auth.lockout").count();
 
-        for (int i = 0; i < 20; i++) {
-            exchange("198.51.100.20", "wrongone");
-        }
+        failTwentyTimes("198.51.100.20");
 
         assertThat(registry.counter("security.auth.failed").count() - failedBefore).isEqualTo(20.0);
         assertThat(registry.counter("security.auth.lockout").count() - lockoutsBefore).isEqualTo(1.0);
@@ -135,6 +131,32 @@ class AuthControllerContractIT extends ApiIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("REQUEST_INVALID");
+    }
+
+    // Expected: Document 5, limits table: code exchange 5 per minute per IP
+    @Test
+    void theSixthExchangeInAMinuteIsRateLimited() {
+        String ip = "198.51.100.22";
+        for (int i = 0; i < 5; i++) {
+            exchange(ip, "wrongone");
+        }
+
+        HttpResponse<String> sixth = exchange(ip, Api.ACCESS_CODE);
+
+        assertThat(sixth.statusCode()).isEqualTo(429);
+        assertThat(sixth.headers().firstValue("Retry-After")).contains("60");
+    }
+
+    /** Twenty wrong codes, five per minute, the clock moved a minute after each five but the last. */
+    private List<Integer> failTwentyTimes(String ip) {
+        List<Integer> statuses = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            statuses.add(exchange(ip, "wrongone").statusCode());
+            if (i % 5 == 0 && i < 20) {
+                clock.advance(Duration.ofMinutes(1));
+            }
+        }
+        return statuses;
     }
 
     private HttpResponse<String> exchange(String ip, String code) {

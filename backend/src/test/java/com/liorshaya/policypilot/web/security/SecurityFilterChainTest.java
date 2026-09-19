@@ -27,8 +27,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The order of the front door's filters (Document 5, Authentication, Session and Authorization; CSRF): CORS answers
- * first, then the custom header and Origin check, then the session cookie, and authorization last. Only the
- * security chain is built: no database and no server start.
+ * first, then the custom header and Origin check, then the session cookie, then the rate limits, which need the
+ * session's sandbox, and authorization last. Only the security chain is built: no database and no server start.
  */
 class SecurityFilterChainTest {
 
@@ -42,11 +42,11 @@ class SecurityFilterChainTest {
             List<Class<? extends Filter>> order = context.getBean(SecurityFilterChain.class).getFilters().stream()
                     .<Class<? extends Filter>>map(Filter::getClass)
                     .filter(List.of(CorsFilter.class, CsrfDefenseFilter.class, AccessCodeFilter.class,
-                            AuthorizationFilter.class)::contains)
+                            RateLimitFilter.class, AuthorizationFilter.class)::contains)
                     .toList();
 
             assertThat(order).containsExactly(CorsFilter.class, CsrfDefenseFilter.class, AccessCodeFilter.class,
-                    AuthorizationFilter.class);
+                    RateLimitFilter.class, AuthorizationFilter.class);
         });
     }
 
@@ -64,6 +64,7 @@ class SecurityFilterChainTest {
             assertThat(context.getBean(AccessCodeVerifier.class).matches("testcode")).isTrue();
             assertThat(context.getBean(SessionCookies.class)).isNotNull();
             assertThat(context.getBean(LoginThrottle.class)).isNotNull();
+            assertThat(context.getBean(RateLimits.class)).isNotNull();
         });
     }
 

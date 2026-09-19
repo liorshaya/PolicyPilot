@@ -40,6 +40,7 @@
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
         <!-- Document 3, Conditions: matches runs on a linear-time engine (no backtracking, no lookaround). -->
         <re2j.version>1.8</re2j.version>
+        <bucket4j.version>8.20.0</bucket4j.version>
 
         <jacoco.version>0.8.15</jacoco.version>
         <pitest.version>1.30.0</pitest.version>
@@ -106,6 +107,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- In-memory token buckets for the rate limits of Document 5 (single instance by design) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>${bucket4j.version}</version>
         </dependency>
 
         <!-- Operations: /actuator/health is the Railway health check (Document 2, Deployment Topology) -->

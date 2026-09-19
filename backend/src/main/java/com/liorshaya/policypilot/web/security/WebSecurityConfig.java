@@ -28,7 +28,7 @@ import org.springframework.web.filter.CorsFilter;
 
 /**
  * The front door (Document 2, Security and Demo Protections; Document 5, Authentication, Session and Authorization):
- * deny by default, the health check and the code exchange public, CORS for the allowlisted origins with credentials,
+ * deny by default, the health check and the code exchange public, the rate limits, CORS for the allowlisted origins with credentials,
  * the custom header and Origin check, the signed session cookie, Spring Security's headers with HSTS, no HTTP
  * session and no Spring Security CSRF token (the three defenses of Document 5 replace it).
  */
@@ -63,6 +63,11 @@ public class WebSecurityConfig {
         return new LoginThrottle();
     }
 
+    @Bean
+    RateLimits rateLimits(Clock clock, PolicyPilotProperties properties) {
+        return new RateLimits(clock, properties.rateLimit().perMinute(), properties.rateLimit().perSandboxPerHour());
+    }
+
     /** CORS for the allowlisted origins with credentials (Document 5, CSRF, the first defense). */
     static CorsConfigurationSource corsConfigurationSource(List<String> allowedOrigins) {
         CorsConfiguration cors = new CorsConfiguration();
@@ -79,8 +84,10 @@ public class WebSecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, PolicyPilotProperties properties,
-            SessionCookies cookies, ErrorResponses errors, SecurityEvents events, Clock clock) throws Exception {
+            SessionCookies cookies, RateLimits rateLimits, ErrorResponses errors, SecurityEvents events, Clock clock)
+            throws Exception {
         RequestMatcher publicRoutes = publicRoutes();
+        AccessCodeFilter sessionFilter = new AccessCodeFilter(cookies, clock, events, publicRoutes);
         CorsFilter cors = new CorsFilter(corsConfigurationSource(properties.web().allowedOrigins()));
         cors.setCorsProcessor(new EnvelopeCorsProcessor(errors, events));
         http
@@ -99,8 +106,8 @@ public class WebSecurityConfig {
                         .accessDeniedHandler((request, response, e) -> errors.write(response, ErrorCode.CSRF_REJECTED)))
                 .addFilterAfter(cors, HeaderWriterFilter.class)
                 .addFilterAfter(new CsrfDefenseFilter(properties.web().allowedOrigins(), errors, events), CorsFilter.class)
-                .addFilterBefore(new AccessCodeFilter(cookies, clock, events, publicRoutes),
-                        AnonymousAuthenticationFilter.class);
+                .addFilterBefore(sessionFilter, AnonymousAuthenticationFilter.class)
+                .addFilterAfter(new RateLimitFilter(rateLimits, errors, events), AccessCodeFilter.class);
         return http.build();
     }
 }
