@@ -37,6 +37,16 @@ final class Validations {
         return lending(document, ValidationContext.PUBLISH);
     }
 
+    /** The findings for a variant of an {@code invalid-*} fixture, whose rules cite no policy text. */
+    static List<Finding> withoutPolicy(JsonNode document) {
+        return VALIDATOR.validate(document, ValidationContext.PUBLISH, List.of(), Set.of()).findings();
+    }
+
+    /** The rule set of {@code fixtures/conformance/invalid-<CODE>.json}, to build a variant of. */
+    static JsonNode invalidRuleSet(String code) {
+        return Fixtures.ruleSetOf(Fixtures.json("conformance/invalid-" + code + ".json"));
+    }
+
     /** A fixture's {@code policyText}: absent, a path relative to the fixtures root, or an inline list. */
     static List<String> paragraphs(JsonNode policyText) {
         if (policyText == null) {
