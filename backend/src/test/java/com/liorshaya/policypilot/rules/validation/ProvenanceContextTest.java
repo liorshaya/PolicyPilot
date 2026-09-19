@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import tools.jackson.databind.node.ObjectNode;
  * The four validation contexts (Document 3, Provenance), named after the reference self-test's "provenance
  * contexts": the scripted change raises R-170's threshold to 9,000 with pending provenance (cr-0042).
  */
+@Requirement({"FR-4", "FR-19"})
 class ProvenanceContextTest {
 
     private static final String R170_AT = "/rules/11/provenance";

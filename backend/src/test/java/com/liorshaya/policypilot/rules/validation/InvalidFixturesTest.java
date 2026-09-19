@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.JsonNode;
 
 /** The validator conformance of Document 3: the code table and the invalid fixtures. */
+@Requirement({"FR-3", "FR-4", "FR-6"})
 class InvalidFixturesTest {
 
     /** Document 3, Static Validation: the table transcribed row by row, in its order. */

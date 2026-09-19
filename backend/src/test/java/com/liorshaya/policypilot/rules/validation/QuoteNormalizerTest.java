@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.rules.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.parallel.Isolated;
  * Quote normalization (Document 3, Provenance; Document 5, bidi and invisible characters). Every expected string is
  * what {@code norm} in {@code fixtures/reference/reference_check.py} returns for the same input.
  */
+@Requirement({"FR-4", "NFR-5"})
 @Isolated("one test switches the JVM default locale")
 class QuoteNormalizerTest {
 

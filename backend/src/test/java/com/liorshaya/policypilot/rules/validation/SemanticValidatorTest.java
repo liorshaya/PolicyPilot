@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
 import java.util.function.Consumer;
@@ -26,6 +27,7 @@ import tools.jackson.databind.node.ObjectNode;
  * positive case and a near miss built from the lending rule set as the negative one. Pointers name the node that is
  * wrong; the reference's pointer is a prefix of each.
  */
+@Requirement({"FR-3", "FR-4", "FR-6"})
 class SemanticValidatorTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

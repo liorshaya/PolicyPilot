@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Layer 1, the committed JSON Schema (Document 3, Static Validation and JSON Schema). */
+@Requirement({"FR-3", "FR-6", "NFR-7"})
 class SchemaValidatorTest {
 
     private static final JsonNodeFactory NODES = JsonNodeFactory.instance;

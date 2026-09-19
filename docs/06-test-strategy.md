@@ -91,7 +91,9 @@ Tests mirror the package structure, are named after the behavior they prove, bui
 ```
 backend/src/test/java/com/liorshaya/policypilot/
   engine/            RuleEngineTest, TraceTest, ExpressionEvaluatorTest, EngineConformanceTest, EnginePropertiesTest
-  rules/             SchemaValidatorTest, SemanticValidatorTest, StructuralChecksTest, QuoteNormalizerTest, ProvenanceContextTest
+  rules/json/        RuleSetMapperTest
+  rules/validation/  SchemaValidatorTest, SemanticValidatorTest, StructuralChecksTest, QuoteNormalizerTest, ProvenanceContextTest,
+                     ConstraintTest, InvalidFixturesTest, FixtureRuleSetsTest, CaseValidatorTest
   ai/                AuthorUseCaseTest, ReviewUseCaseTest, ExplainUseCaseTest, AnswerUseCaseTest, ChangeUseCaseTest,
                      RepairLoopTest, MarkerResolverTest, ToolArgumentsTest, SchemaVariantTest
   rag/               ChunkerTest, HybridRetrievalIT, ThresholdTest
@@ -99,12 +101,12 @@ backend/src/test/java/com/liorshaya/policypilot/
   decision/          DecisionServiceIT, BatchDecisionIT, SimulationIT
   change/            ChangeProposalIT, RegressionRunIT, ApprovalIT
   architecture/      PackageRulesTest, ForbiddenApisTest
-  support/           Fixtures, RuleSetBuilder, CaseBuilder, RecordedGateway, PostgresContainer
+  support/           Fixtures, RuleSetBuilder, CaseBuilder, RecordedGateway, PostgresContainerSupport, Requirement
 ```
 
 Test method names read as sentences: `terminalRejectStopsEvaluationAndMarksLaterRulesSkipped`, `guardedDerivationSkippedWhenIncomeIsZeroThenR170Rejects`, `foreignSandboxDecisionReturns404`. A test proves one behavior; a behavior with several boundaries is a parameterized test with named cases.
 
-**Fixtures and builders**: `Fixtures.lendingV1()` loads the published rule set from `fixtures/`; `RuleSetBuilder` and `CaseBuilder` start from it and change one thing (`Fixtures.lendingV1().withRule("R-320").priority(210)`), so a test shows only what matters to it; conformance fixtures are JSON files with `ruleset`, `case` and `expected` and are loaded by one parameterized test, the same files the Python reference runs; the invalid fixtures carry the expected code, context and severity, and their runner also asserts that an error stops the validator in its own layer (file shapes in fixtures/README.md).
+**Fixtures and builders**: `Fixtures.lendingV1()` loads the published rule set from `fixtures/`; `RuleSetBuilder` and `CaseBuilder` start from it and change one thing (`RuleSetBuilder.lendingV1().rule("R-320", r -> r.put("priority", 210))`), so a test shows only what matters to it; the builder edits the JSON tree, so it can also build the documents the schema rejects; conformance fixtures are JSON files with `ruleset`, `case` and `expected` and are loaded by one parameterized test, the same files the Python reference runs; the invalid fixtures carry the expected code, context and severity, and their runner also asserts that an error stops the validator in its own layer (file shapes in fixtures/README.md).
 
 **Integration tests** (`*IT`) use one shared Testcontainers PostgreSQL with pgvector per JVM (`@ServiceConnection`), Flyway migrations from the real `main` resources, and a transaction rollback per test where possible; tests that need committed data (the regression run, the nightly reset) clean up by sandbox id. The model gateway is always the `RecordedGateway`, which serves recordings by prompt name and input hash and fails loudly on a miss, so a test can never reach a real provider by accident.
 
