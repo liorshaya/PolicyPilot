@@ -9,5 +9,7 @@ management:
       show-details: never
 
 policypilot:
+  web:
+    allowed-origins: https://policypilot.liorshaya.com
   ai:
     log-payloads: false

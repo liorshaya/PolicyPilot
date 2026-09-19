@@ -14,7 +14,7 @@ up: ## Start the database, the backend and the frontend, then wait for the healt
 	$(COMPOSE) up --build --detach
 	scripts/wait-for-health.sh
 	@echo ""
-	@echo "  backend   http://localhost:8080/actuator/health   (API docs at /api/docs from day 4)"
+	@echo "  backend   http://localhost:8080/actuator/health   (API docs at /api/docs, behind the access code)"
 	@echo "  frontend  http://localhost:5173"
 	@echo "  database  localhost:5432  policypilot / policypilot"
 

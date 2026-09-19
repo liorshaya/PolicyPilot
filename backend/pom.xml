@@ -101,6 +101,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- The front door: the security filter chain, CORS and security headers (Document 2, Security and Demo
+             Protections; Document 5, Authentication, Session and Authorization) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Operations: /actuator/health is the Railway health check (Document 2, Deployment Topology) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

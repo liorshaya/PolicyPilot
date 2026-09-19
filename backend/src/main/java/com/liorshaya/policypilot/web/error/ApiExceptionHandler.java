@@ -37,6 +37,9 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ErrorEnvelope> api(ApiException exception) {
+        if (exception.retryAfter() != null) {
+            return responses.rateLimited(exception.retryAfter());
+        }
         return responses.entity(exception.code(), exception.details());
     }
 
