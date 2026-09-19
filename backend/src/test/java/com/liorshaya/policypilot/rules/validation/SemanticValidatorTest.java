@@ -279,8 +279,8 @@ class SemanticValidatorTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"(a)\\1", "[a-"})
-    void regexInvalidReportedForABackreferenceAndAPatternThatDoesNotCompile(String pattern) {
+    @ValueSource(strings = {"(a)\\1", "[a-", "a{1001}"})
+    void regexInvalidReportedForABackreferenceAPatternThatDoesNotCompileAndALargeRepeat(String pattern) {
         assertThat(codesAndPaths(publish(withIban(pattern))))
                 .containsExactly(tuple(ValidationCode.REGEX_INVALID, "/rules/19/condition/value"));
     }
@@ -288,6 +288,8 @@ class SemanticValidatorTest {
     @Test
     void re2CompatiblePatternIsValid() {
         assertThat(publish(withIban("^IL[0-9]{2}"))).noneMatch(finding -> finding.severity() == Severity.ERROR);
+        // RE2 accepts a repeat count up to 1000
+        assertThat(publish(withIban("a{1000}a{1000}"))).noneMatch(finding -> finding.severity() == Severity.ERROR);
     }
 
     // ------------------------------------------------------------------ identifiers, ids, set targets

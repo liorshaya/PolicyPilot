@@ -58,6 +58,12 @@ ARITY = {"add": (2, 8), "mul": (2, 8), "min": (2, 8), "max": (2, 8), "sub": (2, 
          "pow": (2, 2), "round": (2, 2), "months_between": (2, 2), "abs": (1, 1)}
 BANDS = [(1, 99, "set"), (100, 299, "reject"), (300, 399, "refer"), (400, 499, "flag"), (900, 999, "approve")]
 RE2_UNSUPPORTED = re.compile(r"\\[1-9]|\(\?<?[=!]")
+RE2_MAX_REPEAT = 1000   # RE2 (and RE2J) refuse a repeat count above 1000
+
+def re2_unsupported(pattern):
+    """Syntax the linear-time engine refuses: backreferences, lookaround, repeat counts above 1000."""
+    if RE2_UNSUPPORTED.search(pattern): return True
+    return any(int(n) > RE2_MAX_REPEAT for pair in re.findall(r"\{(\d+)(?:,(\d*))?\}", pattern) for n in pair if n)
 LAYER = {}
 SEVERITY = {}
 for _code in ("DSL_SCHEMA", "DSL_VERSION_UNSUPPORTED", "DERIVED_REQUIRED"):
@@ -195,7 +201,7 @@ def check_cmp(c, fields, rid, out, path):
     if op == "matches":
         if ftype != "string":
             out.append(F("FIELD_TYPE_MISMATCH", path, f"{rid} matches on {ftype} field {c['field']}")); return
-        if len(v) > 200 or RE2_UNSUPPORTED.search(v):
+        if len(v) > 200 or re2_unsupported(v):
             out.append(F("REGEX_INVALID", path, f"{rid} pattern too long or uses unsupported syntax")); return
         try: re.compile(v)
         except re.error: out.append(F("REGEX_INVALID", path, f"{rid} pattern does not compile"))
@@ -931,6 +937,9 @@ if __name__ == "__main__":
         except EvalError as e:
             assert e.code == "EVAL_NON_FINITE", (bad, e.code)
     print("arithmetic OK")
+    # patterns: RE2 refuses a repeat count above 1000 (REGEX_INVALID), and accepts 1000
+    assert re2_unsupported("a{1001}") and re2_unsupported("a{2,1001}") and not re2_unsupported("a{1000}a{1000}")
+    print("regex syntax OK")
 
     # provenance contexts
     prop = copy.deepcopy(rs)
