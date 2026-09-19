@@ -23,7 +23,7 @@ class PolicyResponseTest {
     @Test
     void aPolicyIsWrittenWithItsVersionsAndParagraphs() {
         PolicyView view = new PolicyView(UUID.fromString("0f4c1c9e-0000-4000-8000-000000000001"), "Lending",
-                PolicyLanguage.HE, true, NOW, List.of(new PolicyView.Version(1, NOW,
+                PolicyLanguage.HE, true, null, NOW, List.of(new PolicyView.Version(1, NOW,
                         List.of(new PolicyView.Paragraph(1, "first"), new PolicyView.Paragraph(2, "second")))));
 
         String json = JsonMapper.builder().build().writeValueAsString(PolicyResponse.of(view));
@@ -34,5 +34,16 @@ class PolicyResponseTest {
         assertThat((Integer) JsonPath.read(json, "$.versions[0].versionNo")).isEqualTo(1);
         assertThat((List<String>) JsonPath.read(json, "$.versions[0].paragraphs[*].text")).containsExactly("first", "second");
         assertThat((List<Integer>) JsonPath.read(json, "$.versions[0].paragraphs[*].index")).containsExactly(1, 2);
+        assertThat(json).doesNotContain("forkedFromId");
+    }
+
+    @Test
+    void aCopyNamesItsOrigin() {
+        PolicyView view = new PolicyView(UUID.fromString("0f4c1c9e-0000-4000-8000-000000000002"), "Copy",
+                PolicyLanguage.EN, false, UUID.fromString("0f4c1c9e-0000-4000-8000-000000000001"), NOW, List.of());
+
+        String json = JsonMapper.builder().build().writeValueAsString(PolicyResponse.of(view));
+
+        assertThat((String) JsonPath.read(json, "$.forkedFromId")).isEqualTo("0f4c1c9e-0000-4000-8000-000000000001");
     }
 }

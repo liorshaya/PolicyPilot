@@ -26,6 +26,9 @@ public class PolicyDocumentEntity {
     @Column(name = "protected", nullable = false)
     private boolean protectedRow;
 
+    @Column(name = "forked_from_id")
+    private UUID forkedFromId;
+
     @Column(nullable = false)
     private String title;
 
@@ -57,6 +60,15 @@ public class PolicyDocumentEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    /** The protected policy this sandbox copy was forked from, or null. */
+    public UUID getForkedFromId() {
+        return forkedFromId;
+    }
+
+    public void setForkedFromId(UUID forkedFromId) {
+        this.forkedFromId = forkedFromId;
     }
 
     public UUID getSandboxId() {

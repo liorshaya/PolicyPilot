@@ -43,7 +43,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Fixture privacy check
         run: python3 scripts/ci/check_fixture_privacy.py
-      - name: Schema copies match the backend resources
+      - name: Schema and demo fixture copies match the backend resources
         run: scripts/ci/check_schema_copies.sh
       - name: Generated API client is up to date
         run: scripts/ci/check_generated_client.sh

@@ -74,6 +74,35 @@ class PolicyDocumentsTest {
     }
 
     @Test
+    void aCopyKeepsTheTextsAndParagraphIndexesUnderNewIds() throws IOException {
+        PolicyDocumentEntity original = documents.build(null, true, "Seed", PolicyLanguage.HE, lending());
+        UUID sandbox = UUID.fromString("5b0e7f6a-0f3e-4c2a-9a55-1f0d3c2b1a04");
+
+        PolicyDocumentEntity copy = documents.copy(original, sandbox);
+
+        PolicyView copied = PolicyDocuments.view(copy);
+        PolicyView source = PolicyDocuments.view(original);
+        assertThat(copied.id()).isNotEqualTo(source.id());
+        assertThat(copied.versions()).isEqualTo(source.versions());
+        assertThat(copy.getVersions().getFirst().getRawText()).isEqualTo(original.getVersions().getFirst().getRawText());
+        assertThat(copied.title()).isEqualTo("Seed");
+        assertThat(copied.language()).isEqualTo(PolicyLanguage.HE);
+    }
+
+    @Test
+    void aCopyBelongsToTheSandboxAndNamesItsOrigin() {
+        PolicyDocumentEntity original = documents.build(null, true, "Seed", PolicyLanguage.HE, "one");
+        UUID sandbox = UUID.fromString("5b0e7f6a-0f3e-4c2a-9a55-1f0d3c2b1a04");
+
+        PolicyDocumentEntity copy = documents.copy(original, sandbox);
+
+        assertThat(copy.getSandboxId()).isEqualTo(sandbox);
+        assertThat(copy.isProtectedRow()).isFalse();
+        assertThat(copy.getForkedFromId()).isEqualTo(original.getId());
+        assertThat(PolicyDocuments.view(copy).forkedFromId()).isEqualTo(original.getId());
+    }
+
+    @Test
     void textOverTheLimitsIsRefusedBeforeAnythingIsBuilt() {
         assertThatThrownBy(() -> documents.build(SANDBOX, false, "Empty", PolicyLanguage.EN, "   "))
                 .isInstanceOf(PolicyTextException.class);
