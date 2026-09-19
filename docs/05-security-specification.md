@@ -1,6 +1,6 @@
 # PolicyPilot Security Specification
 
-2026-09-19 · Lior Shaya
+2026-09-20 · Lior Shaya
 
 Document 5 of the PolicyPilot set. It defines the threat model and every security control of the system, with injection in all its forms as the center of gravity, because a rules engine driven by a language model has two attack surfaces a normal web application does not: the text it reads and the text it produces. It builds on the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md) and the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md), the Test Strategy (Document 6) carries its tests in the traceability matrix, and the work plan (Document 7) schedules the controls it lists.
 
@@ -50,7 +50,7 @@ Reading the diagram: four attacker classes, three trust boundaries. Everything f
 
 Eight principles, each enforced by something a test can check rather than by a convention someone remembers.
 
-1. **Deny by default.** Every API route requires the access code cookie except the code exchange and the health check; every write is authorized against the caller's sandbox; every tool the model can call is read-only; every database role has the minimum grants (the API role cannot update or delete audit entries or published versions).
+1. **Deny by default.** Every API route requires the access code cookie except the code exchange and the health check; every write is authorized against the caller's sandbox; every tool the model can call is read-only; every database role has the minimum grants (the API role cannot update or delete audit entries or published versions: migrations run as the database owner, and every API connection switches to the role `policypilot_app`, which holds only the grants the API needs).
 2. **Validate at the boundary, then trust the type.** Requests are parsed into typed DTOs with declared limits; rule sets go through the Document 3 validator; model output goes through a schema and semantic checks; after that, code works on typed objects and never re-parses strings.
 3. **Model output is untrusted input.** The same rule as for the browser: parsed, validated, size-limited, never executed, never rendered as HTML, never used to address another user's data.
 4. **Model input is data, not instructions.** Every document, chunk, question and tool result is delimited and escaped, the system prompt says so, and the model's capabilities are narrow enough that a successful injection cannot do anything a validator would not catch.
@@ -344,6 +344,7 @@ What remains after the controls is small, stated, and each item has a reason it 
 | --- | --- | --- |
 | One shared access code for all visitors | The demo has one audience; identity is a Brief non-goal | An identity provider in front of the same authorization layer; per-user actors on audit entries |
 | In-memory rate limits on a single instance | One Railway instance by design | PostgreSQL- or Redis-backed buckets before scaling out |
+| The API's connections could leave `policypilot_app` with `RESET ROLE`, because the login role owns the tables | Only a query the API itself issues could do it, and every query is parameterized (Semgrep in CI); published versions are also guarded by a trigger that holds for every role | A separate login role for the API with its own secret; the owner role for migrations only |
 | A visitor with the code can spend the per-sandbox model budget | Bounded by rate limits, the ledger and the monthly cap; synthetic data | Per-user quotas and billing attribution |
 | The model provider sees policy text and questions | Synthetic data; provider terms; the local profile exists | Data processing agreement, regional endpoints, or the local profile only |
 | Prompt injection can still change what the model writes | Every write is validated and human-gated; injection cannot change what the system does | Model-side classifiers and continuous red teaming on real traffic |
