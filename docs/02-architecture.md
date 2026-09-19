@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-19 · Lior Shaya
+2026-09-20 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -67,20 +67,21 @@ Trust boundaries: the browser is untrusted (every request carries the access cod
 
 ## Backend Module Structure
 
-One Maven project, one Spring Boot application, eleven packages under `com.liorshaya.policypilot` (ten top-level plus `ai.adapter`), with dependencies allowed in one direction only: inward toward `rules` and `engine`.
+One Maven project, one Spring Boot application, twelve packages under `com.liorshaya.policypilot` (eleven top-level plus `ai.adapter`), with dependencies allowed in one direction only: inward toward `rules` and `engine`.
 
 | Package | Contains | May depend on |
 | --- | --- | --- |
 | `rules` | The Rules DSL model: `RuleSet`, `Rule`, `Condition`, `Action`, `Provenance`; the JSON Schema; the validator with its contexts | JDK, Jackson |
 | `engine` | `RuleEngine`, `CompiledRuleSet`, `Trace`, operators and combinators, simulation (a pure re-evaluation) | `rules` |
 | `policy` | Policy documents and their versions, paragraph splitting and the policy text limits, storage | `rules` (for provenance ids), persistence |
-| `decision` | Case model, `DecisionService` (single, batch, simulate), decision persistence and statistics, exports | `engine`, `rules`, persistence |
-| `ai` | `LlmGateway`, `EmbeddingGateway`, prompt registry, structured output contracts, validation loop, marker resolver, tool argument validation, the five use cases (author, review, explain, answer, change) | `rules`, `engine` (read-only, for regression), `policy`, `decision`, `rag` |
+| `ruleset` | Rule sets and their versions: drafts, manual edits, publishing with its audit entry, immutability, the `rule` rows, the compiled rule set cached per version, fork on write of protected rule sets | `rules`, `engine` (compile), `policy` (the paragraphs provenance cites), `audit`, persistence |
+| `decision` | Case model, `DecisionService` (single, batch, simulate), decision persistence and statistics, exports | `ruleset` (published versions), `engine`, `rules`, persistence |
+| `ai` | `LlmGateway`, `EmbeddingGateway`, prompt registry, structured output contracts, validation loop, marker resolver, tool argument validation, the five use cases (author, review, explain, answer, change) | `rules`, `engine` (read-only, for regression), `policy`, `ruleset` (drafts), `decision`, `rag` |
 | `ai.adapter` | The only package that imports Spring AI: `SpringAiLlmGateway`, `SpringAiEmbeddingGateway`, provider configuration, schema variant derivation, token budget guard, response cache | Spring AI, `ai` interfaces |
 | `rag` | Chunking, embedding on publish, `VectorStore` access, hybrid retrieval, citation building | `policy`, `rules`, `ai.adapter` (embeddings only), persistence |
-| `change` | Change requests, impact analysis, diff, regression run, approval (pending to analyst provenance), versioning | `ai`, `engine`, `decision`, `audit` |
+| `change` | Change requests, impact analysis, diff, regression run, approval (pending to analyst provenance), the next version through `ruleset` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | `AuditEntry`, append-only log service | persistence |
-| `demo` | Sandbox service (fork on write to protected rows), nightly reset and re-seed, manual reset with the admin code, fixture loading | `policy`, `decision`, `audit`, persistence |
+| `demo` | Sandbox service (fork on write to protected rows), nightly reset and re-seed, manual reset with the admin code, fixture loading | `policy`, `ruleset`, `decision`, `audit`, persistence |
 | `web` | REST controllers, SSE endpoints, DTOs, error mapping, access-code exchange and filter, CSRF defenses, rate limiting, input normalization and upload reading (type by magic bytes, PDF text in memory) | every package above, but nothing depends on it |
 
 ```mermaid
@@ -100,6 +101,10 @@ flowchart TD
   AI --> G[rag]
   G --> AD
   AI --> D
+  D --> RS[ruleset]
+  RS --> E
+  RS --> P
+  RS --> AU
   D --> E[engine]
   E --> R[rules]
   P --> R
@@ -303,10 +308,10 @@ Reading the diagram: arrows point from parent to child; `rule` links back to `po
 | `policy_document` | `id`, `sandbox_id`, `protected`, `forked_from_id`, `title`, `language`, `created_at` | Logical document; content lives in versions; protected marks the seeded demo policy, whose sandbox\_id is null (a check constraint ties the two); forked\_from\_id points a sandbox's copy of a protected policy at its origin, one copy per sandbox |
 | `policy_version` | `id`, `document_id`, `version_no`, `raw_text`, `created_at` | Immutable once a rule set is generated from it |
 | `policy_paragraph` | `id`, `policy_version_id`, `index`, `text` | The provenance unit; index is stable within a version |
-| `ruleset` | `id`, `sandbox_id`, `protected`, `name`, `domain`, `default_outcome` | Logical rule set ("Consumer lending policy"); `protected` marks the seeded demo rows that no session may modify |
+| `ruleset` | `id`, `sandbox_id`, `protected`, `forked_from_id`, `name`, `domain`, `default_outcome`, `created_at` | Logical rule set ("Consumer lending policy"); `domain` is the DSL document's `id`, shared by every version; `protected` marks the seeded demo rows that no session may modify, whose sandbox\_id is null; forked\_from\_id points a sandbox's copy of a protected rule set at its origin, one copy per sandbox |
 | `ruleset_version` | `id`, `ruleset_id`, `version_no`, `status` (DRAFT, PUBLISHED, SUPERSEDED), `policy_version_id`, `rules_json` (jsonb), `field_schema_json` (jsonb), `retired_ids` (jsonb), `embedding_status`, `published_at`, `published_by`, `parent_version_id` | `rules_json` is the full DSL document; a DB trigger forbids updates once `status = PUBLISHED` |
 | `rule` | `id`, `ruleset_version_id`, `rule_id` (from the DSL), `priority`, `label`, `provenance_kind` (quoted, analyst, pending), `paragraph_id` (nullable), `source_quote` (nullable), `rule_json` (jsonb) | Denormalized from `rules_json` on publish for querying, provenance joins and embedding |
-| `case_fixture` | `id`, `sandbox_id`, `name`, `fields_json` (jsonb), `expected_outcome` (nullable), `tags` | The 200 synthetic applicants plus any case entered in the UI |
+| `case_fixture` | `id`, `sandbox_id`, `protected`, `fixture_set`, `case_no`, `name`, `fields_json` (jsonb), `expected_outcome` (nullable), `tags` | The 200 synthetic applicants plus any case entered in the UI; the 200 are protected rows of fixture set `cases-200` with their case numbers 1 to 200, and `tags` carries each one's stratum |
 | `decision` | `id`, `sandbox_id`, `ruleset_version_id`, `case_id` (nullable), `input_json` (jsonb), `status` (OK, ERROR), `outcome`, `deciding_rule_id`, `error_code` (nullable), `trace_json` (jsonb), `decided_at`, `duration_micros` | Input is snapshotted so a decision can be replayed even if the fixture changes; simulations are never written here |
 | `chunk` | `id`, `ruleset_version_id`, `kind` (PARAGRAPH, RULE), `ref_id`, `text`, `embedding` (vector), `tsv` (tsvector), `created_at` | HNSW index on `embedding`, GIN index on `tsv`; scoped through the version's rule set and sandbox |
 | `change_request` | `id`, `sandbox_id`, `base_version_id`, `request_text`, `status` (PROPOSED, APPROVED, REJECTED), `patches_json`, `rationale_json`, `regression_json`, `result_version_id`, `created_at`, `decided_at`, `actor` | The full proposal is kept even when rejected |
@@ -315,7 +320,7 @@ Reading the diagram: arrows point from parent to child; `rule` links back to `po
 | `model_call` | `id`, `at`, `prompt_name`, `prompt_version`, `model`, `provider`, `attempt`, `input_tokens`, `output_tokens`, `latency_ms`, `validation_result`, `cache_hit`, `trace_id` | Written by a `ChatClient` advisor for every call; feeds the cost view and the evaluation runner |
 | `model_response_cache`, `token_ledger` | `key` (hash of prompt version, model, input), `response_json`, `created_at`; `day`, `tokens_used`, `hard_stop` | The cache serves the scripted demo steps; the ledger enforces the daily budget (Document 5) |
 
-Migrations are Flyway SQL files checked into the repository; the vector dimension in `chunk.embedding` is set by the migration for the active profile (1536 for OpenAI, 1024 for bge-m3), and switching profiles on an existing database requires a re-embed job, which the README documents.
+Migrations are Flyway SQL files checked into the repository and run as the database owner; the API's own connections switch to the role `policypilot_app`, which holds only the grants the API needs (no update or delete on `audit_entry`, no delete on `ruleset_version`; Document 5); the vector dimension in `chunk.embedding` is set by the migration for the active profile (1536 for OpenAI, 1024 for bge-m3), and switching profiles on an existing database requires a re-embed job, which the README documents.
 
 ## API Surface
 
@@ -326,13 +331,14 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `POST /policies` | Create a policy document with its first version (text or uploaded file) | JSON {title, language: he or en, text} or multipart (file, title, language); returns 201 with the paragraph split so the UI can show it immediately |
 | `GET /policies/{id}` | Policy with its versions and paragraphs |  |
 | `POST /policies/{id}/rulesets` | Generate a draft rule set from the latest policy version | SSE stream: progress events (`parsing`, `authoring`, `validating`, `reviewing`), then the draft and findings |
+| `GET /rulesets` | The rule sets the caller's sandbox can see: its own and the protected ones | Each with its policy, `protected`, `forkedFromId` and the number and status of every version, so the web app finds the seeded rule set |
 | `GET /rulesets/{id}/versions/{no}` | A rule set version with rules, findings and status |  |
-| `PUT /rulesets/{id}/versions/{no}/rules` | Replace the rules of a DRAFT version after manual edits | Runs the same validation; 422 with the error list on failure |
-| `POST /rulesets/{id}/versions/{no}/publish` | Publish a DRAFT version | Compiles, snapshots, embeds asynchronously, writes an audit entry |
-| `POST /rulesets/{id}/versions/{no}/decide` | Decide one case or a batch (`cases: [...]` or `fixtureSet: "cases-200"`) | Returns outcomes and traces; batch returns aggregates plus per-case results |
+| `PUT /rulesets/{id}/versions/{no}/rules` | Replace the rules of a DRAFT version after manual edits | The body is the whole DSL document, whose `id` stays the rule set's; runs the same validation (context `ANALYST_EDIT`); 422 with the error list on failure, 409 on a version that is not a DRAFT; on a protected version the sandbox gets its own copy of the rule set, whose version 1 is a DRAFT holding the edit, and the response carries the new ids and `forkedFromId` |
+| `POST /rulesets/{id}/versions/{no}/publish` | Publish a DRAFT version | Compiles, snapshots, embeds asynchronously, writes an audit entry listing the open warnings; 409 on a version that is not a DRAFT or is protected |
+| `POST /rulesets/{id}/versions/{no}/decide` | Decide one case (`case`) or a batch (`cases: [...]` or `fixtureSet: "cases-200"`) | Only a PUBLISHED version decides (409 otherwise); one case returns the full decision with its trace; a batch returns `aggregates` (outcome counts, errors, top 5 deciding rules) plus a summary per case, each trace at `GET /decisions/{id}`; an invalid case refuses the whole request with 422 `CASE_INVALID` and nothing is stored |
 | `GET /decisions/{id}` | A stored decision with its trace |  |
 | `POST /decisions/{id}/explain` | Natural language explanation of a decision | Uses the `explain` prompt with the trace as the only source |
-| `GET /rulesets/{id}/versions/{no}/stats` | Outcome counts and top deciding rules | Also exposed as a tool to the chat |
+| `GET /rulesets/{id}/versions/{no}/stats` | Outcome counts and top deciding rules | Over the caller's sandbox, the latest decision per case; the top 5 rules by count, then by id; also exposed as a tool to the chat |
 | `POST /chat/sessions` | Open a chat session bound to a rule set version |  |
 | `POST /chat/sessions/{id}/messages` | Send a message | SSE stream: `token` events, then one `citations` event, then `usage`, then `done` |
 | `POST /rulesets/{id}/versions/{no}/changes` | Submit a change request in natural language | SSE stream: `analyzing`, `proposing`, `validating`, `regression`, then the proposal with diff and report |
@@ -340,12 +346,12 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `GET /rulesets/{id}/versions/{a}/diff/{b}` | Structural diff between two versions | Rule-level: added, removed, modified with field-level changes |
 | `GET /audit?versionId=` | Audit entries, newest first |  |
 | `GET /system/provider` | Active provider, model names, embedding dimension | Shown in the UI header |
-| POST /rulesets/{id}/versions/{no}/simulate | What-if evaluation: a stored decision id or a case, plus field overrides, against this version | Returns a full decision object with simulation: true and basedOnDecisionId; nothing is stored; also exposed as the simulate tool to the chat |
+| POST /rulesets/{id}/versions/{no}/simulate | What-if evaluation: a stored decision id or a case, plus field overrides, against this version | Returns a full decision object with simulation: true and basedOnDecisionId; overrides must name declared fields; nothing is stored; also exposed as the simulate tool to the chat |
 | POST /auth/code | Exchange the access code for the signed session cookie; the only route besides the health check that needs no cookie | Rate limited and locked out per IP; constant-time compare; every /api/\*\* request afterwards carries the cookie and the X-PolicyPilot-Client: web header (Document 5) |
-| GET /decisions/{id}/export, GET /audit/export | Export a decision with its trace, or the audit log, as JSON or CSV (Accept header) | CSV cells are formula-prefixed and served as an attachment (Document 5); scoped to the caller's sandbox |
+| GET /decisions/{id}/export, GET /audit/export | Export a decision with its trace, or the audit log, as JSON or CSV (Accept header) | CSV cells are formula-prefixed and served as an attachment (Document 5); a decision's CSV has one row per trace step and starts with a UTF-8 byte order mark so spreadsheets read Hebrew; scoped to the caller's sandbox |
 | POST /admin/reset | Re-seed the protected demo data and delete stale sandboxes on demand, for the presenter | Requires the session cookie and the POLICYPILOT\_ADMIN\_CODE header; writes a RESET audit entry; the same job runs nightly on a schedule |
 
-**Error envelope**: `{ "code": "RULESET_INVALID", "message": "...", "details": [ { "path": "/rules/3/condition/field", "problem": "unknown field 'monthly_incom'" } ], "traceId": "..." }`; each path is the JSON pointer of a validation finding (Document 3, Error reporting shape), the node the decision table highlights; codes are an enum shared with the client, and validation failures use HTTP 422, provider failures 503 with `code: PROVIDER_UNAVAILABLE`, missing or wrong access code 401, rate limit 429 with `Retry-After`.
+**Error envelope**: `{ "code": "RULESET_INVALID", "message": "...", "details": [ { "path": "/rules/3/condition/field", "problem": "FIELD_UNKNOWN" } ], "traceId": "..." }`; each path is the JSON pointer of a validation finding (Document 3, Error reporting shape), the node the decision table highlights, and each problem is the finding's code, never a message that repeats the request; codes are an enum shared with the client, and validation failures use HTTP 422, provider failures 503 with `code: PROVIDER_UNAVAILABLE`, missing or wrong access code 401, rate limit 429 with `Retry-After`.
 
 **Error codes** (the enum; a message never repeats the offending value):
 
@@ -356,11 +362,13 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `SESSION_INVALID` | 401 | An `/api/**` request with a missing, tampered or expired cookie |
 | `CSRF_REJECTED` | 403 | A state-changing request without `X-PolicyPilot-Client: web`, or with a missing or foreign `Origin` |
 | `NOT_FOUND` | 404 | An unknown id, or an id of another sandbox (the two are indistinguishable) |
+| `VERSION_STATUS_CONFLICT` | 409 | Editing or publishing a version that is not a DRAFT, publishing a protected version, or deciding on a version that is not PUBLISHED |
 | `PAYLOAD_TOO_LARGE` | 413 | A body over 1 MB or an upload over 2 MB |
-| `UNSUPPORTED_MEDIA_TYPE` | 415 | A content type the route does not take, or a charset other than UTF-8 |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | A content type the route does not take, an `Accept` it cannot produce, or a charset other than UTF-8 |
 | `POLICY_INVALID` | 422 | Policy text over its limits or with a control character |
 | `UPLOAD_REJECTED` | 422 | An upload that is not PDF or UTF-8 text, or a PDF over 50 pages, with JavaScript, embedded files or encryption, without text, or over 10 s |
 | `RULESET_INVALID` | 422 | A rule set that fails the Document 3 validator |
+| `CASE_INVALID` | 422 | A case that fails case validation (Document 3, step 1); each detail is the field's pointer and the problem code, never the value |
 | `RATE_LIMITED` | 429 | A rate limit or the code-exchange lockout, with `Retry-After` |
 | `INTERNAL_ERROR` | 500 | Anything unexpected; no internals in the body |
 | `PROVIDER_UNAVAILABLE` | 503 | The model provider failed or its circuit is open |

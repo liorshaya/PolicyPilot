@@ -31,7 +31,7 @@ backend, not the frontend.
 
 ## Backend packages (Document 2, Backend Module Structure)
 
-Eleven packages under `com.liorshaya.policypilot`, dependencies allowed inward only, enforced by
+Twelve packages under `com.liorshaya.policypilot`, dependencies allowed inward only, enforced by
 `backend/src/test/java/.../architecture/PackageRulesTest.java`:
 
 | Package | May depend on |
@@ -39,15 +39,17 @@ Eleven packages under `com.liorshaya.policypilot`, dependencies allowed inward o
 | `rules` | JDK, Jackson (the schema validator and RE2J are allowed as well) |
 | `engine` | `rules` |
 | `policy` | `rules`, persistence |
-| `decision` | `engine`, `rules`, persistence |
-| `ai` | `rules`, `engine`, `policy`, `decision`, `rag` |
+| `ruleset` | `rules`, `engine`, `policy`, `audit`, persistence |
+| `decision` | `ruleset`, `engine`, `rules`, persistence |
+| `ai` | `rules`, `engine`, `policy`, `ruleset`, `decision`, `rag` |
 | `ai.adapter` | Spring AI, `ai` interfaces; **the only package that imports `org.springframework.ai`** |
 | `rag` | `policy`, `rules`, `ai.adapter` (embeddings only), persistence |
-| `change` | `ai`, `engine`, `decision`, `audit` |
+| `change` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | persistence |
-| `demo` | `policy`, `decision`, `audit`, persistence |
+| `demo` | `policy`, `ruleset`, `decision`, `audit`, persistence |
 | `web` | every package above; **nothing depends on `web`** |
 
+The `ruleset` package (rule sets, their versions, publishing) was added on 2026-09-20 (Document 2 first).
 Two cross-cutting packages were added on 2026-09-18: `config` (Spring configuration, `PolicyPilotProperties`)
 and `common` (dependency-free helpers). Every module may use them except `rules` and `engine`, which stay pure.
 Inside a module that owns state the layers are `service` (entry points other modules call), `entity` and

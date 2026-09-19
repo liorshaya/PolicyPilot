@@ -1,6 +1,6 @@
 # PolicyPilot Test Strategy
 
-2026-09-19 · Lior Shaya
+2026-09-20 · Lior Shaya
 
 Document 6 of the PolicyPilot set. It turns the test plans scattered across the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md), the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md) and the [Security Specification](05-security-specification.md) into one discipline: what gets tested at which level, what coverage is required where, what a task must include before it counts as done, and how the tests are written alongside the code rather than after it. The work plan (Document 7) schedules every test named here next to its feature.
 
@@ -14,7 +14,7 @@ A blanket "as high as possible" target has a known failure mode: it rewards test
 | --- | --- | --- | --- |
 | Decides cases: `engine`, `rules` (validator, DSL model) | A wrong branch is a wrong loan decision, and the whole pitch is determinism | 100% line and branch coverage, and a mutation score of at least 90% (a test must fail when an operator, a comparison or a boundary is mutated) | JaCoCo per package, PIT mutation testing |
 | Protects: `web.security`, authorization checks, input normalization, marker resolution, provenance verification | A gap is a security finding | 95% line coverage, every control from Document 5 has a named test | JaCoCo, the security test inventory |
-| Orchestrates: `policy`, `decision`, `change`, `audit`, `rag`, `ai` use cases | Bugs here are visible and recoverable, and behavior matters more than lines | 80% line coverage; every use case has an integration test with a real database and a recorded model | JaCoCo, Testcontainers |
+| Orchestrates: `policy`, `ruleset`, `decision`, `change`, `audit`, `rag`, `ai` use cases | Bugs here are visible and recoverable, and behavior matters more than lines | 80% line coverage; every use case has an integration test with a real database and a recorded model | JaCoCo, Testcontainers |
 | Adapts: `ai.adapter`, controllers, DTO mapping | Thin code whose failures surface immediately | 70%, contract tests over the OpenAPI document | JaCoCo, contract tests |
 | Web app | The demo is what the interviewers see | 80% statement coverage on features, 100% on the SSE hook, the marker renderer and the decision-table cell grammar; the four demo steps end to end | Vitest coverage, Playwright |
 
@@ -70,7 +70,7 @@ Coverage is enforced by the build, per package, with mutation testing where line
 | `web.security`, `web` filters and validators | 95% | 90% |  |
 | `ai` (use cases, validation loop, marker resolver, tool argument validators) | 90% | 85% | The adapter is excluded from these rules and covered by contract tests |
 | `rag` | 85% | 80% | Retrieval ranking is covered by integration tests on a fixed corpus |
-| `policy`, `decision`, `change`, `audit`, `demo` | 80% | 75% |  |
+| `policy`, `ruleset`, `decision`, `change`, `audit`, `demo` | 80% | 75% |  |
 | `ai.adapter`, controllers, configuration classes | 70% | 60% | Thin; contract tests carry the weight |
 | Whole API | 85% | 80% | Trend reported, not a gate on its own |
 
@@ -98,7 +98,9 @@ backend/src/test/java/com/liorshaya/policypilot/
                      RepairLoopTest, MarkerResolverTest, ToolArgumentsTest, SchemaVariantTest
   rag/               ChunkerTest, HybridRetrievalIT, ThresholdTest
   web/               <Resource>ControllerContractIT, AccessCodeFilterTest, RateLimitFilterTest, CsrfDefensesIT, InputNormalizerTest
-  decision/          DecisionServiceIT, BatchDecisionIT, SimulationIT
+  ruleset/           RuleSetEditIT, PublishTransactionIT, PublishedVersionImmutabilityIT
+  audit/             AuditLogIT
+  decision/          DecisionServiceIT, BatchDecisionIT, SimulationIT, DecisionStatsIT, DecisionCsvTest
   change/            ChangeProposalIT, RegressionRunIT, ApprovalIT
   architecture/      PackageRulesTest, ForbiddenApisTest
   support/           Fixtures, RuleSetBuilder, CaseBuilder, RecordedGateway, PostgresContainerSupport, Requirement
@@ -231,7 +233,7 @@ fixtures/
 
 **Golden files**: `cases-expected.json` (outcome, deciding rule, derived values and flags per case) and `sample-decision.json` (the full trace of case 17) are golden files produced by the reference implementation and checked by the Java engine; a change in engine semantics requires regenerating them with the reference, which makes every semantic change visible in a diff.
 
-**Versioning**: fixtures carry the DSL version in their file (`dslVersion`), and a schema change bumps it; the `schemas/` copies are compared with the API resources in CI so the fixtures and the running code cannot drift apart; the same check covers the demo fixtures the seed job loads (policy.he.md and ruleset.v1.json of the lending policy), which are copied into the backend resources because the image is built from backend/; recordings are keyed by prompt version, so old recordings stay valid for old prompts and are pruned when a prompt version is retired.
+**Versioning**: fixtures carry the DSL version in their file (`dslVersion`), and a schema change bumps it; the `schemas/` copies are compared with the API resources in CI so the fixtures and the running code cannot drift apart; the same check covers the demo fixtures the seed job loads (policy.he.md, ruleset.v1.json and cases-200.json of the lending policy), which are copied into the backend resources because the image is built from backend/; recordings are keyed by prompt version, so old recordings stay valid for old prompts and are pruned when a prompt version is retired.
 
 **Privacy of fixtures**: names, ids and free text are generated, and a CI check rejects any fixture containing an email address, a phone number or a nine-digit number that could read as an identity number.
 
