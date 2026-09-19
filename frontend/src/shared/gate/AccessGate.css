@@ -75,6 +75,12 @@
   cursor: not-allowed;
 }
 
+.gate__message {
+  margin: var(--space-2) 0 0;
+  color: var(--color-danger);
+  font-size: 0.9375rem;
+}
+
 .gate__hint {
   margin: var(--space-6) 0 0;
   color: var(--color-muted);

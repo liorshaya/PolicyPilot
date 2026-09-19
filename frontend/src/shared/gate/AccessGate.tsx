@@ -1,19 +1,36 @@
 import { useState, type FormEvent } from 'react'
+import { exchangeAccessCode } from '../../api/auth'
 import './AccessGate.css'
+import { refusalMessage } from './refusalMessage'
 
 /** The access code is eight lowercase characters (Document 2, Presentation scenarios); the field allows a little slack. */
 const CODE_MAX_LENGTH = 32
 
+interface AccessGateProps {
+  /** Called once the API has set the session cookie. */
+  onEntered: () => void
+}
+
 /**
  * The access gate: the single screen a visitor sees before the demo (Document 2, Frontend Architecture, key
- * decision 6). On day 1 the gate is static; the exchange of the code for the session cookie
- * (POST /auth/code, Document 5) arrives on day 4.
+ * decision 6). The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5).
  */
-export function AccessGate() {
+export function AccessGate({ onEntered }: AccessGateProps) {
   const [code, setCode] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    const result = await exchangeAccessCode(code.trim())
+    setSubmitting(false)
+    if (result.kind === 'entered') {
+      onEntered()
+    } else {
+      setMessage(refusalMessage(result))
+    }
   }
 
   return (
@@ -27,7 +44,7 @@ export function AccessGate() {
           The model proposes and explains, the rules engine decides, a person approves every policy
           change.
         </p>
-        <form className="gate__form" onSubmit={handleSubmit}>
+        <form className="gate__form" onSubmit={(event) => void handleSubmit(event)}>
           <label className="gate__label" htmlFor="access-code">
             Access code
           </label>
@@ -42,10 +59,20 @@ export function AccessGate() {
             maxLength={CODE_MAX_LENGTH}
             value={code}
             onChange={(event) => setCode(event.target.value)}
+            aria-describedby={message ? 'gate-message' : undefined}
           />
-          <button type="submit" className="gate__button" disabled={code.trim() === ''}>
-            Enter
+          <button
+            type="submit"
+            className="gate__button"
+            disabled={code.trim() === '' || submitting}
+          >
+            {submitting ? 'Checking…' : 'Enter'}
           </button>
+          {message && (
+            <p id="gate-message" className="gate__message" role="alert">
+              {message}
+            </p>
+          )}
         </form>
         <p className="gate__hint">
           Enter the code you received with the invitation. Everything behind this gate is synthetic
