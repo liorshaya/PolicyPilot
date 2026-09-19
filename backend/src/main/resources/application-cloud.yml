@@ -3,12 +3,6 @@ server:
   # TLS is terminated by Railway; honour X-Forwarded-Proto so redirects and cookies see https (Document 5, Transport)
   forward-headers-strategy: native
 
-logging:
-  structured:
-    format:
-      # JSON logs with trace ids; no request bodies, prompts or model outputs in the cloud (Document 5, Logs)
-      console: ecs
-
 management:
   endpoint:
     health:

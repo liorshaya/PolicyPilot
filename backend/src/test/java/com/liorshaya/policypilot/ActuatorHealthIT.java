@@ -31,4 +31,15 @@ class ActuatorHealthIT extends PostgresContainerSupport {
         String status = JsonPath.read(response.getBody(), "$.status");
         assertThat(status).isEqualTo("UP");
     }
+
+    // Document 2, Observability: a trace id on every response; Micrometer Tracing with Brave writes 16 or 32 hex digits
+    @Test
+    void everyResponseCarriesATraceId() {
+        ResponseEntity<String> response = RestClient.create("http://localhost:" + port)
+                .get().uri("/actuator/health")
+                .retrieve()
+                .toEntity(String.class);
+
+        assertThat(response.getHeaders().getFirst("X-Trace-Id")).matches("[0-9a-f]{16}|[0-9a-f]{32}");
+    }
 }

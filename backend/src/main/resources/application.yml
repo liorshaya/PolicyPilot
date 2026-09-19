@@ -23,6 +23,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  jackson:
+    deserialization:
+      # Unknown properties are an error on every request body (Document 5, JSON and deserialization)
+      fail-on-unknown-properties: true
   ai:
     # PolicyPilot uses chat and embedding models only; the provider profiles select them. Every other
     # model type the starters could configure is switched off so no profile needs credentials it does not use.
@@ -37,11 +41,21 @@ server:
   port: ${PORT:8080}
   shutdown: graceful
 
+logging:
+  structured:
+    format:
+      # JSON logs in every profile: values are JSON-encoded, so a newline or an escape sequence in a logged value
+      # cannot forge a line (Document 5, log injection); the customizer masks secrets (Document 5, Redaction)
+      console: ecs
+    json:
+      customizer: com.liorshaya.policypilot.config.logging.RedactingJsonMembersCustomizer
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Only the health check is public (Document 5, Health and docs endpoints)
+        include: health
   endpoint:
     health:
       show-details: never
@@ -49,7 +63,7 @@ management:
         enabled: true
 
 policypilot:
-  # The three demo secrets; empty until day 4, when the front door requires them.
+  # The three demo secrets, from environment variables only; the application refuses to start without the first two.
   access-code: ${POLICYPILOT_ACCESS_CODE:}
   cookie-secret: ${POLICYPILOT_COOKIE_SECRET:}
   admin-code: ${POLICYPILOT_ADMIN_CODE:}
