@@ -7,12 +7,21 @@ import static com.liorshaya.policypilot.rules.validation.Severity.ERROR;
 import static com.liorshaya.policypilot.rules.validation.Severity.INFO;
 import static com.liorshaya.policypilot.rules.validation.Severity.WARNING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.liorshaya.policypilot.support.Fixtures;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.JsonNode;
 
 /** The validator conformance of Document 3: the code table and the invalid fixtures. */
 class InvalidFixturesTest {
@@ -55,6 +64,37 @@ class InvalidFixturesTest {
         row("NO_TERMINAL_APPROVE", STRUCTURAL, INFO);
     }
 
+    /**
+     * Every {@code invalid-*} file fails in Java with the code the reference reports, with that code's severity; an
+     * error stops the validator in its own layer; and the codes the file lists under {@code alsoExpected} are there.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidFixtures")
+    void invalidFixtureFailsWithItsCodeSeverityAndLayerStop(String file, JsonNode fixture) {
+        ValidationCode code = ValidationCode.valueOf(fixture.get("code").stringValue());
+
+        List<Finding> findings = Validations.invalidFixture(code.name());
+
+        assertThat(findings).filteredOn(finding -> finding.code() == code).isNotEmpty()
+                .allMatch(finding -> finding.severity() == code.severity());
+        if (code.severity() == Severity.ERROR) {
+            assertThat(findings).extracting(finding -> finding.code().layer()).containsOnly(code.layer());
+        }
+        for (JsonNode also : fixture.path("alsoExpected")) {
+            assertThat(findings).extracting(Finding::code).contains(ValidationCode.valueOf(also.stringValue()));
+        }
+    }
+
+    @Test
+    void everyValidatorCodeHasAnInvalidFixture() {
+        Set<String> covered = Fixtures.invalidRuleSets().stream()
+                .map(path -> Fixtures.json(path).get("code").stringValue())
+                .collect(Collectors.toSet());
+
+        assertThat(covered).containsExactlyInAnyOrderElementsOf(
+                Arrays.stream(ValidationCode.values()).map(Enum::name).toList());
+    }
+
     @Test
     void codeSeverityAndLayerMatchTheDocumentTable() {
         Map<String, List<Object>> implemented = new LinkedHashMap<>();
@@ -62,6 +102,11 @@ class InvalidFixturesTest {
                 .forEach(code -> implemented.put(code.name(), List.of(code.layer(), code.severity())));
 
         assertThat(implemented).containsExactlyInAnyOrderEntriesOf(DOCUMENT_TABLE);
+    }
+
+    static Stream<Arguments> invalidFixtures() {
+        return Fixtures.invalidRuleSets().stream()
+                .map(path -> arguments(path.getFileName().toString(), Fixtures.json(path)));
     }
 
     private static void row(String code, Layer layer, Severity severity) {

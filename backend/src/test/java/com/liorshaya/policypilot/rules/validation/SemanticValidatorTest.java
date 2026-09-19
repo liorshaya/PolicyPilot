@@ -350,6 +350,18 @@ class SemanticValidatorTest {
         assertThat(publish(document)).isEmpty();
     }
 
+    // ------------------------------------------------------------------ the layer stop
+
+    @Test
+    void semanticErrorSuppressesStructuralFindings() {
+        // R-320 at 210 alone warns REFER_PRECEDES_REJECT; with an unknown field the semantic error is all that shows
+        JsonNode document = lending(b -> b.rule("R-320", r -> r.put("priority", 210))
+                .rule("R-100", r -> edit(r, "/condition").put("field", "age_years")));
+
+        assertThat(codesAndPaths(publish(document)))
+                .containsExactly(tuple(ValidationCode.FIELD_UNKNOWN, "/rules/2/condition/field"));
+    }
+
     // ------------------------------------------------------------------ the finding shape
 
     @Test

@@ -61,6 +61,23 @@ public final class Fixtures {
         return list("conformance", "invalid-");
     }
 
+    /** The slugs of the labeled evaluation policies under {@code eval/policies/}, in name order. */
+    public static List<String> evaluationPolicies() {
+        try (Stream<Path> directories = Files.list(ROOT.resolve("eval/policies"))) {
+            return directories.filter(Files::isDirectory).map(p -> p.getFileName().toString()).sorted().toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** The policy text of an evaluation policy, {@code policy.<lang>.md}, relative to the fixtures root. */
+    public static String evaluationPolicyText(String slug) {
+        return list("eval/policies/" + slug, "policy.").stream()
+                .map(p -> "eval/policies/" + slug + "/" + p.getFileName())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no policy text for " + slug));
+    }
+
     /** The rule set of a conformance or invalid fixture: inline, or a path relative to the fixtures root. */
     public static JsonNode ruleSetOf(JsonNode fixture) {
         JsonNode ruleSet = fixture.get("ruleset");
