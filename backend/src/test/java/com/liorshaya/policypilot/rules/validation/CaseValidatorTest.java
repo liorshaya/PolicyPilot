@@ -107,6 +107,18 @@ class CaseValidatorTest {
         assertThat(result.problems()).allMatch(problem -> problem.code() == CASE_OUT_OF_RANGE);
     }
 
+    /** Document 3, Types: a string is at most 2,000 characters, counted as characters (the reference's len). */
+    @Test
+    void stringLongerThan2000CharactersIsOutOfRange() {
+        String limit = "x".repeat(CaseValidator.MAX_STRING_CHARS);
+        String emoji = "\uD83D\uDE00".repeat(CaseValidator.MAX_STRING_CHARS);
+
+        assertThat(validator.validate(DOMAINS, textInput(limit)).values()).containsEntry("s", new StringLiteral(limit));
+        assertThat(validator.validate(DOMAINS, textInput(emoji)).isValid()).isTrue();
+        assertThat(codesAndFields(validator.validate(DOMAINS, textInput(limit + "x"))))
+                .containsExactly(tuple(CASE_OUT_OF_RANGE, "s"));
+    }
+
     @Test
     void integerFieldRejectsAFractionAndAcceptsAWholeNumberWrittenWithOne() {
         assertThat(codesAndFields(validator.validate(LENDING, case17("age", "34.5"))))
@@ -207,6 +219,12 @@ class CaseValidatorTest {
     private static ObjectNode case17(String field, String json) {
         ObjectNode input = object(CASE_17);
         input.set(field, MAPPER.readTree(json));
+        return input;
+    }
+
+    private static ObjectNode textInput(String text) {
+        ObjectNode input = object("{}");
+        input.put("s", text);
         return input;
     }
 

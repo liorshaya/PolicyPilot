@@ -18,10 +18,13 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Case validation, before any evaluation (Document 3, Evaluation Semantics, steps 1 and 2): every required field is
  * present, every supplied value has its field's type and lies inside the field's domain, and no derived field is
- * supplied; absent optional fields take their default. Every field is checked, in declaration order, so the case
+ * supplied; a string is at most {@link #MAX_STRING_CHARS} characters; absent optional fields take their default. Every field is checked, in declaration order, so the case
  * error lists every problem at once. Properties the rule set does not declare are ignored, as in the reference.
  */
 public final class CaseValidator {
+
+    /** Document 3, Types: a string is at most 2,000 characters (code points); a longer case value is out of range. */
+    public static final int MAX_STRING_CHARS = 2000;
 
     public CaseValidation validate(RuleSet ruleSet, ObjectNode input) {
         Map<String, Literal> values = new HashMap<>();
@@ -69,8 +72,15 @@ public final class CaseValidator {
         };
     }
 
-    /** CASE_OUT_OF_RANGE when a number lies outside the field's declared domain, otherwise {@code null}. */
+    /**
+     * CASE_OUT_OF_RANGE when a number lies outside the field's declared domain or a string is longer than
+     * {@link #MAX_STRING_CHARS}, otherwise {@code null}.
+     */
     private static CaseProblem.@Nullable Code outOfDomain(Field field, Literal value) {
+        if (value instanceof StringLiteral text) {
+            String s = text.value();
+            return s.codePointCount(0, s.length()) > MAX_STRING_CHARS ? CaseProblem.Code.CASE_OUT_OF_RANGE : null;
+        }
         if (!(value instanceof NumberLiteral number)) {
             return null;
         }
