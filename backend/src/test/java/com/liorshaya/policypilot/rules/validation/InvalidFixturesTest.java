@@ -41,6 +41,7 @@ class InvalidFixturesTest {
         row("ENUM_VALUE_UNKNOWN", SEMANTIC, ERROR);
         row("EXPR_TYPE_MISMATCH", SEMANTIC, ERROR);
         row("EXPR_ARITY", SEMANTIC, ERROR);
+        row("EXPR_DEPTH", SEMANTIC, ERROR);
         row("BETWEEN_RANGE_INVALID", SEMANTIC, ERROR);
         row("REGEX_INVALID", SEMANTIC, ERROR);
         row("RESERVED_IDENTIFIER", SEMANTIC, ERROR);

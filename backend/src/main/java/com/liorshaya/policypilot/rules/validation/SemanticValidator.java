@@ -37,6 +37,9 @@ final class SemanticValidator {
     /** Document 3, RESERVED_IDENTIFIER. */
     private static final Set<String> RESERVED = Set.of("today", "now", "null", "true", "false");
 
+    /** Document 3, Expressions: the most function nodes on the longest path from the top of an expression. */
+    static final int MAX_EXPRESSION_DEPTH = 8;
+
     List<Finding> validate(RuleSet ruleSet, ValidationContext context, List<String> paragraphs, Set<String> modelRuleIds) {
         return new Run(context, paragraphs, modelRuleIds).check(ruleSet);
     }
@@ -258,7 +261,7 @@ final class SemanticValidator {
             switch (comparison.value()) {
                 case Call call -> {
                     if (field.type().isNumeric()) {
-                        expression(call, valuePath, ruleId);
+                        expression(call, valuePath, ruleId, 1);
                     } else {
                         mismatch(valuePath, ruleId, field, "an expression against a non-numeric field");
                     }
@@ -302,11 +305,12 @@ final class SemanticValidator {
 
         // ------------------------------------------------------------------ expressions and set
 
-        private @Nullable Kind expression(Expression expression, String path, String ruleId) {
+        /** The kind of the expression; {@code depth} is the number of function nodes from the top to this one. */
+        private @Nullable Kind expression(Expression expression, String path, String ruleId, int depth) {
             return switch (expression) {
                 case NumberLiteral number -> Kind.NUMBER;
                 case FieldRef ref -> reference(ref, path, ruleId);
-                case Call call -> call(call, path, ruleId);
+                case Call call -> call(call, path, ruleId, depth);
             };
         }
 
@@ -328,7 +332,12 @@ final class SemanticValidator {
             return null;
         }
 
-        private @Nullable Kind call(Call call, String path, String ruleId) {
+        private @Nullable Kind call(Call call, String path, String ruleId, int depth) {
+            if (depth > MAX_EXPRESSION_DEPTH) {
+                report(ValidationCode.EXPR_DEPTH, path, ruleId + ": the expression nests more than "
+                        + MAX_EXPRESSION_DEPTH + " functions deep", ruleId, null);
+                return null;
+            }
             if (!call.fn().accepts(call.args().size())) {
                 report(ValidationCode.EXPR_ARITY, path, ruleId + ": " + call.fn().json() + " does not take "
                         + call.args().size() + " arguments", ruleId, null);
@@ -336,7 +345,7 @@ final class SemanticValidator {
             }
             List<@Nullable Kind> kinds = new ArrayList<>();
             for (int k = 0; k < call.args().size(); k++) {
-                kinds.add(expression(call.args().get(k), path + "/args/" + k, ruleId));
+                kinds.add(expression(call.args().get(k), path + "/args/" + k, ruleId, depth + 1));
             }
             Kind expected = call.fn() == Function.MONTHS_BETWEEN ? Kind.DATE : Kind.NUMBER;
             for (int k = 0; k < kinds.size(); k++) {
@@ -368,7 +377,7 @@ final class SemanticValidator {
                     mismatch(valuePath, ruleId, target, "a value that does not fit the field type");
                 }
             } else if (target.type().isNumeric()) {
-                expression((Expression) set.value(), valuePath, ruleId);
+                expression((Expression) set.value(), valuePath, ruleId, 1);
             } else {
                 mismatch(valuePath, ruleId, target, "an expression into a non-numeric field");
             }
