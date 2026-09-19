@@ -39,6 +39,28 @@ public class PolicyDocuments {
         return document;
     }
 
+    /**
+     * A sandbox's copy of a protected document (Document 5, Authorization: a write against a protected row forks a
+     * sandbox copy instead): the same title, language, versions, texts and paragraph indexes, so every provenance
+     * that cites the original cites the copy the same way.
+     */
+    public PolicyDocumentEntity copy(PolicyDocumentEntity original, UUID sandboxId) {
+        Instant now = clock.instant();
+        PolicyDocumentEntity copy = new PolicyDocumentEntity(
+                UUID.randomUUID(), sandboxId, false, original.getTitle(), original.getLanguage(), now);
+        copy.setForkedFromId(original.getId());
+        for (PolicyVersionEntity version : original.getVersions()) {
+            PolicyVersionEntity copied = new PolicyVersionEntity(
+                    UUID.randomUUID(), copy, version.getVersionNo(), version.getRawText(), now);
+            for (PolicyParagraphEntity paragraph : version.getParagraphs()) {
+                copied.addParagraph(new PolicyParagraphEntity(
+                        UUID.randomUUID(), copied, paragraph.getIndex(), paragraph.getText()));
+            }
+            copy.addVersion(copied);
+        }
+        return copy;
+    }
+
     public static PolicyView view(PolicyDocumentEntity document) {
         List<PolicyView.Version> versions = document.getVersions().stream()
                 .map(version -> new PolicyView.Version(version.getVersionNo(), version.getCreatedAt(),
@@ -48,6 +70,6 @@ public class PolicyDocuments {
                 .toList();
         return new PolicyView(document.getId(), document.getTitle(),
                 PolicyLanguage.fromCode(document.getLanguage()).orElseThrow(), document.isProtectedRow(),
-                document.getCreatedAt(), versions);
+                document.getForkedFromId(), document.getCreatedAt(), versions);
     }
 }

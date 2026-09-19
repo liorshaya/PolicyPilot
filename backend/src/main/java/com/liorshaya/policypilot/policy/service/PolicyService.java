@@ -4,6 +4,7 @@ import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.policy.entity.PolicyDocumentEntity;
 import com.liorshaya.policypilot.policy.repository.PolicyDocumentRepository;
 import java.time.Clock;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,31 @@ public class PolicyService {
     @Transactional
     public PolicyView create(UUID sandboxId, String title, PolicyLanguage language, String text) {
         return PolicyDocuments.view(documents.save(builder.build(sandboxId, false, title, language, text)));
+    }
+
+    /** Stores a protected document, visible to every sandbox and writable by none (the seeded demo policy). */
+    @Transactional
+    public PolicyView createProtected(String title, PolicyLanguage language, String text) {
+        return PolicyDocuments.view(documents.save(builder.build(null, true, title, language, text)));
+    }
+
+    /** The protected documents, oldest first. */
+    @Transactional(readOnly = true)
+    public List<PolicyView> protectedPolicies() {
+        return documents.findByProtectedRowTrueOrderByCreatedAt().stream().map(PolicyDocuments::view).toList();
+    }
+
+    /**
+     * The sandbox's copy of the protected document {@code protectedId}, made on the first call and returned again
+     * on every later one; the protected row itself is never modified.
+     */
+    @Transactional
+    public PolicyView forkOf(UUID protectedId, UUID sandboxId) {
+        PolicyDocumentEntity original = documents.findById(protectedId)
+                .filter(PolicyDocumentEntity::isProtectedRow)
+                .orElseThrow(() -> new IllegalArgumentException("not a protected policy: " + protectedId));
+        return PolicyDocuments.view(documents.findBySandboxIdAndForkedFromId(sandboxId, protectedId)
+                .orElseGet(() -> documents.save(builder.copy(original, sandboxId))));
     }
 
     /** The document {@code id} if the sandbox may see it; any other id, including another sandbox's, is absent. */

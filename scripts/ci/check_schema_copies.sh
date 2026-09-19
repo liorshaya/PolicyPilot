@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# Schema copies match the backend resources, CI stage 1 (Document 6, Fixtures and Test Data, "Versioning"):
-# every schema under fixtures/schemas/ has a byte-identical copy under backend/src/main/resources/schemas/,
-# so the fixtures and the running code cannot drift apart.
+# Fixture copies match the backend resources, CI stage 1 (Document 6, Fixtures and Test Data, "Versioning"): every
+# schema under fixtures/schemas/ and the demo fixtures the seed job loads have byte-identical copies under
+# backend/src/main/resources/, so the fixtures and the running code cannot drift apart. The image is built from
+# backend/, which is why the copies exist at all.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-status=0
-count=0
+resources="backend/src/main/resources"
+pairs=()
 for fixture in fixtures/schemas/*.json; do
-  count=$((count + 1))
-  name=$(basename "$fixture")
-  copy="backend/src/main/resources/schemas/$name"
+  pairs+=("$fixture:$resources/schemas/$(basename "$fixture")")
+done
+for name in policy.he.md ruleset.v1.json; do
+  pairs+=("fixtures/policies/consumer-lending/$name:$resources/fixtures/consumer-lending/$name")
+done
+
+status=0
+for pair in "${pairs[@]}"; do
+  fixture="${pair%%:*}"
+  copy="${pair#*:}"
   if [ ! -f "$copy" ]; then
     echo "MISSING: $copy (no backend copy of $fixture)"
     status=1
@@ -24,6 +32,6 @@ for fixture in fixtures/schemas/*.json; do
 done
 
 if [ "$status" -eq 0 ]; then
-  echo "schema copies OK ($count file(s) identical)"
+  echo "fixture copies OK (${#pairs[@]} file(s) identical)"
 fi
 exit "$status"

@@ -1,6 +1,7 @@
 package com.liorshaya.policypilot.policy.repository;
 
 import com.liorshaya.policypilot.policy.entity.PolicyDocumentEntity;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,10 @@ public interface PolicyDocumentRepository extends JpaRepository<PolicyDocumentEn
             where d.id = :id and (d.sandboxId = :sandboxId or d.protectedRow = true)
             """)
     Optional<PolicyDocumentEntity> findVisible(@Param("id") UUID id, @Param("sandboxId") UUID sandboxId);
+
+    /** The sandbox's copy of a protected policy, if it has one. */
+    Optional<PolicyDocumentEntity> findBySandboxIdAndForkedFromId(UUID sandboxId, UUID forkedFromId);
+
+    /** The seeded demo policies, oldest first. */
+    List<PolicyDocumentEntity> findByProtectedRowTrueOrderByCreatedAt();
 }
