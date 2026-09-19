@@ -77,8 +77,8 @@ class CaseValidatorTest {
 
     @Test
     void negativeIncomeIsOutOfRange() {
-        assertProblems(validator.validate(LENDING, case17("monthly_income", "-9000")),
-                tuple(CASE_OUT_OF_RANGE, "monthly_income"));
+        assertThat(codesAndFields(validator.validate(LENDING, case17("monthly_income", "-9000"))))
+                .containsExactly(tuple(CASE_OUT_OF_RANGE, "monthly_income"));
     }
 
     @Test
@@ -109,16 +109,19 @@ class CaseValidatorTest {
 
     @Test
     void integerFieldRejectsAFractionAndAcceptsAWholeNumberWrittenWithOne() {
-        assertProblems(validator.validate(LENDING, case17("age", "34.5")), tuple(CASE_TYPE_MISMATCH, "age"));
+        assertThat(codesAndFields(validator.validate(LENDING, case17("age", "34.5"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "age"));
         assertThat(validator.validate(LENDING, case17("age", "34.0")).isValid()).isTrue();
     }
 
     @Test
     void booleanIsNotANumber() {
-        assertProblems(validator.validate(LENDING, case17("monthly_income", "true")),
-                tuple(CASE_TYPE_MISMATCH, "monthly_income"));
-        assertProblems(validator.validate(DOMAINS, object("{\"b\": \"yes\"}")), tuple(CASE_TYPE_MISMATCH, "b"));
-        assertProblems(validator.validate(DOMAINS, object("{\"s\": 5}")), tuple(CASE_TYPE_MISMATCH, "s"));
+        assertThat(codesAndFields(validator.validate(LENDING, case17("monthly_income", "true"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "monthly_income"));
+        assertThat(codesAndFields(validator.validate(DOMAINS, object("{\"b\": \"yes\"}"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "b"));
+        assertThat(codesAndFields(validator.validate(DOMAINS, object("{\"s\": 5}"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "s"));
         assertThat(validator.validate(DOMAINS, object("{\"s\": \"text\"}")).values())
                 .containsEntry("s", new StringLiteral("text"));
     }
@@ -127,14 +130,17 @@ class CaseValidatorTest {
     void enumValueOutsideTheDeclaredSetIsATypeMismatch() {
         CaseValidation result = validator.validate(LENDING, case17("employment_type", "\"freelancer\""));
 
-        assertProblems(result, tuple(CASE_TYPE_MISMATCH, "employment_type"));
+        assertThat(codesAndFields(result))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "employment_type"));
         assertThat(result.problems().getFirst().value().stringValue()).isEqualTo("freelancer");
     }
 
     @Test
     void dateMustBeAnIsoCalendarDate() {
-        assertProblems(validator.validate(DOMAINS, object("{\"d\": \"2026-02-30\"}")), tuple(CASE_TYPE_MISMATCH, "d"));
-        assertProblems(validator.validate(DOMAINS, object("{\"d\": \"2026-9-1\"}")), tuple(CASE_TYPE_MISMATCH, "d"));
+        assertThat(codesAndFields(validator.validate(DOMAINS, object("{\"d\": \"2026-02-30\"}"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "d"));
+        assertThat(codesAndFields(validator.validate(DOMAINS, object("{\"d\": \"2026-9-1\"}"))))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "d"));
         assertThat(validator.validate(DOMAINS, object("{\"d\": \"2026-02-28\"}")).values())
                 .containsEntry("d", new StringLiteral("2026-02-28"));
     }
@@ -164,8 +170,8 @@ class CaseValidatorTest {
         ObjectNode input = object(CASE_17);
         input.put("term_months", 0).put("age", "34");
 
-        assertProblems(validator.validate(LENDING, input),
-                tuple(CASE_TYPE_MISMATCH, "age"), tuple(CASE_OUT_OF_RANGE, "term_months"));
+        assertThat(codesAndFields(validator.validate(LENDING, input)))
+                .containsExactly(tuple(CASE_TYPE_MISMATCH, "age"), tuple(CASE_OUT_OF_RANGE, "term_months"));
     }
 
     @Test
@@ -193,8 +199,9 @@ class CaseValidatorTest {
         return out.stream();
     }
 
-    private static void assertProblems(CaseValidation result, Tuple... expected) {
-        assertThat(result.problems()).extracting(CaseProblem::code, CaseProblem::field).containsExactly(expected);
+    /** The code and field of each problem, in order, for a direct assertion. */
+    private static List<Tuple> codesAndFields(CaseValidation result) {
+        return result.problems().stream().map(problem -> tuple(problem.code(), problem.field())).toList();
     }
 
     private static ObjectNode case17(String field, String json) {
