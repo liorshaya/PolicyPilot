@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.demo.service;
 
+import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.policy.service.PolicyLanguage;
 import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
@@ -13,7 +14,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * Loads the demo policy and its rule set on an empty database (Document 2, Local: a seed job loads the fixtures; Work
+ * Loads the demo policy, its rule set and its 200 cases on an empty database (Document 2, Local: a seed job loads the fixtures; Work
  * Plan days 4 and 5) as the protected rows every sandbox reads and none may modify. It runs at startup and does
  * nothing when the protected rows are already there. The fixture text is clean as committed (NFC, no format or
  * control characters, checked by FixtureSeedIT), so it is stored as it is.
@@ -25,10 +26,12 @@ public class FixtureLoader implements ApplicationRunner {
 
     private final PolicyService policies;
     private final RulesetService rulesets;
+    private final DecisionService decisions;
 
-    public FixtureLoader(PolicyService policies, RulesetService rulesets) {
+    public FixtureLoader(PolicyService policies, RulesetService rulesets, DecisionService decisions) {
         this.policies = policies;
         this.rulesets = rulesets;
+        this.decisions = decisions;
     }
 
     @Override
@@ -37,6 +40,10 @@ public class FixtureLoader implements ApplicationRunner {
         PolicyView policy = policies.protectedPolicies().stream().findFirst().orElseGet(() -> seedPolicy(fixture));
         if (rulesets.protectedRulesets().isEmpty()) {
             seedRuleSet(fixture, policy);
+        }
+        int seededCases = decisions.seedProtectedCases(fixture.casesJson());
+        if (seededCases > 0) {
+            LOG.atInfo().setMessage("demo.seed.cases").addKeyValue("cases", seededCases).log();
         }
     }
 

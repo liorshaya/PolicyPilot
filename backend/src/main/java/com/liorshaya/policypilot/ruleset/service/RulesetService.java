@@ -152,6 +152,15 @@ public class RulesetService {
         });
     }
 
+    /** A published version by its row id, for a stored decision that names it; scoped to the caller's sandbox. */
+    @Transactional(readOnly = true)
+    public Optional<PublishedVersion> publishedById(UUID versionId, UUID sandboxId) {
+        return versions.findById(versionId).flatMap(version -> rulesets
+                .findVisible(version.getRulesetId(), sandboxId)
+                .map(ruleset -> new PublishedVersion(version.getId(), ruleset.getId(), ruleset.getDomain(),
+                        version.getVersionNo(), compiled(version))));
+    }
+
     /**
      * A first DRAFT in a new rule set of the sandbox, written from a policy version: what the authoring prompt stores
      * on day 7, and what a test uses to reach a draft before that route exists.

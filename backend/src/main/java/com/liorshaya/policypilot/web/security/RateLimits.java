@@ -27,6 +27,8 @@ public class RateLimits {
         AUTH("auth"),
         /** Generate, chat message, change, explain: per minute per IP and per hour per sandbox. */
         MODEL("model"),
+        /** Deciding a list of cases or a fixture set: 5 per minute per sandbox. */
+        BATCH("batch"),
         /** Every other API route: 120 per minute per IP. */
         OTHER("other");
 
@@ -42,6 +44,7 @@ public class RateLimits {
     }
 
     public static final long AUTH_PER_MINUTE_PER_IP = 5;
+    public static final long BATCH_PER_MINUTE_PER_SANDBOX = 5;
     public static final long OTHER_PER_MINUTE_PER_IP = 120;
 
     /** Above this many buckets, the full ones (nothing to remember) are dropped on the next request. */
@@ -62,6 +65,8 @@ public class RateLimits {
                 EndpointClass.MODEL, List.of(
                         new Limit("ip", modelPerMinutePerIp, Duration.ofMinutes(1)),
                         new Limit("sandbox", modelPerHourPerSandbox, Duration.ofHours(1))),
+                EndpointClass.BATCH, List.of(
+                        new Limit("sandbox", BATCH_PER_MINUTE_PER_SANDBOX, Duration.ofMinutes(1))),
                 EndpointClass.OTHER, List.of(new Limit("ip", OTHER_PER_MINUTE_PER_IP, Duration.ofMinutes(1))));
     }
 

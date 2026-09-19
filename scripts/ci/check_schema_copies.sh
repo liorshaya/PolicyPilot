@@ -11,7 +11,7 @@ pairs=()
 for fixture in fixtures/schemas/*.json; do
   pairs+=("$fixture:$resources/schemas/$(basename "$fixture")")
 done
-for name in policy.he.md ruleset.v1.json; do
+for name in policy.he.md ruleset.v1.json cases-200.json; do
   pairs+=("fixtures/policies/consumer-lending/$name:$resources/fixtures/consumer-lending/$name")
 done
 
