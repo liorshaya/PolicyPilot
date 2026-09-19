@@ -1,6 +1,6 @@
 # PolicyPilot Work Plan
 
-2026-09-17 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 7 of 8. Nineteen working days in five phases, each closed by a gate; every task ships with its tests in the same day, security tests land with the features they protect, and the last three days are rehearsal and fixing only. The plan follows the Project Brief (scope, phases, demo), the Architecture (modules, API, deployment), the Rules DSL Specification, the AI Pipeline and Prompt Specification, the Security Specification and the Test Strategy; a task never changes a name, a route, a threshold or a number those documents fixed.
 
@@ -23,6 +23,20 @@ The plan runs from Tuesday, September 22 to Sunday, October 18, 2026: 19 working
 **Capacity**: six focused hours per working day. About 40% of every task is its tests and fixtures (Document 6, Working Method), so a day's Build column is roughly 3.5 hours of code and 2.5 hours of tests; days 1 and 7 may run long, no other day may. Work that slips is not caught up in the evening: it opens the next morning, and the phase gate decides what is cut.
 
 **Phase sizes** are 1, 6, 4, 4 and 4 days, the upper end of every range in the Brief's phase table, so the only slack is day 15 (the Phase 3 buffer). The Brief's Phase 4 items are spread over the plan rather than stacked at the end: the deployment pipeline is set up on day 1 so that every green `main` is live from then on; the evaluation harness grows with the prompts (days 11, 13 and 15); the guided demo panel gains one step at the end of each phase; the README, the Hebrew and RTL pass and the recorded video are days 16 to 18.
+
+## Two-week version in force (decided 2026-09-18)
+
+The interview is on Monday, October 5, 2026, so the plan runs as the two-week version of the Scope ladder: ten working days, with the interview on the eleventh. Day 1 was finished on Friday, September 18, and days 2 to 7 keep their content. Day 8 is retrieval with the not-covered threshold; day 9 is the answer prompt with the `decision` and `simulate` tools and the chat screen; day 10 is rehearsal, the video, a short README and the freeze. The dates in this table replace those written in the day rows.
+
+| Day | Date | Day | Date |
+| --- | --- | --- | --- |
+| 1 | Fri Sep 18, done | 6 | Mon Sep 28 |
+| 2 | Tue Sep 22 | 7 | Tue Sep 29, gate G1 |
+| 3 | Wed Sep 23 | 8 | Wed Sep 30 |
+| 4 | Thu Sep 24 | 9 | Thu Oct 1 |
+| 5 | Sun Sep 27 | 10 | Sun Oct 4, freeze and gate G4 |
+
+Cut on entry: rungs 2 to 10 of the Scope ladder and the evaluation runner, so the demo is three steps and the change flow is the closing slide. Gates G2 and G3 fall away; G4 moves to day 10 and asks for the Brief's Definition of Done lines 1 to 6. The nightly and manual resets (day 15) and the provider badge in the UI (day 16) are not scheduled, so they go to the README's known limitations. Hol HaMoed Sukkot is worked, and Fridays and Saturdays are off. The progress checklist in the repository, `docs/progress-checklist.md`, carries these dates and strikes through each cut box with the rung that cut it.
 
 ## Phase gates
 
@@ -48,7 +62,7 @@ Day 1, Tuesday September 22, ends with an empty but fully wired system: no domai
 | Docker Compose | PostgreSQL 16 with pgvector on a volume, Ollama with a pull script for `qwen3:14b` and `bge-m3`, the API image from `backend/Dockerfile`, the web dev server; Flyway V1 with `CREATE EXTENSION IF NOT EXISTS vector` | Testcontainers base class for `*IT` tests on the pgvector image; one integration test proving Flyway ran and the `vector` extension exists; the compose smoke run timed against the 5-minute Definition of Done line |
 | CI pipeline | The eight stages with their budgets: gitleaks, fixture privacy check, schema-copy check, generated-client check; JaCoCo and Vitest with thresholds; PIT; Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report; Testcontainers stage; image build with Trivy and the digest; Playwright on pull requests; reports and SBOM on tags; `@Tag("quarantine")` wired; branch protection requiring stages 1 to 6 | The workflow green on the skeleton; a planted fake key on a throwaway branch fails stage 1 (then deleted), so the secret scan is known to work |
 | Fixtures | Commit the delivered tree, built and verified before day 1: `schemas/ruleset-1.0.schema.json`, `policies/consumer-lending/` (`policy.he.md`, `ruleset.v1.json`, `sample-decision.json`, `change-request-1.json`, `cases-200.json`, `cases-expected.json`), `conformance/` (C-01 to C-31 and one `invalid-*.json` per validator code), `reference/reference_check.py`, `tools/generate_cases.py`, `README.md` with the file shapes | The reference self-test (which runs the conformance suite and the invalid fixtures) and the generator's two assertions (every rule fires at least three times; the scripted change flips exactly 12 decisions) wired into stage 2; CI re-runs the generator and diffs the committed files |
-| First deployment | Railway: API service from `backend/` with the pgvector template database, `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `POLICYPILOT_ADMIN_CODE`, `SPRING_PROFILES_ACTIVE=openai,cloud`, `DATABASE_URL`, health check on `/actuator/health`, deploys only from a green `main`; Vercel: project from `frontend/` with `VITE_API_BASE_URL` and `policypilot.liorshaya.com`; the access gate as a static page (the code exchange itself arrives on day 4) | The health check answered from outside Railway; the gate page opened from a phone; the Railway deploy shown to use the digest stage 6 produced |
+| First deployment | Railway: API service from `backend/` with a `pgvector/pgvector:pg16` image service as the database (the Railway pgvector templates run PostgreSQL 18), `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `POLICYPILOT_ADMIN_CODE`, `SPRING_PROFILES_ACTIVE=openai,cloud`, `DATABASE_URL`, health check on `/actuator/health`, deployed only by the CI job `deploy-railway` with the digest stage 6 scanned, once stages 1 to 6 pass on `main`; Vercel: project from `frontend/` with `VITE_API_BASE_URL` and `policypilot.liorshaya.com`; the access gate as a static page (the code exchange itself arrives on day 4) | The health check answered from outside Railway; the gate page opened from a phone; the Railway deploy shown to use the digest stage 6 produced |
 
 **Gate G0** is checked last, in the hour before stopping; its proof (CI link, health check, gate page) goes into `docs/worklog.md`, the one-line-per-day log this plan keeps and the README's known-limitations section is later written from.
 

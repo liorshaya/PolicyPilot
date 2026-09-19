@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-16 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -473,9 +473,9 @@ One repository, one Docker image for the API, one static bundle for the web app;
 | `backend/` | Maven project, `Dockerfile` (multi-stage: build with Maven and Temurin 21, run on a JRE image), `src/main/resources/prompts/`, Flyway migrations |
 | `frontend/` | Vite project, `vercel.json` with the SPA rewrite |
 | `fixtures/` | `policies/` (sample policies with their rule sets, `cases-200.json` and golden files), `conformance/`, `eval/` (labeled policies, questions, changes, recordings), `redteam/`, `schemas/`, `reference/` (the Python reference implementation), `tools/` (the case generator); layout in Document 6 |
-| `docs/` | Documents 2-6 exported as Markdown, architecture diagrams, docs/quality/ (coverage, mutation and traceability reports) and docs/eval/ (evaluation reports) |
+| `docs/` | Documents 1 to 7 exported as Markdown with a README index, the progress checklist and worklog.md (both maintained here, not exported), architecture diagrams, docs/quality/ (coverage, mutation and traceability reports) and docs/eval/ (evaluation reports) |
 | `docker-compose.yml` | `db` (`pgvector/pgvector:pg16`), `ollama` (optional profile), `backend` (built from `backend/`), `frontend` (Vite dev server or nginx) |
-| `.github/workflows/` | `ci.yml` (tests, image build, Playwright), `eval.yml` (manual, live evaluation) |
+| `.github/workflows/` | `ci.yml` (tests, image build and scan, Playwright, the Railway deploy by digest), `eval.yml` (manual, live evaluation) |
 
 **Local**: `docker compose up` starts the database with pgvector, the API with the `openai` profile (reading `OPENAI_API_KEY` from `.env`), and the web app; `docker compose --profile ollama up` adds Ollama, pulls `qwen3:14b` and `bge-m3` on first start, and switches the API to the `ollama` profile. Flyway runs migrations and a seed job loads the fixtures on an empty database.
 
@@ -483,26 +483,26 @@ One repository, one Docker image for the API, one static bundle for the web app;
 
 ```mermaid
 flowchart LR
-  GH[GitHub main] -->|auto deploy| RW[Railway service: api<br/>Docker image, profile openai]
-  GH -->|auto deploy| VC[Vercel project: web<br/>static build of web/]
+  GH[GitHub main] -->|CI deploys the stage 6 digest| RW[Railway service: api<br/>Docker image, profile openai]
+  GH -->|auto deploy| VC[Vercel project: web<br/>static build of frontend/]
   RW -->|private network URL| PG[(Railway: pgvector/pgvector:pg16<br/>volume, CREATE EXTENSION vector)]
   RW -->|HTTPS| OA[OpenAI API]
   VC -->|VITE_API_BASE_URL| RW
 ```
 
-Reading the diagram: both deployments trigger from pushes to `main`; the web app is built with the Railway API URL baked in as `VITE_API_BASE_URL`, and the API reaches the database over Railway's private network, never over the public proxy.
+Reading the diagram: Vercel builds and deploys the web app on every push to `main`; Railway never builds, and once stages 1 to 6 pass on `main` the CI job `deploy-railway` points the API service at the image stage 6 built and scanned, by digest. The web app is built with the Railway API URL baked in as `VITE_API_BASE_URL`, and the API reaches the database over Railway's private network, never over the public proxy.
 
 | Concern | Railway (API and database) | Vercel (web) |
 | --- | --- | --- |
-| Build | Dockerfile in `backend/`, root directory set to `backend/` | Root directory `frontend/`, `npm run build`, output `dist/` |
-| Database | Railway's pgvector template (`pgvector/pgvector` image with a persistent volume); the first migration runs `CREATE EXTENSION IF NOT EXISTS vector` ([Railway pgvector template](https://railway.com/deploy/pgvector-postgresql)) | none |
+| Build | Railway never builds: CI stage 6 builds the image from `backend/Dockerfile`, Trivy scans it, and the CI job `deploy-railway` deploys it by digest with the settings in `backend/railway.json` | Root directory `frontend/`, `npm run build`, output `dist/` |
+| Database | A `pgvector/pgvector:pg16` image service with a persistent volume (not the Railway pgvector template, whose images run PostgreSQL 18); the first migration runs `CREATE EXTENSION IF NOT EXISTS vector` | none |
 | Environment | `OPENAI_API_KEY`, `POLICYPILOT_ACCESS_CODE`, `POLICYPILOT_COOKIE_SECRET`, `POLICYPILOT_ADMIN_CODE`, `SPRING_PROFILES_ACTIVE=openai,cloud`, `DATABASE_URL` from the database service reference | `VITE_API_BASE_URL` |
 | Health | `/actuator/health` as the Railway health check; restart on failure | Vercel static, nothing to check |
 | Scaling | One instance (rate limits are in-memory, so a second instance would need a shared store); vertical resize if needed | CDN |
 | Domain | Railway-provided domain for the API, `policypilot.liorshaya.com` on Vercel for the web app |  |
 | Cost | Railway usage-based, expected under 10 USD per month for the API plus the database at demo traffic | Free tier |
 
-**Release discipline**: every phase ends with a git tag (`v0.1-core`, `v0.2-chat`, `v0.3-change`, `v1.0-demo`); Railway and Vercel deploy from `main` only, feature work happens on branches with pull request previews on Vercel, and the demo rehearsal runs against the tagged `main` build two days before the interview, after which `main` is frozen.
+**Release discipline**: every phase ends with a git tag (`v0.1-core`, `v0.2-chat`, `v0.3-change`, `v1.0-demo`); Railway and Vercel deploy from `main` only (Railway through the CI job that deploys the scanned image by digest), feature work happens on branches with pull request previews on Vercel, and the demo rehearsal runs against the tagged `main` build two days before the interview, after which `main` is frozen.
 
 **Presentation scenarios**: the interview demo runs on the deployed site from a machine that is not the presenter's, so the web app carries a guided demo panel (the four scripted steps as one-click actions that pre-fill the inputs), the access code is eight lowercase characters, the scripted requests are served from the response cache, and the rehearsal two days before the interview is done on a borrowed machine in a private browser window against the frozen `main` build. Backups, in order: the recorded video on the presenter's phone, and the local Docker Compose run with the `ollama` profile if a laptop is available after all.
 

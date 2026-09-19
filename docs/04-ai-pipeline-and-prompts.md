@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-16 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 

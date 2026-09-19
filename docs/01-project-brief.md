@@ -1,6 +1,6 @@
 # PolicyPilot Project Brief
 
-2026-09-16 · Lior Shaya
+2026-09-19 · Lior Shaya
 
 ## Overview
 
@@ -188,8 +188,8 @@ Decision: the backend and database run on Railway, the frontend on Vercel's free
 
 | Component | Where | Notes |
 | --- | --- | --- |
-| Backend (Spring Boot + Spring AI) | Railway, built from the Dockerfile in the repository, auto-deployed from `main` | OpenAI provider only in the cloud; the Ollama profile is demonstrated locally |
-| Database (PostgreSQL + pgvector) | Railway PostgreSQL service with the pgvector extension | Seeded with the sample policy, the published rule set and the 200 fixture cases |
+| Backend (Spring Boot + Spring AI) | Railway, running the image that CI builds from the Dockerfile and scans, deployed by digest once CI passes on `main` | OpenAI provider only in the cloud; the Ollama profile is demonstrated locally |
+| Database (PostgreSQL + pgvector) | Railway service on the `pgvector/pgvector:pg16` image (PostgreSQL 16 with the pgvector extension) | Seeded with the sample policy, the published rule set and the 200 fixture cases |
 | Frontend (React + TypeScript) | Vercel free tier, deployed from the `frontend/` folder | Calls the Railway API over HTTPS; the API base URL is an environment variable |
 | Domain | `policypilot.liorshaya.com` for the frontend, or the Vercel default domain | Subdomain of the portfolio site, quoted in the email to the interviewers together with the access code |
 

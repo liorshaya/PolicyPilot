@@ -25,6 +25,14 @@ two-week version, and therefore known limitations: the nightly and manual resets
 the UI (day 16). Spend caps: OpenAI 5 USD per day, which sets the ceiling for the app's daily token budget on day 7;
 Railway on the Hobby plan. The dates and the struck-through boxes are in `docs/progress-checklist.md`.
 
+## Living documents synced (2026-09-19)
+
+The living documents now match the repository, and `docs/` was re-exported from them. The folders are `backend/` and
+`frontend/` everywhere (the Java package `web` keeps its name). Document 7 records the two-week version with its date
+map and the day-1 deployment as built. Documents 1 and 2 say that Railway never builds: it runs the image stage 6
+scanned, by digest, and the database is a `pgvector/pgvector:pg16` image service. The living progress checklist is
+frozen with a pointer here, so `docs/progress-checklist.md` is the only tracker.
+
 ## Gate G0 proof (collected 2026-09-18, ahead of day 1): passed
 
 | G0 condition (Document 7, Phase gates) | Proof | Result |

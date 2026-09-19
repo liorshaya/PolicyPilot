@@ -6,9 +6,10 @@ deterministic Java engine makes every decision; a person approves every policy c
 
 These files are Markdown exports of the living documents where the set is written and maintained
 (kept outside the repository). The living documents are the source of truth: when one changes it is
-re-exported here, so the exports are never edited by hand. Each file carries its export date under
-the title. The documents are written in this order, each short enough to read in ten minutes and each
-the input to the next.
+re-exported here, so the exports are never edited by hand. The progress checklist and the worklog are
+the two exceptions: they are maintained only here. Each file carries its export date under the title.
+The documents are written in this order, each short enough to read in ten minutes and each the input
+to the next.
 
 | # | Document | What it decides | Read it when |
 | --- | --- | --- | --- |
@@ -24,7 +25,9 @@ the input to the next.
 [Progress Checklist](progress-checklist.md) is the working tracker: one box per task of the Work Plan,
 ticked as it is done and never before its tests are green; a box skipped on purpose is struck through
 with the scope ladder rung that cut it. Documents 1 to 7 and the fixtures built ahead of day 1 are
-already ticked.
+already ticked. Since the switch to the two-week version on 2026-09-18 it is maintained here, not
+exported: it holds the new dates and the struck-through boxes, and its living document is frozen with a
+pointer to this file.
 
 ## What was built before day 1
 
