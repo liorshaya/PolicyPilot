@@ -143,12 +143,12 @@ Six types, exact decimal arithmetic, no clock: the engine's numeric results are 
 | Function | Arity | Result | Notes |
 | --- | --- | --- | --- |
 | `add`, `mul`, `min`, `max` | 2-8 | number | Left to right |
-| `sub`, `div`, `pow` | 2 | number | `div` by zero and non-finite `pow` results raise an evaluation error (never silently zero) |
+| `sub`, `div`, `pow` | 2 | number | `div` by zero and non-finite `pow` results raise an evaluation error (never silently zero); the exponent of pow must be a whole number, a negative one is a division at 12 places, and a fractional exponent or zero raised to zero or a negative power is EVAL\_NON\_FINITE |
 | `abs` | 1 | number |  |
 | `round` | 2 | number | `round(x, places)`, `HALF_EVEN` |
 | `months_between` | 2 | integer | Whole months from the first date to the second; both arguments must be `date` fields |
 
-A field reference inside an expression must name a `number`, `integer` or `date` field (dates only inside `months_between`); referencing a string, boolean or enum field in arithmetic is a validation error (`EXPR_TYPE_MISMATCH`). The maximum nesting depth is 8, which is enough for an annuity formula and shallow enough to read in a decision table cell.
+A field reference inside an expression must name a `number`, `integer` or `date` field (dates only inside `months_between`); referencing a string, boolean or enum field in arithmetic is a validation error (`EXPR_TYPE_MISMATCH`). The maximum nesting depth is 8, which is enough for an annuity formula and shallow enough to read in a decision table cell; depth counts the function nodes on the longest path from the top of the expression, and a deeper expression is a validation error (EXPR\_DEPTH).
 
 ## Conditions
 
@@ -350,6 +350,7 @@ Validation runs in three layers, schema then semantic then structural, and stops
 | Semantic | `ENUM_VALUE_UNKNOWN` | error | An `eq`, `in` or `not_in` operand is not among the enum's `values` |
 | Semantic | `EXPR_TYPE_MISMATCH` | error | An expression references a non-numeric field, or `months_between` a non-date field |
 | Semantic | `EXPR_ARITY` | error | Wrong number of arguments for a function |
+| Semantic | `EXPR_DEPTH` | error | An expression nests more than 8 function nodes deep |
 | Semantic | `BETWEEN_RANGE_INVALID` | error | `low` greater than `high` |
 | Semantic | `REGEX_INVALID` | error | A `matches` pattern does not compile on the linear-time engine (RE2J), uses syntax it does not support (backreferences, lookaround), or exceeds 200 characters |
 | Semantic | `RESERVED_IDENTIFIER` | error | A field named `today`, `now`, `null`, `true` or `false` |

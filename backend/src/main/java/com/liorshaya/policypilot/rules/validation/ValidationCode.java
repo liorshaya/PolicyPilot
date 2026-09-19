@@ -12,6 +12,7 @@ public enum ValidationCode {
     ENUM_VALUE_UNKNOWN(Layer.SEMANTIC, Severity.ERROR),
     EXPR_TYPE_MISMATCH(Layer.SEMANTIC, Severity.ERROR),
     EXPR_ARITY(Layer.SEMANTIC, Severity.ERROR),
+    EXPR_DEPTH(Layer.SEMANTIC, Severity.ERROR),
     BETWEEN_RANGE_INVALID(Layer.SEMANTIC, Severity.ERROR),
     REGEX_INVALID(Layer.SEMANTIC, Severity.ERROR),
     RESERVED_IDENTIFIER(Layer.SEMANTIC, Severity.ERROR),

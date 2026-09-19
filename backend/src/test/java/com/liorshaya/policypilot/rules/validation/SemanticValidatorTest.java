@@ -229,6 +229,24 @@ class SemanticValidatorTest {
         assertThat(publish(document)).noneMatch(finding -> finding.severity() == Severity.ERROR);
     }
 
+    @Test
+    void exprDepthReportedForNineNestedFunctions() {
+        assertThat(codesAndPaths(invalidFixture("EXPR_DEPTH")))
+                .containsExactly(tuple(ValidationCode.EXPR_DEPTH, "/rules/0/actions/0/value" + "/args/0".repeat(8)));
+    }
+
+    @Test
+    void eightNestedFunctionsAreValid() {
+        String expression = "{\"field\": \"monthly_installment\"}";
+        for (int depth = 0; depth < 8; depth++) {
+            expression = "{\"fn\": \"add\", \"args\": [" + expression + ", 0]}";
+        }
+        String deepest = expression;
+        JsonNode document = lending(b -> b.rule("R-200", r -> edit(r, "/condition").set("value", json(deepest))));
+
+        assertThat(publish(document)).noneMatch(finding -> finding.severity() == Severity.ERROR);
+    }
+
     // ------------------------------------------------------------------ BETWEEN_RANGE_INVALID, REGEX_INVALID
 
     @Test

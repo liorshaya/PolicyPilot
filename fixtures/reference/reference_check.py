@@ -27,7 +27,9 @@ from decimal import Decimal, ROUND_HALF_EVEN, getcontext
 from datetime import date
 from jsonschema import Draft202012Validator
 
-getcontext().prec = 40
+# Document 3, Decimal semantics: addition, subtraction and multiplication are exact, so the context is wide enough
+# never to round them; division and negative powers are quantized to 12 places explicitly.
+getcontext().prec = 1000
 D = Decimal
 SCALE = D("0.000000000001")  # 12 places
 
@@ -61,7 +63,7 @@ SEVERITY = {}
 for _code in ("DSL_SCHEMA", "DSL_VERSION_UNSUPPORTED", "DERIVED_REQUIRED"):
     LAYER[_code], SEVERITY[_code] = "schema", "error"
 for _code in ("FIELD_DUPLICATE", "FIELD_UNKNOWN", "FIELD_TYPE_MISMATCH", "FIELD_DOMAIN_INVALID", "ENUM_VALUE_UNKNOWN",
-              "EXPR_TYPE_MISMATCH", "EXPR_ARITY", "BETWEEN_RANGE_INVALID", "REGEX_INVALID", "RESERVED_IDENTIFIER",
+              "EXPR_TYPE_MISMATCH", "EXPR_ARITY", "EXPR_DEPTH", "BETWEEN_RANGE_INVALID", "REGEX_INVALID", "RESERVED_IDENTIFIER",
               "RULE_ID_DUPLICATE", "DERIVED_WRITE_ONLY", "PROVENANCE_PARAGRAPH_MISSING", "PROVENANCE_QUOTE_MISMATCH",
               "PROVENANCE_ANALYST_FROM_MODEL", "PROVENANCE_PENDING_FROM_MODEL", "PROVENANCE_PENDING_AT_PUBLISH"):
     LAYER[_code], SEVERITY[_code] = "semantic", "error"
@@ -155,8 +157,10 @@ def schema_layer(rs):
     return out
 
 # --- layer 2: semantic
-def check_expr(e, fields, rid, out, path):
-    """Returns the expression's type: 'number', 'date' or None (error already reported)."""
+MAX_EXPR_DEPTH = 8   # Document 3, Expressions: function nodes on the longest path
+
+def check_expr(e, fields, rid, out, path, depth=1):
+    """Returns the expression's type: 'number', 'date' or None (error already reported); depth counts function nodes."""
     if isinstance(e, bool): out.append(F("EXPR_TYPE_MISMATCH", path, f"{rid} boolean literal in expression")); return None
     if isinstance(e, (int, float)): return "number"
     if "fn" not in e:
@@ -166,10 +170,12 @@ def check_expr(e, fields, rid, out, path):
         if f["type"] == "date": return "date"
         out.append(F("EXPR_TYPE_MISMATCH", path, f"{rid} {e['field']} is {f['type']}")); return None
     fn, args = e["fn"], e["args"]
+    if depth > MAX_EXPR_DEPTH:
+        out.append(F("EXPR_DEPTH", path, f"{rid} expression nests more than {MAX_EXPR_DEPTH} functions deep")); return None
     lo, hi = ARITY[fn]
     if not (lo <= len(args) <= hi):
         out.append(F("EXPR_ARITY", path, f"{rid} {fn} takes {lo}..{hi} arguments, got {len(args)}")); return None
-    types = [check_expr(a, fields, rid, out, path) for a in args]
+    types = [check_expr(a, fields, rid, out, path, depth + 1) for a in args]
     if fn == "months_between":
         for t, a in zip(types, args):
             if t is not None and t != "date":
@@ -539,7 +545,12 @@ def ev_expr(e, case, fields):
     if fn == "round": return args[0].quantize(D(1).scaleb(-int(args[1])), rounding=ROUND_HALF_EVEN)
     if fn == "pow":
         try:
-            r = args[0] ** args[1]
+            if args[1] != args[1].to_integral_value(): raise EvalError("EVAL_NON_FINITE")   # Document 3: whole exponents only
+            n = int(args[1])
+            if n < 0:
+                if args[0] == 0: raise EvalError("EVAL_NON_FINITE")
+                return (D(1) / (args[0] ** -n)).quantize(SCALE, rounding=ROUND_HALF_EVEN)   # a division at 12 places
+            r = args[0] ** n
             if not r.is_finite(): raise EvalError("EVAL_NON_FINITE")
             return r
         except EvalError: raise
@@ -907,6 +918,19 @@ if __name__ == "__main__":
     assert not quote_in("...", paras[0])                                       # nothing left after normalization
     assert not quote_in("גיל 21 עד 70", paras[0])                              # a paraphrase is not a citation
     print("quote normalization OK")
+
+    # arithmetic (Document 3): exact sums and products, division and negative powers at 12 places, whole exponents
+    assert ev_expr({"fn": "add", "args": [0.1, 0.2]}, {}, {}) == D("0.3")
+    big = D("123456789012345678901234567890")
+    assert ev_expr({"fn": "mul", "args": [123456789012345678901234567890, 10]}, {}, {}) == big * 10   # beyond 28 digits
+    assert ev_expr({"fn": "div", "args": [2, 3]}, {}, {}) == D("0.666666666667")
+    assert ev_expr({"fn": "pow", "args": [1.0075, -48]}, {}, {}) == D("0.698614135861")   # 1 / 1.0075^48, exact fraction rounded to 12 places
+    for bad in ([1.0075, 0.5], [0, 0], [0, -1]):
+        try:
+            ev_expr({"fn": "pow", "args": bad}, {}, {}); assert False, bad
+        except EvalError as e:
+            assert e.code == "EVAL_NON_FINITE", (bad, e.code)
+    print("arithmetic OK")
 
     # provenance contexts
     prop = copy.deepcopy(rs)
