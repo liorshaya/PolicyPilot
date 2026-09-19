@@ -19,4 +19,9 @@ public enum FieldType {
     public String json() {
         return json;
     }
+
+    /** {@code number} and {@code integer}, the types arithmetic and domains apply to. */
+    public boolean isNumeric() {
+        return this == NUMBER || this == INTEGER;
+    }
 }

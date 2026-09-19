@@ -36,6 +36,8 @@
         <!-- Document 3, JSON Schema: the networknt validator on draft 2020-12; the 3.x line runs on Jackson 3,
              the Jackson line Spring Boot 4 manages. -->
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
+        <!-- Document 3, Conditions: matches runs on a linear-time engine (no backtracking, no lookaround). -->
+        <re2j.version>1.8</re2j.version>
 
         <jacoco.version>0.8.15</jacoco.version>
         <pitest.version>1.30.0</pitest.version>
@@ -112,6 +114,11 @@
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
             <version>${json-schema-validator.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+            <version>${re2j.version}</version>
         </dependency>
 
         <!-- Model providers. Both starters are on the classpath; the active profile decides which beans exist

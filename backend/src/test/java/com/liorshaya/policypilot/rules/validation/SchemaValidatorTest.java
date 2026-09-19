@@ -7,6 +7,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RuleSetBuilder;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -108,6 +110,40 @@ class SchemaValidatorTest {
         ObjectNode unknownKey = RuleSetBuilder.lendingV1().document(d -> d.put("extra", 1)).build();
         assertThat(validator.validate(unknownKey)).singleElement().satisfies(finding ->
                 assertThat(finding.message()).startsWith("additionalProperties at the document root: "));
+    }
+
+    @Test
+    void schemaErrorStopsBeforeTheSemanticLayer() {
+        // a duplicate field (semantic) and an unknown key (schema): only the schema layer reports
+        ObjectNode document = RuleSetBuilder.lendingV1()
+                .document(d -> ((ArrayNode) d.get("fields")).add(d.get("fields").get(0).deepCopy()))
+                .document(d -> d.put("extra", 1))
+                .build();
+
+        ValidationResult result = new RuleSetValidator()
+                .validate(document, ValidationContext.PUBLISH, Fixtures.lendingParagraphs(), Set.of());
+
+        assertThat(result.findings()).extracting(Finding::code).containsExactly(ValidationCode.DSL_SCHEMA);
+        assertThat(result.hasErrors()).isTrue();
+        assertThat(result.ruleSet()).isNull();
+    }
+
+    @Test
+    void resultCarriesTheRuleSetOnceTheSchemaPasses() {
+        RuleSetValidator validator = new RuleSetValidator();
+        ObjectNode duplicateField = RuleSetBuilder.lendingV1()
+                .document(d -> ((ArrayNode) d.get("fields")).add(d.get("fields").get(0).deepCopy()))
+                .build();
+
+        ValidationResult clean = validator.validate(
+                Fixtures.lendingV1(), ValidationContext.PUBLISH, Fixtures.lendingParagraphs(), Set.of());
+        ValidationResult semanticError = validator.validate(
+                duplicateField, ValidationContext.PUBLISH, Fixtures.lendingParagraphs(), Set.of());
+
+        assertThat(clean.hasErrors()).isFalse();
+        assertThat(clean.ruleSet().id()).isEqualTo("consumer-lending");
+        assertThat(semanticError.hasErrors()).isTrue();
+        assertThat(semanticError.ruleSet()).isNotNull();
     }
 
     @Test
