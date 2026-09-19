@@ -23,6 +23,8 @@
 
     <properties>
         <java.version>21</java.version>
+        <!-- Set by -DskipITs (CI stage 2): the integration tests and the coverage check that needs them are skipped -->
+        <skipITs>false</skipITs>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -312,8 +314,9 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <!-- Packages measured on unit tests alone (Document 6, Gates in CI): checked in stage 2 and in every verify -->
                     <execution>
-                        <id>check</id>
+                        <id>check-unit</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
@@ -385,6 +388,19 @@
                                         <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.85</minimum></limit>
                                     </limits>
                                 </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <!-- Packages measured on unit and integration tests together: checked by a full verify (stage 5), skipped with -DskipITs -->
+                    <execution>
+                        <id>check-merged</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skipITs}</skip>
+                            <rules>
                                 <!-- rag: 85% line, 80% branch -->
                                 <rule>
                                     <element>PACKAGE</element>
