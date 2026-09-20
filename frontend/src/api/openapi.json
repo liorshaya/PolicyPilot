@@ -1,90 +1,85 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "PolicyPilot API",
-    "description": "Policies, rule set versions, decisions and their traces. The model proposes and explains, the rules engine decides, a person approves every policy change.",
-    "version": "v1"
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "PolicyPilot API",
+    "description" : "Policies, rule set versions, decisions and their traces. The model proposes and explains, the rules engine decides, a person approves every policy change.",
+    "version" : "v1"
   },
-  "servers": [
-    {
-      "url": "/",
-      "description": "This API"
-    }
-  ],
-  "paths": {
-    "/api/v1/rulesets/{id}/versions/{no}/rules": {
-      "put": {
-        "tags": ["ruleset-controller"],
-        "summary": "Replace the rules of a DRAFT version; a write to a protected version forks a copy",
-        "operationId": "replaceRules",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+  "servers" : [ {
+    "url" : "/",
+    "description" : "This API"
+  } ],
+  "paths" : {
+    "/api/v1/rulesets/{id}/versions/{no}/rules" : {
+      "put" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "Replace the rules of a DRAFT version; a write to a protected version forks a copy",
+        "operationId" : "replaceRules",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "requestBody": {
-          "description": "The whole DSL document (Document 3)",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "The whole DSL document (Document 3)",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
               }
             }
           },
-          "required": true
+          "required" : true
         },
-        "responses": {
-          "200": {
-            "description": "The version as it now stands, in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionResponse"
+        "responses" : {
+          "200" : {
+            "description" : "The version as it now stands, in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "No such rule set version in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "409": {
-            "description": "The version's status does not allow this",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "409" : {
+            "description" : "The version's status does not allow this",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "422": {
-            "description": "The rule set fails the Document 3 validator",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "422" : {
+            "description" : "The rule set fails the Document 3 validator",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -92,148 +87,76 @@
         }
       }
     },
-    "/api/v1/rulesets/{id}/versions/{no}/simulate": {
-      "post": {
-        "tags": ["decision-controller"],
-        "summary": "What-if: the same version on a stored decision's input, or a case, with overrides",
-        "operationId": "simulate",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+    "/api/v1/rulesets/{id}/versions/{no}/simulate" : {
+      "post" : {
+        "tags" : [ "decision-controller" ],
+        "summary" : "What-if: the same version on a stored decision's input, or a case, with overrides",
+        "operationId" : "simulate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "requestBody": {
-          "description": "decisionId or case, plus the overrides to apply",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "decisionId or case, plus the overrides to apply",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
               }
             }
           },
-          "required": true
+          "required" : true
         },
-        "responses": {
-          "200": {
-            "description": "A decision object marked as a simulation; nothing is stored",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+        "responses" : {
+          "200" : {
+            "description" : "A decision object marked as a simulation; nothing is stored",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
                 }
               }
             }
           },
-          "404": {
-            "description": "No such version or decision in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "404" : {
+            "description" : "No such version or decision in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "409": {
-            "description": "The version is not published",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "409" : {
+            "description" : "The version is not published",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "422": {
-            "description": "The case or an override fails case validation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/rulesets/{id}/versions/{no}/publish": {
-      "post": {
-        "tags": ["ruleset-controller"],
-        "summary": "Publish a DRAFT version: compile, snapshot its rules and write the audit entry",
-        "operationId": "publish",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The published version",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such rule set version in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The version's status does not allow this",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The rule set fails the Document 3 validator",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "422" : {
+            "description" : "The case or an override fails case validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -241,79 +164,142 @@
         }
       }
     },
-    "/api/v1/rulesets/{id}/versions/{no}/decide": {
-      "post": {
-        "tags": ["decision-controller"],
-        "summary": "Decide one case, a list of cases or a seeded fixture set against a published version",
-        "operationId": "decide",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+    "/api/v1/rulesets/{id}/versions/{no}/publish" : {
+      "post" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "Publish a DRAFT version: compile, snapshot its rules and write the audit entry",
+        "operationId" : "publish",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "requestBody": {
-          "description": "Exactly one of case, cases (at most 500) or fixtureSet",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The published version",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
+                }
               }
             }
           },
-          "required": true
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version's status does not allow this",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "The rule set fails the Document 3 validator",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rulesets/{id}/versions/{no}/decide" : {
+      "post" : {
+        "tags" : [ "decision-controller" ],
+        "summary" : "Decide one case, a list of cases or a seeded fixture set against a published version",
+        "operationId" : "decide",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "Exactly one of case, cases (at most 500) or fixtureSet",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          },
+          "required" : true
         },
-        "responses": {
-          "200": {
-            "description": "One decision with its trace, or a batch with its aggregates",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+        "responses" : {
+          "200" : {
+            "description" : "One decision with its trace, or a batch with its aggregates",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
                 }
               }
             }
           },
-          "404": {
-            "description": "No such rule set version in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "409": {
-            "description": "The version is not published",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "409" : {
+            "description" : "The version is not published",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
           },
-          "422": {
-            "description": "A case fails case validation; nothing is stored",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "422" : {
+            "description" : "A case fails case validation; nothing is stored",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -321,75 +307,72 @@
         }
       }
     },
-    "/api/v1/policies": {
-      "get": {
-        "tags": ["policy-controller"],
-        "summary": "The policies this session can see: the seeded ones and its own",
-        "operationId": "list",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PoliciesResponse"
+    "/api/v1/policies" : {
+      "get" : {
+        "tags" : [ "policy-controller" ],
+        "summary" : "The policies this session can see: the seeded ones and its own",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PoliciesResponse"
                 }
               }
             }
           }
         }
       },
-      "post": {
-        "tags": ["policy-controller"],
-        "summary": "Create a policy from pasted text, returning its paragraph split",
-        "operationId": "upload",
-        "parameters": [
-          {
-            "name": "title",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+      "post" : {
+        "tags" : [ "policy-controller" ],
+        "summary" : "Create a policy from pasted text, returning its paragraph split",
+        "operationId" : "upload",
+        "parameters" : [ {
+          "name" : "title",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
+        }, {
+          "name" : "language",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
                   }
                 },
-                "required": ["file"]
+                "required" : [ "file" ]
               }
             },
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePolicyRequest"
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePolicyRequest"
               }
             }
           },
-          "required": true
+          "required" : true
         },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PolicyResponse"
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PolicyResponse"
                 }
               }
             }
@@ -397,89 +380,40 @@
         }
       }
     },
-    "/api/v1/auth/code": {
-      "post": {
-        "tags": ["auth-controller"],
-        "summary": "Exchange the access code for the session cookie",
-        "operationId": "exchange",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccessCodeRequest"
+    "/api/v1/auth/code" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "summary" : "Exchange the access code for the session cookie",
+        "operationId" : "exchange",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AccessCodeRequest"
               }
             }
           },
-          "required": true
+          "required" : true
         },
-        "responses": {
-          "200": {
-            "description": "OK"
+        "responses" : {
+          "200" : {
+            "description" : "OK"
           }
         }
       }
     },
-    "/api/v1/rulesets": {
-      "get": {
-        "tags": ["ruleset-controller"],
-        "summary": "The rule sets this session can see: the seeded ones and its own",
-        "operationId": "list_1",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RulesetsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/rulesets/{id}/versions/{no}": {
-      "get": {
-        "tags": ["ruleset-controller"],
-        "summary": "A rule set version with its rules, findings and status",
-        "operationId": "version",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The version with its rules, findings and status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such rule set version in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+    "/api/v1/rulesets" : {
+      "get" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "The rule sets this session can see: the seeded ones and its own",
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RulesetsResponse"
                 }
               }
             }
@@ -487,58 +421,45 @@
         }
       }
     },
-    "/api/v1/rulesets/{id}/versions/{no}/stats": {
-      "get": {
-        "tags": ["decision-controller"],
-        "summary": "Outcome counts and the top deciding rules of this sandbox on this version",
-        "operationId": "stats",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "no",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+    "/api/v1/rulesets/{id}/versions/{no}" : {
+      "get" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "A rule set version with its rules, findings and status",
+        "operationId" : "version",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "The counts and the top deciding rules",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AggregatesResponse"
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The version with its rules, findings and status",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "No such rule set version in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The version is not published",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -546,29 +467,55 @@
         }
       }
     },
-    "/api/v1/policies/{id}": {
-      "get": {
-        "tags": ["policy-controller"],
-        "summary": "A policy with its versions and paragraphs",
-        "operationId": "get",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+    "/api/v1/rulesets/{id}/versions/{no}/stats" : {
+      "get" : {
+        "tags" : [ "decision-controller" ],
+        "summary" : "Outcome counts and the top deciding rules of this sandbox on this version",
+        "operationId" : "stats",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PolicyResponse"
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The counts and the top deciding rules",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AggregatesResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version is not published",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -576,39 +523,27 @@
         }
       }
     },
-    "/api/v1/decisions/{id}": {
-      "get": {
-        "tags": ["decision-controller"],
-        "summary": "A stored decision with its trace",
-        "operationId": "decision",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+    "/api/v1/policies/{id}" : {
+      "get" : {
+        "tags" : [ "policy-controller" ],
+        "summary" : "A policy with its versions and paragraphs",
+        "operationId" : "get",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "The decision object of Document 3",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such decision in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PolicyResponse"
                 }
               }
             }
@@ -616,52 +551,87 @@
         }
       }
     },
-    "/api/v1/decisions/{id}/export": {
-      "get": {
-        "tags": ["decision-controller"],
-        "summary": "Export a decision with its trace as JSON or CSV (Accept header)",
-        "operationId": "export",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
+    "/api/v1/decisions/{id}" : {
+      "get" : {
+        "tags" : [ "decision-controller" ],
+        "summary" : "A stored decision with its trace",
+        "operationId" : "decision",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The decision object of Document 3",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
             }
           },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
+          "404" : {
+            "description" : "No such decision in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "The decision as JSON, or one CSV row per trace step",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+        }
+      }
+    },
+    "/api/v1/decisions/{id}/export" : {
+      "get" : {
+        "tags" : [ "decision-controller" ],
+        "summary" : "Export a decision with its trace as JSON or CSV (Accept header)",
+        "operationId" : "export",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "Accept",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The decision as JSON, or one CSV row per trace step",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
                 }
               },
-              "text/csv": {
-                "schema": {
-                  "type": "string"
+              "text/csv" : {
+                "schema" : {
+                  "type" : "string"
                 }
               }
             }
           },
-          "404": {
-            "description": "No such decision in this sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+          "404" : {
+            "description" : "No such decision in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -670,372 +640,361 @@
       }
     }
   },
-  "components": {
-    "schemas": {
-      "FindingResponse": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
+  "components" : {
+    "schemas" : {
+      "FindingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
           },
-          "severity": {
-            "type": "string"
+          "severity" : {
+            "type" : "string"
           },
-          "path": {
-            "type": "string"
+          "path" : {
+            "type" : "string"
           },
-          "message": {
-            "type": "string"
+          "message" : {
+            "type" : "string"
           },
-          "ruleIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
+          "ruleIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           },
-          "fieldNames": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": ["code", "fieldNames", "message", "path", "ruleIds", "severity"]
-      },
-      "VersionResponse": {
-        "type": "object",
-        "properties": {
-          "rulesetId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "protected": {
-            "type": "boolean"
-          },
-          "forkedFromId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "versionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "versionNo": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "status": {
-            "type": "string"
-          },
-          "policyVersionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "parentVersionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "publishedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "publishedBy": {
-            "type": "string"
-          },
-          "ruleSet": {
-            "description": "The whole DSL document (Document 3)"
-          },
-          "findings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FindingResponse"
+          "fieldNames" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           }
         },
-        "required": [
-          "domain",
-          "findings",
-          "name",
-          "policyVersionId",
-          "protected",
-          "ruleSet",
-          "rulesetId",
-          "status",
-          "versionId",
-          "versionNo"
-        ]
+        "required" : [ "code", "fieldNames", "message", "path", "ruleIds", "severity" ]
       },
-      "ErrorDetail": {
-        "type": "object",
-        "properties": {
-          "path": {
-            "type": "string"
+      "VersionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rulesetId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "problem": {
-            "type": "string"
-          }
-        },
-        "required": ["path", "problem"]
-      },
-      "ErrorEnvelope": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
+          "name" : {
+            "type" : "string"
           },
-          "message": {
-            "type": "string"
+          "domain" : {
+            "type" : "string"
           },
-          "details": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ErrorDetail"
-            }
+          "protected" : {
+            "type" : "boolean"
           },
-          "traceId": {
-            "type": "string"
-          }
-        },
-        "required": ["code", "details", "message", "traceId"]
-      },
-      "Paragraph": {
-        "type": "object",
-        "properties": {
-          "index": {
-            "type": "integer",
-            "format": "int32"
+          "forkedFromId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "text": {
-            "type": "string"
-          }
-        },
-        "required": ["index", "text"]
-      },
-      "PolicyResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "title": {
-            "type": "string"
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "language": {
-            "type": "string"
+          "status" : {
+            "type" : "string"
           },
-          "protected": {
-            "type": "boolean"
+          "policyVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "forkedFromId": {
-            "type": "string",
-            "format": "uuid"
+          "parentVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
+          "publishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
           },
-          "versions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Version"
+          "publishedBy" : {
+            "type" : "string"
+          },
+          "ruleSet" : {
+            "description" : "The whole DSL document (Document 3)"
+          },
+          "findings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FindingResponse"
             }
           }
         },
-        "required": ["createdAt", "id", "language", "protected", "title", "versions"]
+        "required" : [ "domain", "findings", "name", "policyVersionId", "protected", "ruleSet", "rulesetId", "status", "versionId", "versionNo" ]
       },
-      "Version": {
-        "type": "object",
-        "properties": {
-          "versionNo": {
-            "type": "integer",
-            "format": "int32"
+      "ErrorDetail" : {
+        "type" : "object",
+        "properties" : {
+          "path" : {
+            "type" : "string"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
+          "problem" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "path", "problem" ]
+      },
+      "ErrorEnvelope" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
           },
-          "paragraphs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Paragraph"
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ErrorDetail"
+            }
+          },
+          "traceId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "details", "message", "traceId" ]
+      },
+      "Paragraph" : {
+        "type" : "object",
+        "properties" : {
+          "index" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "index", "text" ]
+      },
+      "PolicyResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "language" : {
+            "type" : "string"
+          },
+          "protected" : {
+            "type" : "boolean"
+          },
+          "forkedFromId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Version"
             }
           }
         },
-        "required": ["createdAt", "paragraphs", "versionNo"]
+        "required" : [ "createdAt", "id", "language", "protected", "title", "versions" ]
       },
-      "CreatePolicyRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
+      "Version" : {
+        "type" : "object",
+        "properties" : {
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "language": {
-            "type": "string"
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
           },
-          "text": {
-            "type": "string"
+          "paragraphs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Paragraph"
+            }
+          }
+        },
+        "required" : [ "createdAt", "paragraphs", "versionNo" ]
+      },
+      "CreatePolicyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string"
+          },
+          "language" : {
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
           }
         }
       },
-      "AccessCodeRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
+      "AccessCodeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
           }
         }
       },
-      "Ruleset": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
+      "Ruleset" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "name": {
-            "type": "string"
+          "name" : {
+            "type" : "string"
           },
-          "domain": {
-            "type": "string"
+          "domain" : {
+            "type" : "string"
           },
-          "protected": {
-            "type": "boolean"
+          "protected" : {
+            "type" : "boolean"
           },
-          "forkedFromId": {
-            "type": "string",
-            "format": "uuid"
+          "forkedFromId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "policyId": {
-            "type": "string",
-            "format": "uuid"
+          "policyId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "versions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RulesetVersion"
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RulesetVersion"
             }
           }
         },
-        "required": ["domain", "id", "name", "policyId", "protected", "versions"]
+        "required" : [ "domain", "id", "name", "policyId", "protected", "versions" ]
       },
-      "RulesetVersion": {
-        "type": "object",
-        "properties": {
-          "versionNo": {
-            "type": "integer",
-            "format": "int32"
+      "RulesetVersion" : {
+        "type" : "object",
+        "properties" : {
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "status": {
-            "type": "string"
+          "status" : {
+            "type" : "string"
           }
         },
-        "required": ["status", "versionNo"]
+        "required" : [ "status", "versionNo" ]
       },
-      "RulesetsResponse": {
-        "type": "object",
-        "properties": {
-          "rulesets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Ruleset"
+      "RulesetsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rulesets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Ruleset"
             }
           }
         },
-        "required": ["rulesets"]
+        "required" : [ "rulesets" ]
       },
-      "AggregatesResponse": {
-        "type": "object",
-        "properties": {
-          "outcomes": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "format": "int32"
+      "AggregatesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "outcomes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
             }
           },
-          "errors": {
-            "type": "integer",
-            "format": "int32"
+          "errors" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "topDecidingRules": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TopRule"
+          "topDecidingRules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TopRule"
             }
           },
-          "decisions": {
-            "type": "integer",
-            "format": "int32"
+          "decisions" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required": ["decisions", "errors", "outcomes", "topDecidingRules"]
+        "required" : [ "decisions", "errors", "outcomes", "topDecidingRules" ]
       },
-      "TopRule": {
-        "type": "object",
-        "properties": {
-          "ruleId": {
-            "type": "string"
+      "TopRule" : {
+        "type" : "object",
+        "properties" : {
+          "ruleId" : {
+            "type" : "string"
           },
-          "count": {
-            "type": "integer",
-            "format": "int32"
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required": ["count", "ruleId"]
+        "required" : [ "count", "ruleId" ]
       },
-      "PoliciesResponse": {
-        "type": "object",
-        "properties": {
-          "policies": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Policy"
+      "PoliciesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "policies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Policy"
             }
           }
         },
-        "required": ["policies"]
+        "required" : [ "policies" ]
       },
-      "Policy": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
+      "Policy" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "title": {
-            "type": "string"
+          "title" : {
+            "type" : "string"
           },
-          "language": {
-            "type": "string"
+          "language" : {
+            "type" : "string"
           },
-          "protected": {
-            "type": "boolean"
+          "protected" : {
+            "type" : "boolean"
           },
-          "forkedFromId": {
-            "type": "string",
-            "format": "uuid"
+          "forkedFromId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
-          "versionNo": {
-            "type": "integer",
-            "format": "int32"
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "paragraphs": {
-            "type": "integer",
-            "format": "int32"
+          "paragraphs" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         },
-        "required": ["createdAt", "id", "language", "paragraphs", "protected", "title", "versionNo"]
+        "required" : [ "createdAt", "id", "language", "paragraphs", "protected", "title", "versionNo" ]
       }
     }
   }
