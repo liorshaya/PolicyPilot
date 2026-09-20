@@ -66,8 +66,11 @@ public record PolicyPilotProperties(
         /** The strong model authors, reviews and changes; the fast model explains and answers. */
         public record Models(@NotBlank String strong, @NotBlank String fast) {}
 
-        /** Seconds; the provider timeouts of Document 2, AI Layer Design. */
-        public record Timeouts(@Positive int authorSeconds, @Positive int chatFirstTokenSeconds) {}
+        /**
+         * Seconds. Only the chat stream's deadline lives here: a prompt's own timeout is in its {@code prompt.yml}
+         * (Document 2, Application properties), so one call has one place that says how long it may take.
+         */
+        public record Timeouts(@Positive int chatFirstTokenSeconds) {}
     }
 
     /** 1536 for OpenAI text-embedding-3-small, 1024 for bge-m3; checked against the vector column at startup. */

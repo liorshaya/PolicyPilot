@@ -32,7 +32,6 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
         assertThat(properties.rateLimit().perMinute()).isEqualTo(20);
         assertThat(properties.rateLimit().perSandboxPerHour()).isEqualTo(60);
         assertThat(properties.rateLimit().concurrentStreams()).isEqualTo(3);
-        assertThat(properties.ai().timeouts().authorSeconds()).isEqualTo(60);
         assertThat(properties.ai().timeouts().chatFirstTokenSeconds()).isEqualTo(20);
         assertThat(properties.ai().maxRepairAttempts()).isEqualTo(2);
         assertThat(properties.ai().promptVersions())

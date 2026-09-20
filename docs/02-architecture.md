@@ -78,7 +78,7 @@ One Maven project, one Spring Boot application, twelve packages under `com.liors
 | `decision` | Case model, `DecisionService` (single, batch, simulate), decision persistence and statistics, exports | `ruleset` (published versions), `engine`, `rules`, persistence |
 | `ai` | `LlmGateway`, `EmbeddingGateway`, prompt registry, structured output contracts, validation loop, marker resolver, tool argument validation, the five use cases (author, review, explain, answer, change) | `rules`, `engine` (read-only, for regression), `policy`, `ruleset` (drafts), `decision`, `rag`, persistence |
 | `ai.adapter` | The only package that imports Spring AI: `SpringAiLlmGateway`, `SpringAiEmbeddingGateway`, provider configuration, schema variant derivation, token budget guard, response cache | Spring AI, `ai` interfaces, persistence |
-| `rag` | Chunking, embedding on publish, `VectorStore` access, hybrid retrieval, citation building | `policy`, `rules`, `ai.adapter` (embeddings only), persistence |
+| `rag` | Chunking, embedding on publish, `VectorStore` access, hybrid retrieval, citation building | `policy`, `rules`, `ai` (the `EmbeddingGateway` interface), persistence |
 | `change` | Change requests, impact analysis, diff, regression run, approval (pending to analyst provenance), the next version through `ruleset` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | `AuditEntry`, append-only log service | persistence |
 | `demo` | Sandbox service (fork on write to protected rows), nightly reset and re-seed, manual reset with the admin code, fixture loading | `policy`, `ruleset`, `decision`, `audit`, persistence |
@@ -131,7 +131,7 @@ sequenceDiagram
   participant V as rules validator
   W->>API: POST /policies/{id}/rulesets (generate)
   API->>P: load policy, split into numbered paragraphs
-  API->>M: author prompt + paragraphs (structured output, temperature 0)
+  API->>M: author prompt + paragraphs (structured output, the model's own temperature)
   M-->>API: RuleSet draft JSON
   API->>V: schema + semantic validation (provenance must resolve)
   alt invalid
@@ -429,13 +429,13 @@ The stack is pinned to Spring AI 2.0.x on Spring Boot 4.0.x and Java 21, and the
 | `spring.ai.openai.api-key` / `spring.ai.ollama.base-url` | `${OPENAI_API_KEY}` | `http://ollama:11434` |
 | Chat model | `gpt-5.6-terra` (role `strong`) for author, review and change; `gpt-5.6-luna` (role `fast`) for answer and explain; both are properties confirmed against the current model list (Document 4) | `qwen3:14b` with thinking disabled (or `qwen3:8b` on small machines) for all prompts |
 | Embedding model | `text-embedding-3-small`, 1536 dimensions | `bge-m3`, 1024 dimensions |
-| Structured output | Provider-native JSON schema, strict mode on (Spring AI 2.0 defaults OpenAI strict mode to off, so the adapter sets it explicitly for the authoring prompts) | `format` JSON schema; the validator does the rest |
+| Structured output | Provider-native JSON schema, strict mode off (strict makes every declared property mandatory, which the DSL forbids in context; the answer is normalized and the canonical validator holds, Document 4) | `format` JSON schema; the validator does the rest |
 | `policypilot.embedding.dimension` | 1536 | 1024 |
 | `policypilot.ai.prompt-versions.*` | `author=v1, review=v1, explain=v1, answer=v1, change=v1` | same |
 
 Notes that come from the Spring AI 2.0 upgrade guide ([upgrade notes](https://docs.spring.io/spring-ai/reference/upgrade-notes.html)) and that the adapter must respect: tool execution runs through `ToolCallingAdvisor` on the `ChatClient`, not inside the model; chat memory requires an explicit conversation id (the chat session id); model property paths are flat (`spring.ai.openai.embedding.model`, no `.options`); options objects are immutable and use `mutate()`.
 
-**Application properties owned by PolicyPilot** (prefix `policypilot.`): `access-code`, `cookie-secret`, `admin-code` (all three from environment variables only), `rate-limit.per-minute` (default 20), `rate-limit.per-sandbox-per-hour` (60), `rate-limit.concurrent-streams` (3), web.allowed-origins (the CORS and Origin allowlist: http://localhost:5173 by default, https://policypilot.liorshaya.com in the cloud profile), `ai.models.strong`, `ai.models.fast`, `ai.prompt-versions.*`, `ai.timeouts.author-seconds` (60), `ai.timeouts.chat-first-token-seconds` (20), `ai.max-repair-attempts` (2), `ai.daily-token-budget`, `ai.log-payloads` (false in the cloud), `embedding.dimension` (1536 or 1024), `rag.top-k` (8), `rag.min-score` (0.35), `demo.reset-cron` (`0 0 3 * * *`), `demo.fixture-set` (`cases-200`). All have defaults in `application.yml`; secrets only through environment variables.
+**Application properties owned by PolicyPilot** (prefix `policypilot.`): `access-code`, `cookie-secret`, `admin-code` (all three from environment variables only), `rate-limit.per-minute` (default 20), `rate-limit.per-sandbox-per-hour` (60), `rate-limit.concurrent-streams` (3), web.allowed-origins (the CORS and Origin allowlist: http://localhost:5173 by default, https://policypilot.liorshaya.com in the cloud profile), `ai.models.strong`, `ai.models.fast`, `ai.prompt-versions.*`, `ai.timeouts.chat-first-token-seconds` (20), `ai.max-repair-attempts` (2), `ai.daily-token-budget`, `ai.log-payloads` (false in the cloud), `embedding.dimension` (1536 or 1024), `rag.top-k` (8), `rag.min-score` (0.35), `demo.reset-cron` (`0 0 3 * * *`), `demo.fixture-set` (`cases-200`). A prompt's own timeout, token cap and temperature live in its prompt file, not here. All have defaults in `application.yml`; secrets only through environment variables.
 
 **Model selection per prompt**: the prompt registry maps each prompt name to a model name, so the expensive model is used only where accuracy matters (authoring, review, change) and the cheaper model where fluency matters (explain, answer); with Ollama both map to the same local model.
 
