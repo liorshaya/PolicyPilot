@@ -7,7 +7,8 @@ task: fix only the validation problems listed and return the complete corrected 
 outputSchema: schemas/ruleset-1.0.schema.json
 modelRole: strong
 temperature: default
-maxOutputTokens: 8000
+# The same cap as the prompt it repairs (Document 4).
+maxOutputTokens: 24000
 timeoutSeconds: 180
 repairs: 0
 cache: none

@@ -27,6 +27,8 @@ public class LlmUnavailableException extends RuntimeException {
         TIMEOUT,
         RATE_LIMITED,
         PROVIDER_ERROR,
-        BUDGET_EXHAUSTED
+        BUDGET_EXHAUSTED,
+        /** The provider stopped on the output cap, or returned no text: the call was cut off, not answered. */
+        OUTPUT_TRUNCATED
     }
 }

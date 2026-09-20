@@ -552,14 +552,14 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 
 | Prompt | Role | Temperature | Max output tokens | Timeout | Repairs | Cache |
 | --- | --- | --- | --- | --- | --- | --- |
-| `author` | strong | 0 | 8,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
+| `author` | strong | 0 | 24,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
 | `repair` | same as the prompt it repairs | 0 | same | shares the original budget | n/a | none |
 | `review` | strong | 0 | 4,000 | 45 s | 0 | by input hash |
 | `explain` | fast | 0.3 | 800 | 20 s | 0 | by decision id, audience, prompt version |
 | `answer` | fast | 0.3 | 1,200 | 20 s to first token, 60 s total | 0 | scripted demo questions only |
 | `change` | strong | 0 | 6,000 | 60 s | 2 | by input hash (request, version id, prompt version, model) |
 
-The author timeout is 180 s because the strong model of the current lineup takes 67 to 101 seconds to write a rule set for a one-page policy, measured over the ten live runs of day 7; a temperature is not sent at all, because that model accepts only its own.
+The author timeout is 180 s because the strong model of the current lineup takes 67 to 101 seconds to write a rule set for a one-page policy, measured over the ten live runs of day 7; a temperature is not sent at all, because that model accepts only its own. Its output cap is 24,000 tokens, not the 8,000 first written here, because on this lineup the completion-token cap counts the model's reasoning tokens as well as the document it returns: one twelve-paragraph policy needed 2,184 reasoning tokens and 6,379 tokens of document, while a run that reasoned harder spent all 8,000 on reasoning alone and returned nothing at all.
 
 **Role to model mapping** (as of September 2026; model names are properties `policypilot.ai.models.strong` and `policypilot.ai.models.fast`, confirmed against the provider's model list when the profile is set up, because the lists change every few months):
 
@@ -616,6 +616,7 @@ The guardrails assume the model is unreliable, the input may be hostile and the 
 | Hallucinated citations in chat | Marker resolver drops unknown markers and counts them; retrieval threshold short-circuits uncovered questions before the model | Answer pipeline |
 | Model computing outcomes | No prompt asks for an outcome; counterfactuals only through `simulate`; explanations may not mention skipped rules | Explain and answer prompts, API checks |
 | Malformed output | Provider structured output plus local schema validation; repair loop bounded at 2; failure surfaces with the error list | Repair loop |
+| Answer cut off by the output cap | A completion the provider stopped on length, or one with no text at all, is a failure of the call and not a mistake of the model: the gateway raises OUTPUT\_TRUNCATED and the repair loop never sees it. Repairing an empty answer is what produces a rule set that is small, wrong and indistinguishable from a good one, which is the one failure this system may not have. | LlmGateway adapter |
 | Provider outage or rate limit | Timeouts per prompt, retry with backoff on 429 and 5xx (3 attempts, 1 s, 2 s, 4 s), circuit breaker open for 30 s after 5 consecutive failures, cached outputs for the scripted demo steps, and the fixed not-covered sentence is never affected because it does not need the model | `LlmGateway` adapter, cache |
 | Cost | Daily token ledger with a hard stop that switches to cache-only mode and a UI banner; per-request output token caps; the OpenAI dashboard monthly limit as the outer bound | Token budget guard |
 | Latency on an unknown network | Cache for steps 1, 3 and 4 of the demo; streaming for chat; first-token timeout of 20 s with a visible spinner and a retry button | Answer pipeline, UI |

@@ -71,6 +71,8 @@ public class ModelCallLedger {
         public static final String INVALID = "INVALID";
         /** The provider did not answer. */
         public static final String UNAVAILABLE = "UNAVAILABLE";
+        /** The provider answered, but the answer was cut off by the output cap and held no text. */
+        public static final String TRUNCATED = "TRUNCATED";
 
         private Results() {}
     }

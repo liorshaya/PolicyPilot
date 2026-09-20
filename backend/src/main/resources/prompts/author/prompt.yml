@@ -10,7 +10,10 @@ modelRole: strong
 # temperature and refuses any other, so the prompt asks for the model's default and determinism
 # comes from the schema and the validator instead.
 temperature: default
-maxOutputTokens: 8000
+# The cap counts the model's reasoning tokens as well as the document it returns (Document 4): a
+# twelve-paragraph policy measured 2,184 reasoning and 6,379 document tokens, and a run that reasoned
+# harder spent all of an 8,000 cap on reasoning and answered nothing at all.
+maxOutputTokens: 24000
 timeoutSeconds: 180
 repairs: 2
 cache: by-input-hash

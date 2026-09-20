@@ -92,6 +92,32 @@ class SpringAiLlmGatewayIT extends ApiIntegrationTest {
     }
 
     @Test
+    void anAnswerTheProviderCutOffIsADefinedFailure() {
+        // the strong model's reasoning and its text share one budget, so a hard policy can spend the whole cap
+        // on reasoning and return nothing (Document 4, Guardrails: answer cut off by the output cap)
+        model.willAnswer("");
+
+        assertThatThrownBy(() -> gateway.complete(spec(), String.class))
+                .isInstanceOf(LlmUnavailableException.class)
+                .hasMessageContaining("no text");
+        assertThat(recorded().getFirst().validationResult()).isEqualTo("TRUNCATED");
+    }
+
+    @Test
+    void anAnswerWithNoTextIsNeverCached() {
+        // caching it would make the failure permanent for that policy: every later run would replay the nothing
+        model.willAnswer("");
+        assertThatThrownBy(() -> gateway.complete(spec(), String.class))
+                .isInstanceOf(LlmUnavailableException.class);
+
+        model.willAnswer("{\"id\":\"consumer-lending\"}");
+        Completion<String> second = gateway.complete(spec(), String.class);
+
+        assertThat(second.value()).isEqualTo("{\"id\":\"consumer-lending\"}");
+        assertThat(second.cacheHit()).isFalse();
+    }
+
+    @Test
     void theSameCallASecondTimeIsServedFromTheCache() {
         model.willAnswer("{\"id\":\"consumer-lending\"}");
         gateway.complete(spec(), String.class);
