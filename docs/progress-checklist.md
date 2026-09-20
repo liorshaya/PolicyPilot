@@ -100,11 +100,11 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] Tests: contract tests per route; publish transaction and `UPDATE` refusal; append-only grant; replay equals stored; batch under 1 s, single under 50 ms; simulate stores nothing; CSV prefixing; cross-sandbox 404 per entity; publish on protected refused
 - [x] The 200 cases decide through the API under 1 s with aggregates equal to `cases-expected.json` (106 ms locally, on Testcontainers)
 
-**Day 6, Mon Sep 28: `frontend` screens** — done 2026-09-20 (#43 to #45)
+**Day 6, Mon Sep 28: `frontend` screens** — done 2026-09-20 (#43 to #46)
 
 - [x] Generated TypeScript client, `sse.ts`; policy screen; rule set screen with the editable decision table, cell grammar, JSON view, 422 pointers, publish; case runner; dashboard; decision list; trace view; RTL by policy language; MSW handlers
 - [x] Tests: cell grammar round-trip with Hebrew labels; `sse.ts` at 100%; editing reducer; dashboard aggregation; RTL snapshots of the table and the trace view; Playwright step 2
-- [ ] Step 2 runs on the cloud site from a second browser — waits for the owner: the cloud access code is not the local one
+- [x] Step 2 runs on the cloud site from a second browser (owner, 2026-09-20): the 200 cases decide with the aggregates of `cases-expected.json`, case 17 refers on R-330 with its trace, and a rule opens beside the paragraph it cites
 
 **Day 7, Tue Sep 29: AI layer and `author`**
 
