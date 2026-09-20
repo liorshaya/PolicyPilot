@@ -357,4 +357,33 @@ describe('RulesScreen', () => {
     await screen.findByRole('table')
     expect(screen.queryByRole('combobox', { name: 'Rule set' })).not.toBeInTheDocument()
   })
+
+  it('tells two rule sets of one policy apart in the switcher', async () => {
+    // generating from a policy that already has a published rule set gives two with the same name
+    server.use(
+      // MSW takes the first match, so this list stands in front of the two-rule-set handlers
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            rulesets.rulesets[0]!,
+            {
+              ...rulesets.rulesets[0]!,
+              id: SECOND_RULESET_ID,
+              protected: false,
+              domain: 'draft-of-it',
+            },
+          ],
+        }),
+      ),
+      ...twoRulesets(),
+    )
+    renderScreen(null, SEEDED_RULESET_ID, () => undefined)
+
+    const switcher = await screen.findByRole('combobox', { name: 'Rule set' })
+    const labels = within(switcher)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+    expect(new Set(labels).size).toBe(2)
+    expect(labels[1]).toContain('draft-of-it')
+  })
 })
