@@ -10,6 +10,8 @@ interface PanelProps {
   actions?: ReactNode
   /** Removes the body padding, for a table that reaches the panel's edges. */
   flush?: boolean
+  /** Fills the height of its column and scrolls its own body, so the header and the table head stay in place. */
+  fill?: boolean
   className?: string
   children: ReactNode
 }
@@ -20,10 +22,11 @@ export function Panel({
   subtitle,
   actions,
   flush = false,
+  fill = false,
   className,
   children,
 }: PanelProps) {
-  const classes = ['panel', className].filter(Boolean).join(' ')
+  const classes = ['panel', fill ? 'panel--fill' : '', className].filter(Boolean).join(' ')
   return (
     <section className={classes}>
       <header className="panel__header">

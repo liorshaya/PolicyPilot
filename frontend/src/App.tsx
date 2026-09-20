@@ -3,6 +3,7 @@ import { AccessGate } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
 import { PoliciesScreen } from './features/policy/PoliciesScreen'
+import { RulesScreen } from './features/rules/RulesScreen'
 import { EmptyState } from './shared/ui/States'
 import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
 
@@ -38,7 +39,8 @@ export function App() {
   return (
     <AppShell current={screen} onNavigate={navigate}>
       {screen === 'policies' ? <PoliciesScreen onOpenRules={() => navigate('rules')} /> : null}
-      {screen !== 'policies' ? (
+      {screen === 'rules' ? <RulesScreen onOpenCases={() => navigate('cases')} /> : null}
+      {screen !== 'policies' && screen !== 'rules' ? (
         <>
           <WorkspaceHeader title={SCREENS.find((item) => item.id === screen)?.label ?? ''} />
           <EmptyState
