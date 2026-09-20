@@ -19,12 +19,18 @@ import './RulesScreen.css'
 
 type SidePanel = 'source' | 'rule' | 'json'
 
+interface RulesScreenProps {
+  onOpenCases: () => void
+  /** A rule another screen asked for, such as the step that decided a case; a click here replaces it. */
+  focusRuleId?: string | null
+}
+
 /**
  * The rule set screen (Work Plan day 6): the decision table with the cell grammar, the raw JSON view, the 422
  * pointers shown on the cells they name, and publish. A rule, its source paragraph and its findings are shown
  * together, because that pairing is what makes a published version auditable.
  */
-export function RulesScreen({ onOpenCases }: { onOpenCases: () => void }) {
+export function RulesScreen({ onOpenCases, focusRuleId = null }: RulesScreenProps) {
   const rulesets = useRulesets()
   const first = rulesets.data?.[0]
   const ruleset = first
@@ -37,7 +43,8 @@ export function RulesScreen({ onOpenCases }: { onOpenCases: () => void }) {
       ? { id: replaceRules.data.rulesetId, versionNo: replaceRules.data.versionNo }
       : (ruleset ?? { id: '', versionNo: 1 }),
   )
-  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null)
+  const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
+  const selectedRuleId = chosenRuleId ?? focusRuleId
   const [panel, setPanel] = useState<SidePanel>('source')
 
   // the version on the screen is the last answer the API gave: an edit or a publish replaces it
@@ -152,7 +159,7 @@ export function RulesScreen({ onOpenCases }: { onOpenCases: () => void }) {
                   document={document}
                   selectedRuleId={selectedRuleId}
                   onSelect={(ruleId) => {
-                    setSelectedRuleId(ruleId)
+                    setChosenRuleId(ruleId)
                     if (panel === 'json') {
                       setPanel('rule')
                     }

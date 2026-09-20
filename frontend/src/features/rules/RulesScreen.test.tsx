@@ -46,11 +46,11 @@ function serveDraft(): void {
   )
 }
 
-function renderScreen() {
+function renderScreen(focusRuleId: string | null = null) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <RulesScreen onOpenCases={() => undefined} />
+      <RulesScreen onOpenCases={() => undefined} focusRuleId={focusRuleId} />
     </QueryClientProvider>,
   )
 }
@@ -120,6 +120,18 @@ describe('RulesScreen', () => {
     expect(panel.getByText('0.88')).toBeInTheDocument()
     expect(panel.getByText('DSL-311')).toBeInTheDocument()
     expect(panel.getByText('the rule is unreachable')).toBeInTheDocument()
+  })
+
+  it('opens the rule another screen asked for, until another rule is chosen', async () => {
+    const user = userEvent.setup()
+    renderScreen('R-330')
+
+    // the step that decided a case leads here, so that rule is the one already open
+    expect(await screen.findByText(/Paragraph 7 is the source of R-330/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /R-100/ }))
+
+    expect(await screen.findByText(/Paragraph 1 is the source of R-100/)).toBeInTheDocument()
   })
 
   it('shows the document the engine runs in the JSON view', async () => {

@@ -1,0 +1,10 @@
+.cases__refusal {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-declined-line);
+  border-inline-start-width: 3px;
+  border-inline-start-color: var(--color-declined-text);
+  border-radius: var(--radius-md);
+  background: var(--color-declined-bg);
+  color: var(--color-declined-text);
+  font-size: var(--text-sm);
+}

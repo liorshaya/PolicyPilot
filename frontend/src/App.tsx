@@ -3,6 +3,7 @@ import { AccessGate } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
 import { PoliciesScreen } from './features/policy/PoliciesScreen'
+import { CasesScreen } from './features/cases/CasesScreen'
 import { RulesScreen } from './features/rules/RulesScreen'
 import { EmptyState } from './shared/ui/States'
 import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
@@ -20,6 +21,8 @@ function screenFromHash(): ScreenId {
 export function App() {
   const [entered, setEntered] = useState(false)
   const [screen, setScreen] = useState<ScreenId>(screenFromHash)
+  // the rule another screen asked to open, so a trace step leads to the rule and its source
+  const [focusRuleId, setFocusRuleId] = useState<string | null>(null)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -39,8 +42,18 @@ export function App() {
   return (
     <AppShell current={screen} onNavigate={navigate}>
       {screen === 'policies' ? <PoliciesScreen onOpenRules={() => navigate('rules')} /> : null}
-      {screen === 'rules' ? <RulesScreen onOpenCases={() => navigate('cases')} /> : null}
-      {screen !== 'policies' && screen !== 'rules' ? (
+      {screen === 'rules' ? (
+        <RulesScreen onOpenCases={() => navigate('cases')} focusRuleId={focusRuleId} />
+      ) : null}
+      {screen === 'cases' ? (
+        <CasesScreen
+          onOpenRule={(ruleId) => {
+            setFocusRuleId(ruleId)
+            navigate('rules')
+          }}
+        />
+      ) : null}
+      {screen !== 'policies' && screen !== 'rules' && screen !== 'cases' ? (
         <>
           <WorkspaceHeader title={SCREENS.find((item) => item.id === screen)?.label ?? ''} />
           <EmptyState
