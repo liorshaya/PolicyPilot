@@ -145,13 +145,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* An editable cell says so at rest: a draft is edited in the table, so the affordance cannot wait for a hover. */
 .table__input {
   width: 100%;
   min-width: 8rem;
   padding: 2px var(--space-2);
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: none;
+  background: var(--color-surface);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }

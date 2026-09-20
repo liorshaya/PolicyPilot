@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { api } from './client'
 import type {
+  Aggregates,
+  BatchResult,
+  Decision,
   PolicyResponse,
   PolicySummary,
   RulesetSummary,
@@ -91,6 +94,38 @@ export function usePublish(ruleset: { id: string; versionNo: number }) {
     onSuccess: (version) => {
       client.setQueryData(keys.version(version.rulesetId, version.versionNo), version)
       void client.invalidateQueries({ queryKey: keys.rulesets })
+    },
+  })
+}
+
+/** What the version has decided so far (Document 2, statistics over the latest decision of every case). */
+export function useStats(
+  ruleset: { id: string; versionNo: number } | null,
+): UseQueryResult<Aggregates> {
+  return useQuery({
+    queryKey: keys.stats(ruleset?.id ?? 'none', ruleset?.versionNo ?? 0),
+    queryFn: () => api.stats(ruleset?.id ?? '', ruleset?.versionNo ?? 0),
+    enabled: ruleset !== null,
+  })
+}
+
+/** One decision with its whole trace; a case is opened from the list by its id. */
+export function useDecision(decisionId: string | null): UseQueryResult<Decision> {
+  return useQuery({
+    queryKey: keys.decision(decisionId ?? 'none'),
+    queryFn: () => api.decision(decisionId ?? ''),
+    enabled: decisionId !== null,
+  })
+}
+
+/** Running a seeded set of cases; the statistics of the version are refreshed with the batch's own aggregates. */
+export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (fixtureSet: string) =>
+      api.decideFixtureSet(ruleset.id, ruleset.versionNo, fixtureSet),
+    onSuccess: (batch: BatchResult) => {
+      client.setQueryData(keys.stats(ruleset.id, ruleset.versionNo), batch.aggregates)
     },
   })
 }

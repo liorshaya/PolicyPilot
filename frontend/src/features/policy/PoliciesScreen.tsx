@@ -65,6 +65,7 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
               />
             ) : null}
             <Panel
+              fill
               title={
                 selected.data ? (
                   // a document's own title is content, so it takes the direction of its own first letters
@@ -108,6 +109,7 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
         }
         side={
           <Panel
+            fill
             title="Documents"
             subtitle="Seeded first, then the ones added in this sandbox"
             flush

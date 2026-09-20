@@ -1,0 +1,36 @@
+.decisions__no {
+  width: 5rem;
+}
+
+.decisions__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.decisions__rule {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.decisions__flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.decisions__flag {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.decisions__none {
+  color: var(--color-border-strong);
+}
