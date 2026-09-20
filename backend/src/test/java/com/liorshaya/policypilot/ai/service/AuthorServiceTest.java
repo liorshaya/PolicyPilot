@@ -351,10 +351,15 @@ class AuthorServiceTest {
         assertThat(spec.promptVersion()).isEqualTo("v1");
         // no temperature is sent: the strong model of the current lineup accepts only its own (Document 4)
         assertThat(spec.temperature()).isNull();
-        assertThat(spec.maxOutputTokens()).isEqualTo(8000);
+        // the cap covers the model's reasoning as well as its text (Document 4, day 8)
+        assertThat(spec.maxOutputTokens()).isEqualTo(24000);
         assertThat(spec.outputSchema()).isEqualTo("schemas/ruleset-1.0.schema.json");
     }
 
+    /**
+     * The gateway refuses an answer with no text before the service sees one (Document 4, Guardrails), so this is
+     * the second line of defence: a recorded or scripted gateway can still hand the service nothing.
+     */
     @Test
     void anEmptyAnswerIsTreatedAsNoDocumentAtAll() {
         RecordedGateway gateway = RecordedGateway.answering("", VALID);

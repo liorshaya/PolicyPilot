@@ -34,7 +34,8 @@ class PromptRegistryTest {
         assertThat(author.role()).isEqualTo(ModelRole.STRONG);
         // the strong model of the current lineup accepts only its own temperature (Document 4)
         assertThat(author.temperature()).isNull();
-        assertThat(author.maxOutputTokens()).isEqualTo(8000);
+        // the cap covers the model's reasoning tokens as well as its text (Document 4, day 8)
+        assertThat(author.maxOutputTokens()).isEqualTo(24000);
         assertThat(author.timeout()).isEqualTo(Duration.ofSeconds(180));
         assertThat(author.repairs()).isEqualTo(2);
         assertThat(author.cache()).isEqualTo(PromptDefinition.CachePolicy.BY_INPUT_HASH);

@@ -189,4 +189,49 @@ describe('useGeneration', () => {
     // a generation creates a rule set the cached list does not have; without this the screen opens the old one
     await waitFor(() => expect(listed).toBe(2))
   })
+
+  it('shows what the validator noted about a draft that passed', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        streamOf([
+          [
+            'draft',
+            {
+              ...publishedVersion,
+              status: 'DRAFT',
+              versionNo: 1,
+              findings: [
+                {
+                  code: 'NO_TERMINAL_APPROVE',
+                  severity: 'info',
+                  path: '/rules',
+                  message: 'no rule can produce approve',
+                  ruleIds: [],
+                  fieldNames: [],
+                },
+                {
+                  code: 'REFER_PRECEDES_REJECT',
+                  severity: 'warning',
+                  path: '/rules/1/priority',
+                  message: 'terminal refer R-002 at 300 precedes a terminal reject at 400',
+                  ruleIds: ['R-002'],
+                  fieldNames: [],
+                },
+              ],
+            },
+          ],
+        ]),
+      ),
+    )
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    // a draft that validated can still be a poor one; the analyst approving it has to see what was noted
+    expect(await screen.findByText('NO_TERMINAL_APPROVE')).toBeInTheDocument()
+    expect(screen.getByText('no rule can produce approve')).toBeInTheDocument()
+    expect(screen.getByText('REFER_PRECEDES_REJECT')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review the draft' })).toBeInTheDocument()
+  })
 })

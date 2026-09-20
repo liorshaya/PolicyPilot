@@ -86,16 +86,9 @@ public class SpringAiLlmGateway implements LlmGateway {
         budget.requireBudget();
         breaker.requireClosed();
         long started = clock.millis();
+        ChatResponse response;
         try {
-            ChatResponse response = call(spec, model);
-            Duration latency = Duration.ofMillis(clock.millis() - started);
-            TokenUsage usage = usageOf(response);
-            budget.record(usage);
-            ledger.record(spec, model, provider(), usage, latency, ModelCallLedger.Results.VALID, false);
-            breaker.succeeded();
-            String answer = response.getResult().getOutput().getText();
-            cache.put(key, spec.promptName(), answer == null ? "" : answer);
-            return (Completion<T>) Completion.fromProvider(answer == null ? "" : answer, usage);
+            response = call(spec, model);
         } catch (LlmUnavailableException e) {
             Duration latency = Duration.ofMillis(clock.millis() - started);
             ledger.record(spec, model, provider(), TokenUsage.NONE, latency,
@@ -104,6 +97,28 @@ public class SpringAiLlmGateway implements LlmGateway {
             meters.counter("policypilot.ai.provider.failure", "reason", e.reason().name()).increment();
             throw e;
         }
+
+        Duration latency = Duration.ofMillis(clock.millis() - started);
+        TokenUsage usage = usageOf(response);
+        // the tokens were spent whether or not they became an answer, so the budget is charged either way
+        budget.record(usage);
+        breaker.succeeded();
+        String answer = response.getResult().getOutput().getText();
+        if (answer == null || answer.isBlank()) {
+            // The model's reasoning and its text share one budget, so a call can end with the budget spent and
+            // nothing written. The provider answered; the answer was cut off. It must not reach the repair
+            // loop, because repairing nothing yields a small, wrong document that looks like a good one
+            // (Document 4, Guardrails), and it is not cached, or the failure would outlive the call.
+            ledger.record(spec, model, provider(), usage, latency, ModelCallLedger.Results.TRUNCATED, false);
+            meters.counter("policypilot.ai.provider.failure",
+                    "reason", LlmUnavailableException.Reason.OUTPUT_TRUNCATED.name()).increment();
+            throw new LlmUnavailableException(LlmUnavailableException.Reason.OUTPUT_TRUNCATED,
+                    "the provider returned no text for " + spec.promptName() + "/" + spec.promptVersion()
+                            + "; the answer did not fit in " + spec.maxOutputTokens() + " tokens");
+        }
+        ledger.record(spec, model, provider(), usage, latency, ModelCallLedger.Results.VALID, false);
+        cache.put(key, spec.promptName(), answer);
+        return (Completion<T>) Completion.fromProvider(answer, usage);
     }
 
     /** The call itself, retried with backoff on a failure that may pass (Document 4, Guardrails). */

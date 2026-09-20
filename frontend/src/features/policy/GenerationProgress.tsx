@@ -45,6 +45,25 @@ export function GenerationProgress({
             , version <span className="tabular">{generation.draft.versionNo}</span>. Nothing decides
             cases until a person publishes it.
           </p>
+          {(generation.draft.findings ?? []).length > 0 ? (
+            // a draft can validate and still be a poor one; whoever approves it has to see what was noted
+            <div className="generation__noted">
+              <p className="generation__noted-title">
+                The validator noted{' '}
+                <span className="tabular">{(generation.draft.findings ?? []).length}</span> thing
+                {(generation.draft.findings ?? []).length === 1 ? '' : 's'} to check before
+                publishing:
+              </p>
+              <ul className="generation__findings">
+                {(generation.draft.findings ?? []).slice(0, 5).map((finding) => (
+                  <li key={`${finding.code}${finding.path}`}>
+                    <span className="mono">{finding.code}</span>
+                    <span>{finding.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <Button variant="primary" onClick={onOpenRules}>
             Review the draft
           </Button>
