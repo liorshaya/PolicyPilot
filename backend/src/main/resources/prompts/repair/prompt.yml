@@ -6,9 +6,9 @@ role: rule author
 task: fix only the validation problems listed and return the complete corrected document
 outputSchema: schemas/ruleset-1.0.schema.json
 modelRole: strong
-temperature: 0.0
+temperature: default
 maxOutputTokens: 8000
-timeoutSeconds: 60
+timeoutSeconds: 180
 repairs: 0
 cache: none
 languages: [he, en]

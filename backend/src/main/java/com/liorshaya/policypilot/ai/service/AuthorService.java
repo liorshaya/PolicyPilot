@@ -4,6 +4,7 @@ import com.liorshaya.policypilot.ai.Completion;
 import com.liorshaya.policypilot.ai.LlmGateway;
 import com.liorshaya.policypilot.ai.LlmMalformedOutputException;
 import com.liorshaya.policypilot.ai.PromptSpec;
+import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
@@ -103,11 +104,21 @@ public class AuthorService {
     private Answer ask(PromptSpec spec) {
         Completion<String> answer = gateway.complete(spec, String.class);
         try {
-            JsonNode parsed = JSON.readTree(answer.value());
+            // a strict structured-output mode makes the model fill every optional property, and a null is how it
+            // says "absent"; the canonical schema never asked for them (Document 4, Output discipline)
+            JsonNode parsed = ProviderSchemaVariant.stripNulls(JSON.readTree(answer.value()));
             return new Answer(parsed.isObject() ? parsed : null, answer.value());
         } catch (RuntimeException e) {
             return new Answer(null, answer.value());
         }
+    }
+
+    /**
+     * The first call this policy would make, for a harness that records live answers: the recordings are keyed by
+     * the rendered prompt, so they must be made from exactly the spec the service itself would send.
+     */
+    public PromptSpec specFor(PolicyVersionRef policy, String title, String language, @Nullable String hints) {
+        return specOf(prompts.get("author"), policy, title, language, hints);
     }
 
     private PromptSpec specOf(PromptDefinition author, PolicyVersionRef policy, String title, String language,

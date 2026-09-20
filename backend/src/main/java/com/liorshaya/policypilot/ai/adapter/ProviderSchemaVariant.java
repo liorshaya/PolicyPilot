@@ -50,6 +50,12 @@ public final class ProviderSchemaVariant {
             return node;
         }
         ObjectNode schema = (ObjectNode) node;
+        // a strict mode knows anyOf but not oneOf; the canonical schema still says oneOf, and it is what
+        // validates the answer, so the variant only weakens "exactly one of" to "one of"
+        JsonNode oneOf = schema.get("oneOf");
+        if (oneOf != null && !schema.has("anyOf")) {
+            schema.set("anyOf", oneOf);
+        }
         UNSUPPORTED.forEach(schema::remove);
 
         for (String keyword : SCHEMA_MAP) {
@@ -77,8 +83,40 @@ public final class ProviderSchemaVariant {
         if (properties instanceof ObjectNode declared) {
             requireEveryProperty(schema, declared);
             schema.put("additionalProperties", false);
+            // a schema with properties is an object, and a strict mode wants that said rather than implied
+            if (!schema.has("type")) {
+                schema.put("type", "object");
+            }
         }
+        nameTheType(schema);
         return schema;
+    }
+
+    /**
+     * A strict mode wants a {@code type} on every schema, and the canonical schema leaves it out where a
+     * {@code const} or an {@code enum} already says everything: the type is read back out of those values.
+     */
+    private static void nameTheType(ObjectNode schema) {
+        if (schema.has("type") || schema.has("$ref") || schema.has("anyOf")) {
+            return;
+        }
+        JsonNode values = schema.has("const") ? schema.get("const") : schema.get("enum");
+        if (values == null) {
+            return;
+        }
+        JsonNode first = values.isArray() ? values.get(0) : values;
+        if (first == null) {
+            return;
+        }
+        if (first.isBoolean()) {
+            schema.put("type", "boolean");
+        } else if (first.isIntegralNumber()) {
+            schema.put("type", "integer");
+        } else if (first.isNumber()) {
+            schema.put("type", "number");
+        } else if (first.isString()) {
+            schema.put("type", "string");
+        }
     }
 
     /**

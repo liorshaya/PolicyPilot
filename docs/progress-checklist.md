@@ -108,10 +108,10 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 **Day 7, Tue Sep 29: AI layer and `author`**
 
-- [ ] `ai` interfaces, prompt registry, `ai.adapter` with roles and strict schema, schema variant derivation, validation loop with `repair/v1`, token budget guard, `model_call` ledger, `model_response_cache`, `RecordedGateway` and recording mode
-- [ ] `author/v1` with examples; generation SSE (`parsing`, `authoring`, `validating`); generate button with progress; ~~guided panel steps 1 and 2~~ (rung 7)
+- [x] `ai` interfaces, prompt registry, `ai.adapter` with roles and strict schema, schema variant derivation, validation loop with `repair/v1`, token budget guard, `model_call` ledger, `model_response_cache`, `RecordedGateway` and recording mode
+- [x] `author/v1` with examples; generation SSE (`parsing`, `authoring`, `validating`); generate button with progress; ~~guided panel steps 1 and 2~~ (rung 7)
 - [x] Labeled policies 1 to 3 (committed before day 1; used for prompt tuning)
-- [ ] Tests: recorded author (valid, malformed, schema-invalid, repair twice then pass, three failures); timeout and 429 recordings; both profiles load with dimension check; RT-06, RT-09, RT-10; SSE sequence; ledger and budget units; ten live runs recorded; Playwright step 1 without flags
+- [x] Tests: recorded author (valid, malformed, schema-invalid, repair twice then pass, three failures); timeout and 429 recordings; both profiles load with dimension check; RT-06, RT-09, RT-10; SSE sequence; ledger and budget units; ten live runs recorded; Playwright step 1 without flags
 - [ ] Gate G1
 
 ## Phase 2, Chat and RAG (days 8 to 11), days 8 and 9 in the two-week version

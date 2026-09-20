@@ -15,7 +15,8 @@ import org.jspecify.annotations.Nullable;
  * @param examples the few-shot examples as JSON text, or null when the prompt has none
  * @param outputSchema the classpath location of the JSON Schema the answer must satisfy, or null for text
  * @param role which configured model runs it
- * @param temperature the sampling temperature of Document 4's table
+ * @param temperature the sampling temperature of Document 4's table, or null when the file says
+ *     {@code default}, which is how a prompt asks for the model's own (some models accept no other)
  * @param maxOutputTokens the cap on the answer
  * @param timeout how long one call may take
  * @param repairs how many repair attempts this prompt allows after a validation failure
@@ -30,7 +31,7 @@ public record PromptDefinition(
         @Nullable String examples,
         @Nullable String outputSchema,
         ModelRole role,
-        double temperature,
+        @Nullable Double temperature,
         int maxOutputTokens,
         Duration timeout,
         int repairs,

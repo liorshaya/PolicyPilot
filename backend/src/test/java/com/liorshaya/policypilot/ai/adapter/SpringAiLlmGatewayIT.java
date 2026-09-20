@@ -87,7 +87,8 @@ class SpringAiLlmGatewayIT extends ApiIntegrationTest {
         assertThat(call.validationResult()).isEqualTo("VALID");
         assertThat(call.cacheHit()).isFalse();
         assertThat(call.model()).isEqualTo("gpt-5.6-terra");
-        assertThat(call.provider()).isEqualTo("ollama");
+        // the provider is named after the model in use; here that is the fake one
+        assertThat(call.provider()).isEqualTo("fake");
     }
 
     @Test

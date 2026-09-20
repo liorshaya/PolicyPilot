@@ -135,6 +135,52 @@ class ProviderSchemaVariantTest {
     }
 
     @Test
+    void keepsAChoiceTheStrictModeCanExpress() {
+        // provenance, condition and action are all oneOf in the canonical schema, and all three must survive
+        ObjectNode variant = ProviderSchemaVariant.of(canonical());
+
+        for (String definition : List.of("provenance", "condition", "action")) {
+            JsonNode derived = variant.get("$defs").get(definition);
+            assertThat(derived.propertyNames()).doesNotContain("oneOf");
+            assertThat(derived.get("anyOf")).as(definition).isNotNull();
+            assertThat(derived.get("anyOf")).isNotEmpty();
+        }
+    }
+
+    @Test
+    void namesTheTypeWhereOnlyAConstOrAnEnumSaidIt() {
+        ObjectNode canonical = (ObjectNode) JSON.readTree("""
+                {"type":"object","properties":{
+                  "kind":{"const":"quoted"},
+                  "op":{"enum":["eq","ne"]},
+                  "paragraph":{"type":"integer"},
+                  "terminal":{"const":true},
+                  "weight":{"enum":[1,2]}}}""");
+
+        ObjectNode variant = ProviderSchemaVariant.of(canonical);
+
+        JsonNode properties = variant.get("properties");
+        assertThat(properties.get("kind").get("type").toString()).isEqualTo("[\"string\",\"null\"]");
+        assertThat(properties.get("op").get("type").toString()).isEqualTo("[\"string\",\"null\"]");
+        assertThat(properties.get("terminal").get("type").toString()).isEqualTo("[\"boolean\",\"null\"]");
+        assertThat(properties.get("weight").get("type").toString()).isEqualTo("[\"integer\",\"null\"]");
+    }
+
+    @Test
+    void everySchemaOfTheCanonicalDocumentEndsWithATypeOrAReference() {
+        ObjectNode variant = ProviderSchemaVariant.of(canonical());
+
+        // a strict mode refuses a schema whose type it has to infer, at the root as much as anywhere
+        assertThat(variant.get("type").asString()).isEqualTo("object");
+        for (JsonNode schema : everySchemaIn(variant)) {
+            boolean saysWhatItIs = schema.has("type") || schema.has("$ref") || schema.has("anyOf");
+            assertThat(saysWhatItIs)
+                    .as("every schema says what it is: %s", schema)
+                    .isTrue();
+        }
+    }
+
+    @Test
     void stripsTheNullsTheProviderHadToWrite() {
         JsonNode answered = JSON.readTree("""
                 {"id":"consumer-lending","description":null,

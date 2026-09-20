@@ -96,12 +96,24 @@ public final class PromptRegistry {
                 readIfPresent(ROOT + name + "/" + version + ".examples.json"),
                 schemaOf(meta),
                 role(text(meta, "modelRole")),
-                number(meta, "temperature").doubleValue(),
+                temperature(meta),
                 number(meta, "maxOutputTokens").intValue(),
                 Duration.ofSeconds(number(meta, "timeoutSeconds").longValue()),
                 number(meta, "repairs").intValue(),
                 cachePolicy(text(meta, "cache")),
                 languages(meta));
+    }
+
+    /**
+     * The temperature the prompt asks for, or null when it says {@code default}: the strong model of the current
+     * OpenAI lineup accepts only its own temperature, and a prompt says so rather than having the adapter guess.
+     */
+    private static @Nullable Double temperature(Map<String, Object> meta) {
+        Object declared = meta.get("temperature");
+        if ("default".equals(declared)) {
+            return null;
+        }
+        return number(meta, "temperature").doubleValue();
     }
 
     private static @Nullable String schemaOf(Map<String, Object> meta) {

@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  * @param system the rendered system prompt
  * @param user the rendered user prompt
  * @param outputSchema the JSON Schema the provider must answer against, or null for a text answer
- * @param temperature the provider's sampling temperature
+ * @param temperature the provider's sampling temperature, or null to leave the model's own
  * @param maxOutputTokens the cap on the answer
  * @param timeout how long the whole call may take
  * @param attempt 1 for the first call, 2 or 3 for a repair of the same request
@@ -26,7 +26,7 @@ public record PromptSpec(
         String system,
         String user,
         @Nullable String outputSchema,
-        double temperature,
+        @Nullable Double temperature,
         int maxOutputTokens,
         Duration timeout,
         int attempt) {
