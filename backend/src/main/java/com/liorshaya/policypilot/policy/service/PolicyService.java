@@ -50,6 +50,12 @@ public class PolicyService {
         return PolicyDocuments.view(documents.save(builder.build(null, true, title, language, text)));
     }
 
+    /** Every policy the sandbox may see: the protected ones and its own (Document 2, {@code GET /policies}). */
+    @Transactional(readOnly = true)
+    public List<PolicyView> visible(UUID sandboxId) {
+        return documents.findAllVisible(sandboxId).stream().map(PolicyDocuments::view).toList();
+    }
+
     /** The protected documents, oldest first. */
     @Transactional(readOnly = true)
     public List<PolicyView> protectedPolicies() {

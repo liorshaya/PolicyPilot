@@ -29,7 +29,7 @@ jobs:
   hygiene:
     name: 1-hygiene
     runs-on: ubuntu-latest
-    timeout-minutes: 5 # budget 1 min
+    timeout-minutes: 5 # budget 2 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,6 +45,14 @@ jobs:
         run: python3 scripts/ci/check_fixture_privacy.py
       - name: Schema and demo fixture copies match the backend resources
         run: scripts/ci/check_schema_copies.sh
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend install, for the client generator
+        working-directory: frontend
+        run: npm ci
       - name: Generated API client is up to date
         run: scripts/ci/check_generated_client.sh
 

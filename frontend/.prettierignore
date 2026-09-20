@@ -4,3 +4,9 @@ playwright-report
 test-results
 node_modules
 package-lock.json
+# the OpenAPI document as the API serves it, copied byte for byte by OpenApiDocumentIT
+src/api/openapi.json
+# generated from the OpenAPI document by npm run generate:api
+src/api/generated
+# the brand kit as it was delivered; it is kept byte for byte, never reformatted
+brand/kit

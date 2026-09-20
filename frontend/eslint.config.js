@@ -8,7 +8,15 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', 'node_modules']),
+  globalIgnores([
+    'dist',
+    'coverage',
+    'playwright-report',
+    'test-results',
+    'node_modules',
+    // written by npm run generate:api from the committed OpenAPI document; CI checks it is up to date
+    'src/api/generated',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

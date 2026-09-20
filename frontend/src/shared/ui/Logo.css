@@ -1,0 +1,6 @@
+.logo {
+  display: block;
+  height: auto;
+  /* the kit's own clear space: half the symbol's height on every side */
+  margin: 2px 0;
+}

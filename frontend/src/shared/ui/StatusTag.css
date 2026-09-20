@@ -1,0 +1,73 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tag--approve {
+  background: var(--color-approved-bg);
+  border-color: var(--color-approved-line);
+  color: var(--color-approved-text);
+}
+
+.tag--reject {
+  background: var(--color-declined-bg);
+  border-color: var(--color-declined-line);
+  color: var(--color-declined-text);
+}
+
+.tag--refer {
+  background: var(--color-review-bg);
+  border-color: var(--color-review-line);
+  color: var(--color-review-text);
+}
+
+.tag--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-line);
+  color: var(--color-error-text);
+}
+
+/* In a table the row carries the emphasis, so the tag keeps only its word and its dot. */
+.tag--quiet {
+  background: none;
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+.version-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.version-tag--published {
+  border-color: var(--pp-blue-line);
+  background: var(--color-accent-wash);
+  color: var(--color-accent);
+}
+
+.version-tag--draft {
+  border-style: dashed;
+}

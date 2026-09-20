@@ -16,24 +16,31 @@ import tools.jackson.databind.node.ObjectNode;
  * with the ids of the sandbox's own copy and {@code forkedFromId}.
  */
 public record VersionResponse(
-        UUID rulesetId,
-        String name,
-        String domain,
-        @JsonProperty("protected") boolean isProtected,
+        @JsonProperty(required = true) UUID rulesetId,
+        @JsonProperty(required = true) String name,
+        @JsonProperty(required = true) String domain,
+        @JsonProperty(value = "protected", required = true) boolean isProtected,
         @JsonInclude(JsonInclude.Include.NON_NULL) UUID forkedFromId,
-        UUID versionId,
-        int versionNo,
-        String status,
-        UUID policyVersionId,
+        @JsonProperty(required = true) UUID versionId,
+        @JsonProperty(required = true) int versionNo,
+        @JsonProperty(required = true) String status,
+        @JsonProperty(required = true) UUID policyVersionId,
         @JsonInclude(JsonInclude.Include.NON_NULL) UUID parentVersionId,
         @JsonInclude(JsonInclude.Include.NON_NULL) Instant publishedAt,
         @JsonInclude(JsonInclude.Include.NON_NULL) String publishedBy,
-        @Schema(implementation = Object.class, description = "The whole DSL document (Document 3)") ObjectNode ruleSet,
-        List<FindingResponse> findings) {
+        @JsonProperty(required = true)
+        @Schema(implementation = Object.class, description = "The whole DSL document (Document 3)")
+        ObjectNode ruleSet,
+        @JsonProperty(required = true) List<FindingResponse> findings) {
 
     /** One validation finding in the Document 3 reporting shape. */
-    public record FindingResponse(String code, String severity, String path, String message, List<String> ruleIds,
-            List<String> fieldNames) {
+    public record FindingResponse(
+            @JsonProperty(required = true) String code,
+            @JsonProperty(required = true) String severity,
+            @JsonProperty(required = true) String path,
+            @JsonProperty(required = true) String message,
+            @JsonProperty(required = true) List<String> ruleIds,
+            @JsonProperty(required = true) List<String> fieldNames) {
 
         static FindingResponse of(Finding finding) {
             return new FindingResponse(finding.code().name(), finding.severity().name().toLowerCase(java.util.Locale.ROOT),

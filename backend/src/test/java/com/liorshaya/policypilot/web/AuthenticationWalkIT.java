@@ -47,7 +47,8 @@ class AuthenticationWalkIT extends ApiIntegrationTest {
     @Test
     void theWalkCoversEveryRouteOfTheDayFourApiTable() {
         assertThat(documentedRoutes()).contains(
-                "POST /api/v1/auth/code", "POST /api/v1/policies", "GET /api/v1/policies/{id}");
+                "POST /api/v1/auth/code", "POST /api/v1/policies", "GET /api/v1/policies",
+                "GET /api/v1/policies/{id}");
     }
 
     // Expected: Document 2, API Surface, the rule set routes of day 5

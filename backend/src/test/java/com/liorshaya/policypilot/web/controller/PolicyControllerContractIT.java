@@ -37,6 +37,35 @@ class PolicyControllerContractIT extends ApiIntegrationTest {
         contract = new OpenApiContract(api().get("/api/docs").cookie(session).send().body());
     }
 
+    // Document 2, GET /policies. Expected: the served OpenAPI document, and the seeded policy in the list
+    @Test
+    void listPoliciesMatchesTheDocumented200() throws IOException {
+        createFromText(lendingText());
+
+        HttpResponse<String> response = api().get(POLICIES).cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", POLICIES, 200, response.body())).isEmpty();
+        assertThat((List<?>) JsonPath.read(response.body(), "$.policies[?(@.protected == true)]")).hasSize(1);
+        assertThat((Integer) JsonPath.read(response.body(), "$.policies[0].paragraphs")).isEqualTo(9);
+        assertThat((String) JsonPath.read(response.body(), "$.policies[0].language")).isEqualTo("he");
+    }
+
+    // Document 5, Authorization (sandbox): a policy of another sandbox is not in this list
+    @Test
+    void theListHoldsTheProtectedPoliciesAndTheSessionsOwn() throws IOException {
+        String mine = JsonPath.read(createFromText(lendingText()).body(), "$.id");
+        String theirs = JsonPath.read(
+                api().post(POLICIES).web().cookie(api().login())
+                        .json("{\"title\":\"Theirs\",\"language\":\"en\",\"text\":\"Applicants must be 21.\"}")
+                        .send().body(),
+                "$.id");
+
+        List<String> ids = JsonPath.read(api().get(POLICIES).cookie(session).send().body(), "$.policies[*].id");
+
+        assertThat(ids).contains(mine).doesNotContain(theirs);
+    }
+
     @Test
     void postWithTextReturns201WithLocationAndTheParagraphSplit() throws IOException {
         HttpResponse<String> response = createFromText(lendingText());

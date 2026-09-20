@@ -7,12 +7,14 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Sandbox authorization for policies through the running API (Document 5, Authorization (sandbox): "an id guessed
  * from another sandbox returns 404 (no existence oracle)"; Security Test Plan, integration: Authorization).
  */
+@Isolated("the security counters are shared by the whole context, so this class counts alone")
 class SandboxIsolationIT extends ApiIntegrationTest {
 
     private static final String POLICIES = "/api/v1/policies";

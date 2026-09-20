@@ -13,19 +13,20 @@ import java.util.UUID;
  * copy of a protected policy.
  */
 public record PolicyResponse(
-        UUID id,
-        String title,
-        String language,
-        @JsonProperty("protected") boolean isProtected,
+        @JsonProperty(required = true) UUID id,
+        @JsonProperty(required = true) String title,
+        @JsonProperty(required = true) String language,
+        @JsonProperty(value = "protected", required = true) boolean isProtected,
         @JsonInclude(JsonInclude.Include.NON_NULL) UUID forkedFromId,
-        Instant createdAt,
-        List<Version> versions) {
+        @JsonProperty(required = true) Instant createdAt,
+        @JsonProperty(required = true) List<Version> versions) {
 
     /** One version with its paragraphs. */
-    public record Version(int versionNo, Instant createdAt, List<Paragraph> paragraphs) {}
+    public record Version(@JsonProperty(required = true) int versionNo, @JsonProperty(required = true) Instant createdAt,
+            @JsonProperty(required = true) List<Paragraph> paragraphs) {}
 
     /** One paragraph; {@code index} is what a rule's provenance cites. */
-    public record Paragraph(int index, String text) {}
+    public record Paragraph(@JsonProperty(required = true) int index, @JsonProperty(required = true) String text) {}
 
     public static PolicyResponse of(PolicyView policy) {
         return new PolicyResponse(policy.id(), policy.title(), policy.language().code(), policy.isProtected(),

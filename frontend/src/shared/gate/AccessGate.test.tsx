@@ -7,10 +7,13 @@ import { server } from '../../test/msw/server'
 import { AccessGate } from './AccessGate'
 
 describe('AccessGate', () => {
-  it('renders the product name, the code field and a disabled button', () => {
+  it('renders the logo, the code field and a disabled button', () => {
     render(<AccessGate onEntered={vi.fn()} />)
 
-    expect(screen.getByRole('heading', { level: 1, name: 'PolicyPilot' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'PolicyPilot' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Enter the workspace' }),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText('Access code')).toHaveAttribute('type', 'password')
     expect(screen.getByRole('button', { name: 'Enter' })).toBeDisabled()
   })

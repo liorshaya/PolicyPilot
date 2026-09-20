@@ -19,6 +19,10 @@ const fullCoverage = { statements: 100, branches: 100, functions: 100, lines: 10
 export default mergeConfig(
   viteConfig,
   defineConfig({
+    server: {
+      // component tests read the committed demo fixtures from fixtures/, the same files the API serves
+      fs: { allow: ['..'] },
+    },
     test: {
       environment: 'jsdom',
       globals: false,
