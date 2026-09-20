@@ -139,11 +139,12 @@ evaluation runner unless the owner adds one back. Dates and struck-through boxes
 
 ## Open values and known tensions (do not guess; ask the owner)
 
-- `policypilot.ai.daily-token-budget` has no number in the documents; it is unset in `application.yml`. The owner
-  capped OpenAI at 5 USD per day (2026-09-18): on day 7 set the budget just below that, in tokens at the confirmed prices.
+- `policypilot.ai.daily-token-budget` is 400,000 tokens since day 7 (2026-09-20): at the dearest price in the
+  lineup, the strong model's output at 12 USD per million, that is 4.80 USD, under the owner's 5 USD a day.
 - `backend/pom.xml` overrides `tomcat.version` (11.0.26): Spring Boot 4.0.8 manages Tomcat 11.0.24, which has
   three critical CVEs. Remove the override once a Spring Boot 4.0.x release manages 11.0.25 or later.
-- The chat model names `gpt-5.6-terra` and `gpt-5.6-luna` are taken from Document 2 and must be confirmed
-  against the provider's model list on day 7, when a key is first used.
+- `ai.timeouts.author-seconds` (60 in Document 2) is read by nothing: the author call takes its timeout from
+  `prompts/author/prompt.yml`, which day 7 measured at 180 s and Document 4 now says. Ask the owner whether the
+  property becomes 180 or goes away, and change Document 2 first either way.
 - `rag` needs the `EmbeddingGateway` interface, which lives in `ai`, while Document 2 lists `ai.adapter` as
   its dependency; the ArchUnit rule encodes the table as written, so day 8 starts with a one-word document fix.

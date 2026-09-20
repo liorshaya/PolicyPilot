@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-19 · Lior Shaya
+2026-09-20 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 
@@ -552,12 +552,14 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 
 | Prompt | Role | Temperature | Max output tokens | Timeout | Repairs | Cache |
 | --- | --- | --- | --- | --- | --- | --- |
-| `author` | strong | 0 | 8,000 | 60 s | 2 | by input hash (policy text, hints, prompt version, model) |
+| `author` | strong | 0 | 8,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
 | `repair` | same as the prompt it repairs | 0 | same | shares the original budget | n/a | none |
 | `review` | strong | 0 | 4,000 | 45 s | 0 | by input hash |
 | `explain` | fast | 0.3 | 800 | 20 s | 0 | by decision id, audience, prompt version |
 | `answer` | fast | 0.3 | 1,200 | 20 s to first token, 60 s total | 0 | scripted demo questions only |
 | `change` | strong | 0 | 6,000 | 60 s | 2 | by input hash (request, version id, prompt version, model) |
+
+The author timeout is 180 s because the strong model of the current lineup takes 67 to 101 seconds to write a rule set for a one-page policy, measured over the ten live runs of day 7; a temperature is not sent at all, because that model accepts only its own.
 
 **Role to model mapping** (as of September 2026; model names are properties `policypilot.ai.models.strong` and `policypilot.ai.models.fast`, confirmed against the provider's model list when the profile is set up, because the lists change every few months):
 
@@ -567,7 +569,7 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 | fast | `gpt-5.6-luna`, the cost-sensitive high-volume model ([OpenAI models](https://developers.openai.com/api/docs/models)) | same `qwen3:14b`, or `qwen3:8b` on a machine with less than 16 GB of memory |
 | embeddings | `text-embedding-3-small`, 1,536 dimensions, multilingual ([OpenAI embeddings](https://developers.openai.com/api/docs/guides/embeddings)) | `bge-m3`, 1,024 dimensions |
 
-**Structured output settings**: on OpenAI, the JSON prompts send the provider variant of their schema as the response format with strict mode on (set explicitly in the adapter, since Spring AI 2.0 defaults it to off); on Ollama, the same variant goes in the `format` parameter and the local validator carries the rest of the load. Both providers get the same prompt text; the only per-provider difference is the model name and, for Qwen, the thinking switch.
+**Structured output settings**: on OpenAI, the JSON prompts send the provider variant of their schema as the response format with strict mode off, which Spring AI 2.0 also defaults to: strict mode makes every declared property mandatory, and the DSL forbids some of them in context (a derived field has no default), so the model has to write a value the validator then refuses — the first live runs of day 7 failed on exactly that and passed without it. The schema still guides the answer, and the canonical validator with the repair loop is what actually holds. On Ollama, the same variant goes in the `format` parameter and the local validator carries the rest of the load. Both providers get the same prompt text; the only per-provider difference is the model name and, for Qwen, the thinking switch.
 
 **Cost envelope at demo traffic**: one authoring run of the sample policy is about 12,000 input and 6,000 output tokens on the strong model, one review about 10,000 and 2,000, one explanation about 3,000 and 300 on the fast model, one chat turn about 4,000 and 300; with the scripted steps served from cache, a full demo costs a few cents, and the daily token budget guard in the Architecture document caps a bad day at the configured limit.
 

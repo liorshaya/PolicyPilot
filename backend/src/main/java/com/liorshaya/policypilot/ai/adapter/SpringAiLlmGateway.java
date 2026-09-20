@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -126,23 +127,35 @@ public class SpringAiLlmGateway implements LlmGateway {
 
     private ChatOptions optionsFor(PromptSpec spec, String model) {
         if (chat instanceof OpenAiChatModel && spec.outputSchema() != null) {
-            // Spring AI 2.0 leaves strict mode off, so the adapter turns it on for the JSON prompts
-            return OpenAiChatOptions.builder()
+            // the current lineup takes max_completion_tokens, not the older max_tokens, and a prompt that asks
+            // for the model's own temperature sends none at all
+            OpenAiChatOptions.Builder options = OpenAiChatOptions.builder()
+                    // the prompt's own timeout, and no retries of the client's own: the gateway retries
+                    .timeout(spec.timeout())
+                    .maxRetries(0)
                     .model(model)
-                    .temperature(spec.temperature())
-                    .maxTokens(spec.maxOutputTokens())
+                    .maxCompletionTokens(spec.maxOutputTokens())
                     .responseFormat(OpenAiChatModel.ResponseFormat.builder()
                             .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
                             .jsonSchema(variantOf(spec.outputSchema()))
-                            .strict(true)
-                            .build())
-                    .build();
+                            // strict mode makes every declared property mandatory, and the DSL forbids some of
+                            // them in context (a derived field has no default), so the model would have to write
+                            // a value the validator then refuses; the schema still guides it and the canonical
+                            // validator with the repair loop is what actually holds (Document 4, Output discipline)
+                            .strict(false)
+                            .build());
+            if (spec.temperature() != null) {
+                options.temperature(spec.temperature());
+            }
+            return options.build();
         }
-        return ChatOptions.builder()
+        ChatOptions.Builder<?> options = ChatOptions.builder()
                 .model(model)
-                .temperature(spec.temperature())
-                .maxTokens(spec.maxOutputTokens())
-                .build();
+                .maxTokens(spec.maxOutputTokens());
+        if (spec.temperature() != null) {
+            options.temperature(spec.temperature());
+        }
+        return options.build();
     }
 
     /** The provider's variant of the canonical schema the prompt names. */
@@ -162,8 +175,10 @@ public class SpringAiLlmGateway implements LlmGateway {
         return role == ModelRole.STRONG ? properties.ai().models().strong() : properties.ai().models().fast();
     }
 
+    /** The provider's own name, taken from the model implementation: OpenAiChatModel is openai, and so on. */
     private String provider() {
-        return chat instanceof OpenAiChatModel ? "openai" : "ollama";
+        String name = chat.getClass().getSimpleName().toLowerCase(Locale.ROOT);
+        return name.endsWith("chatmodel") ? name.substring(0, name.length() - "chatmodel".length()) : name;
     }
 
     private static TokenUsage usageOf(ChatResponse response) {

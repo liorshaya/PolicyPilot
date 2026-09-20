@@ -32,9 +32,10 @@ class PromptRegistryTest {
 
         assertThat(author.version()).isEqualTo("v1");
         assertThat(author.role()).isEqualTo(ModelRole.STRONG);
-        assertThat(author.temperature()).isEqualTo(0.0);
+        // the strong model of the current lineup accepts only its own temperature (Document 4)
+        assertThat(author.temperature()).isNull();
         assertThat(author.maxOutputTokens()).isEqualTo(8000);
-        assertThat(author.timeout()).isEqualTo(Duration.ofSeconds(60));
+        assertThat(author.timeout()).isEqualTo(Duration.ofSeconds(180));
         assertThat(author.repairs()).isEqualTo(2);
         assertThat(author.cache()).isEqualTo(PromptDefinition.CachePolicy.BY_INPUT_HASH);
         assertThat(author.outputSchema()).isEqualTo("schemas/ruleset-1.0.schema.json");

@@ -64,6 +64,8 @@
 
         <!-- JUnit 5 tag that excludes a flaky test from the gate while it keeps running (Document 6, CI Pipeline). -->
         <quarantine.tag>quarantine</quarantine.tag>
+        <!-- Tests that call a real provider: run by hand with a key, never in CI (Document 6, Live level) -->
+        <live.tag>live</live.tag>
     </properties>
 
     <dependencyManagement>
@@ -272,7 +274,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <argLine>@{failsafeArgLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
-                    <excludedGroups>${quarantine.tag}</excludedGroups>
+                    <excludedGroups>${quarantine.tag},${live.tag}</excludedGroups>
                     <failIfNoTests>false</failIfNoTests>
                 </configuration>
                 <executions>
@@ -289,7 +291,7 @@
                         </goals>
                         <configuration>
                             <groups>${quarantine.tag}</groups>
-                            <excludedGroups/>
+                            <excludedGroups>${live.tag}</excludedGroups>
                             <testFailureIgnore>true</testFailureIgnore>
                             <reportsDirectory>${project.build.directory}/failsafe-reports-quarantine</reportsDirectory>
                         </configuration>

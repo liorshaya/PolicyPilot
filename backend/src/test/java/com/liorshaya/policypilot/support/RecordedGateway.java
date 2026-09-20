@@ -82,6 +82,15 @@ public final class RecordedGateway implements LlmGateway {
         return asked.getLast().user();
     }
 
+    /** Writes what was asked beside the recordings, so a miss can be diffed against the recorded prompt. */
+    private static void dump(PromptSpec spec) {
+        try {
+            Files.writeString(Path.of("target", "missed-prompt.txt"), spec.system() + "\u001f" + spec.user());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private String replay(PromptSpec spec) {
         if (recordings == null) {
             throw new IllegalStateException("no answer left for " + spec.promptName() + " attempt " + spec.attempt());
@@ -91,6 +100,7 @@ public final class RecordedGateway implements LlmGateway {
                 .resolve(spec.promptVersion())
                 .resolve(Hashes.sha256Hex(spec.system() + "\u001f" + spec.user()) + ".json");
         if (!Files.exists(file)) {
+            dump(spec);
             throw new IllegalStateException("no recording at " + file
                     + "; a new prompt version or a new input needs one live run to create it (Document 6)");
         }

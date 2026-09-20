@@ -275,6 +275,20 @@ class AuthorServiceTest {
     }
 
     @Test
+    void theRenderedPromptCarriesTheFewShotExample() {
+        RecordedGateway gateway = RecordedGateway.answering(VALID);
+
+        write(gateway, new ArrayList<>());
+
+        // Document 4, Few-shot example: the three-paragraph English policy and its whole rule set, inside
+        // <example>, so the model sees exact shapes and not an abridgement
+        String example = gateway.lastUserPrompt().split("<example>")[1].split("</example>")[0];
+        assertThat(example).contains("A card is issued to applicants aged 18 to 75.");
+        assertThat(example).contains("\"id\": \"card-issuing\"");
+        assertThat(example).contains("\"R-900\"");
+    }
+
+    @Test
     void theAnalystsHintsAreSentAsTheirOwnSection() {
         RecordedGateway gateway = RecordedGateway.answering(VALID);
 
@@ -322,6 +336,7 @@ class AuthorServiceTest {
         // Document 4: the repair reuses the system prompt, so only the errors and the document are sent again
         String repair = gateway.asked().get(1).user();
         assertThat(repair).doesNotContain("COMPARISON OPERATORS:");
+        assertThat(repair).doesNotContain("card-issuing");
         assertThat(gateway.asked().get(1).system()).isEqualTo(gateway.asked().getFirst().system());
     }
 
@@ -334,7 +349,8 @@ class AuthorServiceTest {
         var spec = gateway.asked().getFirst();
         assertThat(spec.promptName()).isEqualTo("author");
         assertThat(spec.promptVersion()).isEqualTo("v1");
-        assertThat(spec.temperature()).isZero();
+        // no temperature is sent: the strong model of the current lineup accepts only its own (Document 4)
+        assertThat(spec.temperature()).isNull();
         assertThat(spec.maxOutputTokens()).isEqualTo(8000);
         assertThat(spec.outputSchema()).isEqualTo("schemas/ruleset-1.0.schema.json");
     }
