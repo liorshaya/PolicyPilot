@@ -1,0 +1,277 @@
+.table-scroll {
+  height: 100%;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunken);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table__field-name {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.table__derived {
+  margin-inline-start: var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  text-transform: none;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.table tbody tr:hover {
+  background: var(--color-surface-sunken);
+}
+
+/* The selection signature: the same thin blue bar the cited paragraph and the trace step carry. */
+.table__row--selected {
+  background: var(--color-accent-wash);
+}
+
+.table__row--selected .table__id {
+  box-shadow:
+    inset 3px 0 0 var(--color-selected-bar),
+    8px 0 8px -8px rgb(20 44 67 / 12%);
+}
+
+.table__row--disabled {
+  color: var(--color-text-muted);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 6px,
+    var(--color-surface-sunken) 6px,
+    var(--color-surface-sunken) 12px
+  );
+}
+
+.table__row--refused .table__id {
+  box-shadow:
+    inset 3px 0 0 var(--color-declined-text),
+    8px 0 8px -8px rgb(20 44 67 / 12%);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: top;
+  text-align: start;
+  font-weight: 400;
+}
+
+/* The rule and what it decides stay in place while the conditions between them scroll sideways. */
+.table__id {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  min-width: 15rem;
+  background: var(--color-surface);
+  border-inline-end: 1px solid var(--color-border);
+  box-shadow: 8px 0 8px -8px rgb(20 44 67 / 12%);
+}
+
+.table thead .table__id {
+  z-index: 2;
+}
+
+.table tbody tr:hover .table__id {
+  background: var(--color-surface-sunken);
+}
+
+.table__row--selected .table__id {
+  background: var(--color-accent-wash);
+}
+
+.table__rule {
+  display: grid;
+  gap: 2px;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: start;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* A Hebrew label keeps its own character order inside a cell that stays aligned with the Latin column. */
+.table__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  display: block;
+  max-width: 22rem;
+  text-align: left;
+}
+
+.table__priority {
+  width: 5rem;
+  color: var(--color-text-muted);
+}
+
+.table__cell {
+  white-space: nowrap;
+}
+
+.table__cell--empty::after {
+  content: '·';
+  color: var(--color-border-strong);
+}
+
+.table__cell-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.table__input {
+  width: 100%;
+  min-width: 8rem;
+  padding: 2px var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.table__input:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.table__input:focus {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.table__cell--invalid .table__input {
+  border-color: var(--color-declined-text);
+}
+
+.table__cell-problem {
+  display: block;
+  max-width: 18rem;
+  margin-top: 2px;
+  color: var(--color-declined-text);
+  font-size: var(--text-xs);
+  white-space: normal;
+}
+
+/* What a rule decides stays in view while the conditions scroll, because that is what the table is read for. */
+.table__action {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  max-width: 13rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  background: var(--color-surface);
+  border-inline-start: 1px solid var(--color-border);
+  box-shadow: -8px 0 8px -8px rgb(20 44 67 / 12%);
+}
+
+.table thead .table__action {
+  z-index: 2;
+}
+
+.table tbody tr:hover .table__action {
+  background: var(--color-surface-sunken);
+}
+
+.table__row--selected .table__action {
+  background: var(--color-accent-wash);
+}
+
+.table__source {
+  max-width: 22rem;
+}
+
+.table__provenance {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.table__paragraph {
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.table__quote {
+  text-align: left;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.table__analyst,
+.table__pending {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.table__pending {
+  border-color: var(--color-review-line);
+  background: var(--color-review-bg);
+  color: var(--color-review-text);
+}
+
+/* Narrow: freezing columns would leave no room for the comparisons, so the whole row scrolls together. */
+@media (max-width: 700px) {
+  .table tbody .table__id,
+  .table tbody .table__action {
+    position: static;
+    box-shadow: none;
+  }
+
+  /* the head still stays at the top of the table; it just stops holding a column in place sideways */
+  .table thead .table__id,
+  .table thead .table__action {
+    inset-inline-start: auto;
+    inset-inline-end: auto;
+    box-shadow: none;
+  }
+
+  .table__id {
+    min-width: 11rem;
+  }
+
+  .table__row--selected .table__id {
+    box-shadow: inset 3px 0 0 var(--color-selected-bar);
+  }
+
+  .table__row--refused .table__id {
+    box-shadow: inset 3px 0 0 var(--color-declined-text);
+  }
+}

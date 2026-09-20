@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { PolicyParagraph } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import './PolicyText.css'
@@ -14,6 +15,12 @@ interface PolicyTextProps {
  * unit of Document 3, so it is shown beside every paragraph and never hidden.
  */
 export function PolicyText({ language, paragraphs, highlighted = null }: PolicyTextProps) {
+  const citedRef = useRef<HTMLLIElement>(null)
+  // a rule and its source are read together, so the cited paragraph comes into view on its own
+  useEffect(() => {
+    citedRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [highlighted])
+
   if (paragraphs.length === 0) {
     return <p className="policy-text__empty">This version has no paragraphs.</p>
   }
@@ -23,6 +30,7 @@ export function PolicyText({ language, paragraphs, highlighted = null }: PolicyT
         <li
           key={paragraph.index}
           id={`paragraph-${paragraph.index}`}
+          ref={paragraph.index === highlighted ? citedRef : undefined}
           className={`policy-text__paragraph${paragraph.index === highlighted ? ' policy-text__paragraph--cited' : ''}`}
           aria-current={paragraph.index === highlighted ? 'true' : undefined}
         >

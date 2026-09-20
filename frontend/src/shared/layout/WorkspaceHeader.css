@@ -38,3 +38,30 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* Narrow: the context, the version and the action stack instead of being squeezed off the screen. */
+@media (max-width: 700px) {
+  .workspace-header {
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .workspace-header__side {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .workspace-header__version {
+    flex-wrap: wrap;
+  }
+
+  .workspace-header__actions {
+    flex: 1;
+  }
+
+  .workspace-header__actions .button {
+    flex: 1;
+  }
+}

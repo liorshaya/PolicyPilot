@@ -39,6 +39,37 @@
   overflow: auto;
 }
 
+/* A filling panel keeps its header and its table head in place and scrolls only its body. */
+.panel--fill {
+  flex: 1;
+}
+
+.panel--fill .panel__header {
+  flex-shrink: 0;
+}
+
+.panel--fill .panel__body {
+  flex: 1;
+  min-height: 0;
+}
+
 .panel__body--flush {
   padding: 0;
+}
+
+/* Narrow: a panel's controls sit under its title rather than shrinking it to one word a line. */
+@media (max-width: 700px) {
+  .panel__header {
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .panel__body {
+    padding: var(--space-4);
+  }
+
+  .panel__body--flush {
+    padding: 0;
+  }
 }
