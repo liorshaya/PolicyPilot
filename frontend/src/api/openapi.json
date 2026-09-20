@@ -380,6 +380,43 @@
         }
       }
     },
+    "/api/v1/policies/{id}/rulesets" : {
+      "post" : {
+        "tags" : [ "generation-controller" ],
+        "summary" : "Generate a draft rule set from a policy, as a stream of progress events",
+        "operationId" : "generate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GenerateRulesRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "An event stream: parsing, authoring, validating, draft",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/code" : {
       "post" : {
         "tags" : [ "auth-controller" ],
@@ -840,6 +877,25 @@
           },
           "text" : {
             "type" : "string"
+          }
+        }
+      },
+      "GenerateRulesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "hints" : {
+            "type" : "string",
+            "maxLength" : 2048,
+            "minLength" : 0
+          }
+        }
+      },
+      "SseEmitter" : {
+        "type" : "object",
+        "properties" : {
+          "timeout" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },

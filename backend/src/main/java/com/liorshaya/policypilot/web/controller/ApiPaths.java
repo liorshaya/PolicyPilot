@@ -7,6 +7,7 @@ public final class ApiPaths {
     public static final String AUTH_CODE = V1 + "/auth/code";
     public static final String POLICIES = V1 + "/policies";
     public static final String POLICY = POLICIES + "/{id}";
+    public static final String POLICY_RULESETS = POLICY + "/rulesets";
     public static final String RULESETS = V1 + "/rulesets";
     public static final String RULESET_VERSION = RULESETS + "/{id}/versions/{no}";
     public static final String RULESET_VERSION_RULES = RULESET_VERSION + "/rules";

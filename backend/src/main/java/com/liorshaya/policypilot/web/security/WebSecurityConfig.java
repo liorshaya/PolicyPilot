@@ -5,6 +5,7 @@ import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.web.controller.ApiPaths;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorResponses;
+import jakarta.servlet.DispatcherType;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
@@ -99,6 +100,9 @@ public class WebSecurityConfig {
                 .requestCache(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        // an SSE stream is authorized on its own request; the container's ASYNC dispatch that
+                        // writes the events carries no authentication and must not be checked again
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers(publicRoutes).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions

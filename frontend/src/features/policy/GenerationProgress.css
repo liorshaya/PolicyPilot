@@ -1,0 +1,74 @@
+.generation {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+}
+
+.generation__stages {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The stage that is running carries the interface's blue bar, like a selected row. */
+.generation__stage {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.generation__stage--now {
+  box-shadow: inset 3px 0 0 var(--color-selected-bar);
+  background: var(--color-accent-wash);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.generation__number {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.generation__done {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.generation__refused {
+  color: var(--color-declined-text);
+  font-size: var(--text-sm);
+}
+
+.generation__refused-title {
+  font-weight: 600;
+}
+
+.generation__findings {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding-inline-start: var(--space-4);
+}
+
+.generation__findings li {
+  display: flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 700px) {
+  .generation__done {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

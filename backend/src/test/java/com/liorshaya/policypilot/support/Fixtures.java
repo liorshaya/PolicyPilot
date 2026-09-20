@@ -41,6 +41,11 @@ public final class Fixtures {
         return (ObjectNode) json("policies/consumer-lending/ruleset.v1.json");
     }
 
+    /** The lending policy as it is written, for a test that pastes it the way the web app does. */
+    public static String lendingPolicyText() {
+        return read(path("policies/consumer-lending/policy.he.md"));
+    }
+
     /** The nine paragraphs of the lending policy, split on blank lines as the reference splits them. */
     public static List<String> lendingParagraphs() {
         return paragraphs("policies/consumer-lending/policy.he.md");

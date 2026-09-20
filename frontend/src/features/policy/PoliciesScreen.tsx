@@ -9,6 +9,8 @@ import { Panel } from '../../shared/ui/Panel'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { PolicyText } from './PolicyText'
 import { AddPolicyForm } from './AddPolicyForm'
+import { GenerationProgress } from './GenerationProgress'
+import { useGeneration } from './useGeneration'
 import './PoliciesScreen.css'
 
 /**
@@ -22,6 +24,7 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
   const [adding, setAdding] = useState(false)
   const create = useCreatePolicy()
 
+  const generation = useGeneration()
   const list = policies.data ?? []
   // the first policy is open until the reader chooses another, so nothing has to be selected in an effect
   const selectedId = chosenId ?? list[0]?.id ?? null
@@ -79,9 +82,26 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
                   ? `Version ${selected.data.versions?.[0]?.versionNo ?? 1} · ${selected.data.versions?.[0]?.paragraphs?.length ?? 0} paragraphs · each one is a source a rule can cite`
                   : 'Choose a policy to read its paragraphs'
               }
-              actions={selected.data ? <Button onClick={onOpenRules}>Open its rules</Button> : null}
+              actions={
+                selected.data ? (
+                  <>
+                    <Button onClick={onOpenRules}>Open its rules</Button>
+                    <Button
+                      variant="primary"
+                      loading={generation.running}
+                      disabled={generation.running}
+                      onClick={() => {
+                        generation.start(selected.data.id)
+                      }}
+                    >
+                      Generate rules
+                    </Button>
+                  </>
+                ) : null
+              }
               flush
             >
+              <GenerationProgress generation={generation} onOpenRules={onOpenRules} />
               {selected.isPending && selectedId !== null ? (
                 <LoadingRows rows={6} label="Loading the policy" />
               ) : null}

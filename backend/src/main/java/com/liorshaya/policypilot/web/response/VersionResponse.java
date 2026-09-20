@@ -42,7 +42,8 @@ public record VersionResponse(
             @JsonProperty(required = true) List<String> ruleIds,
             @JsonProperty(required = true) List<String> fieldNames) {
 
-        static FindingResponse of(Finding finding) {
+        /** The findings of a generation stream are the same shape, so this is visible to the web layer. */
+        public static FindingResponse of(Finding finding) {
             return new FindingResponse(finding.code().name(), finding.severity().name().toLowerCase(java.util.Locale.ROOT),
                     finding.path(), finding.message(), finding.ruleIds(), finding.fieldNames());
         }
