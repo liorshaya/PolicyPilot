@@ -9,8 +9,8 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         model: ${policypilot.ai.models.strong}
-        # Temperature is set per prompt by the adapter on day 7 (0 for author, review, change; 0.3 for explain, answer)
-        temperature: 0
+        # No temperature here: the adapter sends the one the prompt asks for, and the strong model of this
+        # lineup accepts only its own, so the author prompt sends none at all (Document 4).
       embedding:
         model: text-embedding-3-small
         dimensions: 1536

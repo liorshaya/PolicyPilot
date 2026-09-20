@@ -71,7 +71,7 @@ class PackageRulesTest {
     static final ArchRule aiAdapter = moduleRule("ai.adapter", "ai");
 
     @ArchTest
-    static final ArchRule rag = moduleRule("rag", "policy", "rules", "ai.adapter");
+    static final ArchRule rag = moduleRule("rag", "policy", "rules", "ai");
 
     @ArchTest
     static final ArchRule change = moduleRule("change", "ai", "ruleset", "engine", "decision", "audit");
