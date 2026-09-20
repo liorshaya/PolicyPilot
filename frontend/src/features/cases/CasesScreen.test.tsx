@@ -104,6 +104,24 @@ describe('CasesScreen', () => {
     expect(within(first).getByText('not met')).toBeInTheDocument()
   })
 
+  it('reads a Hebrew reason right to left, beside Latin field names that stay as they are', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await user.click(await screen.findByRole('button', { name: '17' }))
+
+    const reason = await screen.findByText(decision.reason!)
+    expect(reason).toHaveAttribute('dir', 'rtl')
+    expect(reason).toHaveAttribute('lang', 'he')
+    // the label of a step is Hebrew too, and keeps its own order beside the rule id
+    const panel = within(await screen.findByRole('complementary'))
+    const label = panel.getByText('בדיקת חתם: אירוע אשראי אחד ללא ערב')
+    expect(label.tagName).toBe('BDI')
+    expect(label).toHaveAttribute('dir', 'auto')
+    expect(panel.getByText('monthly_income')).toHaveClass('mono')
+  })
+
   it('shows the values the engine derived and how long the case took', async () => {
     const user = userEvent.setup()
     renderScreen()
