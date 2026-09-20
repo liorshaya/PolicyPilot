@@ -24,7 +24,9 @@
   --color-surface: var(--pp-surface);
   --color-surface-sunken: #fbfcfe;
   --color-text: var(--pp-midnight);
-  --color-text-muted: var(--pp-steel);
+  /* The brand steel carries secondary text; it is darkened by one step because #66788a reaches only 4.55:1 on
+     white and falls under 4.5:1 on every tinted surface of the interface (tokens.test.ts holds every pair). */
+  --color-text-muted: #5d6f81;
   --color-text-inverse: #ffffff;
   --color-border: var(--pp-border);
   --color-border-strong: #cfd9e2;

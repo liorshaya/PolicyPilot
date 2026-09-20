@@ -4,7 +4,8 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
-    "types": ["vite/client"],
+    /* node: the tests under src read the token file and the fixtures from disk; the app itself never does */
+    "types": ["vite/client", "node"],
     "skipLibCheck": true,
 
     /* Bundler mode */
