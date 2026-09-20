@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
-import { usePolicies, usePolicy, useCreatePolicy } from '../../api/queries'
+import { usePolicies, usePolicy, useCreatePolicy, useRulesets } from '../../api/queries'
 import type { PolicySummary } from '../../api/types'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
@@ -18,8 +18,9 @@ import './PoliciesScreen.css'
  * the number is what a rule cites (Document 3, Provenance), and a Hebrew policy reads right to left inside the
  * left-to-right workspace.
  */
-export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
+export function PoliciesScreen({ onOpenRules }: { onOpenRules: (rulesetId: string) => void }) {
   const policies = usePolicies()
+  const rulesets = useRulesets()
   const [chosenId, setChosenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const create = useCreatePolicy()
@@ -29,6 +30,8 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
   // the first policy is open until the reader chooses another, so nothing has to be selected in an effect
   const selectedId = chosenId ?? list[0]?.id ?? null
   const selected = usePolicy(selectedId)
+  // the rule set written from this policy, which is what "its rules" means; a policy may not have one yet
+  const ownRuleset = (rulesets.data ?? []).find((one) => one.policyId === selectedId)
 
   return (
     <>
@@ -85,7 +88,17 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
               actions={
                 selected.data ? (
                   <>
-                    <Button onClick={onOpenRules}>Open its rules</Button>
+                    <Button
+                      disabled={!ownRuleset}
+                      title={ownRuleset ? undefined : 'Generate rules for this policy first'}
+                      onClick={() => {
+                        if (ownRuleset) {
+                          onOpenRules(ownRuleset.id)
+                        }
+                      }}
+                    >
+                      Open its rules
+                    </Button>
                     <Button
                       variant="primary"
                       loading={generation.running}
@@ -101,7 +114,14 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: () => void }) {
               }
               flush
             >
-              <GenerationProgress generation={generation} onOpenRules={onOpenRules} />
+              <GenerationProgress
+                generation={generation}
+                onOpenRules={() => {
+                  if (generation.draft) {
+                    onOpenRules(generation.draft.rulesetId)
+                  }
+                }}
+              />
               {selected.isPending && selectedId !== null ? (
                 <LoadingRows rows={6} label="Loading the policy" />
               ) : null}

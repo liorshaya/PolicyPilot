@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { ruleSet, serveTheSeededRuleSet } from './seeded'
+import {
+  DRAFT_RULESET_ID,
+  draftRuleSet,
+  POLICY_ID,
+  RULESET_ID,
+  ruleSet,
+  serveTheSeededRuleSet,
+} from './seeded'
 
 /**
  * Demo step 1 in a real browser, without the reviewer flags that arrive on day 10 (Document 1, Demo script; Work
@@ -71,5 +78,75 @@ test.describe('demo step 1: the rules are written from the policy', () => {
     await expect(page.getByRole('alert')).toContainText('RULESET_INVALID')
     await expect(page.getByRole('alert')).toContainText('Nothing was stored')
     await expect(page.getByText('PROVENANCE_QUOTE_MISMATCH')).toBeVisible()
+  })
+
+  test('opens the draft it just wrote, not the rule set that was already there', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    let generated = false
+    const seeded = {
+      id: RULESET_ID,
+      name: 'מדיניות אשראי צרכני',
+      domain: 'consumer-lending',
+      protected: true,
+      policyId: POLICY_ID,
+      versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+    }
+    const written = {
+      id: DRAFT_RULESET_ID,
+      name: draftRuleSet.name,
+      domain: 'rental-deposit',
+      protected: false,
+      policyId: POLICY_ID,
+      versions: [{ versionNo: 1, status: 'DRAFT' }],
+    }
+    // the list the API answers grows once the generation has run, exactly as it does in the cloud
+    await page.route('**/api/v1/rulesets', (route) =>
+      route.fulfill({ json: { rulesets: generated ? [seeded, written] : [seeded] } }),
+    )
+    await page.route(`**/api/v1/rulesets/${DRAFT_RULESET_ID}/versions/*`, (route) =>
+      route.fulfill({
+        json: {
+          rulesetId: DRAFT_RULESET_ID,
+          name: draftRuleSet.name,
+          domain: 'rental-deposit',
+          protected: false,
+          versionId: '0f4c1c9e-0000-4000-8000-0000000000c2',
+          versionNo: 1,
+          status: 'DRAFT',
+          policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d2',
+          ruleSet: draftRuleSet,
+          findings: [],
+        },
+      }),
+    )
+    await page.route('**/api/v1/policies/*/rulesets', (route) => {
+      generated = true
+      return route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body:
+          STAGES +
+          `event:draft\ndata:${JSON.stringify({
+            ...DRAFT,
+            rulesetId: DRAFT_RULESET_ID,
+            name: draftRuleSet.name,
+            domain: 'rental-deposit',
+            ruleSet: draftRuleSet,
+          })}\n\n`,
+      })
+    })
+    await page.goto('/')
+    await page.getByLabel('Access code').fill('qwertyui')
+    await page.getByRole('button', { name: 'Enter' }).click()
+    await page.getByRole('navigation', { name: 'Workspace' }).waitFor()
+
+    await page.getByRole('button', { name: 'Generate rules' }).click()
+    await page.getByRole('button', { name: 'Review the draft' }).click()
+
+    // the rules on the screen are the draft's own, and the seeded set is not what opened
+    await expect(page.getByText(draftRuleSet.rules[0].label)).toBeVisible()
+    await expect(page.getByText(ruleSet.rules[0].label)).toHaveCount(0)
   })
 })

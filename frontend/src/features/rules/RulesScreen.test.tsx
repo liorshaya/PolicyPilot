@@ -5,7 +5,13 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import type { RuleSetDocument, RulesetsResponse, VersionResponse } from '../../api/types'
 import { lendingRuleSet } from '../../test/fixtures/lending'
-import { publishedVersion, rulesets, SEEDED_RULESET_ID } from '../../test/msw/handlers'
+import {
+  publishedVersion,
+  rulesets,
+  SEEDED_RULESET_ID,
+  SECOND_RULESET_ID,
+  twoRulesets,
+} from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { RulesScreen } from './RulesScreen'
 
@@ -46,11 +52,20 @@ function serveDraft(): void {
   )
 }
 
-function renderScreen(focusRuleId: string | null = null) {
+function renderScreen(
+  focusRuleId: string | null = null,
+  rulesetId: string | null = null,
+  onChooseRuleset: (id: string) => void = () => undefined,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <RulesScreen onOpenCases={() => undefined} focusRuleId={focusRuleId} />
+      <RulesScreen
+        onOpenCases={() => undefined}
+        focusRuleId={focusRuleId}
+        rulesetId={rulesetId}
+        onChooseRuleset={onChooseRuleset}
+      />
     </QueryClientProvider>,
   )
 }
@@ -303,5 +318,43 @@ describe('RulesScreen', () => {
 
     await screen.findByText('Version 2')
     expect(asked).toBe(`${SEEDED_RULESET_ID}/2`)
+  })
+
+  it('shows the rule set it was asked for, not the first one the API lists', async () => {
+    // the sandbox holds the seeded lending rule set and a second one; day 8 found the screen pinned to the first
+    server.use(...twoRulesets())
+    renderScreen(null, SECOND_RULESET_ID)
+
+    // a label of the deposit rule set, which the lending one does not contain
+    expect(await screen.findByText('Deduct repairs and unpaid amounts')).toBeInTheDocument()
+    expect(screen.queryByText(lendingRuleSet.rules[0]!.label)).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Rule set' })).toHaveValue(SECOND_RULESET_ID)
+  })
+
+  it('falls back to the first rule set when no one asked for a particular one', async () => {
+    server.use(...twoRulesets())
+    renderScreen(null, null)
+
+    expect(await screen.findByText(lendingRuleSet.rules[0]!.label)).toBeInTheDocument()
+    expect(screen.queryByText('Deduct repairs and unpaid amounts')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Rule set' })).toHaveValue(SEEDED_RULESET_ID)
+  })
+
+  it('offers the other rule sets of the sandbox and reports the choice', async () => {
+    const chosen: string[] = []
+    server.use(...twoRulesets())
+    renderScreen(null, SEEDED_RULESET_ID, (id) => chosen.push(id))
+
+    const switcher = await screen.findByRole('combobox', { name: 'Rule set' })
+    await userEvent.selectOptions(switcher, SECOND_RULESET_ID)
+
+    expect(chosen).toEqual([SECOND_RULESET_ID])
+  })
+
+  it('offers no choice when the sandbox holds one rule set', async () => {
+    renderScreen()
+
+    await screen.findByRole('table')
+    expect(screen.queryByRole('combobox', { name: 'Rule set' })).not.toBeInTheDocument()
   })
 })

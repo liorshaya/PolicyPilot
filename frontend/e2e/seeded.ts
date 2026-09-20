@@ -21,6 +21,21 @@ export const ruleSet = JSON.parse(
 export const RULESET_ID = '0f4c1c9e-0000-4000-8000-0000000000b1'
 export const POLICY_ID = '0f4c1c9e-0000-4000-8000-0000000000a1'
 
+/** A second rule set, so a test can tell "the one just written" from "the one that was already there". */
+export const DRAFT_RULESET_ID = '0f4c1c9e-0000-4000-8000-0000000000b2'
+
+export const draftRuleSet = JSON.parse(
+  readFileSync(
+    fileURLToPath(
+      new URL(
+        '../../fixtures/eval/policies/rental-deposit-en/expected.ruleset.json',
+        import.meta.url,
+      ),
+    ),
+    'utf8',
+  ),
+) as RuleSetDocument
+
 export const paragraphs = [
   { index: 6, text: 'יחס החוב להכנסה לא יעלה על 40%.' },
   {

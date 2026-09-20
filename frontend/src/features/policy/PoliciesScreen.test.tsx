@@ -5,6 +5,12 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { server } from '../../test/msw/server'
 import { lendingParagraphs } from '../../test/fixtures/lending'
+import {
+  SEEDED_RULESET_ID,
+  SECOND_RULESET_ID,
+  secondVersion,
+  twoRulesets,
+} from '../../test/msw/handlers'
 import { PoliciesScreen } from './PoliciesScreen'
 
 /**
@@ -101,7 +107,51 @@ describe('PoliciesScreen', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Open its rules' }))
 
-    expect(onOpenRules).toHaveBeenCalledOnce()
+    // which rule set, not just that something opened: day 8 found the screen opening whichever came first
+    expect(onOpenRules).toHaveBeenCalledWith(SEEDED_RULESET_ID)
+  })
+
+  it('opens the rule set of the policy the reader chose, not the first in the sandbox', async () => {
+    const onOpenRules = vi.fn()
+    server.use(...twoRulesets())
+    renderScreen(onOpenRules)
+
+    await userEvent.click(await screen.findByRole('button', { name: /Security Deposit/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Open its rules' }))
+
+    expect(onOpenRules).toHaveBeenCalledWith(SECOND_RULESET_ID)
+  })
+
+  it('cannot open rules for a policy that has none yet', async () => {
+    server.use(
+      // the policy was added but never generated from, so no rule set cites it; MSW takes the first match,
+      // so this stands in front of the two-rule-set handlers
+      http.get('http://localhost:8080/api/v1/rulesets', () => HttpResponse.json({ rulesets: [] })),
+      ...twoRulesets(),
+    )
+    renderScreen()
+
+    const open = await screen.findByRole('button', { name: 'Open its rules' })
+    expect(open).toBeDisabled()
+    expect(open).toHaveAttribute('title', 'Generate rules for this policy first')
+  })
+
+  it('reviewing a draft opens the rule set the generation just wrote', async () => {
+    const onOpenRules = vi.fn()
+    server.use(
+      http.post('http://localhost:8080/api/v1/policies/:id/rulesets', () => {
+        const body =
+          'event:parsing\ndata:{}\n\nevent:authoring\ndata:{}\n\nevent:validating\ndata:{}\n\n' +
+          `event:draft\ndata:${JSON.stringify(secondVersion)}\n\n`
+        return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
+      }),
+    )
+    renderScreen(onOpenRules)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate rules' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Review the draft' }))
+
+    expect(onOpenRules).toHaveBeenCalledWith(SECOND_RULESET_ID)
   })
 
   it('shows the error code when the list cannot be read', async () => {

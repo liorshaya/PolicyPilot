@@ -6,9 +6,10 @@ import type {
   PoliciesResponse,
   PolicyResponse,
   RulesetsResponse,
+  RulesetSummary,
   VersionResponse,
 } from '../../api/types'
-import { lendingParagraphs, lendingRuleSet } from '../fixtures/lending'
+import { depositRuleSet, lendingParagraphs, lendingRuleSet } from '../fixtures/lending'
 
 /**
  * The API as the component tests see it (Document 6, Frontend Test Design: components render from realistic
@@ -64,6 +65,24 @@ export const rulesets: RulesetsResponse = {
   ],
 }
 
+/**
+ * A second policy with its own rule set, for the screens that must show the one they were asked for rather than
+ * the first the API happens to list (Work Plan day 6; the bug day 8 opened with). These are not in the default
+ * handlers: a test that needs two rule sets serves them itself.
+ */
+export const SECOND_POLICY_ID = '0f4c1c9e-0000-4000-8000-0000000000a2'
+export const SECOND_RULESET_ID = '0f4c1c9e-0000-4000-8000-0000000000b2'
+export const SECOND_VERSION_ID = '0f4c1c9e-0000-4000-8000-0000000000c2'
+
+export const secondRuleset: RulesetSummary = {
+  id: SECOND_RULESET_ID,
+  name: depositRuleSet.name,
+  domain: 'rental-deposit',
+  protected: false,
+  policyId: SECOND_POLICY_ID,
+  versions: [{ versionNo: 1, status: 'DRAFT' }],
+}
+
 export const publishedVersion: VersionResponse = {
   rulesetId: SEEDED_RULESET_ID,
   name: 'מדיניות אשראי צרכני',
@@ -76,6 +95,28 @@ export const publishedVersion: VersionResponse = {
   publishedAt: '2026-09-20T09:00:00Z',
   publishedBy: 'demo-analyst',
   ruleSet: lendingRuleSet,
+  findings: [],
+}
+
+export const secondPolicy: PolicyResponse = {
+  id: SECOND_POLICY_ID,
+  title: depositRuleSet.name,
+  language: 'en',
+  protected: false,
+  createdAt: '2026-09-20T10:00:00Z',
+  versions: [{ versionNo: 1, createdAt: '2026-09-20T10:00:00Z', paragraphs: [] }],
+}
+
+export const secondVersion: VersionResponse = {
+  rulesetId: SECOND_RULESET_ID,
+  name: depositRuleSet.name,
+  domain: 'rental-deposit',
+  protected: false,
+  versionId: SECOND_VERSION_ID,
+  versionNo: 1,
+  status: 'DRAFT',
+  policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d2',
+  ruleSet: depositRuleSet,
   findings: [],
 }
 
@@ -163,6 +204,37 @@ export const batch: BatchResult = {
       flags: ['STABLE_INCOME_MANUAL_CHECK'],
     },
   ],
+}
+
+/** Both rule sets and both policies, with each endpoint answering by id, so a test can tell them apart. */
+export function twoRulesets(): RequestHandler[] {
+  return [
+    http.get(`${BASE}/policies`, () =>
+      HttpResponse.json({
+        policies: [
+          policies.policies[0]!,
+          {
+            id: SECOND_POLICY_ID,
+            title: secondPolicy.title,
+            language: 'en',
+            protected: false,
+            versionNo: 1,
+            paragraphs: 0,
+            createdAt: secondPolicy.createdAt,
+          },
+        ],
+      }),
+    ),
+    http.get(`${BASE}/policies/:id`, ({ params }) =>
+      HttpResponse.json(params.id === SECOND_POLICY_ID ? secondPolicy : seededPolicy),
+    ),
+    http.get(`${BASE}/rulesets`, () =>
+      HttpResponse.json({ rulesets: [rulesets.rulesets[0]!, secondRuleset] }),
+    ),
+    http.get(`${BASE}/rulesets/:id/versions/:no`, ({ params }) =>
+      HttpResponse.json(params.id === SECOND_RULESET_ID ? secondVersion : publishedVersion),
+    ),
+  ]
 }
 
 export const handlers: RequestHandler[] = [

@@ -24,11 +24,19 @@ const FIXTURE_SET = 'cases-200'
  * outcome and by the rules that decided, and every case opens its own trace. The engine decides; this screen only
  * shows what it decided and why.
  */
-export function CasesScreen({ onOpenRule }: { onOpenRule: (ruleId: string | null) => void }) {
+export function CasesScreen({
+  onOpenRule,
+  rulesetId = null,
+}: {
+  onOpenRule: (ruleId: string | null) => void
+  /** The rule set the workspace is on; without one the sandbox's first is used. */
+  rulesetId?: string | null
+}) {
   const rulesets = useRulesets()
-  const first = rulesets.data?.[0]
-  const ruleset = first
-    ? { id: first.id, versionNo: first.versions[first.versions.length - 1]?.versionNo ?? 1 }
+  const list = rulesets.data ?? []
+  const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
+  const ruleset = chosen
+    ? { id: chosen.id, versionNo: chosen.versions[chosen.versions.length - 1]?.versionNo ?? 1 }
     : null
   const version = useVersion(ruleset)
   const stats = useStats(ruleset)
