@@ -59,13 +59,17 @@ describe('RulesScreen', () => {
   it('shows the rules in evaluation order with the fields they compare', async () => {
     renderScreen()
 
-    const rows = await screen.findAllByRole('row')
-    // the header row, then the twenty rules of the committed rule set in priority order
-    expect(rows).toHaveLength(lendingRuleSet.rules.length + 1)
-    expect(within(rows[1]!).getByText('R-010')).toBeInTheDocument()
+    // one row per rule, under the band of Document 3 that its priority falls in
+    const ruleRows = (await screen.findAllByRole('row')).filter(
+      (row) => row.querySelector('.table__rule') !== null,
+    )
+    expect(ruleRows).toHaveLength(lendingRuleSet.rules.length)
+    expect(within(ruleRows[0]!).getByText('R-010')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Derivations' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Positive outcome' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: /debt_to_income/ })).toBeInTheDocument()
     // Document 3: the cell grammar, not a rendering of the JSON; a published version is read, not edited
-    expect(within(rows[3]!).getByText('< 21 years')).toBeInTheDocument()
+    expect(within(ruleRows[2]!).getByText('< 21 years')).toBeInTheDocument()
     expect(screen.queryByLabelText('R-100, age')).not.toBeInTheDocument()
   })
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { lendingRuleSet } from '../../test/fixtures/lending'
 import type { Rule } from '../../api/types'
-import { actionText, bandOf, columnsOf, leavesOf, rowsOf, withLeaf } from './tableModel'
+import { actionText, bandOf, bandedRows, columnsOf, leavesOf, rowsOf, withLeaf } from './tableModel'
 
 /**
  * The decision table as a view of the document (Document 3, Decision Table Rendering and Recommended priority
@@ -18,19 +18,29 @@ function rule(id: string): Rule {
 }
 
 describe('bandOf', () => {
-  // Document 3, Recommended priority bands: 1-99, 100-199, 200-299, 300-399, 400-899, 900+
+  // Document 3, Recommended priority bands, row by row
   it.each([
-    [10, 'Derivations'],
+    [1, 'Derivations'],
     [99, 'Derivations'],
-    [100, 'Eligibility'],
-    [199, 'Eligibility'],
-    [200, 'Affordability and risk'],
-    [300, 'Referral'],
+    [100, 'Hard eligibility gates'],
+    [199, 'Hard eligibility gates'],
+    [200, 'Affordability and risk limits'],
+    [299, 'Affordability and risk limits'],
+    [300, 'Referral conditions'],
+    [399, 'Referral conditions'],
     [400, 'Advisory'],
-    [899, 'Advisory'],
-    [900, 'Approval'],
+    [499, 'Advisory'],
+    [900, 'Positive outcome'],
+    [999, 'Positive outcome'],
   ])('puts priority %i in the %s band', (priority, band) => {
     expect(bandOf(priority)).toBe(band)
+  })
+
+  it('says so about a priority Document 3 gives no band', () => {
+    expect(bandOf(0)).toBe('Outside the recommended bands')
+    expect(bandOf(500)).toBe('Outside the recommended bands')
+    expect(bandOf(899)).toBe('Outside the recommended bands')
+    expect(bandOf(1000)).toBe('Outside the recommended bands')
   })
 })
 
@@ -104,7 +114,7 @@ describe('rowsOf', () => {
 
     expect(row?.cells.get('credit_events_24m')?.text).toBe('= 1')
     expect(row?.cells.get('has_guarantor')?.text).toBe('= false')
-    expect(row?.band).toBe('Referral')
+    expect(row?.band).toBe('Referral conditions')
     expect(row?.action).toBe('Manual review')
   })
 
@@ -127,6 +137,39 @@ describe('rowsOf', () => {
     const cell = rowsOf(document)[0]?.cells.get('age')
     expect(cell?.text).toBe('≥ 21 years, ≤ 70 years')
     expect(cell?.editable).toBe(false)
+  })
+})
+
+describe('bandedRows', () => {
+  it('groups the committed rule set into the bands it uses, in priority order', () => {
+    expect(bandedRows(lendingRuleSet).map((band) => band.band)).toEqual([
+      'Derivations',
+      'Hard eligibility gates',
+      'Affordability and risk limits',
+      'Referral conditions',
+      'Advisory',
+      'Positive outcome',
+    ])
+    expect(bandedRows(lendingRuleSet).flatMap((band) => band.rows)).toHaveLength(
+      lendingRuleSet.rules.length,
+    )
+  })
+
+  it('opens a band again when the priorities leave it and come back', () => {
+    const document = {
+      ...lendingRuleSet,
+      rules: [
+        rule('R-100'),
+        { ...rule('R-200'), priority: 250 },
+        { ...rule('R-110'), priority: 260 },
+      ],
+    }
+
+    // the engine's order is the priority order, so a band that is left and re-entered is shown twice
+    expect(bandedRows(document).map((band) => `${band.band}:${String(band.rows.length)}`)).toEqual([
+      'Hard eligibility gates:1',
+      'Affordability and risk limits:2',
+    ])
   })
 })
 
