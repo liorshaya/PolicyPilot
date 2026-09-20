@@ -6,3 +6,5 @@ node_modules
 package-lock.json
 # generated from the OpenAPI document by npm run generate:api
 src/api/generated
+# the brand kit as it was delivered; it is kept byte for byte, never reformatted
+brand/kit
