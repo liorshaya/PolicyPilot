@@ -1,6 +1,7 @@
 import ruleSet from '../../../../fixtures/policies/consumer-lending/ruleset.v1.json'
 import cases from '../../../../fixtures/policies/consumer-lending/cases-200.json'
 import policyText from '../../../../fixtures/policies/consumer-lending/policy.he.md?raw'
+import depositRules from '../../../../fixtures/eval/policies/rental-deposit-en/expected.ruleset.json'
 import type { RuleSetDocument } from '../../api/types'
 
 /**
@@ -9,6 +10,12 @@ import type { RuleSetDocument } from '../../api/types'
  * from the data the API really serves.
  */
 export const lendingRuleSet = ruleSet as unknown as RuleSetDocument
+
+/**
+ * A second rule set, so a screen cannot assume the sandbox holds one: an English policy from the committed
+ * evaluation set, whose name and rules are unmistakably not the lending ones.
+ */
+export const depositRuleSet = depositRules as unknown as RuleSetDocument
 
 export const lendingParagraphs: { index: number; text: string }[] = policyText
   .split('\n\n')

@@ -3,7 +3,13 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { aggregates, batch, decision } from '../../test/msw/handlers'
+import {
+  aggregates,
+  batch,
+  decision,
+  SECOND_RULESET_ID,
+  twoRulesets,
+} from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { CasesScreen } from './CasesScreen'
 
@@ -14,11 +20,14 @@ import { CasesScreen } from './CasesScreen'
 
 const BASE = 'http://localhost:8080/api/v1'
 
-function renderScreen(onOpenRule: (ruleId: string | null) => void = () => undefined) {
+function renderScreen(
+  onOpenRule: (ruleId: string | null) => void = () => undefined,
+  rulesetId: string | null = null,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <CasesScreen onOpenRule={onOpenRule} />
+      <CasesScreen onOpenRule={onOpenRule} rulesetId={rulesetId} />
     </QueryClientProvider>,
   )
 }
@@ -241,5 +250,21 @@ describe('CasesScreen', () => {
     renderScreen()
 
     expect(await screen.findByText('INTERNAL_ERROR')).toBeInTheDocument()
+  })
+
+  it('runs the rule set it was asked for, not the first one the API lists', async () => {
+    let asked = ''
+    server.use(
+      ...twoRulesets(),
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
+        asked = String(params.id)
+        return HttpResponse.json(batch)
+      }),
+    )
+    renderScreen(() => undefined, SECOND_RULESET_ID)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+
+    await waitFor(() => expect(asked).toBe(SECOND_RULESET_ID))
   })
 })

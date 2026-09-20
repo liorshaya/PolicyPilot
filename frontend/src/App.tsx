@@ -23,6 +23,8 @@ export function App() {
   const [screen, setScreen] = useState<ScreenId>(screenFromHash)
   // the rule another screen asked to open, so a trace step leads to the rule and its source
   const [focusRuleId, setFocusRuleId] = useState<string | null>(null)
+  // the rule set the workspace is on, so opening a policy's rules does not land on someone else's
+  const [rulesetId, setRulesetId] = useState<string | null>(null)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -41,12 +43,29 @@ export function App() {
 
   return (
     <AppShell current={screen} onNavigate={navigate}>
-      {screen === 'policies' ? <PoliciesScreen onOpenRules={() => navigate('rules')} /> : null}
+      {screen === 'policies' ? (
+        <PoliciesScreen
+          onOpenRules={(chosen) => {
+            setRulesetId(chosen)
+            setFocusRuleId(null)
+            navigate('rules')
+          }}
+        />
+      ) : null}
       {screen === 'rules' ? (
-        <RulesScreen onOpenCases={() => navigate('cases')} focusRuleId={focusRuleId} />
+        <RulesScreen
+          onOpenCases={() => navigate('cases')}
+          focusRuleId={focusRuleId}
+          rulesetId={rulesetId}
+          onChooseRuleset={(chosen) => {
+            setRulesetId(chosen)
+            setFocusRuleId(null)
+          }}
+        />
       ) : null}
       {screen === 'cases' ? (
         <CasesScreen
+          rulesetId={rulesetId}
           onOpenRule={(ruleId) => {
             setFocusRuleId(ruleId)
             navigate('rules')

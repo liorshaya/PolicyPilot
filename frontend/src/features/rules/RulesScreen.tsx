@@ -23,6 +23,10 @@ interface RulesScreenProps {
   onOpenCases: () => void
   /** A rule another screen asked for, such as the step that decided a case; a click here replaces it. */
   focusRuleId?: string | null
+  /** The rule set another screen asked for; without one the sandbox's first is shown. */
+  rulesetId?: string | null
+  /** Told when the reader switches rule sets, so the choice outlives this screen. */
+  onChooseRuleset?: (rulesetId: string) => void
 }
 
 /**
@@ -30,11 +34,18 @@ interface RulesScreenProps {
  * pointers shown on the cells they name, and publish. A rule, its source paragraph and its findings are shown
  * together, because that pairing is what makes a published version auditable.
  */
-export function RulesScreen({ onOpenCases, focusRuleId = null }: RulesScreenProps) {
+export function RulesScreen({
+  onOpenCases,
+  focusRuleId = null,
+  rulesetId = null,
+  onChooseRuleset,
+}: RulesScreenProps) {
   const rulesets = useRulesets()
-  const first = rulesets.data?.[0]
-  const ruleset = first
-    ? { id: first.id, versionNo: first.versions[first.versions.length - 1]?.versionNo ?? 1 }
+  const list = rulesets.data ?? []
+  // the one that was asked for; a policy screen or a generation names it, and the first is only the fallback
+  const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
+  const ruleset = chosen
+    ? { id: chosen.id, versionNo: chosen.versions[chosen.versions.length - 1]?.versionNo ?? 1 }
     : null
   const version = useVersion(ruleset)
   const replaceRules = useReplaceRules(ruleset ?? { id: '', versionNo: 1 })
@@ -51,7 +62,7 @@ export function RulesScreen({ onOpenCases, focusRuleId = null }: RulesScreenProp
   const shown: VersionResponse | undefined = publish.data ?? replaceRules.data ?? version.data
   const document = shown?.ruleSet as RuleSetDocument | undefined
   const language: ContentLanguage = document?.language ?? 'en'
-  const policy = usePolicy(first?.policyId ?? null)
+  const policy = usePolicy(chosen?.policyId ?? null)
   const selectedRule = document?.rules.find((rule) => rule.id === selectedRuleId)
   const provenance = selectedRule?.provenance
   const citedIndex = provenance?.kind === 'quoted' ? provenance.paragraph : null
@@ -96,6 +107,22 @@ export function RulesScreen({ onOpenCases, focusRuleId = null }: RulesScreenProp
         actions={
           shown ? (
             <>
+              {list.length > 1 && onChooseRuleset ? (
+                <label className="rules__switcher">
+                  <span className="rules__switcher-label">Rule set</span>
+                  <select
+                    className="rules__switcher-select"
+                    value={chosen?.id ?? ''}
+                    onChange={(event) => onChooseRuleset(event.target.value)}
+                  >
+                    {list.map((one) => (
+                      <option key={one.id} value={one.id}>
+                        {one.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <Button onClick={onOpenCases}>Run cases</Button>
               <Button
                 variant="primary"

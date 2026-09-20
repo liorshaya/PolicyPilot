@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useRef, useState } from 'react'
+import { keys } from '../../api/queries'
 import { openSse } from '../../api/sse'
 import type { Finding, VersionResponse } from '../../api/types'
 
@@ -42,6 +44,7 @@ export function useGeneration(): Generation {
   const [draft, setDraft] = useState<VersionResponse | null>(null)
   const [refusal, setRefusal] = useState<GenerationRefusal | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const client = useQueryClient()
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
@@ -50,44 +53,52 @@ export function useGeneration(): Generation {
     setStage(null)
   }, [])
 
-  const start = useCallback((policyId: string, hints?: string) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-    setRunning(true)
-    setStage(null)
-    setDraft(null)
-    setRefusal(null)
+  const start = useCallback(
+    (policyId: string, hints?: string) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+      setRunning(true)
+      setStage(null)
+      setDraft(null)
+      setRefusal(null)
 
-    void (async () => {
-      try {
-        for await (const event of openSse(`/api/v1/policies/${policyId}/rulesets`, {
-          body: hints === undefined || hints === '' ? {} : { hints },
-          signal: controller.signal,
-        })) {
-          if (STAGES.includes(event.event as Stage)) {
-            setStage(event.event as Stage)
-          } else if (event.event === 'draft') {
-            setDraft(JSON.parse(event.data) as VersionResponse)
-          } else if (event.event === 'error') {
-            const failed = JSON.parse(event.data) as GenerationRefusal
-            setRefusal({ code: failed.code, findings: failed.findings ?? [] })
+      void (async () => {
+        try {
+          for await (const event of openSse(`/api/v1/policies/${policyId}/rulesets`, {
+            body: hints === undefined || hints === '' ? {} : { hints },
+            signal: controller.signal,
+          })) {
+            if (STAGES.includes(event.event as Stage)) {
+              setStage(event.event as Stage)
+            } else if (event.event === 'draft') {
+              const written = JSON.parse(event.data) as VersionResponse
+              setDraft(written)
+              // a generation creates a rule set the cached list does not have, and the screen that opens the
+              // draft reads that list; without this it would open whichever rule set the stale list held
+              void client.invalidateQueries({ queryKey: keys.rulesets })
+              client.setQueryData(keys.version(written.rulesetId, written.versionNo), written)
+            } else if (event.event === 'error') {
+              const failed = JSON.parse(event.data) as GenerationRefusal
+              setRefusal({ code: failed.code, findings: failed.findings ?? [] })
+            }
+          }
+        } catch {
+          // an aborted stream is the caller's own doing; anything else is the provider or the network
+          if (!controller.signal.aborted) {
+            setRefusal({ code: 'PROVIDER_UNAVAILABLE', findings: [] })
+          }
+        } finally {
+          if (abortRef.current === controller) {
+            abortRef.current = null
+            setRunning(false)
+            setStage(null)
           }
         }
-      } catch {
-        // an aborted stream is the caller's own doing; anything else is the provider or the network
-        if (!controller.signal.aborted) {
-          setRefusal({ code: 'PROVIDER_UNAVAILABLE', findings: [] })
-        }
-      } finally {
-        if (abortRef.current === controller) {
-          abortRef.current = null
-          setRunning(false)
-          setStage(null)
-        }
-      }
-    })()
-  }, [])
+      })()
+    },
+    [client],
+  )
 
   return { stage, running, draft, refusal, start, cancel }
 }
