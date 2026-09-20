@@ -90,6 +90,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/policies/{id}/rulesets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a draft rule set from a policy, as a stream of progress events */
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/code": {
         parameters: {
             query?: never;
@@ -283,6 +300,13 @@ export interface components {
             title?: string;
             language?: string;
             text?: string;
+        };
+        GenerateRulesRequest: {
+            hints?: string;
+        };
+        SseEmitter: {
+            /** Format: int64 */
+            timeout?: number;
         };
         AccessCodeRequest: {
             code?: string;
@@ -611,6 +635,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PolicyResponse"];
+                };
+            };
+        };
+    };
+    generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GenerateRulesRequest"];
+            };
+        };
+        responses: {
+            /** @description An event stream: parsing, authoring, validating, draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["SseEmitter"];
                 };
             };
         };
