@@ -116,8 +116,9 @@ export function RulesScreen({
                     onChange={(event) => onChooseRuleset(event.target.value)}
                   >
                     {list.map((one) => (
+                      // two rule sets written from one policy share its name, so the domain tells them apart
                       <option key={one.id} value={one.id}>
-                        {one.name}
+                        {one.name} · {one.domain}
                       </option>
                     ))}
                   </select>
