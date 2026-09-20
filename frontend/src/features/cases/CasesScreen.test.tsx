@@ -174,6 +174,30 @@ describe('CasesScreen', () => {
     expect(panel.getByText('R-420')).toBeInTheDocument()
   })
 
+  it('closes the trace and leaves the run on the screen', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await user.click(await screen.findByRole('button', { name: '17' }))
+    expect(await screen.findByRole('complementary')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
+  it('leads to the rules of the version it is running', async () => {
+    const user = userEvent.setup()
+    const opened = vi.fn()
+    renderScreen(opened)
+
+    await user.click(await screen.findByRole('button', { name: 'Open the rules' }))
+
+    expect(opened).toHaveBeenCalledExactlyOnceWith(null)
+  })
+
   it('says that nothing was decided when the run is refused', async () => {
     const user = userEvent.setup()
     server.use(
