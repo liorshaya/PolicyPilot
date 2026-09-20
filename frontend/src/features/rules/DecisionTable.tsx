@@ -3,7 +3,7 @@ import type { FieldSchema, Rule, RuleSetDocument } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { parseCell, type Leaf } from './cellGrammar'
 import { DecisionTag } from '../../shared/ui/StatusTag'
-import { columnsOf, decisionOf, rowsOf } from './tableModel'
+import { bandedRows, columnsOf, decisionOf, type Cell, type Row } from './tableModel'
 import './DecisionTable.css'
 
 interface DecisionTableProps {
@@ -30,7 +30,7 @@ export function DecisionTable({
   problems = [],
 }: DecisionTableProps) {
   const columns = columnsOf(document)
-  const rows = rowsOf(document)
+  const bands = bandedRows(document)
   const language = document.language
   const refusedRules = new Set(
     problems
@@ -64,58 +64,69 @@ export function DecisionTable({
             </th>
           </tr>
         </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr
-              key={row.rule.id}
-              className={[
-                'table__row',
-                row.rule.id === selectedRuleId ? 'table__row--selected' : '',
-                row.rule.enabled === false ? 'table__row--disabled' : '',
-                refusedRules.has(String(document.rules.indexOf(row.rule)))
-                  ? 'table__row--refused'
-                  : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-current={row.rule.id === selectedRuleId ? 'true' : undefined}
-              onClick={() => onSelect(row.rule.id)}
-            >
-              <th scope="row" className="table__id">
-                <button type="button" className="table__rule" onClick={() => onSelect(row.rule.id)}>
-                  <span className="mono">{row.rule.id}</span>
-                  <bdi className="table__label" dir="auto">
-                    {row.rule.label}
-                  </bdi>
-                </button>
+        {bands.map((band) => (
+          <tbody key={band.band}>
+            <tr className="table__band">
+              {/* Document 3, Recommended priority bands: the decision table displays them as groups */}
+              <th scope="colgroup" colSpan={columns.length + 4}>
+                {band.band}
               </th>
-              <td className="table__priority tabular">{row.rule.priority}</td>
-              {columns.map((column) => (
-                <TableCell
-                  key={column.name}
-                  cell={row.cells.get(column.name)}
-                  column={column}
-                  rule={row.rule}
-                  onEditCell={onEditCell}
-                />
-              ))}
-              <td className="table__source">
-                <Source rule={row.rule} language={language} />
-              </td>
-              <td className="table__action" title={row.action}>
-                <Action row={row} />
-              </td>
-              <td className="sr-only">{index + 1}</td>
             </tr>
-          ))}
-        </tbody>
+            {band.rows.map((row) => (
+              <tr
+                key={row.rule.id}
+                className={[
+                  'table__row',
+                  row.rule.id === selectedRuleId ? 'table__row--selected' : '',
+                  row.rule.enabled === false ? 'table__row--disabled' : '',
+                  refusedRules.has(String(document.rules.indexOf(row.rule)))
+                    ? 'table__row--refused'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-current={row.rule.id === selectedRuleId ? 'true' : undefined}
+                onClick={() => onSelect(row.rule.id)}
+              >
+                <th scope="row" className="table__id">
+                  <button
+                    type="button"
+                    className="table__rule"
+                    onClick={() => onSelect(row.rule.id)}
+                  >
+                    <span className="mono">{row.rule.id}</span>
+                    <bdi className="table__label" dir="auto">
+                      {row.rule.label}
+                    </bdi>
+                  </button>
+                </th>
+                <td className="table__priority tabular">{row.rule.priority}</td>
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.name}
+                    cell={row.cells.get(column.name)}
+                    column={column}
+                    rule={row.rule}
+                    onEditCell={onEditCell}
+                  />
+                ))}
+                <td className="table__source">
+                  <Source rule={row.rule} language={language} />
+                </td>
+                <td className="table__action" title={row.action}>
+                  <Action row={row} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
       </table>
     </div>
   )
 }
 
 /** What the rule does: a decision in the decision colours, anything else in plain words. */
-function Action({ row }: { row: ReturnType<typeof rowsOf>[number] }) {
+function Action({ row }: { row: Row }) {
   const decision = decisionOf(row.rule)
   return decision === null ? <>{row.action}</> : <DecisionTag status={decision} quiet />
 }
@@ -126,9 +137,7 @@ function TableCell({
   rule,
   onEditCell,
 }: {
-  cell: ReturnType<typeof rowsOf>[number]['cells'] extends Map<string, infer C>
-    ? C | undefined
-    : never
+  cell: Cell | undefined
   column: FieldSchema
   rule: Rule
   onEditCell?: (ruleId: string, previous: Leaf, next: Leaf) => void

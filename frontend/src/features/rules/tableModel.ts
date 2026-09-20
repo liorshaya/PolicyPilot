@@ -26,14 +26,24 @@ export interface Row {
   action: string
 }
 
-/** The bands of Document 3, used to group the rows the way the policy reads. */
+/**
+ * The recommended priority bands of Document 3, which the decision table displays as groups. A priority outside
+ * every band is said to be outside them rather than folded into a neighbour.
+ */
+const BANDS: { from: number; to: number; name: string }[] = [
+  { from: 1, to: 99, name: 'Derivations' },
+  { from: 100, to: 199, name: 'Hard eligibility gates' },
+  { from: 200, to: 299, name: 'Affordability and risk limits' },
+  { from: 300, to: 399, name: 'Referral conditions' },
+  { from: 400, to: 499, name: 'Advisory' },
+  { from: 900, to: 999, name: 'Positive outcome' },
+]
+
 export function bandOf(priority: number): string {
-  if (priority < 100) return 'Derivations'
-  if (priority < 200) return 'Eligibility'
-  if (priority < 300) return 'Affordability and risk'
-  if (priority < 400) return 'Referral'
-  if (priority < 900) return 'Advisory'
-  return 'Approval'
+  return (
+    BANDS.find((band) => priority >= band.from && priority <= band.to)?.name ??
+    'Outside the recommended bands'
+  )
 }
 
 /** The action column: what the rule does, in the words of Document 3's action table. */
@@ -114,6 +124,20 @@ export function rowsOf(document: RuleSetDocument): Row[] {
       }
       return { rule, cells, band: bandOf(rule.priority), action: actionText(rule) }
     })
+}
+
+/** The rows of the table in their bands, in priority order; a band with no rule of its own is not shown. */
+export function bandedRows(document: RuleSetDocument): { band: string; rows: Row[] }[] {
+  const bands: { band: string; rows: Row[] }[] = []
+  for (const row of rowsOf(document)) {
+    const last = bands[bands.length - 1]
+    if (last?.band === row.band) {
+      last.rows.push(row)
+    } else {
+      bands.push({ band: row.band, rows: [row] })
+    }
+  }
+  return bands
 }
 
 /**
