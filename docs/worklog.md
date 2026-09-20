@@ -39,6 +39,33 @@ map and the day-1 deployment as built. Documents 1 and 2 say that Railway never 
 scanned, by digest, and the database is a `pgvector/pgvector:pg16` image service. The living progress checklist is
 frozen with a pointer here, so `docs/progress-checklist.md` is the only tracker.
 
+## Found in use after day 7 closed (2026-09-20)
+
+The owner added a twelve-paragraph policy on the cloud site and generated rules from it. Three defects came out of
+one session, all fixed the same evening.
+
+**Opening a policy's rules opened someone else's** (#55, #56). The rules screen and the case runner took
+`rulesets.data[0]`, which was written when a sandbox held exactly one rule set, and navigation carried no id;
+`useGeneration` also never invalidated the rule set list, so a screen that had read it could not see the rule set
+just created. Both screens now take the rule set they were asked for, the workspace holds the choice, and the
+switcher tells two rule sets of one policy apart by domain.
+
+**A twelve-paragraph policy produced three rules, and the screen called it a result** (#57). Calling the provider
+with that exact rendered prompt: `max_completion_tokens` 8,000 gave `finish_reason: length`, 8,000 completion
+tokens of which 8,000 were reasoning, and no text at all. On this lineup the cap counts reasoning as well as the
+document, so the model spent the budget thinking and wrote nothing; the repair loop was then handed an empty
+answer and returned a small document that validated with warnings. With room the same prompt answers 27 rules over
+23 fields. The cap is 24,000 (Document 4 first), a cut-off completion now fails as `OUTPUT_TRUNCATED` and never
+reaches a repair, an answer with no text is never cached (it would have made the failure permanent for that
+policy), and the draft summary shows what the validator noted, because `NO_TERMINAL_APPROVE` and
+`REFER_PRECEDES_REJECT` had been said about that draft and nobody saw them. Verified on the cloud site afterwards:
+the same policy answers 20 rules over 19 fields citing nine of its twelve paragraphs.
+
+**What let all of it through**: the test for "Open its rules" asserted the callback had been called once, never
+with what, and the Playwright test for demo step 1 stopped at the "Review the draft" button without clicking it.
+Coverage was high throughout; the assertions were the gap. Day 8 onwards: assert the value a callback received,
+and let an end-to-end test follow the click.
+
 ## Gate G1 proof (collected 2026-09-20, day 7): passed
 
 | G1 condition (Document 7, Phase gates) | Proof | Result |
