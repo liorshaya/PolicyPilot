@@ -1,6 +1,7 @@
 package com.liorshaya.policypilot.ai.prompt;
 
 import com.liorshaya.policypilot.ai.ModelRole;
+import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
 /**
@@ -23,7 +26,11 @@ import org.yaml.snakeyaml.Yaml;
  * <p>Everything is read at startup: a missing file, an unreadable metadata key or a template whose placeholders
  * the code cannot fill is a startup failure, never a failed request.
  */
+@Component
 public final class PromptRegistry {
+
+    /** The prompts that exist so far; review, explain, answer and change join them on their own days. */
+    public static final List<String> PROMPTS = List.of("author", "repair");
 
     private static final String ROOT = "prompts/";
     private static final String CONDUCT = ROOT + "_shared/conduct.st";
@@ -31,6 +38,12 @@ public final class PromptRegistry {
     private static final String CONDUCT_PLACEHOLDER = "conduct";
 
     private final Map<String, PromptDefinition> prompts;
+
+    /** The prompts of the day, with the versions {@code policypilot.ai.prompt-versions} overrides. */
+    @Autowired
+    public PromptRegistry(PolicyPilotProperties properties) {
+        this(PROMPTS, properties.ai().promptVersions());
+    }
 
     /**
      * @param names the prompt directories to load

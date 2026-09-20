@@ -164,9 +164,8 @@ class AiBookkeepingIT extends ApiIntegrationTest {
 
         cache.put(key, "author", "{\"id\":\"consumer-lending\"}");
 
-        assertThat(cache.find(key)).isPresent();
-        assertThat(JSON.readTree(cache.find(key).orElseThrow()))
-                .isEqualTo(JSON.readTree("{\"id\":\"consumer-lending\"}"));
+        // the answer comes back exactly as it went in, whether it was JSON or plain text
+        assertThat(cache.find(key)).contains("{\"id\":\"consumer-lending\"}");
         // Document 4: the cache key includes the prompt version, so bumping it invalidates the demo cache
         assertThat(cache.find(ProposalCache.keyOf(spec("v2-cache"), "gpt-5.6-terra"))).isEmpty();
         // and so does another model, because it would not have produced the same answer
