@@ -1,0 +1,14 @@
+# The shape of a text prompt (Document 4: the answer prompt has no output schema, runs on the fast model and is
+# cached only for the scripted demo questions).
+name: text-answer
+active: v1
+role: assistant
+task: answer a question from the retrieved context
+outputSchema: none
+modelRole: fast
+temperature: 0.3
+maxOutputTokens: 1200
+timeoutSeconds: 20
+repairs: 0
+cache: scripted-only
+languages: [he, en]

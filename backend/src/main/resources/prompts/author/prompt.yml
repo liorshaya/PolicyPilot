@@ -1,0 +1,14 @@
+# The author prompt (Document 4, Prompt 1: Author). One call turns numbered paragraphs into a whole RuleSet
+# document; everything it produces is validated before anyone sees it.
+name: author
+active: v1
+role: rule author
+task: read a policy and express it as fields and rules in the PolicyPilot DSL, citing the paragraph behind every rule
+outputSchema: schemas/ruleset-1.0.schema.json
+modelRole: strong
+temperature: 0.0
+maxOutputTokens: 8000
+timeoutSeconds: 60
+repairs: 2
+cache: by-input-hash
+languages: [he, en]

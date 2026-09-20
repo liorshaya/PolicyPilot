@@ -82,13 +82,14 @@ backend/src/main/resources/prompts/
 | --- | --- |
 | `name`, `active` | Prompt name and the active version (`v1`), overridable by `policypilot.ai.prompt-versions.<name>` |
 | `outputSchema` | Path of the JSON Schema sent as the response format (`schemas/ruleset-1.0.schema.json`, `schemas/findings-1.0.schema.json`, and so on); `none` for `answer` |
+| `role`, `task` | The two words the shared conduct skeleton is filled with, so the skeleton is written once and each prompt says only who it is and what it does |
 | `modelRole` | `strong` or `fast`; the provider profile maps roles to model names (Model Configuration) |
 | `temperature`, `maxOutputTokens`, `timeoutSeconds` | Per-prompt generation settings |
 | `repairs` | Maximum repair attempts after a validation failure (`author` 2, `change` 2, others 0) |
 | `cache` | `by-input-hash` (author, review, change), `by-decision` (explain), `scripted-only` (answer) or `none` |
 | `languages` | Languages the prompt has been evaluated in (`he`, `en`) |
 
-**Template format**: StringTemplate 4, the format Spring AI's `PromptTemplate` uses; placeholders are `{policy}`, `{schema}`, `{examples}`, `{language}` and so on; data sections are emitted by the template with their delimiters so a caller cannot forget them. Templates are loaded at startup, and a template whose placeholders do not match the code's parameter set fails startup, not a request.
+**Template format**: one placeholder syntax, rendered by PolicyPilot itself rather than by StringTemplate 4 or Spring AI's `PromptTemplate`: the prompts are full of JSON braces that a StringTemplate delimiter set would try to evaluate, and the registry lives in the AI module, which may not import Spring AI. Placeholders are `{policy}`, `{schema}`, `{examples}`, `{language}` and so on; data sections are emitted by the template with their delimiters so a caller cannot forget them. Templates are loaded at startup, and a template whose placeholders do not match the code's parameter set fails startup, not a request.
 
 **Version discipline**: a new version is a new set of files, never an edit of an old one, because stored model calls record the prompt version and must remain reproducible; the CHANGELOG carries the evaluation report deltas (author precision and recall, reviewer recall, answer citation accuracy) for both providers, and the pull request that adds a version links the report. The demo cache keys include the prompt version, so bumping a version invalidates cached demo outputs on purpose.
 

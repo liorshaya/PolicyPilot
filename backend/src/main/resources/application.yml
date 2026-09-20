@@ -118,7 +118,11 @@ policypilot:
       author-seconds: 60
       chat-first-token-seconds: 20
     max-repair-attempts: 2
-    # daily-token-budget: no value is fixed in the documents yet (see CLAUDE.md, open values)
+    # The owner capped OpenAI at 5 USD a day (2026-09-18). At the dearest price in the lineup on 2026-09-20,
+    # the strong model's output at 12 USD per million tokens, 400,000 tokens cost 4.80 USD, so the ledger can
+    # never spend the day's cap; at the authoring mix of Document 4 (12,000 in, 6,000 out, about 10 cents a run)
+    # it is roughly 22 runs a day. Crossing it switches the provider to cache-only, it does not fail the app.
+    daily-token-budget: 400000
     log-payloads: false
   embedding:
     dimension: 1536
