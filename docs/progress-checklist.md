@@ -112,7 +112,7 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 - [x] `author/v1` with examples; generation SSE (`parsing`, `authoring`, `validating`); generate button with progress; ~~guided panel steps 1 and 2~~ (rung 7)
 - [x] Labeled policies 1 to 3 (committed before day 1; used for prompt tuning)
 - [x] Tests: recorded author (valid, malformed, schema-invalid, repair twice then pass, three failures); timeout and 429 recordings; both profiles load with dimension check; RT-06, RT-09, RT-10; SSE sequence; ledger and budget units; ten live runs recorded; Playwright step 1 without flags
-- [ ] Gate G1
+- [x] Gate G1
 
 ## Phase 2, Chat and RAG (days 8 to 11), days 8 and 9 in the two-week version
 
@@ -231,7 +231,7 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 ## Gates
 
 - [x] G0, day 1: compose plus one command under 5 minutes; CI stages 1, 2, 4 and 6 green; health check on Railway; gate page on Vercel; fixtures committed with the reference self-test in stage 2
-- [ ] G1, day 7: C-01 to C-31 pass in Java and Python; `engine` and `rules` at 100% line and PIT at least 90%; 200 cases under 1 s and twice byte-identical; decisions persisted; author schema-valid in at least 9 of 10 recorded runs; steps 1 (without flags) and 2 through the panel on the cloud site
+- [x] G1, day 7: C-01 to C-31 pass in Java and Python; `engine` and `rules` at 100% line and PIT at least 90%; 200 cases under 1 s and twice byte-identical; decisions persisted; author schema-valid in at least 9 of 10 recorded runs; steps 1 (without flags) and 2 through the panel on the cloud site
 - [ ] ~~G2, day 11: step 1 complete and step 3 on the cloud site; retrieval recall at 8, citation and refusal accuracy at target; RT-01 to RT-03 and RT-05 to RT-10 pass; first token under 3 s for cached questions~~ (not in the two-week version)
 - [ ] ~~G3, day 15: step 4 end to end with exactly 12 flips and version 1 unchanged; RT-04; change correctness 5 of 6; second-domain fixture loaded; report with both provider columns~~ (rung 10)
 - [ ] G4, day 10 (two-week version): the Brief's Definition of Done lines 1 to 6 true; the pre-demo checklist complete, the reset items excepted; the video plays; `main` frozen at a tagged build with its SBOM (was: day 19, the full Definition of Done and a matrix with no empty row)
