@@ -41,15 +41,17 @@ Twelve packages under `com.liorshaya.policypilot`, dependencies allowed inward o
 | `policy` | `rules`, persistence |
 | `ruleset` | `rules`, `engine`, `policy`, `audit`, persistence |
 | `decision` | `ruleset`, `engine`, `rules`, persistence |
-| `ai` | `rules`, `engine`, `policy`, `ruleset`, `decision`, `rag` |
-| `ai.adapter` | Spring AI, `ai` interfaces; **the only package that imports `org.springframework.ai`** |
+| `ai` | `rules`, `engine`, `policy`, `ruleset`, `decision`, `rag`, persistence |
+| `ai.adapter` | Spring AI, `ai` interfaces, persistence; **the only package that imports `org.springframework.ai`** |
 | `rag` | `policy`, `rules`, `ai.adapter` (embeddings only), persistence |
 | `change` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | persistence |
 | `demo` | `policy`, `ruleset`, `decision`, `audit`, persistence |
 | `web` | every package above; **nothing depends on `web`** |
 
-The `ruleset` package (rule sets, their versions, publishing) was added on 2026-09-20 (Document 2 first).
+The `ruleset` package (rule sets, their versions, publishing) was added on 2026-09-20 (Document 2 first); on the
+same day `ai` and `ai.adapter` gained persistence, because Document 2 places the model call ledger, the token
+ledger and the response cache in them.
 Two cross-cutting packages were added on 2026-09-18: `config` (Spring configuration, `PolicyPilotProperties`)
 and `common` (dependency-free helpers). Every module may use them except `rules` and `engine`, which stay pure.
 Inside a module that owns state the layers are `service` (entry points other modules call), `entity` and
