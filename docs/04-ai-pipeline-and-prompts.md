@@ -82,6 +82,7 @@ backend/src/main/resources/prompts/
 | --- | --- |
 | `name`, `active` | Prompt name and the active version (`v1`), overridable by `policypilot.ai.prompt-versions.<name>` |
 | `outputSchema` | Path of the JSON Schema sent as the response format (`schemas/ruleset-1.0.schema.json`, `schemas/findings-1.0.schema.json`, and so on); `none` for `answer` |
+| `role`, `task` | The two words the shared conduct skeleton is filled with, so the skeleton is written once and each prompt says only who it is and what it does |
 | `modelRole` | `strong` or `fast`; the provider profile maps roles to model names (Model Configuration) |
 | `temperature`, `maxOutputTokens`, `timeoutSeconds` | Per-prompt generation settings |
 | `repairs` | Maximum repair attempts after a validation failure (`author` 2, `change` 2, others 0) |

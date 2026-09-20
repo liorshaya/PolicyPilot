@@ -373,7 +373,9 @@
                                         <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>
                                     </limits>
                                 </rule>
-                                <!-- ai use cases, validation loop, marker resolver: 90% line, 85% branch (adapter excluded) -->
+                                <!-- ai use cases, validation loop, marker resolver: 90% line, 85% branch (adapter
+                                     excluded; the entity, repository and cache packages need a database, so they
+                                     are measured with every other module's persistence in the merged check) -->
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
@@ -383,6 +385,9 @@
                                     <excludes>
                                         <exclude>com.liorshaya.policypilot.ai.adapter</exclude>
                                         <exclude>com.liorshaya.policypilot.ai.adapter.*</exclude>
+                                        <exclude>com.liorshaya.policypilot.ai.entity</exclude>
+                                        <exclude>com.liorshaya.policypilot.ai.repository</exclude>
+                                        <exclude>com.liorshaya.policypilot.ai.cache</exclude>
                                     </excludes>
                                     <limits>
                                         <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>

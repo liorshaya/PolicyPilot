@@ -1,0 +1,13 @@
+# A prompt.yml that names a model instead of a role: the registry must refuse it at startup.
+name: broken-number
+active: v1
+role: rule author
+task: do the thing
+outputSchema: schemas/ruleset-1.0.schema.json
+modelRole: strong
+temperature: 0.0
+maxOutputTokens: plenty
+timeoutSeconds: 60
+repairs: 2
+cache: by-input-hash
+languages: [en]
