@@ -36,6 +36,9 @@ rules:
       - pattern: $JDBC.update("..." + $X, ...)
       - pattern: $JDBC.execute("..." + $X)
       - pattern: $JC.sql("..." + $X)
+      - pattern: $JC.sql($S + $X)
+      - pattern: $JC.sql($S.formatted(...))
+      - pattern: $JC.sql(String.format(...))
 
   - id: policypilot-java-test-without-assertion
     languages: [java]

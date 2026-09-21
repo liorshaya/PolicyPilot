@@ -3,17 +3,20 @@ package com.liorshaya.policypilot;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
 /** The only endpoint of day 1: {@code /actuator/health}, the Railway health check (Document 2, Deployment Topology). */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.ai.openai.api-key=test-key-not-real")
+@Import(OfflineEmbeddings.class)
 @ActiveProfiles("openai")
 class ActuatorHealthIT extends PostgresContainerSupport {
 
