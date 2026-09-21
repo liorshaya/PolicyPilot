@@ -52,6 +52,28 @@ class SecurityEventsTest {
                 .extracting(c -> c.count()).isEqualTo(1.0);
     }
 
+    // Document 5, Security logging: "Tool call rejected | Tool name, reason | ai.tool.rejected". Expected: the counter
+    // tagged with both, and one log line that names them
+    @Test
+    void aRejectedToolCallIsCountedByToolAndReason() {
+        events.toolRejected("simulate", "not_found");
+
+        assertThat(registry.counter("ai.tool.rejected", "tool", "simulate", "reason", "not_found").count())
+                .isEqualTo(1.0);
+        assertThat(mine()).extracting(ILoggingEvent::getMessage).containsExactly("ai.tool.rejected");
+    }
+
+    // Document 5, Security logging: "Denylist hit in a stream | Prompt version, pattern class". Expected: the counter
+    // tagged with both, and one log line that carries no text of the answer
+    @Test
+    void aDenylistHitIsCountedByPromptAndPatternClass() {
+        events.outputDenylisted("answer/v1", "secret");
+
+        assertThat(registry.counter("security.output.denylist", "prompt", "answer/v1", "pattern", "secret")
+                .count()).isEqualTo(1.0);
+        assertThat(mine()).extracting(ILoggingEvent::getMessage).containsExactly("security.output.denylist");
+    }
+
     @Test
     void everyEventWritesOneLogLineNamedAfterItsCounter() {
         raiseEveryEventOnce();

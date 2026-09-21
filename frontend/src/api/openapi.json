@@ -503,6 +503,133 @@
         }
       }
     },
+    "/api/v1/chat/sessions" : {
+      "post" : {
+        "tags" : [ "chat-controller" ],
+        "summary" : "Open a chat session bound to a published version",
+        "operationId" : "open",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OpenChatRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "The session, its version and its language",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChatSessionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The body names no rule set or no version number",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version is not published",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{id}/messages" : {
+      "post" : {
+        "tags" : [ "chat-controller" ],
+        "summary" : "Ask a question in a session, answered as a stream of events",
+        "operationId" : "ask",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChatMessageRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "An event stream: token events, then citations, usage and done",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The question is empty, too long or has a control character",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such chat session in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The session's version is not embedded yet",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/code" : {
       "post" : {
         "tags" : [ "auth-controller" ],
@@ -1068,6 +1195,47 @@
           "timeout" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "OpenChatRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rulesetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ChatSessionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "rulesetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "language" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ChatMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "question" : {
+            "type" : "string"
           }
         }
       },

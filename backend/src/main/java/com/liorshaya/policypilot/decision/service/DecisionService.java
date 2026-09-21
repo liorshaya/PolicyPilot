@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.StreamWriteFeature;
@@ -137,6 +138,17 @@ public class DecisionService {
             events.authorizationDenied(ENTITY, sandboxId, id.toString());
         }
         return stored.map(row -> view(names.of(row.getRulesetVersionId()), row));
+    }
+
+    /**
+     * The sandbox's latest stored decision of a fixture case on a version: what a chat means by "application 17"
+     * (Document 2, Tools available to the answer prompt). Empty when this sandbox never decided that case there.
+     */
+    @Transactional(readOnly = true)
+    public Optional<DecisionView> ofApplication(PublishedVersion version, UUID sandboxId, int caseNo) {
+        return decisions.findOfCaseNewestFirst(sandboxId, version.versionId(), caseNo, Limit.of(1)).stream()
+                .findFirst()
+                .map(row -> view(version, row));
     }
 
     /**

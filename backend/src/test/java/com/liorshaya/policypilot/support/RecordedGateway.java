@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 import java.util.function.Supplier;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -71,8 +72,23 @@ public final class RecordedGateway implements LlmGateway {
         return gateway;
     }
 
-    /** One streamed answer: the tool calls the model makes, in order, then its text. */
-    public record Streamed(List<ToolCall> calls, String text) {
+    /** Streams these answers next, before any recording, in order. */
+    public synchronized void willStream(Streamed... answers) {
+        streams.addAll(List.of(answers));
+    }
+
+    /** Forgets what was scripted and asked, for a test that shares the gateway with others before it. */
+    public synchronized void reset() {
+        streams.clear();
+        asked.clear();
+        toolResults.clear();
+    }
+
+    /**
+     * One streamed answer: the tool calls the model makes, in order, then its text; or a provider that fails after
+     * the calls.
+     */
+    public record Streamed(List<ToolCall> calls, String text, @Nullable RuntimeException failure) {
 
         public Streamed {
             calls = List.copyOf(calls);
@@ -80,12 +96,17 @@ public final class RecordedGateway implements LlmGateway {
 
         /** An answer that calls no tool. */
         public static Streamed text(String text) {
-            return new Streamed(List.of(), text);
+            return new Streamed(List.of(), text, null);
         }
 
         /** An answer written after the tool calls given. */
         public static Streamed after(String text, ToolCall... calls) {
-            return new Streamed(List.of(calls), text);
+            return new Streamed(List.of(calls), text, null);
+        }
+
+        /** A provider that fails as this one does. */
+        public static Streamed failing(RuntimeException failure) {
+            return new Streamed(List.of(), "", failure);
         }
     }
 
@@ -105,12 +126,18 @@ public final class RecordedGateway implements LlmGateway {
     @Override
     public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
         asked.add(spec);
-        Streamed answer = streams.isEmpty() ? replayStream(spec) : streams.removeFirst();
+        Streamed answer;
+        synchronized (this) {
+            answer = streams.isEmpty() ? replayStream(spec) : streams.removeFirst();
+        }
         for (ToolCall call : answer.calls()) {
             ChatTool tool = tools.stream().filter(offered -> offered.name().equals(call.tool())).findFirst()
                     .orElseThrow(() -> new IllegalStateException(
                             "the model called " + call.tool() + ", which this turn did not offer"));
             toolResults.add(tool.call(call.arguments()));
+        }
+        if (answer.failure() != null) {
+            throw answer.failure();
         }
         int[] codePoints = answer.text().codePoints().toArray();
         for (int from = 0; from < codePoints.length; from += PIECE) {
@@ -157,7 +184,7 @@ public final class RecordedGateway implements LlmGateway {
         List<ToolCall> calls = new ArrayList<>();
         recording.path("steps").forEach(step -> calls.add(
                 new ToolCall(step.required("tool").asString(), step.required("arguments").asString())));
-        return new Streamed(calls, recording.required("response").asString());
+        return new Streamed(calls, recording.required("response").asString(), null);
     }
 
     private String replay(PromptSpec spec) {

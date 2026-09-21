@@ -191,9 +191,13 @@ class ErrorEnvelopeTest {
         assertThat(ErrorCode.valueOf(code).status().value()).isEqualTo(status);
     }
 
+    // Document 2, Error codes: the table, row for row
     @Test
     void theEnumHasExactlyTheDocumentedCodes() {
-        assertThat(ErrorCode.values()).hasSize(15);
+        assertThat(ErrorCode.values()).extracting(Enum::name).containsExactly("REQUEST_INVALID",
+                "ACCESS_CODE_INVALID", "SESSION_INVALID", "CSRF_REJECTED", "NOT_FOUND", "VERSION_STATUS_CONFLICT",
+                "PAYLOAD_TOO_LARGE", "UNSUPPORTED_MEDIA_TYPE", "POLICY_INVALID", "UPLOAD_REJECTED", "RULESET_INVALID",
+                "CASE_INVALID", "RATE_LIMITED", "INTERNAL_ERROR", "PROVIDER_UNAVAILABLE", "ANSWER_WITHHELD");
     }
 
     @Test
