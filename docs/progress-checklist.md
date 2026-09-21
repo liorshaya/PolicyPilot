@@ -118,11 +118,11 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 **Day 8, Wed Sep 30: `rag`**
 
-- [ ] Chunker; embedding job on publish with `embedding_status`; pgvector `VectorStore` through `EmbeddingGateway` with the dimension check; hybrid retrieval (vector plus `tsvector` `simple`, RRF k=60, top 8, minimum 0.35); citation building; the not-covered threshold
+- [x] Chunker; embedding job on publish with `embedding_status`; pgvector `VectorStore` through `EmbeddingGateway` with the dimension check; hybrid retrieval (vector plus `tsvector` `simple`, RRF k=60, top 8, minimum 0.35); citation building; the not-covered threshold
 - [x] Questions 1 to 30 with expected chunks (committed before day 1)
-- [ ] A first live retrieval pass over the 30 questions, Hebrew misses noted
-- [ ] Tests: chunker units; embedding job with the fake gateway and every status transition; scoping by version and sandbox; `createNativeQuery` ArchUnit rule; RRF against a hand-computed example; the short-circuit test
-- [ ] Publishing version 1 embeds; a Hebrew question retrieves its paragraph on the cloud site
+- [x] A first live retrieval pass over the 30 questions, Hebrew misses noted
+- [x] Tests: chunker units; embedding job with the fake gateway and every status transition; scoping by version and sandbox; `createNativeQuery` ArchUnit rule; RRF against a hand-computed example; the short-circuit test
+- [x] Publishing version 1 embeds; a Hebrew question retrieves its paragraph on the cloud site
 
 **Day 9, Thu Oct 1: `answer` and chat**
 
