@@ -5,6 +5,7 @@ import { SCREENS, type ScreenId } from './shared/layout/screens'
 import { PoliciesScreen } from './features/policy/PoliciesScreen'
 import { CasesScreen } from './features/cases/CasesScreen'
 import { RulesScreen } from './features/rules/RulesScreen'
+import { ChatScreen } from './features/chat/ChatScreen'
 import { EmptyState } from './shared/ui/States'
 import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
 
@@ -72,7 +73,17 @@ export function App() {
           }}
         />
       ) : null}
-      {screen !== 'policies' && screen !== 'rules' && screen !== 'cases' ? (
+      {screen === 'assistant' ? (
+        <ChatScreen
+          rulesetId={rulesetId}
+          onOpenRule={(ruleId) => {
+            setFocusRuleId(ruleId)
+            navigate('rules')
+          }}
+          onOpenCases={() => navigate('cases')}
+        />
+      ) : null}
+      {screen === 'audit' ? (
         <>
           <WorkspaceHeader title={SCREENS.find((item) => item.id === screen)?.label ?? ''} />
           <EmptyState

@@ -1,0 +1,156 @@
+.chat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  align-items: start;
+}
+
+.chat__conversation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 52rem;
+}
+
+.chat__intro,
+.chat__thinking {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat__exchange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chat__question {
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-weight: 600;
+}
+
+.chat__answer {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-selected-bar);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  line-height: 1.7;
+}
+
+.chat__answer[lang='he'],
+.chat__source-text[lang='he'] {
+  font-family: var(--font-he);
+}
+
+/* A citation: the same blue as the selected rule and the cited paragraph, so a source reads as a source. */
+.chat__chip {
+  display: inline-block;
+  margin-inline: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--pp-blue-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-wash);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  vertical-align: baseline;
+  cursor: pointer;
+}
+
+.chat__chip:hover {
+  background: var(--pp-blue-wash);
+}
+
+.chat__chip:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.chat__chip--static {
+  cursor: default;
+}
+
+.chat__failure {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-error-line);
+  border-inline-start-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  font-size: var(--text-sm);
+}
+
+.chat__composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.chat__composer .field {
+  flex: 1;
+}
+
+.chat__input {
+  width: 100%;
+  min-height: var(--control-height-lg);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  resize: vertical;
+}
+
+.chat__source {
+  width: 22rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.chat__source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.chat__source-text {
+  margin: 0;
+  padding: var(--space-4);
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) {
+  .chat {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat__source {
+    width: auto;
+  }
+}
