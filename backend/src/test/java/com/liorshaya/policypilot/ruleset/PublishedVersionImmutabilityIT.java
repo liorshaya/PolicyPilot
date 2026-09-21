@@ -78,6 +78,33 @@ class PublishedVersionImmutabilityIT extends ApiIntegrationTest {
         assertThat(updated).isEqualTo(1);
     }
 
+    // Document 2, ruleset_version: the trigger forbids updates once published "except to embedding_status".
+    // Expected: one row updated, and the status read back
+    @Test
+    void embeddingStatusOfAPublishedVersionMayChange() {
+        UUID version = publishedVersion(UUID.randomUUID());
+
+        int updated = jdbc.sql("update ruleset_version set embedding_status = 'FAILED' where id = :id")
+                .param("id", version).update();
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(jdbc.sql("select embedding_status from ruleset_version where id = :id").param("id", version)
+                .query(String.class).single()).isEqualTo("FAILED");
+    }
+
+    // Document 2: only embedding_status is exempt, so a second column in the same statement is still refused.
+    // Expected: a database error from the trigger
+    @Test
+    void embeddingStatusCarriesNoOtherChangeWithIt() {
+        UUID version = publishedVersion(UUID.randomUUID());
+
+        assertThatThrownBy(() -> jdbc.sql("""
+                update ruleset_version set embedding_status = 'READY', retired_ids = '["R-999"]'::jsonb
+                where id = :id""").param("id", version).update())
+                .isInstanceOf(DataAccessException.class)
+                .rootCause().hasMessageContaining("cannot change");
+    }
+
     // Document 5, principle 1: the API role cannot delete published versions. Expected: a PostgreSQL error
     @Test
     void deleteOfAPublishedVersionIsRefusedByTheDatabase() {
@@ -86,5 +113,11 @@ class PublishedVersionImmutabilityIT extends ApiIntegrationTest {
         assertThatThrownBy(() -> jdbc.sql("delete from ruleset_version where id = :id").param("id", version).update())
                 .isInstanceOf(DataAccessException.class)
                 .rootCause().hasMessageContaining("permission denied");
+    }
+
+    /** A version the sandbox published itself, so a test may move its embedding status without touching the seed. */
+    private UUID publishedVersion(UUID sandbox) {
+        VersionView draft = fixtures.draft(sandbox);
+        return rulesets.publish(draft.rulesetId(), draft.versionNo(), sandbox).orElseThrow().versionId();
     }
 }
