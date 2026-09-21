@@ -4,8 +4,13 @@
 Rejects any fixture that contains an email address, a phone number or a nine-digit number that could read as
 an identity number. Everything under fixtures/ is synthetic by construction; this check keeps it that way.
 
+An embedding recording (fixtures/eval/recordings/<provider>/embedding/) is checked by its texts: its vectors are
+base64 of float32, whose digit runs are the encoding of numbers, not anything a person wrote, and would otherwise
+read as identity numbers by chance.
+
 Run: python3 scripts/ci/check_fixture_privacy.py   (exit 1 with every hit listed)
 """
+import json
 import re
 import sys
 from pathlib import Path
@@ -20,6 +25,14 @@ PATTERNS = {
 }
 
 
+def lines_of(path: Path) -> list[str]:
+    """The lines to scan: a file's own lines, or the texts of an embedding recording, one per entry."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".json" and "embedding" in path.relative_to(FIXTURES).parts[:4]:
+        return [entry["text"] for entry in json.loads(text)["embeddings"]]
+    return text.splitlines()
+
+
 def main() -> int:
     if not FIXTURES.is_dir():
         print(f"fixtures directory not found: {FIXTURES}")
@@ -30,7 +43,7 @@ def main() -> int:
         if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
             continue
         scanned += 1
-        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        for number, line in enumerate(lines_of(path), start=1):
             for kind, pattern in PATTERNS.items():
                 for match in pattern.finditer(line):
                     hits.append((path.relative_to(FIXTURES.parent), number, kind, match.group(0)))
