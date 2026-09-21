@@ -7,7 +7,7 @@ package com.liorshaya.policypilot.ruleset.service;
 public enum EmbeddingStatus {
     /** Published, not embedded yet: the job will take it. */
     PENDING,
-    /** The job is embedding it now; at startup this means a restart interrupted it. */
+    /** The job is embedding it now; a clean stop ends the run as {@code FAILED}. */
     EMBEDDING,
     /** Its chunks are stored and retrieval may use them. */
     READY,

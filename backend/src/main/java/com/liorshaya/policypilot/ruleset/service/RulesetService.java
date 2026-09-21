@@ -240,13 +240,13 @@ public class RulesetService {
     }
 
     /**
-     * At startup, every version to embed again (Document 2, RAG pipeline, Embedding): {@code FAILED} ones are
-     * retried once per start, and {@code EMBEDDING} ones were interrupted by the restart, since one instance runs.
+     * At startup, every version to embed again (Document 2, RAG pipeline, Embedding): {@code PENDING} ones, and
+     * {@code FAILED} ones, retried once per start. An {@code EMBEDDING} version is left alone: during a rolling deploy
+     * the old instance may still be embedding it, and a clean stop ends its run as {@code FAILED} anyway.
      */
     @Transactional
     public List<UUID> resumeEmbeddings() {
-        versions.moveEveryEmbeddingStatus(names(EmbeddingStatus.FAILED, EmbeddingStatus.EMBEDDING),
-                EmbeddingStatus.PENDING.name());
+        versions.moveEveryEmbeddingStatus(names(EmbeddingStatus.FAILED), EmbeddingStatus.PENDING.name());
         return versions.findIdsByEmbeddingStatus(EmbeddingStatus.PENDING.name());
     }
 

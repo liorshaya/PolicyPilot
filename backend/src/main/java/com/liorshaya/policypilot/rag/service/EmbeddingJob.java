@@ -27,7 +27,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * {@code PENDING}, {@code EMBEDDING}, then {@code READY} or {@code FAILED}. At startup the versions left to embed are
  * taken again, which is also how the seeded version 1 and a version published before V7 are embedded. The work waits
  * on a provider, not on a CPU, so each version gets a virtual thread of the job's own; stopping the application
- * interrupts them, and whatever was left {@code EMBEDDING} is taken again at the next start.
+ * interrupts them, which ends their runs {@code FAILED}, and the next start takes those again.
  */
 @Service
 public class EmbeddingJob {
