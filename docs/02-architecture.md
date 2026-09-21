@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-21 · Lior Shaya
+2026-09-22 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -271,9 +271,9 @@ Reading the diagram: the model never writes to the database; it produces a `Prop
 | Storage | pgvector column `vector(1536)` for OpenAI `text-embedding-3-small` or `vector(1024)` for `bge-m3`; the dimension is part of the profile and checked at startup |
 | Retrieval | Hybrid: cosine similarity over embeddings plus PostgreSQL full-text search (`tsvector` with the `simple` dictionary, which handles Hebrew tokens), fused with reciprocal rank fusion; top 8 chunks; the "not covered" answer is gated by the best chunk's cosine similarity, not by the fused score, whose largest possible value with `k = 60` is 2/61 (Document 4, Retrieval Pipeline, Threshold) |
 | Prompting | Chunks are passed with ids; the `answer` prompt must cite chunk ids, and the API resolves ids to paragraph or rule links before streaming citations to the client |
-| Memory | `MessageWindowChatMemory` of the last 10 turns per chat session, stored in the database so it survives restarts |
+| Memory | The last 10 turns of the chat session, read from `chat_message` so they survive restarts, rendered by the API into the answer prompt's `<history>` section (Document 4); not Spring AI's `MessageWindowChatMemory`, which would send history as separate messages outside the prompt the registry renders |
 
-**Tools available to the `answer` prompt**: `getDecision(decisionId)`, `getDecisionStats(versionId)`, `listRules(versionId)`, `getRule(ruleId)`, and `simulate(decisionId, overrides)`, which re-evaluates a stored decision's input with some fields changed against the same version and returns a full decision object marked `simulation: true`, without storing anything. All tools are read-only with respect to stored data, scoped to the version in the chat session, and logged with their arguments. The prompt is instructed that a counterfactual ("would it be approved with a guarantor?") may only be stated from a `simulate` result; the model never derives an outcome from rule definitions, because skipped rules leave no evaluation in the trace.
+**Tools available to the `answer` prompt**: `getDecision(applicationNumber)`, `getDecisionStats(versionId)`, `listRules(versionId)`, `getRule(ruleId)`, and `simulate(applicationNumber, overrides)`, which re-evaluates a stored decision's input with some fields changed against the same version and returns a full decision object marked `simulation: true`, without storing anything. The application number is the case number a person reads on the screen and the model cites as `[[d:17]]`; it names the sandbox's latest stored decision of that case on the session's version. The tools are plain `ChatTool` objects in `ai`, and `ai.adapter` registers them with Spring AI as tool callbacks, since only the adapter may import Spring AI. All tools are read-only with respect to stored data, scoped to the version in the chat session, and logged with their arguments. The prompt is instructed that a counterfactual ("would it be approved with a guarantor?") may only be stated from a `simulate` result; the model never derives an outcome from rule definitions, because skipped rules leave no evaluation in the trace.
 
 **Change impact analysis**: the `change` use case embeds the request text, retrieves the 10 most similar rules of the current version, and asks the model for patches (add, modify, remove by rule id) with a rationale per patch; patches are applied to a copy and the copy goes through the same validation loop and the regression run described in Flow 4.
 
@@ -341,8 +341,8 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `POST /decisions/{id}/explain` | Natural language explanation of a decision | Uses the `explain` prompt with the trace as the only source |
 | `GET /rulesets/{id}/versions/{no}/stats` | Outcome counts and top deciding rules | Over the caller's sandbox, the latest decision per case; the top 5 rules by count, then by id; also exposed as a tool to the chat |
 | `POST /rulesets/{id}/versions/{no}/retrieval` | The chunks hybrid retrieval returns for a question on this version, and whether the not-covered threshold stops it (Document 4, Retrieval Pipeline) | Read-only and scoped to the caller's sandbox; embeds the question, so it is a model-calling route for the rate limits; the question follows the chat message limits (Document 5); 409 while the version's `embedding_status` is not `READY`; returns the fused chunks with their ids, scores and citations, or the fixed not-covered sentence; the chat uses the same service |
-| `POST /chat/sessions` | Open a chat session bound to a rule set version |  |
-| `POST /chat/sessions/{id}/messages` | Send a message | SSE stream: `token` events, then one `citations` event, then `usage`, then `done` |
+| `POST /chat/sessions` | Open a chat session bound to a rule set version | Body `{rulesetId, versionNo}`; 201 with the session id, the version and its language; a PUBLISHED version the sandbox can see (404 otherwise, 409 for a DRAFT); the session belongs to the caller's sandbox |
+| `POST /chat/sessions/{id}/messages` | Send a message | Body `{question}` (Document 5 chat limits); SSE stream: `token` events, then one `citations` event, then `usage`, then `done` with the stored message id; `error` with an error code instead when the provider fails, the first token misses its deadline or the denylist scan stops the stream; 409 while the version's embedding is not READY. Not resumable: the client offers a retry |
 | `POST /rulesets/{id}/versions/{no}/changes` | Submit a change request in natural language | SSE stream: `analyzing`, `proposing`, `validating`, `regression`, then the proposal with diff and report |
 | `POST /changes/{id}/approve`, `POST /changes/{id}/reject` | Decide on a proposal | Approve publishes the new version and writes the audit entry in one transaction |
 | `GET /rulesets/{id}/versions/{a}/diff/{b}` | Structural diff between two versions | Rule-level: added, removed, modified with field-level changes |
@@ -374,6 +374,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `RATE_LIMITED` | 429 | A rate limit or the code-exchange lockout, with `Retry-After` |
 | `INTERNAL_ERROR` | 500 | Anything unexpected; no internals in the body |
 | `PROVIDER_UNAVAILABLE` | 503 | The model provider failed or its circuit is open |
+| `ANSWER_WITHHELD` | 502 | The denylist scan stopped a streamed answer that carried a secret (Document 5); sent as the stream's `error` event, and nothing of the answer is stored |
 
 **SSE conventions**: every stream event has an `event` name and a JSON `data` payload; the client reconnects with `Last-Event-ID` for generation and change streams, which are idempotent per request id; chat streams are not resumable and the client shows a retry button instead.
 
