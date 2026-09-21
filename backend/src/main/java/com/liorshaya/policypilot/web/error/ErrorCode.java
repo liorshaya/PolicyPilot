@@ -21,7 +21,8 @@ public enum ErrorCode {
     CASE_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The case is not valid against the rule set's fields."),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests; retry later."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong; quote the trace id."),
-    PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "The model provider is unavailable.");
+    PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "The model provider is unavailable."),
+    ANSWER_WITHHELD(HttpStatus.BAD_GATEWAY, "The answer was withheld.");
 
     private final HttpStatus status;
     private final String message;

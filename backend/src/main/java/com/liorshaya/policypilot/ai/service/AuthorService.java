@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
+import com.liorshaya.policypilot.ai.prompt.Sections;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.rules.validation.Finding;
 import com.liorshaya.policypilot.rules.validation.ValidationCode;
@@ -40,8 +41,6 @@ import tools.jackson.databind.node.ObjectNode;
 public class AuthorService {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-    /** The delimiter that opens a data section; any of these in policy text is escaped (Document 5, RT-06). */
-    private static final String SECTION_OPEN = "<";
 
     private final LlmGateway gateway;
     private final PromptRegistry prompts;
@@ -127,10 +126,10 @@ public class AuthorService {
                 "cheatsheet", cheatSheet.text(),
                 "examples", author.examples() == null ? "" : author.examples(),
                 "language", PromptRegistry.languageName(language),
-                "title", escape(title),
+                "title", Sections.escape(title),
                 "paragraphCount", String.valueOf(policy.paragraphs().size()),
                 "policy", numbered(policy),
-                "hints", hints == null || hints.isBlank() ? "" : "<hints>\n" + escape(hints) + "\n</hints>"));
+                "hints", hints == null || hints.isBlank() ? "" : "<hints>\n" + Sections.escape(hints) + "\n</hints>"));
         String system = author.system().render(Map.of("language", PromptRegistry.languageName(language)));
         return new PromptSpec(author.name(), author.version(), author.role(), system, rendered,
                 author.outputSchema(), author.temperature(), author.maxOutputTokens(), author.timeout(), 1);
@@ -140,18 +139,12 @@ public class AuthorService {
     private static String numbered(PolicyVersionRef policy) {
         StringBuilder text = new StringBuilder();
         for (PolicyVersionRef.Paragraph paragraph : policy.paragraphs()) {
-            text.append('[').append(paragraph.index()).append("] ").append(escape(paragraph.text())).append('\n');
+            text.append('[').append(paragraph.index()).append("] ").append(Sections.escape(paragraph.text()))
+                    .append('\n');
         }
         return text.toString().stripTrailing();
     }
 
-    /**
-     * Escapes what opens a data section, so text inside one cannot close it and start an instruction
-     * (Document 5, RT-06). The model still reads the words; it just cannot read them as markup.
-     */
-    static String escape(String text) {
-        return text.replace(SECTION_OPEN, "&lt;");
-    }
 
     /** The repair user prompt of Document 4, with only the errors and the paragraphs their quotes came from. */
     private String repairPrompt(Answer answer, List<Finding> findings, PolicyVersionRef policy) {
@@ -161,7 +154,7 @@ public class AuthorService {
                 "count", String.valueOf(errors.size()),
                 "errors", errorList(errors),
                 "paragraphTexts", paragraphsFor(errors, document, policy),
-                "document", document == null ? escape(answer.raw()) : document.toString()));
+                "document", document == null ? Sections.escape(answer.raw()) : document.toString()));
     }
 
     private static String errorList(List<Finding> errors) {
@@ -204,7 +197,7 @@ public class AuthorService {
         for (PolicyVersionRef.Paragraph paragraph : policy.paragraphs()) {
             if (cited.contains(paragraph.index())) {
                 text.append('[').append(paragraph.index()).append("] ")
-                        .append(escape(paragraph.text())).append('\n');
+                        .append(Sections.escape(paragraph.text())).append('\n');
             }
         }
         return text.toString().stripTrailing();

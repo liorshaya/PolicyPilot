@@ -21,6 +21,8 @@ public class SecurityEvents {
     public static final String RATELIMIT_HIT = "security.ratelimit.hit";
     public static final String INPUT_REJECTED = "security.input.rejected";
     public static final String PROTECTED_WRITE_ATTEMPT = "security.protected.write_attempt";
+    public static final String TOOL_REJECTED = "ai.tool.rejected";
+    public static final String OUTPUT_DENYLIST = "security.output.denylist";
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityEvents.class);
     /** 16 hex characters: enough to tell clients apart in a log, too short to be a useful digest. */
@@ -73,6 +75,19 @@ public class SecurityEvents {
         registry.counter(PROTECTED_WRITE_ATTEMPT, "entity", entity).increment();
         LOG.atWarn().setMessage(PROTECTED_WRITE_ATTEMPT).addKeyValue("entity", entity)
                 .addKeyValue("sandbox", sandboxId).log();
+    }
+
+    /** A chat tool refused a call: its arguments were wrong, the id was not found, or the turn's caps were reached. */
+    public void toolRejected(String tool, String reason) {
+        registry.counter(TOOL_REJECTED, "tool", tool, "reason", reason).increment();
+        LOG.atWarn().setMessage(TOOL_REJECTED).addKeyValue("tool", tool).addKeyValue("reason", reason).log();
+    }
+
+    /** The denylist scan stopped a streamed answer; the pattern class is logged, never the text. */
+    public void outputDenylisted(String promptVersion, String patternClass) {
+        registry.counter(OUTPUT_DENYLIST, "prompt", promptVersion, "pattern", patternClass).increment();
+        LOG.atWarn().setMessage(OUTPUT_DENYLIST).addKeyValue("prompt", promptVersion)
+                .addKeyValue("pattern", patternClass).log();
     }
 
     /** The keyed hash under which a client or an id is logged. */
