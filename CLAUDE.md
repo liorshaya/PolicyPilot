@@ -43,7 +43,7 @@ Twelve packages under `com.liorshaya.policypilot`, dependencies allowed inward o
 | `decision` | `ruleset`, `engine`, `rules`, persistence |
 | `ai` | `rules`, `engine`, `policy`, `ruleset`, `decision`, `rag`, persistence |
 | `ai.adapter` | Spring AI, `ai` interfaces, persistence; **the only package that imports `org.springframework.ai`** |
-| `rag` | `policy`, `rules`, `ai` (the `EmbeddingGateway` interface), persistence |
+| `rag` | `policy`, `rules`, `ruleset`, `ai` (the `EmbeddingGateway` interface), persistence |
 | `change` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | persistence |
 | `demo` | `policy`, `ruleset`, `decision`, `audit`, persistence |
@@ -51,7 +51,8 @@ Twelve packages under `com.liorshaya.policypilot`, dependencies allowed inward o
 
 The `ruleset` package (rule sets, their versions, publishing) was added on 2026-09-20 (Document 2 first); on the
 same day `ai` and `ai.adapter` gained persistence, because Document 2 places the model call ledger, the token
-ledger and the response cache in them.
+ledger and the response cache in them. On 2026-09-21 `rag` gained `ruleset` (day 8): the published version to chunk
+and its `embedding_status` belong to `ruleset`, and `rag` reads them through its service, not its tables.
 Two cross-cutting packages were added on 2026-09-18: `config` (Spring configuration, `PolicyPilotProperties`)
 and `common` (dependency-free helpers). Every module may use them except `rules` and `engine`, which stay pure.
 Inside a module that owns state the layers are `service` (entry points other modules call), `entity` and

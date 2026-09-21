@@ -1,6 +1,6 @@
 # PolicyPilot Security Specification
 
-2026-09-20 · Lior Shaya
+2026-09-21 · Lior Shaya
 
 Document 5 of the PolicyPilot set. It defines the threat model and every security control of the system, with injection in all its forms as the center of gravity, because a rules engine driven by a language model has two attack surfaces a normal web application does not: the text it reads and the text it produces. It builds on the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md) and the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md), the Test Strategy (Document 6) carries its tests in the traceability matrix, and the work plan (Document 7) schedules the controls it lists.
 
@@ -165,7 +165,7 @@ Every request is parsed into a typed DTO with explicit limits before any busines
 | Uploads | `.txt`, `.md`, `.pdf`; 2 MB; one file per request | Type by magic bytes: %PDF- is a PDF, valid UTF-8 without NUL is text or Markdown, anything else is refused; PDF parsed in memory with PDFBox, 50 pages, 10 s timeout, text only, and refused when it carries JavaScript, embedded files or encryption; extracted text then follows the policy text rules |
 | Rule set JSON (manual edits) | 1 MB body, 500 rules, 100 fields, nesting depth 8 in conditions and expressions, string lengths as in the schema | Schema first, then the full Document 3 validator; unknown keys rejected |
 | Case input | 100 fields, values by declared type and domain | `CASE_INVALID` details are returned to the caller with the field names; batch of at most 500 cases per request |
-| Chat message | 2 KB | Same Unicode normalization as policy text; `<` escaped before prompting |
+| Chat message, retrieval question | 2 KB | Same Unicode normalization as policy text; `<` escaped before prompting |
 | Change request | 2 KB | Same as chat message |
 | Analyst hints | 1 KB | Same |
 | Ids in paths | UUIDs and `R-` ids by regular expression at the controller | Anything else is 400 before any lookup |
@@ -217,7 +217,7 @@ The demo must answer within seconds during the interview and survive a stranger 
 | Path | Limit | Enforcement |
 | --- | --- | --- |
 | Code exchange | 5 per minute per IP; lockout after 20 failures | Bucket4j filter |
-| Model-calling endpoints (generate, chat message, change, explain) | 20 per minute per IP and 60 per hour per sandbox; 3 concurrent streams per sandbox | Bucket4j plus a per-sandbox semaphore |
+| Model-calling endpoints (generate, chat message, change, explain, retrieval) | 20 per minute per IP and 60 per hour per sandbox; 3 concurrent streams per sandbox | Bucket4j plus a per-sandbox semaphore |
 | Other API endpoints | 120 per minute per IP | Bucket4j |
 | Batch decide | 500 cases per request, 5 requests per minute per sandbox | Controller validation and Bucket4j |
 | Request body | 1 MB, uploads 2 MB | Servlet container limits |

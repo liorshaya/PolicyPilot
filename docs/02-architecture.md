@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-20 · Lior Shaya
+2026-09-21 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -78,7 +78,7 @@ One Maven project, one Spring Boot application, twelve packages under `com.liors
 | `decision` | Case model, `DecisionService` (single, batch, simulate), decision persistence and statistics, exports | `ruleset` (published versions), `engine`, `rules`, persistence |
 | `ai` | `LlmGateway`, `EmbeddingGateway`, prompt registry, structured output contracts, validation loop, marker resolver, tool argument validation, the five use cases (author, review, explain, answer, change) | `rules`, `engine` (read-only, for regression), `policy`, `ruleset` (drafts), `decision`, `rag`, persistence |
 | `ai.adapter` | The only package that imports Spring AI: `SpringAiLlmGateway`, `SpringAiEmbeddingGateway`, provider configuration, schema variant derivation, token budget guard, response cache | Spring AI, `ai` interfaces, persistence |
-| `rag` | Chunking, embedding on publish, `VectorStore` access, hybrid retrieval, citation building | `policy`, `rules`, `ai` (the `EmbeddingGateway` interface), persistence |
+| `rag` | Chunking, embedding on publish, the pgvector chunk store (parameterized SQL, no Spring AI `VectorStore`), hybrid retrieval, citation building | `policy`, `rules`, `ruleset` (the published version to chunk, its `embedding_status`), `ai` (the `EmbeddingGateway` interface), persistence |
 | `change` | Change requests, impact analysis, diff, regression run, approval (pending to analyst provenance), the next version through `ruleset` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | `AuditEntry`, append-only log service | persistence |
 | `demo` | Sandbox service (fork on write to protected rows), nightly reset and re-seed, manual reset with the admin code, fixture loading | `policy`, `ruleset`, `decision`, `audit`, persistence |
@@ -267,9 +267,9 @@ Reading the diagram: the model never writes to the database; it produces a `Prop
 | Stage | Design |
 | --- | --- |
 | Chunking | One chunk per policy paragraph (paragraphs are already the provenance unit) and one chunk per rule (its label, condition rendered as text, action, source quote); decisions are not embedded, they are reached through tools |
-| Embedding | On publish, asynchronously, with the configured `EmbeddingGateway`; chunk rows carry `ruleset_version_id` so retrieval can be scoped to the version the user is looking at |
+| Embedding | On publish, asynchronously, with the configured `EmbeddingGateway`; chunk rows carry `ruleset_version_id` so retrieval can be scoped to the version the user is looking at. Publishing sets the version's `embedding_status` to `PENDING` and `ruleset` announces the publication after commit; `rag` moves the version to `EMBEDDING`, then `READY` with its chunks, or `FAILED` with none. At startup `rag` takes every `PENDING` and `FAILED` version again, so a restart or a deploy retries a failure once and never in a loop |
 | Storage | pgvector column `vector(1536)` for OpenAI `text-embedding-3-small` or `vector(1024)` for `bge-m3`; the dimension is part of the profile and checked at startup |
-| Retrieval | Hybrid: cosine similarity over embeddings plus PostgreSQL full-text search (`tsvector` with the `simple` dictionary, which handles Hebrew tokens), fused with reciprocal rank fusion; top 8 chunks; a minimum fused score gates the "not covered" answer |
+| Retrieval | Hybrid: cosine similarity over embeddings plus PostgreSQL full-text search (`tsvector` with the `simple` dictionary, which handles Hebrew tokens), fused with reciprocal rank fusion; top 8 chunks; the "not covered" answer is gated by the best chunk's cosine similarity, not by the fused score, whose largest possible value with `k = 60` is 2/61 (Document 4, Retrieval Pipeline, Threshold) |
 | Prompting | Chunks are passed with ids; the `answer` prompt must cite chunk ids, and the API resolves ids to paragraph or rule links before streaming citations to the client |
 | Memory | `MessageWindowChatMemory` of the last 10 turns per chat session, stored in the database so it survives restarts |
 
@@ -309,11 +309,11 @@ Reading the diagram: arrows point from parent to child; `rule` links back to `po
 | `policy_version` | `id`, `document_id`, `version_no`, `raw_text`, `created_at` | Immutable once a rule set is generated from it |
 | `policy_paragraph` | `id`, `policy_version_id`, `index`, `text` | The provenance unit; index is stable within a version |
 | `ruleset` | `id`, `sandbox_id`, `protected`, `forked_from_id`, `name`, `domain`, `default_outcome`, `created_at` | Logical rule set ("Consumer lending policy"); `domain` is the DSL document's `id`, shared by every version; `protected` marks the seeded demo rows that no session may modify, whose sandbox\_id is null; forked\_from\_id points a sandbox's copy of a protected rule set at its origin, one copy per sandbox |
-| `ruleset_version` | `id`, `ruleset_id`, `version_no`, `status` (DRAFT, PUBLISHED, SUPERSEDED), `policy_version_id`, `rules_json` (jsonb), `field_schema_json` (jsonb), `retired_ids` (jsonb), `embedding_status`, `published_at`, `published_by`, `parent_version_id` | `rules_json` is the full DSL document; a DB trigger forbids updates once `status = PUBLISHED` |
+| `ruleset_version` | `id`, `ruleset_id`, `version_no`, `status` (DRAFT, PUBLISHED, SUPERSEDED), `policy_version_id`, `rules_json` (jsonb), `field_schema_json` (jsonb), `retired_ids` (jsonb), `embedding_status`, `published_at`, `published_by`, `parent_version_id` | `rules_json` is the full DSL document; a DB trigger forbids updates once `status = PUBLISHED`, except to `embedding_status`, which is null on a DRAFT and then `PENDING`, `EMBEDDING`, `READY` or `FAILED` (RAG pipeline, Embedding) |
 | `rule` | `id`, `ruleset_version_id`, `rule_id` (from the DSL), `priority`, `label`, `provenance_kind` (quoted, analyst, pending), `paragraph_id` (nullable), `source_quote` (nullable), `rule_json` (jsonb) | Denormalized from `rules_json` on publish for querying, provenance joins and embedding |
 | `case_fixture` | `id`, `sandbox_id`, `protected`, `fixture_set`, `case_no`, `name`, `fields_json` (jsonb), `expected_outcome` (nullable), `tags` | The 200 synthetic applicants plus any case entered in the UI; the 200 are protected rows of fixture set `cases-200` with their case numbers 1 to 200, and `tags` carries each one's stratum |
 | `decision` | `id`, `sandbox_id`, `ruleset_version_id`, `case_id` (nullable), `input_json` (jsonb), `status` (OK, ERROR), `outcome`, `deciding_rule_id`, `error_code` (nullable), `trace_json` (jsonb), `decided_at`, `duration_micros` | Input is snapshotted so a decision can be replayed even if the fixture changes; `trace_json` holds the decision object of Document 3, whose `trace` is the ordered steps, so nothing about a decision is reconstructed when it is read back; simulations are never written here |
-| `chunk` | `id`, `ruleset_version_id`, `kind` (PARAGRAPH, RULE), `ref_id`, `text`, `embedding` (vector), `tsv` (tsvector), `created_at` | HNSW index on `embedding`, GIN index on `tsv`; scoped through the version's rule set and sandbox |
+| `chunk` | `id`, `ruleset_version_id`, `kind` (PARAGRAPH, RULE), `ref_id`, `text`, `embedding` (vector), `tsv` (tsvector), `created_at` | `tsv` is built from `text` with the `simple` configuration after the lexical normalization of Document 4 (Retrieval Pipeline); HNSW index on `embedding` (cosine), GIN index on `tsv`, B-tree index on `ruleset_version_id`; a query names one version, which the caller has already resolved through the version's rule set and sandbox |
 | `change_request` | `id`, `sandbox_id`, `base_version_id`, `request_text`, `status` (PROPOSED, APPROVED, REJECTED), `patches_json`, `rationale_json`, `regression_json`, `result_version_id`, `created_at`, `decided_at`, `actor` | The full proposal is kept even when rejected |
 | `audit_entry` | `id`, `at`, `actor`, `action` (PUBLISH, CHANGE\_PROPOSED, CHANGE\_APPROVED, CHANGE\_REJECTED, GAP\_ACKNOWLEDGED, RESET), `ruleset_version_id`, `change_request_id`, `details_json` | Append-only: no update or delete grants on this table |
 | `chat_session`, `chat_message` | `id`, `sandbox_id`, `ruleset_version_id`, `created_at`; `id`, `session_id`, `role`, `content`, `citations_json`, `tool_calls_json`, `token_usage_json`, `at` | Memory window is read from `chat_message`; token usage per message feeds the cost view |
@@ -340,6 +340,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `GET /decisions/{id}` | A stored decision with its trace |  |
 | `POST /decisions/{id}/explain` | Natural language explanation of a decision | Uses the `explain` prompt with the trace as the only source |
 | `GET /rulesets/{id}/versions/{no}/stats` | Outcome counts and top deciding rules | Over the caller's sandbox, the latest decision per case; the top 5 rules by count, then by id; also exposed as a tool to the chat |
+| `POST /rulesets/{id}/versions/{no}/retrieval` | The chunks hybrid retrieval returns for a question on this version, and whether the not-covered threshold stops it (Document 4, Retrieval Pipeline) | Read-only and scoped to the caller's sandbox; embeds the question, so it is a model-calling route for the rate limits; the question follows the chat message limits (Document 5); 409 while the version's `embedding_status` is not `READY`; returns the fused chunks with their ids, scores and citations, or the fixed not-covered sentence; the chat uses the same service |
 | `POST /chat/sessions` | Open a chat session bound to a rule set version |  |
 | `POST /chat/sessions/{id}/messages` | Send a message | SSE stream: `token` events, then one `citations` event, then `usage`, then `done` |
 | `POST /rulesets/{id}/versions/{no}/changes` | Submit a change request in natural language | SSE stream: `analyzing`, `proposing`, `validating`, `regression`, then the proposal with diff and report |
@@ -363,7 +364,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `SESSION_INVALID` | 401 | An `/api/**` request with a missing, tampered or expired cookie |
 | `CSRF_REJECTED` | 403 | A state-changing request without `X-PolicyPilot-Client: web`, or with a missing or foreign `Origin` |
 | `NOT_FOUND` | 404 | An unknown id, or an id of another sandbox (the two are indistinguishable) |
-| `VERSION_STATUS_CONFLICT` | 409 | Editing or publishing a version that is not a DRAFT, publishing a protected version, or deciding on a version that is not PUBLISHED |
+| `VERSION_STATUS_CONFLICT` | 409 | Editing or publishing a version that is not a DRAFT, publishing a protected version, deciding on a version that is not PUBLISHED, or asking a question of a version whose embedding is not READY |
 | `PAYLOAD_TOO_LARGE` | 413 | A body over 1 MB or an upload over 2 MB |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | A content type the route does not take, an `Accept` it cannot produce, or a charset other than UTF-8 |
 | `POLICY_INVALID` | 422 | Policy text over its limits or with a control character |
@@ -418,7 +419,7 @@ The stack is pinned to Spring AI 2.0.x on Spring Boot 4.0.x and Java 21, and the
 | Java | 21 (LTS) | Spring Boot 4 requires 17+; 21 is the common enterprise baseline |
 | Spring Boot | 4.0.x | Spring AI 2.0.x supports Spring Boot 4.0.x and 4.1.x ([getting started](https://docs.spring.io/spring-ai/reference/getting-started.html)) |
 | Spring AI | 2.0.1 via `spring-ai-bom` | Current stable release ([getting started](https://docs.spring.io/spring-ai/reference/getting-started.html)) |
-| Starters | `spring-ai-starter-model-openai`, `spring-ai-starter-model-ollama`, `spring-ai-starter-vector-store-pgvector` | Both model starters are on the classpath; the active profile decides which beans are created |
+| Starters | `spring-ai-starter-model-openai`, `spring-ai-starter-model-ollama` | Both model starters are on the classpath; the active profile decides which beans are created. No vector-store starter: its `PgVectorStore` owns a table of its own shape and takes Spring AI's `EmbeddingModel`, while the `chunk` table carries `kind`, `ref_id` and `tsv` for hybrid retrieval and `rag` may not import Spring AI, so `rag` reaches pgvector with parameterized SQL |
 | PostgreSQL | 16 with pgvector 0.8 | Same image locally and on Railway |
 | Node | 22 LTS, React 19, Vite 6, TypeScript 5 | Web app |
 
