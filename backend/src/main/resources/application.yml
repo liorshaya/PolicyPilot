@@ -30,6 +30,9 @@ spring:
     url: ${spring.datasource.url}
     user: ${spring.datasource.username}
     password: ${spring.datasource.password}
+    placeholders:
+      # V7 sizes chunk.embedding for the active profile (Document 2, Data Model)
+      embedding-dimension: ${policypilot.embedding.dimension}
   threads:
     virtual:
       enabled: true

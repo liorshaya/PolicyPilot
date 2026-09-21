@@ -38,6 +38,24 @@ class RulesetVersionEntityTest {
         assertThat(version.isDraft()).isFalse();
     }
 
+    // Document 2, ruleset_version: embedding_status is null on a DRAFT. Expected: null
+    @Test
+    void aDraftHasNoEmbeddingStatus() {
+        RulesetVersionEntity version = draft();
+
+        assertThat(version.getEmbeddingStatus()).isNull();
+    }
+
+    // Document 2, RAG pipeline: publishing sets embedding_status to PENDING. Expected: PENDING
+    @Test
+    void publishingLeavesTheVersionPendingEmbedding() {
+        RulesetVersionEntity version = draft();
+
+        version.publish(ApiIntegrationTest.START, "demo-analyst");
+
+        assertThat(version.getEmbeddingStatus()).isEqualTo("PENDING");
+    }
+
     // Brief FR-7: a published version is immutable. Expected: the edit is refused, the document unchanged
     @Test
     void aPublishedVersionTakesNoNewDocument() {

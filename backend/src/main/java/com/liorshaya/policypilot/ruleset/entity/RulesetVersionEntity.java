@@ -11,7 +11,8 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * A row of {@code ruleset_version} (Document 2, Data Model): the whole DSL document of one version. Only a DRAFT
- * changes, through {@link #replace} and {@link #publish}; once published, the row is frozen by the V4 trigger.
+ * changes, through {@link #replace} and {@link #publish}; once published, the row is frozen by the trigger, except for
+ * its embedding status, which the {@code rag} module moves through {@code RulesetService}.
  */
 @Entity
 @Table(name = "ruleset_version")
@@ -19,6 +20,8 @@ public class RulesetVersionEntity {
 
     public static final String DRAFT = "DRAFT";
     public static final String PUBLISHED = "PUBLISHED";
+    /** The embedding status a version takes when it is published (Document 2, RAG pipeline, Embedding). */
+    public static final String EMBEDDING_PENDING = "PENDING";
 
     @Id
     private UUID id;
@@ -56,6 +59,10 @@ public class RulesetVersionEntity {
     @Column(name = "parent_version_id")
     private UUID parentVersionId;
 
+    /** Null on a DRAFT; the one column the V7 trigger lets change after publishing. */
+    @Column(name = "embedding_status")
+    private String embeddingStatus;
+
     protected RulesetVersionEntity() {}
 
     /** A new DRAFT version. */
@@ -85,6 +92,7 @@ public class RulesetVersionEntity {
         this.status = PUBLISHED;
         this.publishedAt = at;
         this.publishedBy = by;
+        this.embeddingStatus = EMBEDDING_PENDING;
     }
 
     public boolean isDraft() {
@@ -127,6 +135,10 @@ public class RulesetVersionEntity {
 
     public String getPublishedBy() {
         return publishedBy;
+    }
+
+    public String getEmbeddingStatus() {
+        return embeddingStatus;
     }
 
     public UUID getParentVersionId() {
