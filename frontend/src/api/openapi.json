@@ -164,6 +164,92 @@
         }
       }
     },
+    "/api/v1/rulesets/{id}/versions/{no}/retrieval" : {
+      "post" : {
+        "tags" : [ "retrieval-controller" ],
+        "summary" : "Retrieve the chunks of a version for a question, or the fixed not-covered sentence",
+        "operationId" : "retrieve",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetrievalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "The fused chunks and their citations, or the not-covered sentence",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RetrievalResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The question is empty, too long or has a control character",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version is not published, or its embedding is not READY",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "The embedding provider is unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rulesets/{id}/versions/{no}/publish" : {
       "post" : {
         "tags" : [ "ruleset-controller" ],
@@ -799,6 +885,92 @@
           }
         },
         "required" : [ "code", "details", "message", "traceId" ]
+      },
+      "RetrievalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "question" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Chunk" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
+          },
+          "score" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "cosine" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "vectorRank" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lexicalRank" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Cite" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "paragraph" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ruleId" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RetrievalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "covered" : {
+            "type" : "boolean"
+          },
+          "bestCosine" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "chunks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Chunk"
+            }
+          },
+          "citations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Cite"
+            }
+          },
+          "notCovered" : {
+            "type" : "string"
+          }
+        }
       },
       "Paragraph" : {
         "type" : "object",

@@ -2,22 +2,16 @@ package com.liorshaya.policypilot.rag;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.liorshaya.policypilot.policy.service.PolicyLanguage;
 import com.liorshaya.policypilot.policy.service.PolicyService;
-import com.liorshaya.policypilot.policy.service.PolicyView;
 import com.liorshaya.policypilot.rag.service.EmbeddingJob;
-import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
-import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.FakeEmbeddingGateway;
-import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
-import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -33,7 +27,6 @@ class EmbeddingJobIT extends ApiIntegrationTest {
 
     /** The lending corpus of ChunkerTest: 9 paragraphs and 20 rules, plus the test's own tenth paragraph. */
     private static final int CHUNKS = 30;
-    private static final Duration PATIENCE = Duration.ofSeconds(15);
 
     @Autowired
     private PolicyService policies;
@@ -49,6 +42,13 @@ class EmbeddingJobIT extends ApiIntegrationTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    private RagFixtures fixtures;
+
+    @BeforeEach
+    void fixtures() {
+        fixtures = new RagFixtures(policies, rulesets, jdbc);
+    }
 
     // Document 2: publishing sets PENDING, rag moves it to EMBEDDING, then READY with its chunks. Expected: READY and
     // one chunk per paragraph and per rule, p:1 to p:10 and the 20 rule ids
@@ -121,7 +121,7 @@ class EmbeddingJobIT extends ApiIntegrationTest {
     @Test
     void aDraftIsNeverEmbedded() {
         String paragraph = "טיוטה שלא מוטמעת " + UUID.randomUUID();
-        UUID version = draft(UUID.randomUUID(), paragraph).versionId();
+        UUID version = fixtures.draft(UUID.randomUUID(), paragraph).versionId();
 
         job.embed(version);
 
@@ -173,24 +173,16 @@ class EmbeddingJobIT extends ApiIntegrationTest {
         assertThat(chunkIds(version)).hasSize(29);
     }
 
-    /** A published version of the lending rule set, on a policy of its own whose tenth paragraph is given. */
     private UUID publish(String tenthParagraph) {
-        UUID sandbox = UUID.randomUUID();
-        VersionView draft = draft(sandbox, tenthParagraph);
-        return rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow().versionId();
+        return fixtures.publish(tenthParagraph).versionId();
     }
 
-    private VersionView draft(UUID sandbox, String tenthParagraph) {
-        PolicyView policy = policies.create(sandbox, "Lending", PolicyLanguage.HE,
-                Fixtures.lendingPolicyText().strip() + "\n\n" + tenthParagraph);
-        UUID policyVersion = policies.version(policy.id(), 1, sandbox).orElseThrow().id();
-        return rulesets.createDraft(sandbox, policyVersion, Fixtures.lendingV1(), ValidationContext.ANALYST_EDIT,
-                Set.of());
+    private void awaitStatus(UUID version, String expected) {
+        fixtures.awaitStatus(version, expected);
     }
 
     private @Nullable String status(UUID version) {
-        return jdbc.sql("select embedding_status from ruleset_version where id = :id").param("id", version)
-                .query(String.class).optional().orElse(null);
+        return fixtures.status(version);
     }
 
     private void setStatus(UUID version, String status) {
@@ -201,21 +193,5 @@ class EmbeddingJobIT extends ApiIntegrationTest {
     private List<String> chunkIds(UUID version) {
         return jdbc.sql("select kind || ':' || ref_id from chunk where ruleset_version_id = :v")
                 .param("v", version).query(String.class).list();
-    }
-
-    /** Waits for the asynchronous job, polling the status the API reads; fails after {@link #PATIENCE}. */
-    private void awaitStatus(UUID version, String expected) {
-        long deadline = System.nanoTime() + PATIENCE.toNanos();
-        while (!expected.equals(status(version))) {
-            if (System.nanoTime() > deadline) {
-                throw new AssertionError("version " + version + " is " + status(version) + ", not " + expected);
-            }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError(e);
-            }
-        }
     }
 }

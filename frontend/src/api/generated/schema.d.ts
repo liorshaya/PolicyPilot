@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rulesets/{id}/versions/{no}/retrieval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retrieve the chunks of a version for a question, or the fixed not-covered sentence */
+        post: operations["retrieve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rulesets/{id}/versions/{no}/publish": {
         parameters: {
             query?: never;
@@ -272,6 +289,38 @@ export interface components {
             details: components["schemas"]["ErrorDetail"][];
             traceId: string;
         };
+        RetrievalRequest: {
+            question?: string;
+        };
+        Chunk: {
+            id?: string;
+            kind?: string;
+            text?: string;
+            /** Format: double */
+            score?: number;
+            /** Format: double */
+            cosine?: number;
+            /** Format: int32 */
+            vectorRank?: number;
+            /** Format: int32 */
+            lexicalRank?: number;
+        };
+        Cite: {
+            id?: string;
+            kind?: string;
+            /** Format: int32 */
+            paragraph?: number;
+            ruleId?: string;
+            label?: string;
+        };
+        RetrievalResponse: {
+            covered?: boolean;
+            /** Format: double */
+            bestCosine?: number;
+            chunks?: components["schemas"]["Chunk"][];
+            citations?: components["schemas"]["Cite"][];
+            notCovered?: string;
+        };
         Paragraph: {
             /** Format: int32 */
             index: number;
@@ -474,6 +523,69 @@ export interface operations {
             };
             /** @description The case or an override fails case validation */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetrievalRequest"];
+            };
+        };
+        responses: {
+            /** @description The fused chunks and their citations, or the not-covered sentence */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetrievalResponse"];
+                };
+            };
+            /** @description The question is empty, too long or has a control character */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such rule set version in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The version is not published, or its embedding is not READY */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The embedding provider is unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

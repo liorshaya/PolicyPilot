@@ -140,6 +140,7 @@ class RateLimitFilterTest {
         "POST, /api/v1/chat/sessions/0f4c1c9e-0000-4000-8000-000000000001/messages, MODEL",
         "POST, /api/v1/rulesets/0f4c1c9e-0000-4000-8000-000000000001/versions/2/changes, MODEL",
         "POST, /api/v1/decisions/0f4c1c9e-0000-4000-8000-000000000001/explain, MODEL",
+        "POST, /api/v1/rulesets/0f4c1c9e-0000-4000-8000-000000000001/versions/1/retrieval, MODEL",
         "POST, /api/v1/policies, OTHER",
         "GET, /api/v1/policies/0f4c1c9e-0000-4000-8000-000000000001, OTHER",
         "GET, /api/docs, OTHER"})
