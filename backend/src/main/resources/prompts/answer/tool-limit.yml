@@ -1,0 +1,4 @@
+# The fixed sentence that ends a turn past the tool caps: four calls, one simulate (Document 4, Prompt 4; Document 5,
+# Tool call volume).
+en: "This question needs more lookups than one answer may make; ask about one application or one change at a time."
+he: "השאלה דורשת יותר בדיקות ממה שתשובה אחת רשאית לבצע; אפשר לשאול על בקשה אחת או על שינוי אחד בכל פעם."

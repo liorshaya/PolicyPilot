@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.ai.adapter;
 
+import com.liorshaya.policypilot.ai.ChatTool;
 import com.liorshaya.policypilot.ai.Completion;
 import com.liorshaya.policypilot.ai.LlmGateway;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
@@ -14,8 +15,11 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -23,9 +27,14 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.stereotype.Component;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -121,13 +130,157 @@ public class SpringAiLlmGateway implements LlmGateway {
         return (Completion<T>) Completion.fromProvider(answer, usage);
     }
 
+    /**
+     * One streamed answer (Document 4, Prompt 4): the budget and the breaker first, as for every call, then the
+     * provider's stream with the tools registered as callbacks, the first piece within the chat's first-token deadline
+     * and the whole within the prompt's timeout, and the ledger whatever happened. A stream is not retried: tokens
+     * already shown cannot be taken back.
+     */
+    @Override
+    public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
+        String model = modelFor(spec.role());
+        budget.requireBudget();
+        breaker.requireClosed();
+        long started = clock.millis();
+        Streamed streamed = new Streamed(tokens);
+        Duration firstToken = Duration.ofSeconds(properties.ai().timeouts().chatFirstTokenSeconds());
+        try {
+            chat.stream(new Prompt(List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())),
+                            streamingOptionsFor(spec, model, tools)))
+                    .timeout(Mono.delay(firstToken), ignored -> Mono.never())
+                    .doOnNext(streamed::take)
+                    .blockLast(spec.timeout());
+        } catch (RuntimeException e) {
+            if (streamed.stoppedByCaller != null) {
+                // the caller stopped reading (a denylist hit, a closed connection); the provider did nothing wrong
+                ledger.record(spec, model, provider(), streamed.usage, Duration.ofMillis(clock.millis() - started),
+                        ModelCallLedger.Results.VALID, false);
+                throw streamed.stoppedByCaller;
+            }
+            LlmUnavailableException failure = streamFailure(e);
+            ledger.record(spec, model, provider(), streamed.usage, Duration.ofMillis(clock.millis() - started),
+                    ModelCallLedger.Results.UNAVAILABLE, false);
+            breaker.failed();
+            meters.counter("policypilot.ai.provider.failure", "reason", failure.reason().name()).increment();
+            throw failure;
+        }
+        Duration latency = Duration.ofMillis(clock.millis() - started);
+        budget.record(streamed.usage);
+        breaker.succeeded();
+        if ("LENGTH".equalsIgnoreCase(streamed.finishReason)) {
+            ledger.record(spec, model, provider(), streamed.usage, latency, ModelCallLedger.Results.TRUNCATED, false);
+            meters.counter("policypilot.ai.provider.failure",
+                    "reason", LlmUnavailableException.Reason.OUTPUT_TRUNCATED.name()).increment();
+            throw new LlmUnavailableException(LlmUnavailableException.Reason.OUTPUT_TRUNCATED,
+                    "the answer did not fit in " + spec.maxOutputTokens() + " tokens");
+        }
+        ledger.record(spec, model, provider(), streamed.usage, latency, ModelCallLedger.Results.VALID, false);
+        return streamed.usage;
+    }
+
+    private static LlmUnavailableException streamFailure(RuntimeException e) {
+        Throwable cause = Exceptions.unwrap(e);
+        boolean late = cause instanceof TimeoutException
+                || String.valueOf(e.getMessage()).startsWith("Timeout on blocking read");
+        if (late) {
+            return new LlmUnavailableException(LlmUnavailableException.Reason.TIMEOUT, "the answer missed its deadline",
+                    e);
+        }
+        return new LlmUnavailableException(reasonOf(e), "the provider did not answer", e);
+    }
+
+    /** The streaming options: the chat's model and cap, the prompt's temperature if it names one, and the tools. */
+    private ChatOptions streamingOptionsFor(PromptSpec spec, String model, List<ChatTool> tools) {
+        List<ToolCallback> callbacks = tools.stream().map(SpringAiLlmGateway::callbackOf).toList();
+        if (chat instanceof OpenAiChatModel) {
+            OpenAiChatOptions.Builder options = OpenAiChatOptions.builder()
+                    .timeout(spec.timeout())
+                    .maxRetries(0)
+                    .model(model)
+                    .maxCompletionTokens(spec.maxOutputTokens())
+                    // the usage arrives with the last chunk only when the request asks for it
+                    .streamUsage(true)
+                    .toolCallbacks(callbacks);
+            if (spec.temperature() != null) {
+                options.temperature(spec.temperature());
+            }
+            return options.build();
+        }
+        ToolCallingChatOptions.Builder<?> options = ToolCallingChatOptions.builder()
+                .model(model)
+                .maxTokens(spec.maxOutputTokens())
+                .toolCallbacks(callbacks);
+        if (spec.temperature() != null) {
+            options.temperature(spec.temperature());
+        }
+        return options.build();
+    }
+
+    /** A {@link ChatTool} as Spring AI calls it: the same name, description and schema, the same call. */
+    static ToolCallback callbackOf(ChatTool tool) {
+        ToolDefinition definition = ToolDefinition.builder()
+                .name(tool.name())
+                .description(tool.description())
+                .inputSchema(tool.inputSchema())
+                .build();
+        return new ToolCallback() {
+            @Override
+            public ToolDefinition getToolDefinition() {
+                return definition;
+            }
+
+            @Override
+            public String call(String toolInput) {
+                return tool.call(toolInput);
+            }
+        };
+    }
+
+    /** What a stream has delivered so far: its usage, why it stopped, and whether the caller stopped it. */
+    private static final class Streamed {
+
+        private final Consumer<String> tokens;
+        private TokenUsage usage = TokenUsage.NONE;
+        private @Nullable String finishReason;
+        private @Nullable RuntimeException stoppedByCaller;
+
+        Streamed(Consumer<String> tokens) {
+            this.tokens = tokens;
+        }
+
+        void take(ChatResponse response) {
+            if (response.getMetadata() != null && response.getMetadata().getUsage() != null
+                    && response.getMetadata().getUsage().getPromptTokens() != null
+                    && response.getMetadata().getUsage().getPromptTokens() > 0) {
+                usage = usageOf(response);
+            }
+            if (response.getResult() == null) {
+                return;
+            }
+            var metadata = response.getResult().getMetadata();
+            if (metadata != null && metadata.getFinishReason() != null) {
+                finishReason = metadata.getFinishReason();
+            }
+            String text = response.getResult().getOutput().getText();
+            if (text == null || text.isEmpty()) {
+                return;
+            }
+            try {
+                tokens.accept(text);
+            } catch (RuntimeException e) {
+                stoppedByCaller = e;
+                throw e;
+            }
+        }
+    }
+
     /** The call itself, retried with backoff on a failure that may pass (Document 4, Guardrails). */
     private ChatResponse call(PromptSpec spec, String model) {
         RuntimeException last = null;
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             try {
                 return chat.call(new Prompt(
-                        java.util.List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())),
+                        List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())),
                         optionsFor(spec, model)));
             } catch (RuntimeException e) {
                 last = e;
