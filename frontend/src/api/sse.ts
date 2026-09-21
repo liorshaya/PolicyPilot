@@ -1,5 +1,7 @@
 import { API_BASE_URL } from './config'
 import { CLIENT_HEADER } from './auth'
+import { ApiError } from './client'
+import type { ErrorEnvelope } from './types'
 
 /**
  * Server-sent events over {@code fetch} (Document 2, Frontend Architecture, key decision 2: not EventSource, which
@@ -45,7 +47,11 @@ export async function* openSse(path: string, options: SseOptions = {}): AsyncGen
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     signal: options.signal,
   })
-  if (!response.ok || !response.body) {
+  if (!response.ok) {
+    // a refusal before the stream opened carries the error envelope, so the caller can tell a 409 from a 429
+    throw new ApiError(response.status, await envelopeOf(response))
+  }
+  if (!response.body) {
     throw new Error(`stream failed with ${response.status}`)
   }
   const reader = response.body.getReader()
@@ -113,4 +119,13 @@ export function parseEvent(block: string): SseEvent | null {
     return null
   }
   return id === undefined ? { event, data: data.join('\n') } : { event, data: data.join('\n'), id }
+}
+
+/** The error envelope of a refused request, or null when the body was not one. */
+async function envelopeOf(response: Response): Promise<ErrorEnvelope | null> {
+  try {
+    return (await response.json()) as ErrorEnvelope
+  } catch {
+    return null
+  }
 }

@@ -2,6 +2,7 @@ import { API_BASE_URL } from './config'
 import { CLIENT_HEADER } from './auth'
 import type {
   BatchResult,
+  ChatSessionResponse,
   Decision,
   ErrorEnvelope,
   PoliciesResponse,
@@ -134,6 +135,11 @@ export const api = {
     }),
 
   decision: (decisionId: string) => request<Decision>('GET', `/api/v1/decisions/${decisionId}`),
+
+  openChat: (rulesetId: string, versionNo: number) =>
+    request<ChatSessionResponse>('POST', '/api/v1/chat/sessions', {
+      body: { rulesetId, versionNo },
+    }),
 
   stats: (rulesetId: string, versionNo: number) =>
     request<Aggregates>('GET', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/stats`),

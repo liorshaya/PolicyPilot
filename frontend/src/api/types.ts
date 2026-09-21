@@ -16,6 +16,7 @@ export type Finding = components['schemas']['FindingResponse']
 export type Aggregates = components['schemas']['AggregatesResponse']
 export type ErrorEnvelope = components['schemas']['ErrorEnvelope']
 export type ErrorDetail = components['schemas']['ErrorDetail']
+export type ChatSessionResponse = components['schemas']['ChatSessionResponse']
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from './client'
 import { openSse, parseEvent, type SseEvent } from './sse'
 
 /**
@@ -19,9 +20,17 @@ function streamOf(...chunks: string[]): ReadableStream<Uint8Array> {
   })
 }
 
-function respondWith(stream: ReadableStream<Uint8Array> | null, status = 200) {
+function respondWith(stream: ReadableStream<Uint8Array> | null, status = 200, envelope?: unknown) {
   const fetchMock = vi.fn(async () =>
-    Promise.resolve({ ok: status < 400, status, body: stream } as unknown as Response),
+    Promise.resolve({
+      ok: status < 400,
+      status,
+      body: stream,
+      json: async () =>
+        envelope === undefined
+          ? Promise.reject(new SyntaxError('no JSON'))
+          : Promise.resolve(envelope),
+    } as unknown as Response),
   )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -166,10 +175,22 @@ describe('openSse', () => {
     expect(reader.cancel).toHaveBeenCalledOnce()
   })
 
-  it('fails when the API refuses the stream', async () => {
+  it('fails with the error envelope when the API refuses the stream', async () => {
+    respondWith(null, 409, { code: 'VERSION_STATUS_CONFLICT', message: 'not ready', details: [] })
+
+    const refusal = await collect('/api/v1/stream').catch((error: unknown) => error)
+
+    expect(refusal).toBeInstanceOf(ApiError)
+    expect((refusal as ApiError).status).toBe(409)
+    expect((refusal as ApiError).code).toBe('VERSION_STATUS_CONFLICT')
+  })
+
+  it('fails with the status alone when the refusal carries no envelope', async () => {
     respondWith(null, 429)
 
-    await expect(collect('/api/v1/stream')).rejects.toThrow('stream failed with 429')
+    const refusal = await collect('/api/v1/stream').catch((error: unknown) => error)
+
+    expect((refusal as ApiError).code).toBe('HTTP_429')
   })
 
   it('fails when the response carries no body', async () => {

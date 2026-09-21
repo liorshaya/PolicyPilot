@@ -52,7 +52,8 @@ describe('App', () => {
     expect(nav).toHaveTextContent('Policies')
     expect(nav).toHaveTextContent('Rules')
     expect(nav).toHaveTextContent('Cases')
-    expect(screen.getByRole('button', { name: /Assistant/ })).toBeDisabled()
+    // the assistant arrived on day 9; the audit log is still to come
+    expect(screen.getByRole('button', { name: /Assistant/ })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Audit log/ })).toBeDisabled()
   })
 })
