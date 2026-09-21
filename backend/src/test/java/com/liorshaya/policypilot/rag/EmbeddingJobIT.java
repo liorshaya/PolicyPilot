@@ -130,10 +130,11 @@ class EmbeddingJobIT extends ApiIntegrationTest {
         assertThat(gateway.embedded(paragraph)).isFalse();
     }
 
-    // Document 2: at startup rag takes PENDING, FAILED and EMBEDDING versions again. Expected: all three READY, with
-    // their chunks replaced rather than added to
+    // Document 2: at startup rag takes PENDING and FAILED versions again, and leaves an EMBEDDING one to the instance
+    // that may still be embedding it. Expected: the first two READY with their chunks replaced rather than added to,
+    // the third still EMBEDDING
     @Test
-    void startupTakesPendingFailedAndInterruptedVersionsAgain() {
+    void startupTakesPendingAndFailedVersionsAgainButNotOneBeingEmbedded() {
         List<UUID> versions = List.of(publish("א " + UUID.randomUUID()), publish("ב " + UUID.randomUUID()),
                 publish("ג " + UUID.randomUUID()));
         versions.forEach(version -> awaitStatus(version, "READY"));
@@ -143,8 +144,9 @@ class EmbeddingJobIT extends ApiIntegrationTest {
 
         job.resume();
 
-        versions.forEach(version -> awaitStatus(version, "READY"));
-        versions.forEach(version -> assertThat(chunkIds(version)).hasSize(CHUNKS));
+        versions.subList(0, 2).forEach(version -> awaitStatus(version, "READY"));
+        versions.subList(0, 2).forEach(version -> assertThat(chunkIds(version)).hasSize(CHUNKS));
+        assertThat(status(versions.get(2))).isEqualTo("EMBEDDING");
     }
 
     // Document 2: a READY version is done; the job takes only a PENDING one. Expected: embedding a READY version
