@@ -1,10 +1,17 @@
 package com.liorshaya.policypilot.ai.service.chat;
 
 import com.liorshaya.policypilot.ai.prompt.Sections;
+import com.liorshaya.policypilot.rules.model.Provenance;
+import com.liorshaya.policypilot.rules.model.Rule;
+import com.liorshaya.policypilot.rules.model.RuleSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -34,6 +41,25 @@ public final class ToolResults {
             throw new IllegalStateException("a tool result without its section: " + result);
         }
         return outcome.group(1) != null ? outcome.group(1) : "refused:" + outcome.group(2);
+    }
+
+    /**
+     * The sources a decision or a simulation supplies besides itself (Document 4, Citation marker protocol: ids
+     * "supplied in the same turn (context chunks or tool results)"): the rule that decided it and the paragraph that
+     * rule quotes, as the version holds them. None for a rule the version does not have.
+     */
+    public static List<String> sourcesOf(RuleSet ruleSet, @Nullable String decidingRuleId) {
+        Optional<Rule> rule = ruleSet.rules().stream().filter(candidate -> candidate.id().equals(decidingRuleId))
+                .findFirst();
+        if (rule.isEmpty()) {
+            return List.of();
+        }
+        List<String> sources = new ArrayList<>();
+        sources.add("r:" + rule.get().id());
+        if (rule.get().provenance() instanceof Provenance.Quoted quoted) {
+            sources.add("p:" + quoted.paragraph());
+        }
+        return sources;
     }
 
     /** Document 4: {@code sim:d17:has_guarantor=true}, the overridden fields in name order. */

@@ -401,7 +401,9 @@ Answer the question in {language}, in at most 6 sentences, following the citatio
 
 1. CITE. After every sentence that states a fact, add a marker for its source: [[p:7]] for a policy paragraph,
    [[r:R-330]] for a rule, [[d:17]] for a decision you fetched, [[sim:<id>]] for a simulation you ran. Use only
-   ids that appear in the context or in tool results. A sentence with no source is either a question back to
+   ids that appear in the context or in tool results. A sentence that explains a decision or a simulation also
+   cites the sources its tool result lists: the rule that decided it and the paragraph that rule quotes, as in
+   [[d:17]] [[r:R-330]] [[p:7]]. A sentence with no source is either a question back to
    the user or must be dropped.
 2. TOOLS BEFORE GUESSING. If the question is about a specific decision, fetch it. If it asks what would
    happen with different inputs, call simulate with the decision id and the changed fields, then answer from
@@ -544,7 +546,7 @@ The API enforces three rules the schema cannot: `conflict` and `unsupported` mus
 
 **Patches**: the object in Document 3 (Change Patches, Diff and Versioning): `summary`, `patches[]` with `op`, `ruleId`, `rule` or `field` or `defaults`, `rationale`; `untouched[]`; `notes`. Its schema file is `schemas/patches-1.0.schema.json`, and each embedded `rule` is validated against the RuleSet rule definition by `$ref`.
 
-**Citation marker protocol** (answer prompt): markers are `[[p:<paragraphIndex>]]`, `[[r:<ruleId>]]`, `[[d:<decisionId>]]` and `[[sim:<simulationId>]]`, placed after the sentence they support, any number per sentence; ids must have been supplied in the same turn (context chunks or tool results); unknown markers are stripped and logged; the not-covered sentence is a fixed string per language stored in `prompts/answer/not-covered.yml`, and an answer that contains it must contain no markers.
+**Citation marker protocol** (answer prompt): markers are `[[p:<paragraphIndex>]]`, `[[r:<ruleId>]]`, `[[d:<decisionId>]]` and `[[sim:<simulationId>]]`, placed after the sentence they support, any number per sentence; ids must have been supplied in the same turn (context chunks or tool results); a decision or simulation result supplies its own id, the rule that decided it and the paragraph that rule quotes, listed in the result as `sources`, so an answer about a decision can cite its policy text even when retrieval did not find it; unknown markers are stripped and logged; the not-covered sentence is a fixed string per language stored in `prompts/answer/not-covered.yml`, and an answer that contains it must contain no markers.
 
 ## Model Configuration per Prompt
 

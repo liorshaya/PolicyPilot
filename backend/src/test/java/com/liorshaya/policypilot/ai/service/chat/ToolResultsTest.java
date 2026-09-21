@@ -3,6 +3,9 @@ package com.liorshaya.policypilot.ai.service.chat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
+import com.liorshaya.policypilot.rules.model.RuleSet;
+import com.liorshaya.policypilot.support.Fixtures;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -14,6 +17,7 @@ import tools.jackson.databind.node.ObjectNode;
 class ToolResultsTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final RuleSet LENDING = new RuleSetMapper().toRuleSet(Fixtures.lendingV1());
 
     // RT-08. Expected: a "<" inside the body escaped, so it cannot close the section
     @Test
@@ -40,5 +44,26 @@ class ToolResultsTest {
 
         assertThat(ToolResults.overridesText(overrides))
                 .isEqualTo("employment_type=salaried,has_guarantor=true,monthly_income=9000");
+    }
+
+    // Document 4, Citation marker protocol: ids "supplied in the same turn (context chunks or tool results)". A
+    // decision supplies the rule that decided it and the paragraph that rule quotes. Expected: R-330 and paragraph 7,
+    // its provenance in fixtures/policies/consumer-lending/ruleset.v1.json
+    @Test
+    void aDecisionSuppliesItsDecidingRuleAndTheParagraphItQuotes() {
+        assertThat(ToolResults.sourcesOf(LENDING, "R-330")).containsExactly("r:R-330", "p:7");
+    }
+
+    // Expected: R-310, a person's rule in the fixture, supplies itself and no paragraph
+    @Test
+    void aPersonsRuleSuppliesNoParagraph() {
+        assertThat(ToolResults.sourcesOf(LENDING, "R-310")).containsExactly("r:R-310");
+    }
+
+    // Expected: nothing for a rule the version does not have, or a decision no rule decided
+    @Test
+    void aRuleTheVersionDoesNotHaveSuppliesNothing() {
+        assertThat(ToolResults.sourcesOf(LENDING, "R-999")).isEmpty();
+        assertThat(ToolResults.sourcesOf(LENDING, null)).isEmpty();
     }
 }

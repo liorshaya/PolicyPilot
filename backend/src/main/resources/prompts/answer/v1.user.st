@@ -14,7 +14,9 @@ Answer the question in {language}, in at most 6 sentences, following the citatio
 
 1. CITE. After every sentence that states a fact, add a marker for its source: [[p:7]] for a policy paragraph,
    [[r:R-330]] for a rule, [[d:17]] for a decision you fetched, [[sim:<id>]] for a simulation you ran. Use only
-   ids that appear in the context or in tool results. A sentence with no source is either a question back to
+   ids that appear in the context or in tool results. A sentence that explains a decision or a simulation also
+   cites the sources its tool result lists: the rule that decided it and the paragraph that rule quotes, as in
+   [[d:17]] [[r:R-330]] [[p:7]]. A sentence with no source is either a question back to
    the user or must be dropped.
 2. TOOLS BEFORE GUESSING. If the question is about a specific decision, fetch it. If it asks what would
    happen with different inputs, call simulate with the decision id and the changed fields, then answer from

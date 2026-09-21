@@ -21,12 +21,14 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -54,8 +56,14 @@ public class SpringAiLlmGateway implements LlmGateway {
     /** Document 4, Guardrails: 3 attempts with 1 s, 2 s and 4 s between them. */
     private static final int ATTEMPTS = 3;
     private static final Duration FIRST_BACKOFF = Duration.ofSeconds(1);
+    /**
+     * Document 5, Tool call volume: four calls a turn, and the tools refuse the fifth, which ends the turn with the
+     * fixed sentence; the model is not asked again after the fifth round.
+     */
+    static final int TOOL_ROUNDS = 5;
 
     private final ChatModel chat;
+    private final ToolCallingManager toolCalls;
     private final PolicyPilotProperties properties;
     private final ProposalCache cache;
     private final TokenBudgetGuard budget;
@@ -64,9 +72,10 @@ public class SpringAiLlmGateway implements LlmGateway {
     private final Clock clock;
     private final MeterRegistry meters;
 
-    public SpringAiLlmGateway(ChatModel chat, PolicyPilotProperties properties, ProposalCache cache,
-            TokenBudgetGuard budget, ModelCallLedger ledger, Clock clock, MeterRegistry meters) {
+    public SpringAiLlmGateway(ChatModel chat, ToolCallingManager toolCalls, PolicyPilotProperties properties,
+            ProposalCache cache, TokenBudgetGuard budget, ModelCallLedger ledger, Clock clock, MeterRegistry meters) {
         this.chat = chat;
+        this.toolCalls = toolCalls;
         this.properties = properties;
         this.cache = cache;
         this.budget = budget;
@@ -144,13 +153,26 @@ public class SpringAiLlmGateway implements LlmGateway {
         long started = clock.millis();
         Streamed streamed = new Streamed(tokens);
         Duration firstToken = Duration.ofSeconds(properties.ai().timeouts().chatFirstTokenSeconds());
+        ChatOptions options = streamingOptionsFor(spec, model, tools);
+        Prompt prompt = new Prompt(List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())), options);
         try {
-            chat.stream(new Prompt(List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())),
-                            streamingOptionsFor(spec, model, tools)))
-                    .timeout(Mono.delay(firstToken), ignored -> Mono.never())
-                    .doOnNext(streamed::take)
-                    .blockLast(spec.timeout());
+            for (int round = 1; round <= TOOL_ROUNDS; round++) {
+                Duration left = spec.timeout().minusMillis(clock.millis() - started);
+                chat.stream(prompt)
+                        .timeout(Mono.delay(firstToken), ignored -> Mono.never())
+                        .doOnNext(streamed::take)
+                        .blockLast(left.isNegative() ? Duration.ZERO : left);
+                ChatResponse asked = streamed.endRound();
+                if (asked == null) {
+                    break;
+                }
+                // Spring AI 2.0's chat models return a tool call and run nothing; the adapter runs the tools the
+                // model asked for and, below the last round, streams again with what they returned
+                List<Message> history = toolCalls.executeToolCalls(prompt, asked).conversationHistory();
+                prompt = new Prompt(history, options);
+            }
         } catch (RuntimeException e) {
+            streamed.endRound();
             if (streamed.stoppedByCaller != null) {
                 // the caller stopped reading (a denylist hit, a closed connection); the provider did nothing wrong
                 ledger.record(spec, model, provider(), streamed.usage, Duration.ofMillis(clock.millis() - started),
@@ -193,23 +215,34 @@ public class SpringAiLlmGateway implements LlmGateway {
     private ChatOptions streamingOptionsFor(PromptSpec spec, String model, List<ChatTool> tools) {
         List<ToolCallback> callbacks = tools.stream().map(SpringAiLlmGateway::callbackOf).toList();
         if (chat instanceof OpenAiChatModel) {
-            OpenAiChatOptions.Builder options = OpenAiChatOptions.builder()
-                    .timeout(spec.timeout())
-                    .maxRetries(0)
-                    .model(model)
-                    .maxCompletionTokens(spec.maxOutputTokens())
-                    // the usage arrives with the last chunk only when the request asks for it
-                    .streamUsage(true)
-                    .toolCallbacks(callbacks);
-            if (spec.temperature() != null) {
-                options.temperature(spec.temperature());
-            }
-            return options.build();
+            return openAiStreamingOptions(spec, model, callbacks);
         }
         ToolCallingChatOptions.Builder<?> options = ToolCallingChatOptions.builder()
                 .model(model)
                 .maxTokens(spec.maxOutputTokens())
                 .toolCallbacks(callbacks);
+        if (spec.temperature() != null) {
+            options.temperature(spec.temperature());
+        }
+        return options.build();
+    }
+
+    /**
+     * OpenAI's streaming options. The fast model of this lineup refuses function tools with reasoning over chat
+     * completions, so a turn with tools asks for no reasoning, which also brings the first token sooner.
+     */
+    static OpenAiChatOptions openAiStreamingOptions(PromptSpec spec, String model, List<ToolCallback> callbacks) {
+        OpenAiChatOptions.Builder options = OpenAiChatOptions.builder()
+                .timeout(spec.timeout())
+                .maxRetries(0)
+                .model(model)
+                .maxCompletionTokens(spec.maxOutputTokens())
+                // the usage arrives with the last chunk only when the request asks for it
+                .streamUsage(true)
+                .toolCallbacks(callbacks);
+        if (!callbacks.isEmpty()) {
+            options.reasoningEffort("none");
+        }
         if (spec.temperature() != null) {
             options.temperature(spec.temperature());
         }
@@ -241,6 +274,8 @@ public class SpringAiLlmGateway implements LlmGateway {
 
         private final Consumer<String> tokens;
         private TokenUsage usage = TokenUsage.NONE;
+        private TokenUsage roundUsage = TokenUsage.NONE;
+        private @Nullable ChatResponse toolCall;
         private @Nullable String finishReason;
         private @Nullable RuntimeException stoppedByCaller;
 
@@ -248,11 +283,24 @@ public class SpringAiLlmGateway implements LlmGateway {
             this.tokens = tokens;
         }
 
+        /** Ends one request of the answer: its usage joins the answer's, and the tool call it ended with, if any. */
+        @Nullable ChatResponse endRound() {
+            usage = new TokenUsage(usage.inputTokens() + roundUsage.inputTokens(),
+                    usage.outputTokens() + roundUsage.outputTokens());
+            roundUsage = TokenUsage.NONE;
+            ChatResponse asked = toolCall;
+            toolCall = null;
+            return asked;
+        }
+
         void take(ChatResponse response) {
             if (response.getMetadata() != null && response.getMetadata().getUsage() != null
                     && response.getMetadata().getUsage().getPromptTokens() != null
                     && response.getMetadata().getUsage().getPromptTokens() > 0) {
-                usage = usageOf(response);
+                roundUsage = usageOf(response);
+            }
+            if (response.hasToolCalls()) {
+                toolCall = response;
             }
             if (response.getResult() == null) {
                 return;

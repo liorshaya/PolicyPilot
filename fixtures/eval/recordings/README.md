@@ -49,3 +49,26 @@ OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveRetrievalRecordingIT 
 It publishes each of the 13 policies the questions run on, with its expected rule set, through the real pipeline,
 asks every question through the real retrieval, and writes `docs/eval/retrieval-first-pass.md`: recall at 8 per
 question against `expectedChunks`, the refusals and the Hebrew misses.
+
+## Answers
+
+What the provider streamed for the three scripted questions of demo step 3 (Work Plan day 9), so the chat is
+replayed offline with its tool calls.
+
+```
+recordings/<provider>/answer/<version>/<inputHash>.json
+```
+
+Besides the request, each file lists `steps`, the tool calls the model made in order with their arguments as it
+wrote them, and `response`, the raw text before the marker resolver. `RecordedGateway` runs the steps through the
+turn's real tools, then replays the text, so the resolver, the citations and the engine behind `simulate` run as
+they do live. `RecordedAnswerIT` holds the replay to each question's `expectedMarkers`, `expectedTool` and
+`answerContains`.
+
+Recordings are made by `LiveAnswerRecordingIT`, tagged `live` like the others; it asks each question in a new
+session of the seeded lending version, on the recorded question vectors:
+
+```
+OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveAnswerRecordingIT -Dlive.tag= \
+    -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
+```
