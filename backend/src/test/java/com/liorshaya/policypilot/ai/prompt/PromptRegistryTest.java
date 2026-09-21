@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  */
 class PromptRegistryTest {
 
-    private static final List<String> PROMPTS = List.of("author", "repair");
+    private static final List<String> PROMPTS = List.of("author", "repair", "answer");
 
     private static PromptRegistry registry() {
         return new PromptRegistry(PROMPTS, Map.of());
@@ -23,7 +23,7 @@ class PromptRegistryTest {
 
     @Test
     void loadsEveryPromptItIsGiven() {
-        assertThat(registry().names()).containsExactly("author", "repair");
+        assertThat(registry().names()).containsExactly("author", "repair", "answer");
     }
 
     @Test
@@ -101,6 +101,32 @@ class PromptRegistryTest {
                 .contains("PROVENANCE_QUOTE_MISMATCH: copy the quote verbatim");
     }
 
+    // Document 4, Prompt 4: the user prompt as written there, and the settings of the Model Configuration table
+    // (fast model, 0.3, 1,200 tokens, 60 s, no repairs, cached for the scripted questions only)
+    @Test
+    void theAnswerPromptIsDocumentFoursPrompt4() {
+        PromptDefinition answer = registry().get("answer");
+
+        assertThat(answer.user().placeholders()).containsExactlyInAnyOrder("versionNo", "rulesetId", "language",
+                "chunks", "turnCount", "history", "question", "notCoveredSentence");
+        assertThat(answer.user().text())
+                .contains("<context version=\"{versionNo}\" ruleset=\"{rulesetId}\" language=\"{language}\">")
+                .contains("<history turns=\"{turnCount}\">")
+                .contains("<question>\n{question}\n</question>")
+                .contains("1. CITE.")
+                .contains("2. TOOLS BEFORE GUESSING.")
+                .contains("reply with exactly:\n   \"{notCoveredSentence}\"")
+                .contains("6. HISTORY.");
+        assertThat(answer.outputSchema()).isNull();
+        assertThat(answer.role()).isEqualTo(ModelRole.FAST);
+        assertThat(answer.maxOutputTokens()).isEqualTo(1200);
+        assertThat(answer.timeout()).hasSeconds(60);
+        assertThat(answer.repairs()).isZero();
+        assertThat(answer.cache()).isEqualTo(PromptDefinition.CachePolicy.SCRIPTED_ONLY);
+        assertThat(answer.system().text()).contains("You are PolicyPilot's policy assistant.")
+                .contains("For the chat assistant: respond in plain text following the citation protocol.");
+    }
+
     @Test
     void readsAPromptThatAnswersTextRatherThanJson() {
         // Document 4's answer prompt: no schema, the fast model, cached only for the scripted questions
@@ -165,9 +191,9 @@ class PromptRegistryTest {
 
     @Test
     void refusesAPromptItWasNeverGiven() {
-        assertThatThrownBy(() -> registry().get("answer"))
+        assertThatThrownBy(() -> registry().get("review"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no prompt named answer");
+                .hasMessageContaining("no prompt named review");
     }
 
     @Test

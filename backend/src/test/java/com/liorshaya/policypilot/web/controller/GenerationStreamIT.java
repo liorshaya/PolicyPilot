@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.web.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.ChatTool;
 import com.liorshaya.policypilot.ai.Completion;
 import com.liorshaya.policypilot.ai.LlmGateway;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
@@ -14,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -280,6 +282,11 @@ class GenerationStreamIT extends ApiIntegrationTest {
                 throw failure;
             }
             return (Completion<T>) Completion.fromProvider((String) answer, new TokenUsage(10, 10));
+        }
+
+        @Override
+        public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
+            throw new UnsupportedOperationException("generation never streams text from the model");
         }
     }
 

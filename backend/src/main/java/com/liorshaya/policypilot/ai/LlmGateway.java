@@ -1,5 +1,8 @@
 package com.liorshaya.policypilot.ai;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 /**
  * The one way the system talks to a language model (Document 2, AI Layer Design; NFR-4 provider independence).
  * Implementations live in {@code ai.adapter}; everything above this interface is provider-agnostic, and nothing
@@ -15,4 +18,15 @@ public interface LlmGateway {
      * @throws LlmMalformedOutputException when the answer was not JSON the type accepts
      */
     <T> Completion<T> complete(PromptSpec spec, Class<T> type);
+
+    /**
+     * One streamed text answer (the {@code answer} prompt): each piece of text goes to {@code tokens} as the provider
+     * sends it, the tools the model calls run in between, and the call returns when the answer ends. It blocks, so a
+     * caller runs it off the request thread; the generation stream already works that way.
+     *
+     * @return what the call cost, as the provider reported it
+     * @throws LlmUnavailableException when the provider failed, the first token or the whole answer missed its
+     *     deadline, or the answer was stopped by its output cap
+     */
+    TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens);
 }

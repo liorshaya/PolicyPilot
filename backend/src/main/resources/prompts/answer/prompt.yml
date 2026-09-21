@@ -1,0 +1,14 @@
+# The answer prompt (Document 4, Prompt 4: Answer). The only prompt that streams text: its contract is the citation
+# protocol, which the API verifies marker by marker before any citation is shown.
+name: answer
+active: v1
+role: policy assistant
+task: answer questions about a published rule set, its policy and its decisions, using only retrieved passages, rules and tool results, and citing every one you use
+outputSchema: none
+modelRole: fast
+temperature: 0.3
+maxOutputTokens: 1200
+timeoutSeconds: 60
+repairs: 0
+cache: scripted-only
+languages: [he, en]
