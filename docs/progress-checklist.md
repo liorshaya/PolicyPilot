@@ -126,9 +126,9 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 **Day 9, Thu Oct 1: `answer` and chat**
 
-- [ ] `answer/v1` with context assembly; `POST /chat/sessions`; messages SSE (`token`, `citations`, `usage`, `done`), not resumable (a retry instead, Document 2); the last 10 turns as history; marker parser and resolver; the four tools with validators, sandbox scope, 4 calls per turn and 1 simulate; the fixed not-covered sentence; chat screen with streaming, citation links, RTL (two-week version: the `decision` and `simulate` tools only; `stats` and `rules` are cut by rung 6)
-- [ ] Tests: chat SSE sequence; the error event in place of done; marker parser (unknown, malformed, duplicated); unresolved markers dropped; 12 turns keep 10; tool validators; recorded tool calls with foreign ids rejected; caps; recorded answers (valid, malformed, adversarial); RT-01, RT-02, RT-03, RT-07, RT-08; chat reducer and citation rendering; the three scripted questions recorded; Playwright step 3 (moved from day 11)
-- [ ] The three scripted questions answer with their markers on the cloud site; the guarantor question goes through `simulate`
+- [x] `answer/v1` with context assembly; `POST /chat/sessions`; messages SSE (`token`, `citations`, `usage`, `done`), not resumable (a retry instead, Document 2); the last 10 turns as history; marker parser and resolver; the four tools with validators, sandbox scope, 4 calls per turn and 1 simulate; the fixed not-covered sentence; chat screen with streaming, citation links, RTL (two-week version: the `decision` and `simulate` tools only; `stats` and `rules` are cut by rung 6)
+- [x] Tests: chat SSE sequence; the error event in place of done; marker parser (unknown, malformed, duplicated); unresolved markers dropped; 12 turns keep 10; tool validators; recorded tool calls with foreign ids rejected; caps; recorded answers (valid, malformed, adversarial); RT-01, RT-02, RT-03, RT-07, RT-08; chat reducer and citation rendering; the three scripted questions recorded; Playwright step 3 (moved from day 11)
+- [x] The three scripted questions answer with their markers on the cloud site; the guarantor question goes through `simulate`
 
 **Day 10, Sun Oct 4: rehearsal, video, README and freeze (two-week version)**
 
