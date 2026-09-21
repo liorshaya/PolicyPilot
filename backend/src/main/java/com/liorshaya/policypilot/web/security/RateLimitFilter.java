@@ -27,7 +27,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    /** The model-calling routes of Document 2's API table; none exists before day 7, the class is ready for them. */
+    /** The model-calling routes of Document 2's API table, and retrieval, which embeds its question (Document 5). */
     static final RequestMatcher MODEL_ROUTES = modelRoutes();
     static final RequestMatcher AUTH_ROUTE = PathPatternRequestMatcher.withDefaults()
             .matcher(HttpMethod.POST, ApiPaths.AUTH_CODE);
@@ -85,6 +85,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/policies/{id}/rulesets"),
                 paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/chat/sessions/{id}/messages"),
                 paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/rulesets/{id}/versions/{no}/changes"),
-                paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/decisions/{id}/explain"));
+                paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/decisions/{id}/explain"),
+                paths.matcher(HttpMethod.POST, ApiPaths.RULESET_VERSION_RETRIEVAL));
     }
 }

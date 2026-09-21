@@ -199,6 +199,24 @@ public class RulesetService {
     }
 
     /**
+     * What retrieval searches on a version the sandbox can see (Document 4, Retrieval Pipeline, Scoping): its rule set
+     * and its paragraphs; empty when the sandbox cannot see it, and a status conflict unless its embedding is
+     * {@code READY} (Document 4, Embedding: questions on a version still embedding are refused).
+     */
+    @Transactional(readOnly = true)
+    public Optional<EmbeddingSource> corpus(UUID rulesetId, int versionNo, UUID sandboxId) {
+        return found(rulesetId, versionNo, sandboxId).map(found -> {
+            RulesetVersionEntity version = found.version();
+            if (!EmbeddingStatus.READY.name().equals(version.getEmbeddingStatus())) {
+                throw new VersionStatusException("version " + versionNo + " is " + version.getStatus()
+                        + " with embedding " + version.getEmbeddingStatus());
+            }
+            RuleSet ruleSet = mapper.toRuleSet(RuleSetDocuments.read(version.getRulesJson()));
+            return new EmbeddingSource(version.getId(), ruleSet, policy(version.getPolicyVersionId()).paragraphs());
+        });
+    }
+
+    /**
      * Claims a {@code PENDING} version for embedding, moving it to {@code EMBEDDING}, and returns what its corpus is
      * made of; empty when the version is not {@code PENDING}, a DRAFT or one another run has already claimed.
      */

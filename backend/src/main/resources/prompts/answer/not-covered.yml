@@ -1,0 +1,4 @@
+# The fixed answer to a question the documents do not cover, one per language (Document 4, Retrieval Pipeline,
+# Threshold). The API returns it without a model call; the answer prompt of day 9 quotes it word for word.
+en: "The documents do not cover this question; try asking about a rule, a paragraph or a decision number."
+he: "המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה."

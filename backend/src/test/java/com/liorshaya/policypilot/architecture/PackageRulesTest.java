@@ -73,6 +73,16 @@ class PackageRulesTest {
     @ArchTest
     static final ArchRule rag = moduleRule("rag", "policy", "rules", "ruleset", "ai");
 
+    /**
+     * Document 4, Retrieval Pipeline, Threshold: a question the corpus does not cover is answered "without a model
+     * call". rag may use the ai interfaces, but never the one that calls a model.
+     */
+    @ArchTest
+    static final ArchRule ragNeverCallsAModel = noClasses()
+            .that().resideInAPackage(pkg("rag"))
+            .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".ai.LlmGateway")
+            .because("Document 4: retrieval and its not-covered answer need no model call");
+
     @ArchTest
     static final ArchRule change = moduleRule("change", "ai", "ruleset", "engine", "decision", "audit");
 
