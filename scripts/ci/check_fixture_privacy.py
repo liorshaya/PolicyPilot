@@ -6,7 +6,8 @@ an identity number. Everything under fixtures/ is synthetic by construction; thi
 
 An embedding recording (fixtures/eval/recordings/<provider>/embedding/) is checked by its texts: its vectors are
 base64 of float32, whose digit runs are the encoding of numbers, not anything a person wrote, and would otherwise
-read as identity numbers by chance.
+read as identity numbers by chance. For the same reason a SHA-256 digest (64 hex characters, the input hash of a
+model recording) is left out of the line it is on: a digit run inside it is part of a hash, not a number.
 
 Run: python3 scripts/ci/check_fixture_privacy.py   (exit 1 with every hit listed)
 """
@@ -23,6 +24,7 @@ PATTERNS = {
     "phone number": re.compile(r"(?<![\w.])(?:\+972[-\s]?|0)(?:[23489]|5\d|7\d)[-\s]?\d{3}[-\s]?\d{4}(?![\w.])"),
     "nine-digit number": re.compile(r"(?<![\d.])\d{9}(?![\d.])"),
 }
+SHA256_HEX = re.compile(r"(?<![0-9A-Fa-f])[0-9a-f]{64}(?![0-9A-Fa-f])")
 
 
 def lines_of(path: Path) -> list[str]:
@@ -44,6 +46,7 @@ def main() -> int:
             continue
         scanned += 1
         for number, line in enumerate(lines_of(path), start=1):
+            line = SHA256_HEX.sub("", line)
             for kind, pattern in PATTERNS.items():
                 for match in pattern.finditer(line):
                     hits.append((path.relative_to(FIXTURES.parent), number, kind, match.group(0)))

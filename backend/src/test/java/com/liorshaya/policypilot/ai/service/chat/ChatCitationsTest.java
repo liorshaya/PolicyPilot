@@ -39,6 +39,19 @@ class ChatCitationsTest {
                         null, null, null));
     }
 
+    // A source a tool result names is supplied like a retrieved chunk and cited as the version's paragraph. Expected:
+    // p:7, which retrieval did not supply, citable once the tool supplied it, as paragraph 7
+    @Test
+    void aSourceAToolResultNamesIsCitedAsTheVersionsParagraph() {
+        ChatTurn turn = new ChatTurn(Set.of("p:2"));
+
+        turn.supply("p:7");
+
+        assertThat(turn.supplied("p:7")).isTrue();
+        assertThat(ChatCitations.of(List.of("p:7"), turn, LENDING, paragraphs()))
+                .containsExactly(new ChatCitation("p:7", ChatCitation.Kind.PARAGRAPH, 7, null, null, null, null, null));
+    }
+
     private static List<PolicyVersionRef.Paragraph> paragraphs() {
         List<PolicyVersionRef.Paragraph> paragraphs = new ArrayList<>();
         List<String> texts = Fixtures.lendingParagraphs();

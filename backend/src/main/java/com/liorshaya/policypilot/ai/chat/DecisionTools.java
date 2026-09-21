@@ -55,7 +55,8 @@ public class DecisionTools {
         return List.of(
                 new CappedTool(GET_DECISION,
                         "Fetch the stored decision of an application by its number, with its trace",
-                        NUMBER_SCHEMA, turn, false, arguments -> getDecision(arguments, version, sandboxId, turn),
+                        NUMBER_SCHEMA, turn, false,
+                        arguments -> getDecision(arguments, version, ruleSet, sandboxId, turn),
                         events::toolRejected),
                 new CappedTool(SIMULATE,
                         "Re-evaluate a stored decision with some case fields changed; nothing is stored",
@@ -63,14 +64,15 @@ public class DecisionTools {
                         arguments -> simulate(arguments, version, ruleSet, sandboxId, turn), events::toolRejected));
     }
 
-    private String getDecision(String arguments, PublishedVersion version, UUID sandboxId, ChatTurn turn) {
+    private String getDecision(String arguments, PublishedVersion version, RuleSet ruleSet, UUID sandboxId,
+            ChatTurn turn) {
         int number = ToolArguments.applicationNumber(arguments);
         ObjectNode decision = stored(version, sandboxId, number).decision();
         ChatCitation citation = new ChatCitation("d:" + number, ChatCitation.Kind.DECISION, null,
                 decision.path("decidingRuleId").asString(null), null, number, decision.path("outcome").asString(null),
                 null);
         turn.supply(citation);
-        return ToolResults.result(citation.id(), decision);
+        return ToolResults.result(citation.id(), withSources(decision, ruleSet, turn));
     }
 
     private String simulate(String arguments, PublishedVersion version, RuleSet ruleSet, UUID sandboxId,
@@ -91,7 +93,19 @@ public class DecisionTools {
                 simulation.path("decidingRuleId").asString(null), null, number,
                 simulation.path("outcome").asString(null), detail);
         turn.supply(citation);
-        return ToolResults.result(citation.id(), simulation);
+        return ToolResults.result(citation.id(), withSources(simulation, ruleSet, turn));
+    }
+
+    /**
+     * The result with the sources it supplies listed for the model to cite, the rule that decided it and the paragraph
+     * that rule quotes, each supplied to the turn (Document 4, Citation marker protocol).
+     */
+    private static ObjectNode withSources(ObjectNode result, RuleSet ruleSet, ChatTurn turn) {
+        List<String> sources = ToolResults.sourcesOf(ruleSet, result.path("decidingRuleId").asString(null));
+        sources.forEach(turn::supply);
+        ObjectNode cited = result.deepCopy();
+        sources.forEach(cited.putArray("sources")::add);
+        return cited;
     }
 
     /** The decision the application number names, or a refusal the model reads (RT-03: another sandbox's id). */

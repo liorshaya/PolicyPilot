@@ -20,6 +20,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
@@ -39,9 +40,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * The streaming half of the adapter (Document 2, AI Layer Design: {@code LlmGateway} streams chat with tools
- * registered; Document 4, Prompt 4). The provider is a fake {@link ChatModel} whose stream the test writes, and it
- * runs the tool callbacks the adapter registered the way Spring AI's internal tool execution does; the ledger, the
- * budget and the deadlines around the call are real.
+ * registered; Document 4, Prompt 4). The provider is a fake {@link ChatModel} whose stream the test writes; like
+ * Spring AI 2.0's chat models it returns a tool call and runs nothing, so the adapter's tool loop is what is tested.
+ * The ledger, the budget and the deadlines around the call are real.
  */
 @TestPropertySource(properties = {"policypilot.ai.daily-token-budget=100000",
         "policypilot.ai.timeouts.chat-first-token-seconds=1"})
@@ -83,29 +84,44 @@ class SpringAiLlmGatewayStreamIT extends ApiIntegrationTest {
         assertThat(recorded.getFirst().model()).isEqualTo("gpt-5.6-luna");
     }
 
-    // Document 2: the tools are ChatTool objects the adapter registers with Spring AI. Expected: the provider sees a
-    // callback named after the tool with its schema, calling it runs the tool with the arguments as sent, and the
-    // model reads what the tool returned
+    // Document 2: the tools are ChatTool objects the adapter registers with Spring AI. Spring AI 2.0's chat model
+    // stream returns a tool call and runs nothing, so the adapter runs it and streams again. Expected: the provider
+    // sees the callback with the tool's schema, the tool runs once with the arguments as the model wrote them, the
+    // second request carries what it returned, and the usage is both rounds' (120 + 120 in, 40 + 40 out)
     @Test
-    void theModelCallsTheChatToolsThroughTheCallbacksTheAdapterRegistered() {
+    void theAdapterRunsTheToolTheModelCallsAndStreamsTheAnswerThatFollows() {
         List<String> received = new ArrayList<>();
         ChatTool tool = tool("getDecision", arguments -> {
             received.add(arguments);
             return "{\"outcome\":\"refer\"}";
         });
-        model.script(prompt -> {
-            ToolCallback callback = callbacks(prompt).getFirst();
-            String result = callback.call("{\"applicationNumber\":17}");
-            return Flux.just(last(callback.getToolDefinition().name() + " said " + result, "STOP"));
-        });
+        model.script(prompt -> prompt.getInstructions().getLast() instanceof ToolResponseMessage answered
+                ? Flux.just(last("getDecision said " + answered.getResponses().getFirst().responseData(), "STOP"))
+                : Flux.just(toolCall("getDecision", "{\"applicationNumber\":17}")));
+        List<String> tokens = new ArrayList<>();
+
+        TokenUsage usage = gateway.stream(spec(), List.of(tool), tokens::add);
+
+        assertThat(received).containsExactly("{\"applicationNumber\":17}");
+        assertThat(tokens).containsExactly("getDecision said {\"outcome\":\"refer\"}");
+        assertThat(usage).isEqualTo(new TokenUsage(240, 80));
+        assertThat(callbacks(model.lastPrompt()).getFirst().getToolDefinition().inputSchema())
+                .isEqualTo("{\"type\":\"object\"}");
+    }
+
+    // Document 5, Tool call volume: four calls a turn, and the tools refuse the fifth. Expected: a model that never
+    // stops calling is asked at most five rounds, the fifth refused by the tool, and the stream ends without an answer
+    @Test
+    void aModelThatKeepsCallingToolsIsStoppedAfterFiveRounds() {
+        AtomicInteger runs = new AtomicInteger();
+        ChatTool tool = tool("getDecision", arguments -> "{\"run\":" + runs.incrementAndGet() + "}");
+        model.script(prompt -> Flux.just(toolCall("getDecision", "{\"applicationNumber\":17}")));
         List<String> tokens = new ArrayList<>();
 
         gateway.stream(spec(), List.of(tool), tokens::add);
 
-        assertThat(received).containsExactly("{\"applicationNumber\":17}");
-        assertThat(tokens).containsExactly("getDecision said {\"outcome\":\"refer\"}");
-        assertThat(callbacks(model.lastPrompt()).getFirst().getToolDefinition().inputSchema())
-                .isEqualTo("{\"type\":\"object\"}");
+        assertThat(runs.get()).isEqualTo(5);
+        assertThat(tokens).isEmpty();
     }
 
     // Document 4, Guardrails: 20 s to the first token (1 s here), well before the prompt's 60 s. Expected: a provider
@@ -186,6 +202,15 @@ class SpringAiLlmGatewayStreamIT extends ApiIntegrationTest {
 
     private static ChatResponse chunk(String text) {
         return new ChatResponse(List.of(new Generation(new AssistantMessage(text))));
+    }
+
+    /** What Spring AI 2.0's stream gives for a tool call: the merged call, finished for tools, with its usage. */
+    private static ChatResponse toolCall(String name, String arguments) {
+        AssistantMessage call = AssistantMessage.builder().content("")
+                .toolCalls(List.of(new AssistantMessage.ToolCall("call-1", "function", name, arguments))).build();
+        return new ChatResponse(
+                List.of(new Generation(call, ChatGenerationMetadata.builder().finishReason("TOOL_CALLS").build())),
+                ChatResponseMetadata.builder().usage(new DefaultUsage(120, 40)).build());
     }
 
     private static ChatResponse last(String text, String finishReason) {

@@ -57,6 +57,11 @@ public final class ChatTurn {
         fromTools.put(citation.id(), citation);
     }
 
+    /** A source a tool result names, cited like a retrieved chunk: the deciding rule or the paragraph it quotes. */
+    public void supply(String id) {
+        supplied.add(id);
+    }
+
     public boolean supplied(String id) {
         return supplied.contains(id);
     }
