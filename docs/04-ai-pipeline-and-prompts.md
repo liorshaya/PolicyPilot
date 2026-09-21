@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-21 · Lior Shaya
+2026-09-22 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 
@@ -368,17 +368,17 @@ Retrieval runs before the answer prompt and decides two things: which chunks the
 
 The answer prompt is the only one that streams text, so its contract is a citation protocol instead of a schema: every factual sentence carries a marker that points at a chunk, a decision or a simulation the API supplied, and the API verifies the markers before it shows citations.
 
-**Tools** (registered with the `ChatClient` through `@Tool` methods, executed by the `ToolCallingAdvisor`, all scoped to the session's version):
+**Tools** (plain `ChatTool` objects in `ai`, registered by `ai.adapter` with Spring AI as tool callbacks, since only the adapter may import Spring AI; all scoped to the session's version; the application number is the case number a person reads on the screen, naming the sandbox's latest stored decision of that case on the session's version; the two-week version builds `getDecision` and `simulate` only):
 
 | Tool | Signature | Returns | When the prompt is told to use it |
 | --- | --- | --- | --- |
-| `getDecision` | `(decisionId)` | The decision object with its trace | The question names an application or decision number |
+| `getDecision` | `(applicationNumber)` | The decision object with its trace | The question names an application or decision number |
 | `getDecisionStats` | `()` | Outcome counts, top deciding rules, flag counts for the version | Questions about "how many", "most common", "share of" |
 | `listRules` | `(tag?)` | Rule ids, labels, priorities, outcomes | "Which rules", "what conditions", when retrieval returned few rule chunks |
 | `getRule` | `(ruleId)` | The full rule JSON and its quoted passage | The question names a rule id not in the retrieved chunks |
-| `simulate` | `(decisionId, overrides)` | A decision object marked `simulation: true` | Any "what if", "would it", "with a guarantor", "if the income were" question about a stored decision |
+| `simulate` | `(applicationNumber, overrides)` | A decision object marked `simulation: true` | Any "what if", "would it", "with a guarantor", "if the income were" question about a stored decision |
 
-Tool results enter the context as `<tool_result id="d:17">` or `<tool_result id="sim:d17:has_guarantor=true">`, citable like chunks. No tool writes, and `simulate` is the only one that runs the engine. A turn allows at most four tool calls and one `simulate`; beyond that the turn ends with a fixed sentence and the overrun is counted (Document 5).
+Tool results enter the context as `<tool_result id="d:17">` or `<tool_result id="sim:d17:has_guarantor=true">` (the overridden fields in name order), citable like chunks. No tool writes, and `simulate` is the only one that runs the engine. A turn allows at most four tool calls and one `simulate`; beyond that the turn ends with a fixed sentence and the overrun is counted (Document 5). The sentence, in `prompts/answer/tool-limit.yml`: English "This question needs more lookups than one answer may make; ask about one application or one change at a time." Hebrew "השאלה דורשת יותר בדיקות ממה שתשובה אחת רשאית לבצע; אפשר לשאול על בקשה אחת או על שינוי אחד בכל פעם."
 
 **Role and task**: role `policy assistant`; task `answer questions about a published rule set, its policy and its decisions, using only retrieved passages, rules and tool results, and citing every one you use`.
 
@@ -417,7 +417,7 @@ Answer the question in {language}, in at most 6 sentences, following the citatio
 
 **Marker resolution**: the API parses `[[kind:id]]` markers from the stream; a marker whose id was not supplied in this turn's context or tool results is removed from the displayed text and counted as a hallucinated citation in the model call log; the remaining markers are turned into the `citations` SSE event (paragraph or rule links, decision links, simulation details) after the text completes, and the UI renders them as chips. The not-covered sentence is a fixed string per language that the API also recognizes, so refusals are countable.
 
-**Streaming and memory**: tokens stream as they arrive through the SSE `token` event; the `MessageWindowChatMemory` keeps the last 10 turns per session with the session id as the conversation id; tool calls and their arguments are stored on the message row so the audit can show that a counterfactual answer came from a simulation.
+**Streaming and memory**: tokens stream as they arrive through the SSE `token` event; the last 10 turns of the session are read from its stored messages and rendered into `<history>` (Document 2, RAG pipeline, Memory); tool calls and their arguments are stored on the message row so the audit can show that a counterfactual answer came from a simulation. The first token must arrive within `policypilot.ai.timeouts.chat-first-token-seconds` (20 s) and the whole answer within the prompt's timeout (60 s), or the stream ends with an `error` event; a chat stream is not resumable, and the web app offers a retry.
 
 **Scripted demo questions** and their expected behavior: "why was application 17 referred?" fetches decision 17 and cites `[[d:17]]` and `[[p:7]]`; "would it be approved with a guarantor?" calls `simulate(17, {has_guarantor: true})` and cites `[[sim:...]]` and `[[r:R-900]]`; "what is the maximum loan term?" answers 84 months citing `[[p:2]]`; "what is the maximum interest rate?" returns the not-covered sentence, because the policy only states the rate used for the installment, not a maximum.
 
