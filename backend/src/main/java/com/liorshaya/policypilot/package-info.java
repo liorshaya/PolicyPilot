@@ -1,19 +1,20 @@
 /**
  * Root of the PolicyPilot backend.
  *
- * <p><b>Modules</b> (Document 2, Backend Module Structure): eleven packages with dependencies allowed in one
- * direction only, inward toward {@code rules} and {@code engine}.
+ * <p><b>Modules</b> (Document 2, Backend Module Structure): twelve packages with dependencies allowed in one
+ * direction only, inward toward {@code rules} and {@code engine}; {@code PackageRulesTest} holds every arrow.
  * <pre>
  *   rules       the Rules DSL model, JSON Schema, validator          depends on: JDK, Jackson
  *   engine      RuleEngine, CompiledRuleSet, Trace, simulation        depends on: rules
  *   policy      policy documents, versions, paragraphs                depends on: rules, persistence
- *   decision    cases, decisions, batch, simulate, statistics         depends on: engine, rules, persistence
- *   ai          gateways, prompts, use cases, validation loop         depends on: rules, engine, policy, decision, rag
- *   ai.adapter  the only package that imports Spring AI               depends on: Spring AI, ai interfaces
- *   rag         chunking, embeddings, hybrid retrieval, citations     depends on: policy, rules, ai.adapter, persistence
- *   change      change requests, impact, diff, regression, approval  depends on: ai, engine, decision, audit
+ *   ruleset     rule sets, versions, publishing                       depends on: rules, engine, policy, audit, persistence
+ *   decision    cases, decisions, batch, simulate, statistics         depends on: ruleset, engine, rules, persistence
+ *   ai          gateways, prompts, use cases, validation loop         depends on: rules, engine, policy, ruleset, decision, rag
+ *   ai.adapter  the only package that imports Spring AI               depends on: Spring AI, ai interfaces, persistence
+ *   rag         chunking, embeddings, hybrid retrieval, citations     depends on: policy, rules, ruleset, ai, persistence
+ *   change      change requests, impact, diff, regression, approval  depends on: ai, ruleset, engine, decision, audit
  *   audit       append-only audit log                                 depends on: persistence
- *   demo        sandboxes, nightly reset, fixture loading             depends on: policy, decision, audit, persistence
+ *   demo        sandboxes, nightly reset, fixture loading             depends on: policy, ruleset, decision, audit, persistence
  *   web         REST controllers, SSE, DTOs, errors, security        depends on: every package above; nothing depends on it
  * </pre>
  *
