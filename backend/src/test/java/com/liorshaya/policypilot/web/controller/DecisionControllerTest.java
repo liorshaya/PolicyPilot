@@ -56,7 +56,7 @@ class DecisionControllerTest {
         SecurityEvents events = new SecurityEvents(registry, "salt".getBytes(StandardCharsets.UTF_8));
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         DecisionController controller = new DecisionController(
-                new RulesetService(null, null, null, null, null, events, clock),
+                new RulesetService(null, null, null, null, null, events, null, clock),
                 new DecisionService(null, null, events, clock),
                 new RateLimits(clock, 20, 60), events);
         mvc = MockMvcBuilders.standaloneSetup(controller)

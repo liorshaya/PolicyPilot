@@ -19,12 +19,14 @@ import com.liorshaya.policypilot.ruleset.repository.RuleRepository;
 import com.liorshaya.policypilot.ruleset.repository.RulesetRepository;
 import com.liorshaya.policypilot.ruleset.repository.RulesetVersionRepository;
 import java.time.Clock;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -38,7 +40,8 @@ import tools.jackson.databind.node.ObjectNode;
  * audit entry). A version is read only for the sandbox that owns its rule set or, when the rule set is protected, for
  * every sandbox; a write against a protected rule set is refused and lands on the sandbox's own copy instead
  * (Document 5, Authorization). The compiled document of a published version is cached per version id, which is safe
- * because a published version never changes (the V4 trigger).
+ * because a published version never changes (the trigger). Its embedding status is the one exception, and it moves
+ * only through the methods below that {@code rag} calls (Document 2, RAG pipeline, Embedding).
  */
 @Service
 public class RulesetService {
@@ -55,19 +58,22 @@ public class RulesetService {
     private final PolicyService policies;
     private final AuditLog audit;
     private final SecurityEvents events;
+    private final ApplicationEventPublisher publications;
     private final Clock clock;
     private final RuleSetValidator validator = new RuleSetValidator();
     private final RuleSetMapper mapper = new RuleSetMapper();
     private final Map<UUID, CompiledRuleSet> compiled = new ConcurrentHashMap<>();
 
     public RulesetService(RulesetRepository rulesets, RulesetVersionRepository versions, RuleRepository rules,
-            PolicyService policies, AuditLog audit, SecurityEvents events, Clock clock) {
+            PolicyService policies, AuditLog audit, SecurityEvents events, ApplicationEventPublisher publications,
+            Clock clock) {
         this.rulesets = rulesets;
         this.versions = versions;
         this.rules = rules;
         this.policies = policies;
         this.audit = audit;
         this.events = events;
+        this.publications = publications;
         this.clock = clock;
     }
 
@@ -192,6 +198,44 @@ public class RulesetService {
         return view(ruleset);
     }
 
+    /**
+     * Claims a {@code PENDING} version for embedding, moving it to {@code EMBEDDING}, and returns what its corpus is
+     * made of; empty when the version is not {@code PENDING}, a DRAFT or one another run has already claimed.
+     */
+    @Transactional
+    public Optional<EmbeddingSource> startEmbedding(UUID versionId) {
+        int claimed = versions.moveEmbeddingStatus(versionId, names(EmbeddingStatus.PENDING),
+                EmbeddingStatus.EMBEDDING.name());
+        if (claimed == 0) {
+            return Optional.empty();
+        }
+        RulesetVersionEntity version = versions.findById(versionId).orElseThrow();
+        RuleSet ruleSet = mapper.toRuleSet(RuleSetDocuments.read(version.getRulesJson()));
+        return Optional.of(new EmbeddingSource(versionId, ruleSet, policy(version.getPolicyVersionId()).paragraphs()));
+    }
+
+    /** Ends an embedding the caller claimed: {@code READY} with its chunks stored, or {@code FAILED}. */
+    @Transactional
+    public void finishEmbedding(UUID versionId, boolean ready) {
+        EmbeddingStatus to = ready ? EmbeddingStatus.READY : EmbeddingStatus.FAILED;
+        versions.moveEmbeddingStatus(versionId, names(EmbeddingStatus.EMBEDDING), to.name());
+    }
+
+    /**
+     * At startup, every version to embed again (Document 2, RAG pipeline, Embedding): {@code FAILED} ones are
+     * retried once per start, and {@code EMBEDDING} ones were interrupted by the restart, since one instance runs.
+     */
+    @Transactional
+    public List<UUID> resumeEmbeddings() {
+        versions.moveEveryEmbeddingStatus(names(EmbeddingStatus.FAILED, EmbeddingStatus.EMBEDDING),
+                EmbeddingStatus.PENDING.name());
+        return versions.findIdsByEmbeddingStatus(EmbeddingStatus.PENDING.name());
+    }
+
+    private static List<String> names(EmbeddingStatus first, EmbeddingStatus... rest) {
+        return EnumSet.of(first, rest).stream().map(EmbeddingStatus::name).toList();
+    }
+
     private VersionView publish(RulesetEntity ruleset, RulesetVersionEntity version, String actor) {
         if (!version.isDraft()) {
             throw new VersionStatusException("version " + version.getVersionNo() + " is " + version.getStatus());
@@ -210,6 +254,8 @@ public class RulesetService {
                 .put("rules", rows.size())
                 .set("warnings", RuleSetDocuments.warnings(result.findings()));
         audit.append(AuditAction.PUBLISH, actor, version.getId(), details);
+        // delivered after the commit, so the embedding job never sees a version that might still roll back
+        publications.publishEvent(new VersionPublished(version.getId()));
         return view(ruleset, version, result.findings());
     }
 
