@@ -156,14 +156,14 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 11, Wed Sep 23: `EvalRunner` and G2**
 
-- [ ] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
-- [ ] Evaluation run 1: strong model on 9 policies and 30 questions; a v2 prompt only if a target is missed (CHANGELOG, one live run) (restored: the evaluation runner)
-- [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3)
+- [x] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
+- [x] Evaluation run 1: the live answer pass over all 30 questions, 58,714 tokens; the author and review passes scored from the recordings, so the 9-policy author run is what day 15 pays for with `author/v2` (restored: the evaluation runner)
+- [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3) — **slipped to day 15 as the row allows: Ollama is not installed on this machine. The report carries the column, empty, and says why**
 - [ ] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7)
-- [ ] The `stats` and `rules` tools of day 9's row (restored: rung 6)
-- [ ] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze)
-- [ ] Tests: runner units (normalization rules); runner on two labeled policies with recordings; both columns present; Playwright step 3; first token under 3 s for cached questions (restored: the evaluation runner)
-- [ ] Gate G2 (restored: gate G2)
+- [x] The `stats` and `rules` tools of day 9's row (restored: rung 6)
+- [x] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze) — no prompt changed, so nothing needed re-warming, and the three scripted questions still answer from the cache on the cloud site in 0.47 to 0.49 s; RTL is checked in the browser and in `panel.spec.ts`
+- [x] Tests: runner units (normalization rules); runner on two labeled policies with recordings; both columns present; Playwright step 3; first token under 3 s for cached questions (restored: the evaluation runner)
+- [x] Gate G2 (restored: gate G2)
 
 ## Phase 3, Agentic change (days 12 to 15)
 
@@ -193,6 +193,12 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [ ] Fix list of days 12 to 14 (restored: rung 10)
 - [ ] `demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion (restored: the reset)
 - [ ] Second-domain fixture (municipal tax discount) loaded as a second protected policy (restored: rung 2)
+- [ ] `author/v2` and `answer/v2` with evaluation run 2, in that one live run (decided on day 11 from
+  `docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md`): `author/v2` gives the model the field names the labeled
+  cases use instead of asking it to invent them, which is the whole of the 0.12 rule recall; `answer/v2` says that
+  a question about how many or about which rules is a tool call, which is why Q-08 and Q-14 were refused. Each
+  changes a rendered prompt and so the response cache's key, so both re-warm the scripted outputs on the cloud
+  site in the demo order, and step 1 and step 3 are walked again afterwards
 - [ ] Evaluation run 2: 18 policies, 30 questions, 6 changes, both providers; report committed to `docs/eval/` (restored: rung 4 and the evaluation runner)
 - [ ] Tests: reset tests; second-domain fixture through the reference and one recorded generation; traceability matrix has no empty row for FR-17 to FR-20 (restored: rungs 2 and 10, the reset)
 - [ ] Gate G3 (restored: rung 10)
@@ -237,7 +243,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 - [x] G0, day 1: compose plus one command under 5 minutes; CI stages 1, 2, 4 and 6 green; health check on Railway; gate page on Vercel; fixtures committed with the reference self-test in stage 2
 - [x] G1, day 7: C-01 to C-31 pass in Java and Python; `engine` and `rules` at 100% line and PIT at least 90%; 200 cases under 1 s and twice byte-identical; decisions persisted; author schema-valid in at least 9 of 10 recorded runs; steps 1 (without flags) and 2 through the panel on the cloud site
-- [ ] G2, day 11: step 1 complete and step 3 on the cloud site; retrieval recall at 8, citation and refusal accuracy at target; RT-01 to RT-03 and RT-05 to RT-10 pass; first token under 3 s for cached questions (restored: gate G2)
+- [x] G2, day 11: step 1 complete and step 3 on the cloud site; retrieval recall at 8, citation and refusal accuracy at target; RT-01 to RT-03 and RT-05 to RT-10 pass; first token under 3 s for cached questions (restored: gate G2)
 - [ ] G3, day 15: step 4 end to end with exactly 12 flips and version 1 unchanged; RT-04; change correctness 5 of 6; second-domain fixture loaded; report with both provider columns (restored: rung 10)
 - [ ] ~~G4, two-week version: the Brief's Definition of Done lines 1 to 6 true; the pre-demo checklist complete, the reset items excepted; the video plays; `main` frozen at a tagged build with its SBOM~~ (moved to day 19)
 - [ ] G4, day 19: every line of the Brief's Definition of Done true; the pre-demo checklist complete; the traceability matrix has no empty row; the video plays; `main` frozen at a tagged build with its SBOM

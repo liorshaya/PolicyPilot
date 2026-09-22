@@ -568,6 +568,43 @@
 
         <!-- Document 6, Performance and Determinism: the engine micro-benchmark, reported, not a gate.
              ./mvnw -Pbenchmark -DskipTests test-compile exec:exec -->
+        <!--
+             The evaluation runner (Document 4, Runner: "./mvnw -Peval test -Dprovider=openai" or "-Dprovider=ollama").
+             It runs EvalRunnerIT alone, on the recordings, and writes docs/eval/<date>-<prompt-versions>.md; the day
+             is named with -Deval.date, and without it the run scores and asserts but leaves no file behind, which is
+             what keeps it honest on every push. A live pass that creates new recordings is a @Tag("live") test of its
+             own and is never part of this profile.
+        -->
+        <profile>
+            <id>eval</id>
+            <properties>
+                <provider>openai</provider>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- the runner alone, by name, so "test" runs it although it is an IT by nature -->
+                            <includes>
+                                <include>**/EvalRunnerIT.java</include>
+                            </includes>
+                            <systemPropertyVariables>
+                                <provider>${provider}</provider>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>benchmark</id>
             <dependencies>

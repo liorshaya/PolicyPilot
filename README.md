@@ -181,18 +181,20 @@ restored: each cut leaves this list in the pull request that ships it.
 - **The change flow** (rung 10): no change requests, patches, regression report, approval or version 2. Demo step 4
   is a closing slide from the design. Brief line 7 is not met.
 - **The guided demo panel** (rung 7): the presenter types the inputs; this script carries them.
-- **The `stats` and `rules` chat tools** (rung 6): the chat has `getDecision` and `simulate` only.
-- **The full-set evaluation run** (rung 4) and **the evaluation runner**: there is no automated report of
-  precision, recall or citation accuracy, and gate G2 fell away with them. The labeled set is committed and the
-  reference admits it.
-- **Rule match below 90%** (Brief line 3, not met): scored by hand with Document 4's matching rule, the canonical run
-  matches 14 of the 18 labeled rules (78%) and the median of the ten runs 12 (67%)
-  ([report](docs/eval/rule-match-lending.md)). Two misses are in every run. The model leaves the installment and the
-  debt ratio unrounded, a convention of the label that the policy never states. It also turns "stable income", which
-  the policy leaves undefined, into a yes/no field that rejects, where the label flags it for a manual check. The
-  reviewer now raises that ambiguity on the draft itself (paragraph 4), and the analyst resolves it before publishing;
-  the rules the model writes are still the ones scored here. Whether `author/v2` is written is decided by the
-  evaluation runner on day 11, because a new version needs ten new live runs and changes demo step 1.
+- **The full-set evaluation run** (rung 4) and **the evaluation runner**: the runner exists and its report is
+  committed ([the run of 2026-09-23](docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md)); what is still missing is
+  the full set --- all 18 labeled policies, the six change requests, and the local Ollama column --- which day 15
+  runs. Gate G2 passed on the recorded evaluation.
+- **Rule match below 90%** (Brief line 3, not met): the runner scores rule recall at 0.12 and case agreement at 0.00
+  ([the run of 2026-09-23](docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md)). Every mismatch it lists is one
+  thing: the model names the fields differently --- `employment_status` for `employment_type`, `loan_amount` for
+  `requested_amount` --- and Document 4's matching evaluates the generated expression on the labeled cases, which
+  only works if the names agree. Provenance is correct on 1.00 of the rules that did match, and not one mismatch is
+  a wrong threshold or a wrong outcome. Scored by hand with a field mapping written for it, the same runs match 78%
+  on the canonical run and 67% at the median ([the earlier report](docs/eval/rule-match-lending.md)). The fix is
+  `author/v2`, which gives the model the field names the cases use instead of asking it to invent them; it is
+  scheduled for day 15 with evaluation run 2, because it changes the rendered prompt and so costs the demo its
+  warmed step 1.
 - **The Ollama column** (rung 3): the `ollama` profile starts (its context test passes) but the chat step was not
   run on a local model, so Brief line 8 is not verified.
 - **The second domain and the encore** (rung 2): only the lending policy is seeded.

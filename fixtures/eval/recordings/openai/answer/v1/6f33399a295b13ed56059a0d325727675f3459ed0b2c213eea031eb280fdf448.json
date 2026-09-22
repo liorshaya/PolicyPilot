@@ -14,9 +14,9 @@
     "tool" : "simulate",
     "arguments" : "{\"applicationNumber\":17,\"overrides\":{\"has_guarantor\":true}}"
   } ],
-  "response" : "כן. בסימולציה של בקשה 17 עם ערב, הבקשה הייתה מאושרת לפי כלל R-900, משום שכל התנאים התקיימו. [[sim:d17:has_guarantor=true]] [[r:R-900]] [[p:9]]  \nבמצב המקורי, ללא ערב, הבקשה הופנתה לבדיקה בשל אירוע אשראי אחד. [[d:17]] [[r:R-330]] [[p:7]]",
+  "response" : "כן. בסימולציה שבה ליישום 17 נוסף ערב, הבקשה הייתה מאושרת לפי כלל R-900, משום שהבקשה עמדה בכל תנאי המדיניות. [[sim:d17:has_guarantor=true]] [[r:R-900]] [[p:9]]",
   "usage" : {
-    "inputTokens" : 11703,
-    "outputTokens" : 147
+    "inputTokens" : 11928,
+    "outputTokens" : 111
   }
 }
