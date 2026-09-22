@@ -158,6 +158,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/decisions/{id}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain a stored decision from its trace, for an officer or an applicant */
+        post: operations["explain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/sessions": {
         parameters: {
             query?: never;
@@ -460,6 +477,37 @@ export interface components {
         SseEmitter: {
             /** Format: int64 */
             timeout?: number;
+        };
+        ExplainRequest: {
+            /** @enum {string} */
+            audience?: "officer" | "applicant";
+        };
+        ConditionResponse: {
+            flagCode: string;
+            statement: string;
+        };
+        ExplanationResponse: {
+            /** Format: uuid */
+            decisionId: string;
+            /** @enum {string} */
+            audience: "officer" | "applicant";
+            /** @enum {string} */
+            language: "he" | "en";
+            promptVersion: string;
+            summary: string;
+            factors: components["schemas"]["FactorResponse"][];
+            conditions: components["schemas"]["ConditionResponse"][];
+            notApplied: components["schemas"]["NotAppliedResponse"][];
+        };
+        FactorResponse: {
+            ruleId: string;
+            /** Format: int32 */
+            paragraph: number | null;
+            statement: string;
+        };
+        NotAppliedResponse: {
+            ruleId: string;
+            statement: string;
         };
         OpenChatRequest: {
             /** Format: uuid */
@@ -1000,6 +1048,59 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": components["schemas"]["SseEmitter"];
+                };
+            };
+        };
+    };
+    explain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExplainRequest"];
+            };
+        };
+        responses: {
+            /** @description The explanation, every entry checked against the trace */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplanationResponse"];
+                };
+            };
+            /** @description The audience is not officer or applicant */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such decision in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The model provider failed, or its answer was not an explanation */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

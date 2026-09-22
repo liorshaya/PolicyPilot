@@ -342,7 +342,7 @@ Explain this decision. Use only what the trace contains.
 Return only the JSON object.
 ```
 
-**Output**: `{ "summary": "...", "factors": [ { "ruleId", "paragraph", "statement" } ], "conditions": [ { "flagCode", "statement" } ], "notApplied": [ { "ruleId", "statement" } ], "language" }`; the API checks that every `ruleId` appears in the trace with status `fired` (for `factors`) or `not_fired` (for `notApplied`), that every paragraph number matches that rule's provenance in the trace, and that no `skipped` rule is mentioned; a violation drops the offending entry and logs it.
+**Output**: `{ "summary": "...", "factors": [ { "ruleId", "paragraph", "statement" } ], "conditions": [ { "flagCode", "statement" } ], "notApplied": [ { "ruleId", "statement" } ], "language" }`; the API checks that every `ruleId` appears in the trace with status `fired` (for `factors`) or `not_fired` (for `notApplied`), that every paragraph number matches that rule's provenance in the trace, that no `skipped` rule is mentioned, and that every condition's `flagCode` is a flag the decision carries; a violation drops the offending entry and logs it.
 
 **Caching**: keyed by the decision object, the audience and the prompt version (with the model, as every cached call is), so the same decision explained twice costs one call. The object carries no decision id: every visitor decides case 17 in a sandbox of their own under a new id, and a key by id would miss for each of them, while the same trace shares one explanation (decided 2026-09-22, day 10). The demo's step 2 opens case 17 from the cache.
 
@@ -561,13 +561,15 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 | `author` | strong | 0 | 24,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
 | `repair` | same as the prompt it repairs | 0 | same | shares the original budget | n/a | none |
 | `review` | strong | 0 | 16,000 | 180 s | 0 | by input hash |
-| `explain` | fast | 0.3 | 800 | 20 s | 0 | by decision object, audience, prompt version |
+| `explain` | fast | the model's own | 4,000 | 20 s | 0 | by decision object, audience, prompt version |
 | `answer` | fast | 0.3 | 1,200 | 20 s to first token, 60 s total | 0 | scripted demo questions that meet their label, tool results re-checked on every hit |
 | `change` | strong | 0 | 6,000 | 60 s | 2 | by input hash (request, version id, prompt version, model) |
 
 The author timeout is 180 s because the strong model of the current lineup takes 67 to 101 seconds to write a rule set for a one-page policy, measured over the ten live runs of day 7; a temperature is not sent at all, because that model accepts only its own. Its output cap is 24,000 tokens, not the 8,000 first written here, because on this lineup the completion-token cap counts the model's reasoning tokens as well as the document it returns: one twelve-paragraph policy needed 2,184 reasoning tokens and 6,379 tokens of document, while a run that reasoned harder spent all 8,000 on reasoning alone and returned nothing at all.
 
 The review runs on the same strong model and for the same reason gets 180 s and 16,000 tokens, not the 45 s and 4,000 first written here (decided 2026-09-22, day 10): its first live run timed out at 45 s three times on the lending draft, since the model reasons over the whole draft and the whole policy before it writes a finding. The cap is sized like the author's: a review answer is at most 50 findings of two sentences each, and the rest is room for the reasoning the cap also counts. The review is cached by input hash, so the demo waits for it once per draft.
+
+The explain prompt sends no temperature either: its first live run was refused with "temperature does not support 0.3 with this model; only the default (1) value is supported", so the fast model of this lineup, like the strong one, accepts only its own for a structured call (decided 2026-09-22, day 10). What keeps an explanation close to the trace is the contract filter, not the temperature. Its cap is 4,000 tokens, not 800: the same run spent 658 to 707 output tokens on the three explanations of cases 17 and 2, too close to 800 for a decision with more flags or rules not applied, and a cut-off answer is a failed call.
 
 **Role to model mapping** (as of September 2026; model names are properties `policypilot.ai.models.strong` and `policypilot.ai.models.fast`, confirmed against the provider's model list when the profile is set up, because the lists change every few months):
 

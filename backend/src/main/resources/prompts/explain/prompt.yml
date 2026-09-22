@@ -1,0 +1,19 @@
+# The explain prompt (Document 4, Prompt 3: Explain). One decision object in, a structured explanation out, every
+# entry of which the API checks against the trace before anyone reads it.
+name: explain
+active: v1
+role: decision explainer
+task: explain one decision to a person using only the trace, citing the rules that decided it and the policy passages behind them
+outputSchema: schemas/explanation-1.0.schema.json
+modelRole: fast
+# Document 4 asks for 0.3; the fast model of the current OpenAI lineup refused it on the first live run ("only the
+# default (1) value is supported"), so the prompt asks for the model's own and the contract filter keeps it close.
+temperature: default
+# Document 4: 4,000, not 800. The first live run spent 658 to 707 output tokens per explanation, reasoning included.
+maxOutputTokens: 4000
+timeoutSeconds: 20
+repairs: 0
+# Keyed by the rendered prompt, which holds the decision object (no id), the audience and the language: the same trace
+# explained twice costs one call, in any sandbox (Document 4, Prompt 3, Caching).
+cache: by-decision
+languages: [he, en]

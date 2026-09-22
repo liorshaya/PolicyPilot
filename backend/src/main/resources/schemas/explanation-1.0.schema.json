@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://policypilot.dev/schemas/explanation-1.0.json",
+  "title": "PolicyPilot decision explanation 1.0 (Document 4, Output Contracts)",
+  "type": "object", "additionalProperties": false,
+  "required": ["summary", "factors", "conditions", "notApplied", "language"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 10, "maxLength": 600 },
+    "factors": { "type": "array", "maxItems": 12, "items": { "type": "object", "additionalProperties": false,
+      "required": ["ruleId", "paragraph", "statement"],
+      "properties": { "ruleId": { "type": "string" }, "paragraph": { "type": ["integer", "null"] }, "statement": { "type": "string", "maxLength": 400 } } } },
+    "conditions": { "type": "array", "maxItems": 10, "items": { "type": "object", "additionalProperties": false,
+      "required": ["flagCode", "statement"],
+      "properties": { "flagCode": { "type": "string" }, "statement": { "type": "string", "maxLength": 400 } } } },
+    "notApplied": { "type": "array", "maxItems": 3, "items": { "type": "object", "additionalProperties": false,
+      "required": ["ruleId", "statement"],
+      "properties": { "ruleId": { "type": "string" }, "statement": { "type": "string", "maxLength": 400 } } } },
+    "language": { "enum": ["he", "en"] }
+  }
+}
