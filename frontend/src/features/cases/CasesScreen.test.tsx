@@ -7,7 +7,10 @@ import {
   aggregates,
   batch,
   decision,
+  rulesets,
   SECOND_RULESET_ID,
+  secondRuleset,
+  SEEDED_RULESET_ID,
   twoRulesets,
 } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
@@ -255,6 +258,16 @@ describe('CasesScreen', () => {
   it('runs the rule set it was asked for, not the first one the API lists', async () => {
     let asked = ''
     server.use(
+      // the second rule set is published here: only a published version decides (Document 2, decide); MSW takes
+      // the first matching handler of one use(), so this one goes before the two rule sets' own list
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            rulesets.rulesets[0]!,
+            { ...secondRuleset, versions: [{ versionNo: 1, status: 'PUBLISHED' }] },
+          ],
+        }),
+      ),
       ...twoRulesets(),
       http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
         asked = String(params.id)
@@ -266,5 +279,73 @@ describe('CasesScreen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
 
     await waitFor(() => expect(asked).toBe(SECOND_RULESET_ID))
+  })
+
+  // Document 2, decide: "Only a PUBLISHED version decides (409 otherwise)". The workspace is on a draft written from
+  // the policy a moment ago (demo step 1), so the cases run on the seeded version, which is published, and say so
+  it('runs the cases on the published seeded set when the workspace is on a draft never published', async () => {
+    const user = userEvent.setup()
+    const DRAFT_ID = '0f4c1c9e-0000-4000-8000-0000000000b9'
+    const decided: string[] = []
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            ...rulesets.rulesets,
+            {
+              ...rulesets.rulesets[0]!,
+              id: DRAFT_ID,
+              protected: false,
+              versions: [{ versionNo: 1, status: 'DRAFT' }],
+            },
+          ],
+        }),
+      ),
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
+        decided.push(`${String(params.id)}/${String(params.no)}`)
+        return HttpResponse.json(batch)
+      }),
+    )
+    renderScreen(() => undefined, DRAFT_ID)
+
+    expect(
+      await screen.findByText(
+        'The rule set on the workspace has no published version yet; the cases run on the seeded one.',
+      ),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Run 200 cases' }))
+
+    await waitFor(() => expect(decided).toEqual([`${SEEDED_RULESET_ID}/1`]))
+  })
+
+  // Document 2, decide: a rule set whose version 2 is still a draft decides on its published version 1
+  it('runs a rule set with a newer draft on its published version', async () => {
+    const user = userEvent.setup()
+    const decided: string[] = []
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            {
+              ...rulesets.rulesets[0]!,
+              versions: [
+                { versionNo: 1, status: 'PUBLISHED' },
+                { versionNo: 2, status: 'DRAFT' },
+              ],
+            },
+          ],
+        }),
+      ),
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
+        decided.push(`${String(params.id)}/${String(params.no)}`)
+        return HttpResponse.json(batch)
+      }),
+    )
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+
+    await waitFor(() => expect(decided).toEqual([`${SEEDED_RULESET_ID}/1`]))
+    expect(screen.queryByText(/has no published version yet/)).not.toBeInTheDocument()
   })
 })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
 import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from '../../api/queries'
-import type { RuleSetDocument } from '../../api/types'
+import type { RuleSetDocument, RulesetSummary } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
@@ -35,10 +35,17 @@ export function CasesScreen({
 }) {
   const rulesets = useRulesets()
   const list = rulesets.data ?? []
-  const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
-  const ruleset = chosen
-    ? { id: chosen.id, versionNo: chosen.versions[chosen.versions.length - 1]?.versionNo ?? 1 }
-    : null
+  // Document 2, decide: only a published version decides. The workspace may be on a draft written a moment ago, so
+  // the cases run on its latest published version, or on the first rule set that has one, and the screen says so
+  const wanted = list.find((one) => one.id === rulesetId) ?? list[0]
+  const chosen =
+    wanted && latestPublished(wanted) !== undefined
+      ? wanted
+      : list.find((one) => latestPublished(one) !== undefined)
+  const publishedNo = chosen ? latestPublished(chosen) : undefined
+  const ruleset =
+    chosen && publishedNo !== undefined ? { id: chosen.id, versionNo: publishedNo } : null
+  const elsewhere = wanted !== undefined && chosen !== undefined && wanted.id !== chosen.id
   const version = useVersion(ruleset)
   const stats = useStats(ruleset)
   const run = useRunFixtureSet(ruleset ?? { id: '', versionNo: 1 })
@@ -97,6 +104,12 @@ export function CasesScreen({
         sideOpen={selectedId !== null}
         main={
           <>
+            {elsewhere ? (
+              <p className="cases__elsewhere" role="note">
+                The rule set on the workspace has no published version yet; the cases run on the
+                seeded one.
+              </p>
+            ) : null}
             {refusal ? (
               <div className="cases__refusal" role="alert">
                 The run was refused (<span className="mono">{refusal.code}</span>). Nothing was
@@ -211,4 +224,10 @@ export function CasesScreen({
       />
     </>
   )
+}
+
+/** The number of a rule set's newest published version, or undefined when it has none yet. */
+function latestPublished(ruleset: RulesetSummary): number | undefined {
+  return [...ruleset.versions].reverse().find((version) => version.status === 'PUBLISHED')
+    ?.versionNo
 }
