@@ -83,8 +83,13 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-.shell__principle {
+/* the guided demo panel, under the navigation: a remote control beside the workspace, not part of it */
+.shell__aside {
   margin-top: auto;
+  padding: var(--space-3);
+}
+
+.shell__principle {
   padding: var(--space-3);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.6);
@@ -124,7 +129,8 @@
     box-shadow: inset 0 -3px 0 var(--color-selected-bar);
   }
 
-  .shell__principle {
+  .shell__principle,
+  .shell__aside {
     display: none;
   }
 }

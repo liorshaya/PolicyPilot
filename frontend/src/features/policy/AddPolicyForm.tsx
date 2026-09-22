@@ -18,6 +18,8 @@ interface AddPolicyFormProps {
   error: unknown
   onSubmit: (input: AddPolicyInput) => void
   onCancel: () => void
+  /** What the form opens with; the guided demo panel fills it with the sample policy (Brief FR-23). */
+  initial?: { title: string; language: 'he' | 'en'; text: string }
 }
 
 /** What the API refuses, said in the words of the person who pasted it (Document 2, error codes). */
@@ -43,11 +45,11 @@ function refusal(error: unknown): string | null {
  * Paste a policy, or upload one (Brief FR-1; Document 5, Input Validation). The labels stay above the controls and
  * the refusals name the limit that was broken, never the text that broke it.
  */
-export function AddPolicyForm({ pending, error, onSubmit, onCancel }: AddPolicyFormProps) {
+export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: AddPolicyFormProps) {
   const [mode, setMode] = useState<'paste' | 'upload'>('paste')
-  const [title, setTitle] = useState('')
-  const [language, setLanguage] = useState<'he' | 'en'>('he')
-  const [text, setText] = useState('')
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [language, setLanguage] = useState<'he' | 'en'>(initial?.language ?? 'he')
+  const [text, setText] = useState(initial?.text ?? '')
   const [file, setFile] = useState<File | null>(null)
   const message = refusal(error)
   const ready = title.trim() !== '' && (mode === 'paste' ? text.trim() !== '' : file !== null)

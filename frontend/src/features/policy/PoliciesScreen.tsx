@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
 import { usePolicies, usePolicy, useCreatePolicy, useRulesets } from '../../api/queries'
 import type { PolicySummary } from '../../api/types'
@@ -18,15 +19,44 @@ import './PoliciesScreen.css'
  * the number is what a rule cites (Document 3, Provenance), and a Hebrew policy reads right to left inside the
  * left-to-right workspace.
  */
-export function PoliciesScreen({ onOpenRules }: { onOpenRules: (rulesetId: string) => void }) {
+export function PoliciesScreen({
+  onOpenRules,
+  demoAsked = false,
+  onDemoHandled,
+}: {
+  onOpenRules: (rulesetId: string) => void
+  /** Step 1 of the guided demo: open the form on the sample policy, ready to generate (Brief FR-23). */
+  demoAsked?: boolean
+  onDemoHandled?: () => void
+}) {
   const policies = usePolicies()
   const rulesets = useRulesets()
   const [chosenId, setChosenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  // the form opens empty for a person, and holding the sample policy when the guided panel opened it
+  const [fromDemo, setFromDemo] = useState(false)
   const create = useCreatePolicy()
 
   const generation = useGeneration()
   const list = policies.data ?? []
+  // Step 1 of the demo pastes the sample policy. It is the seeded one, so its text is read back through the same
+  // API the screen already uses rather than copied into the web app, where it would be a second fixture to keep
+  const sample = list.find((one) => one.protected === true)
+  // the key stays the seeded policy's whether or not a step is running: switching it to "none" the moment the
+  // step is handled would drop the cached text and open the form empty
+  const sampleDocument = usePolicy(sample?.id ?? null)
+  const sampleVersions = sampleDocument.data?.versions ?? []
+  const sampleText = (sampleVersions[sampleVersions.length - 1]?.paragraphs ?? [])
+    .map((paragraph) => paragraph.text)
+    .join('\n\n')
+  useDemoStep(
+    demoAsked && sampleText !== '',
+    () => {
+      setFromDemo(true)
+      setAdding(true)
+    },
+    onDemoHandled,
+  )
   // the first policy is open until the reader chooses another, so nothing has to be selected in an effect
   const selectedId = chosenId ?? list[0]?.id ?? null
   const selected = usePolicy(selectedId)
@@ -45,7 +75,10 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: (rulesetId: strin
         actions={
           <Button
             variant={adding ? 'secondary' : 'primary'}
-            onClick={() => setAdding((open) => !open)}
+            onClick={() => {
+              setFromDemo(false)
+              setAdding((open) => !open)
+            }}
           >
             {adding ? 'Close' : 'Add policy'}
           </Button>
@@ -57,6 +90,11 @@ export function PoliciesScreen({ onOpenRules }: { onOpenRules: (rulesetId: strin
           <>
             {adding ? (
               <AddPolicyForm
+                initial={
+                  fromDemo && sample
+                    ? { title: sample.title, language: languageOf(sample), text: sampleText }
+                    : undefined
+                }
                 pending={create.isPending}
                 error={create.error}
                 onCancel={() => setAdding(false)}
@@ -210,4 +248,9 @@ function PolicyListItem({
       </button>
     </li>
   )
+}
+
+/** A policy's language as the form takes it; the API's is a string, and only these two are policy languages. */
+function languageOf(policy: PolicySummary): 'he' | 'en' {
+  return policy.language === 'en' ? 'en' : 'he'
 }

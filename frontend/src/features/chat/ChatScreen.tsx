@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react'
+import { SCRIPTED_QUESTIONS } from '../demo/steps'
+import { useDemoStep } from '../demo/useDemoStep'
 import { publishedTarget } from '../../api/published'
 import { usePolicy, useRulesets } from '../../api/queries'
 import type { RulesetSummary } from '../../api/types'
@@ -23,11 +25,16 @@ export function ChatScreen({
   rulesetId = null,
   onOpenRule,
   onOpenCases,
+  demoAsked = false,
+  onDemoHandled,
 }: {
   /** The rule set the workspace is on; without one the seeded rule set is used. */
   rulesetId?: string | null
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
+  /** Step 3 of the guided demo: open on the first scripted question (Brief FR-23). */
+  demoAsked?: boolean
+  onDemoHandled?: () => void
 }) {
   const rulesets = useRulesets()
   const list = rulesets.data ?? []
@@ -58,6 +65,8 @@ export function ChatScreen({
       target={{ rulesetId: target.ruleset.id, versionNo: target.versionNo }}
       onOpenRule={onOpenRule}
       onOpenCases={onOpenCases}
+      demoAsked={demoAsked}
+      onDemoHandled={onDemoHandled}
     />
   )
 }
@@ -68,6 +77,8 @@ function Conversation({
   target,
   onOpenRule,
   onOpenCases,
+  demoAsked,
+  onDemoHandled,
 }: {
   ruleset: RulesetSummary
   /** The workspace is on a rule set with no published version; the questions are about this one instead. */
@@ -75,11 +86,15 @@ function Conversation({
   target: ChatTarget
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
+  demoAsked: boolean
+  onDemoHandled?: () => void
 }) {
   const chat = useChat(target)
   const policy = usePolicy(ruleset.policyId ?? null)
   const [question, setQuestion] = useState('')
   const [openParagraph, setOpenParagraph] = useState<number | null>(null)
+  // step 3 of the demo types the first scripted question; the presenter presses Send and asks the next two
+  useDemoStep(demoAsked, () => setQuestion(SCRIPTED_QUESTIONS[0]), onDemoHandled)
   const paragraphs = policy.data?.versions?.[policy.data.versions.length - 1]?.paragraphs ?? []
   const shownParagraph = paragraphs.find((paragraph) => paragraph.index === openParagraph)
 
