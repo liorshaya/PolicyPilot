@@ -174,6 +174,7 @@ export const decision: Decision = {
 export const aggregates: Aggregates = {
   outcomes: { approve: 113, reject: 60, refer: 27 },
   errors: 0,
+  flagCounts: { STABLE_INCOME_MANUAL_CHECK: 113, INCOME_NEAR_MINIMUM: 6 },
   topDecidingRules: [
     { ruleId: 'R-900', count: 113 },
     { ruleId: 'R-320', count: 11 },

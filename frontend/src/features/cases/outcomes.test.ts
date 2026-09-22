@@ -7,10 +7,12 @@ import { engineTime, outcomeCounts, percent } from './outcomes'
  * aggregation"). The expected values are the aggregates of the 200 seeded cases as the engine reports them.
  */
 
-// fixtures/policies/consumer-lending/cases-expected.json: 113 approved, 60 rejected, 27 referred, no errors
+// fixtures/policies/consumer-lending/cases-expected.json: 113 approved, 60 rejected, 27 referred, no errors,
+// and the flags of those cases: STABLE_INCOME_MANUAL_CHECK on 113 of them and INCOME_NEAR_MINIMUM on 6
 const seeded: Aggregates = {
   outcomes: { approve: 113, reject: 60, refer: 27 },
   errors: 0,
+  flagCounts: { STABLE_INCOME_MANUAL_CHECK: 113, INCOME_NEAR_MINIMUM: 6 },
   topDecidingRules: [
     { ruleId: 'R-900', count: 113 },
     { ruleId: 'R-330', count: 11 },
@@ -50,7 +52,13 @@ describe('outcomeCounts', () => {
   })
 
   it('shows no share at all when nothing has been decided', () => {
-    const counts = outcomeCounts({ outcomes: {}, errors: 0, topDecidingRules: [], decisions: 0 })
+    const counts = outcomeCounts({
+      outcomes: {},
+      errors: 0,
+      topDecidingRules: [],
+      decisions: 0,
+      flagCounts: {},
+    })
 
     expect(counts.every((count) => count.count === 0 && count.share === 0)).toBe(true)
   })
