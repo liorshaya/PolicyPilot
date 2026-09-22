@@ -74,6 +74,21 @@ class SecurityEventsTest {
         assertThat(mine()).extracting(ILoggingEvent::getMessage).containsExactly("security.output.denylist");
     }
 
+    // Document 5, Security logging: "Injection finding | Rule set id, paragraph, kind | ai.finding.injection".
+    // Expected: the counter, and one log line with the three keys and no text of the passage
+    @Test
+    void anInjectionFindingIsCountedAndLoggedByRuleSetParagraphAndKind() {
+        UUID ruleset = UUID.fromString("0f4c1c9e-0000-4000-8000-000000000001");
+
+        events.injectionFound(ruleset, 8);
+
+        assertThat(registry.counter("ai.finding.injection").count()).isEqualTo(1.0);
+        ILoggingEvent line = mine().getFirst();
+        assertThat(line.getMessage()).isEqualTo("ai.finding.injection");
+        assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                .containsExactly("ruleset=" + ruleset, "paragraph=8", "kind=injection");
+    }
+
     @Test
     void everyEventWritesOneLogLineNamedAfterItsCounter() {
         raiseEveryEventOnce();
