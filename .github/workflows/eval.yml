@@ -1,11 +1,16 @@
 # Live evaluation (Document 6, CI Pipeline): a manual workflow, never a required check, because it needs the
-# provider key and is non-deterministic. Today it runs the offline admission check of the evaluation set; the
-# EvalRunner job that writes docs/eval/<date>.md is added on day 11 (Work Plan), reading OPENAI_API_KEY from the
-# repository secrets and restricted to manual runs.
+# provider key and is non-deterministic. It runs the offline admission check of the evaluation set, then the
+# EvalRunner (Document 4, Runner), which scores the recorded passes and writes docs/eval/<date>-<versions>.md.
+# The runner itself needs no key: it reads fixtures/eval/recordings/. A pass that creates new recordings is a
+# @Tag("live") test of its own and is started by hand, never by this workflow.
 name: Evaluation (manual)
 
 on:
   workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+  PYTHON_VERSION: '3.12'
 
 permissions:
   contents: read
@@ -19,10 +24,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: The 18 labeled policies, 30 questions and 6 change requests are admitted by the reference
         run: |
           pip install --quiet "jsonschema==4.25.1"
           python3 fixtures/reference/reference_check.py | tee reference-check.log
           grep -q 'evaluation set OK' reference-check.log
           tail -n 1 reference-check.log | grep -qx 'ALL OK'
+
+  runner:
+    name: evaluation-runner
+    needs: admission
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: Score the recorded passes and write the report
+        working-directory: backend
+        run: ./mvnw --batch-mode -Peval test -Dprovider=openai -Deval.date="$(date -u +%F)"
+      - name: The report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evaluation-report
+          path: docs/eval/*.md

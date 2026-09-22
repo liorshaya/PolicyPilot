@@ -1,79 +1,54 @@
 package com.liorshaya.policypilot.eval;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
 import com.liorshaya.policypilot.engine.CompiledRuleSet;
 import com.liorshaya.policypilot.engine.Decision;
 import com.liorshaya.policypilot.engine.Evaluation;
 import com.liorshaya.policypilot.engine.RuleEngine;
-import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.Provenance;
 import com.liorshaya.policypilot.rules.model.Rule;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.support.Fixtures;
-import com.liorshaya.policypilot.support.Requirement;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * The half of the evaluation runner that needs no provider and no database (Document 4, Runner; Document 6, "a
- * report can be regenerated offline and the recordings double as stubs"). It scores the author and reviewer
- * passes a live run already recorded, and writes the report. Nothing here calls a model: a metric it cannot
- * compute because no pass was recorded is left out of the report, where it prints as not run.
- *
- * <p>Author metrics cover the policies whose authoring was recorded; reviewer metrics cover every policy whose
- * review was. Both are read from {@code fixtures/eval/recordings/}, so the numbers are reproducible without a key.
+ * The part of the evaluation runner that scores what a live pass already recorded (Document 6: "a report can be
+ * regenerated offline and the recordings double as stubs"): the author pass against the labeled rule sets, and
+ * the review pass against the seeded defects. No provider, no database, no clock --- everything is read from
+ * {@code fixtures/eval/recordings/}, so the same numbers come out on any machine without a key.
  */
-@Requirement("NFR-2")
-class EvalRunnerOfflineIT {
+final class RecordedScoring {
 
     private static final RuleSetMapper MAPPER = new RuleSetMapper();
     private static final RuleEngine ENGINE = new RuleEngine();
-    private static final String PROVIDER = "openai";
 
-    @Test
-    void theRecordedPassesAreScoredAndTheReportIsWritten() {
-        // the report is dated, so the day is an input; no assertion below depends on it
-        Map<String, String> versions = new LinkedHashMap<>();
-        versions.put("author", "v1");
-        versions.put("review", "v1");
-        EvalReport report = new EvalReport(
-                LocalDate.parse(System.getProperty("eval.date", LocalDate.now().toString())), versions);
+    private final String provider;
 
-        Authoring authoring = scoreAuthoring(report);
-        Reviewing reviewing = scoreReviewing(report);
-
-        assertThat(authoring.policies()).isPositive();
-        assertThat(reviewing.policies()).isPositive();
-        report.note("Author metrics cover " + authoring.policies() + " of the labeled policies, the ones whose "
-                + "authoring is recorded; reviewer metrics cover " + reviewing.policies() + ".");
-        System.out.println("report written to " + report.write().normalize());
+    RecordedScoring(String provider) {
+        this.provider = provider;
     }
 
-    private record Authoring(int policies) {}
+    record Authoring(int policies) {}
 
-    private record Reviewing(int policies) {}
+    record Reviewing(int policies) {}
 
     /** Rule precision, recall, provenance accuracy, case agreement and calibration, over the recorded runs. */
-    private Authoring scoreAuthoring(EvalReport report) {
-        Recordings recorded = Recordings.of(PROVIDER, "author", "v1");
+    Authoring scoreAuthoring(EvalReport report) {
+        Recordings recorded = Recordings.of(provider, "author", "v1");
         if (recorded.isEmpty()) {
             return new Authoring(0);
         }
-        report.model(PROVIDER, recorded.model());
+        report.model(provider, recorded.model());
         int matched = 0;
         int generated = 0;
         int expectedTotal = 0;
@@ -112,17 +87,17 @@ class EvalRunnerOfflineIT {
                         .forEach(match -> report.mismatch(slug + " " + match.expectedId() + ": " + match.reason()));
             }
         }
-        report.score(PROVIDER, "Rule precision", Metric.Score.of(matched, generated));
-        report.score(PROVIDER, "Rule recall", Metric.Score.of(matched, expectedTotal));
-        report.score(PROVIDER, "Provenance accuracy", Metric.Score.of(provenanceCorrect, matched));
-        report.score(PROVIDER, "Case agreement", Metric.Score.of(agreeing, casesTotal));
-        report.score(PROVIDER, "Confidence calibration", calibration(right, wrong));
+        report.score(provider, "Rule precision", Metric.Score.of(matched, generated));
+        report.score(provider, "Rule recall", Metric.Score.of(matched, expectedTotal));
+        report.score(provider, "Provenance accuracy", Metric.Score.of(provenanceCorrect, matched));
+        report.score(provider, "Case agreement", Metric.Score.of(agreeing, casesTotal));
+        report.score(provider, "Confidence calibration", calibration(right, wrong));
         return new Authoring(policies);
     }
 
     /** Reviewer recall and the lower bound of precision, over every policy whose review was recorded. */
-    private Reviewing scoreReviewing(EvalReport report) {
-        Recordings recorded = Recordings.of(PROVIDER, "review", "v1");
+    Reviewing scoreReviewing(EvalReport report) {
+        Recordings recorded = Recordings.of(provider, "review", "v1");
         if (recorded.isEmpty()) {
             return new Reviewing(0);
         }
@@ -147,8 +122,8 @@ class EvalRunnerOfflineIT {
             result.caught().stream().filter(caught -> !caught.found())
                     .forEach(caught -> report.mismatch(slug + " " + caught.seededId() + ": " + caught.note()));
         }
-        report.score(PROVIDER, "Reviewer recall", Metric.Score.of(found, seeded));
-        report.score(PROVIDER, "Reviewer precision", Metric.Score.of(answering, findings).asLowerBound());
+        report.score(provider, "Reviewer recall", Metric.Score.of(found, seeded));
+        report.score(provider, "Reviewer precision", Metric.Score.of(answering, findings).asLowerBound());
         report.note("Reviewer precision is the floor Document 4's definition allows a runner to compute: the "
                 + "findings answering a seeded defect over all of them. The other half, \"confirmed real on "
                 + "inspection\", needs a person, so a floor under the target settles nothing.");
