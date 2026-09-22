@@ -1,6 +1,6 @@
 # PolicyPilot Rules DSL Specification
 
-2026-09-19 · Lior Shaya
+2026-09-22 · Lior Shaya
 
 Document 3 of the PolicyPilot set. It defines the JSON format in which rules are written, validated, executed and diffed, following the scope in the [Project Brief](01-project-brief.md) and the engine semantics in the [Architecture](02-architecture.md). Document 4 (AI Pipeline and Prompt Specification) describes how the model produces documents in this format.
 
@@ -377,7 +377,7 @@ Validation runs in three layers, schema then semantic then structural, and stops
 
 **Error reporting shape**: every finding is `{ "code", "severity", "path", "message", "ruleIds": [], "fieldNames": [] }`; `path` is a JSON pointer into the document (`/rules/3/condition/all/1/value`), which is what the decision table uses to highlight the cell and what the repair prompt quotes back to the model. The pointer is as specific as the check can make it: the node that is wrong, not the rule that holds it; when a node may take several shapes (a condition, an action, a provenance), the schema layer reports the errors of the shape the document most nearly matches.
 
-**Publishing gate**: errors block publishing; warnings and infos are shown and can be acknowledged; an acknowledged warning is listed in the audit entry of the publish. The reviewer pass (Document 4) adds semantic findings of kinds `ambiguity`, `conflict`, `unsupported`, `gap` and `duplicate` with the same reporting shape, so the UI treats both sources alike. Acknowledging a `gap` finding requires a resolution, not just a tick: `rule_added` (a rule now covers the passage), `flag_added` (a manual-check flag surfaces it on every decision it applies to), or `interpretation` (a note explaining why an existing rule already covers it); the choice and the note are part of the audit entry, so the meaning of every approval can be traced back to a recorded decision.
+**Publishing gate**: errors block publishing; warnings and infos are shown and can be acknowledged; an acknowledged warning is listed in the audit entry of the publish. The reviewer pass (Document 4) adds semantic findings of kinds `ambiguity`, `conflict`, `unsupported`, `gap`, `duplicate` and `injection`, anchored to rule ids and paragraph numbers (Document 4, Findings contract) and shown beside the validator's findings, so the UI treats both sources alike. Acknowledging a `gap` finding requires a resolution, not just a tick: `rule_added` (a rule now covers the passage), `flag_added` (a manual-check flag surfaces it on every decision it applies to), or `interpretation` (a note explaining why an existing rule already covers it); the choice and the note are part of the audit entry, so the meaning of every approval can be traced back to a recorded decision. Which review findings block a publish is decided in the Architecture, Flow 1.
 
 **Structural checks are deliberately conservative**: `RULE_UNREACHABLE` and `RULE_OVERLAP_CONFLICT` only fire where the answer is certain (single-field numeric or enum conditions); general condition subsumption is undecidable in practice and belongs to the model's reviewer pass, which can say "these two rules seem to contradict each other" without being certain.
 
