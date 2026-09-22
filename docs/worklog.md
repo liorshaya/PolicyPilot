@@ -228,5 +228,9 @@ stage 5 green, Playwright step 3.
 - **A cold instance answers the first request in 3.38 s**, over the gate's 3 s, and it is a cold start and not a
   cache miss: the same question in a new sandbox afterwards is 0.47 s with no tokens spent. The site is warmed
   before a demo, which RUNBOOK section 12 already says.
+- **Re-checked after the three pull requests merged and `main` deployed itself** (#90, #91, #92): health 200 in
+  0.26 s, and the three scripted questions from the cache again at 2.58, 1.17 and 0.48 s to the first token, no
+  tokens spent. The first is the cold JVM of a fresh deploy, the same effect day 10 measured at about 3.7 s, and it
+  is under the gate's 3 s here. The guided panel is in the deployed bundle.
 - **What G2 does not cover, and is not hidden by it**: rule recall is 0.12 and case agreement 0.00. Neither is a G2
   criterion, both are one cause, and the fix is scheduled: `author/v2` with evaluation run 2 on day 15.
