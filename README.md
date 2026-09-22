@@ -66,7 +66,7 @@ visitor, by a script and in Chromium on a desktop and on an emulated iPhone 13.
 | --- | --- | --- | --- |
 | 1. Author | Policy screen, the seeded Hebrew lending policy (9 paragraphs), "Generate rules" | The stages parsing, authoring and validating, then a draft of 22 rules. Each row opens the paragraph it quotes | 0.6 s to the draft, from the response cache (a run the cache has not seen takes 67 to 101 s) |
 | 2. Decide | Cases screen, "Run 200 cases" | 113 approved, 60 rejected, 27 referred, the rules that decided most, and case 17: referred by R-330 with the values it compared | 1.3 to 1.7 s end to end, of which about 0.5 s is the network (76 to 129 ms inside the test environment) |
-| 3. Ask | Assistant screen, the three questions below, then the rate question | Hebrew answers streamed right to left, with citation chips that open the paragraph, the rule or the decision | first token: 0.7 s, 1.9 s, 1.2 s and 0.6 s |
+| 3. Ask | Assistant screen, the three questions below, then the rate question | Hebrew answers streamed right to left, with citation chips that open the paragraph, the rule or the decision | first token: 0.6 to 0.8 s for each question in 12 of 14 asks |
 
 The questions of step 3, as asked, with what the answer must contain (the labels of
 [`fixtures/eval/questions.json`](fixtures/eval/questions.json)):
@@ -80,11 +80,12 @@ The questions of step 3, as asked, with what the answer must contain (the labels
 
 A scripted question is served from a response cache once it has been answered well. The cache holds an answer only
 when it met its label, and serves it only after re-running its tool calls in the visitor's sandbox and getting the
-same results, so a cached explanation is never shown for a decision the engine no longer makes. Asked in the order
-above, the first question is served from the cache (0.7 s to the first token). The second is answered live: after the
-first answer the model says "the result was approval" rather than the label's word "approved", so no answer in that
-position was kept. The third then follows a live answer, so its prompt matches no kept one and it is answered live
-too. Asked on its own, each of the three is served from the cache. The fourth never reaches the model.
+same results, so a cached explanation is never shown for a decision the engine no longer makes. The key includes the
+conversation so far, so the cache was warmed both ways: the questions in the order above in one conversation, and each
+on its own. Both are served from the cache: over 14 asks the first token came in 0.6 to 0.8 s twelve times, and in 1.3
+and 3.0 seconds the other two, because a cached answer still embeds the question for retrieval. The fourth question
+never reaches the model. Warming took five tries for the second question in the order above: four correct answers said
+"the result was approval" rather than the label's word "approved", and the cache kept none of them.
 
 Screenshots of each step on the live site, on a desktop and on a phone, are in [`docs/demo/`](docs/demo/). The
 recorded two-minute run is linked here once it is recorded.
