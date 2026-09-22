@@ -1,0 +1,176 @@
+/* The reviewer's findings: a list the analyst works through, errors and warnings told apart by the bar, as in the
+   rule drawer, and what blocks the publish said in words above it. */
+.review {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.review__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.review__summary {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.review__blockers {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-review-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-review-bg);
+  color: var(--color-review-text);
+  font-size: var(--text-sm);
+}
+
+.review__findings {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review__finding {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.review__finding--error {
+  border-inline-start-color: var(--color-declined-text);
+}
+
+.review__finding--warning {
+  border-inline-start-color: var(--color-review-text);
+}
+
+.review__finding--done {
+  background: var(--color-surface-sunken);
+}
+
+.review__finding-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.review__id {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.review__kind {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.review__blocking {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-declined-bg);
+  color: var(--color-declined-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.review__anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.review__anchor {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-accent-wash);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-wash);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.review__anchor:hover {
+  border-color: var(--color-accent);
+}
+
+.review__anchor:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.review__message {
+  margin: 0;
+}
+
+.review__suggestion {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.review__acknowledged {
+  margin: 0;
+  color: var(--color-approved-text);
+  font-size: var(--text-sm);
+}
+
+.review__form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.review__resolutions {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: var(--text-sm);
+}
+
+.review__resolutions legend {
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+}
+
+.review__resolution {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.review__note {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.review__note textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  resize: vertical;
+}
+
+.review__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

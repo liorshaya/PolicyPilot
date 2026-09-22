@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
-import { usePolicy, usePublish, useReplaceRules, useRulesets, useVersion } from '../../api/queries'
+import {
+  useAcknowledge,
+  usePolicy,
+  usePublish,
+  useReplaceRules,
+  useRulesets,
+  useRunReview,
+  useVersion,
+} from '../../api/queries'
 import type { RuleSetDocument, VersionResponse } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
@@ -12,6 +20,8 @@ import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from '../policy/PolicyText'
 import { DecisionTable } from './DecisionTable'
+import { findingsByRule, publishBlockers } from './findings'
+import { ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
 import { withLeaf } from './tableModel'
 import type { Leaf } from './cellGrammar'
@@ -48,18 +58,27 @@ export function RulesScreen({
     ? { id: chosen.id, versionNo: chosen.versions[chosen.versions.length - 1]?.versionNo ?? 1 }
     : null
   const version = useVersion(ruleset)
-  const replaceRules = useReplaceRules(ruleset ?? { id: '', versionNo: 1 })
-  const publish = usePublish(
-    replaceRules.data
-      ? { id: replaceRules.data.rulesetId, versionNo: replaceRules.data.versionNo }
-      : (ruleset ?? { id: '', versionNo: 1 }),
+  // the version on the screen is the last answer the API gave: an edit, a review, an acknowledgement or a publish
+  // replaces it, and an edit of the seeded set answers with the sandbox's own copy, which is what the rest acts on
+  const [answered, setAnswered] = useState<{ ruleset: string; version: VersionResponse } | null>(
+    null,
   )
+  // an answer belongs to the rule set it was asked about; choosing another one leaves it behind
+  const latest = answered !== null && answered.ruleset === chosen?.id ? answered.version : null
+  const setLatest = (version: VersionResponse) =>
+    setAnswered({ ruleset: chosen?.id ?? '', version })
+  const shown: VersionResponse | undefined = latest ?? version.data
+  const target = latest
+    ? { id: latest.rulesetId, versionNo: latest.versionNo }
+    : (ruleset ?? { id: '', versionNo: 1 })
+  const replaceRules = useReplaceRules(target)
+  const publish = usePublish(target)
+  const runReview = useRunReview(target)
+  const acknowledge = useAcknowledge(target)
   const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
   const selectedRuleId = chosenRuleId ?? focusRuleId
   const [panel, setPanel] = useState<SidePanel>('source')
-
-  // the version on the screen is the last answer the API gave: an edit or a publish replaces it
-  const shown: VersionResponse | undefined = publish.data ?? replaceRules.data ?? version.data
+  const [asked, setAsked] = useState<number | null>(null)
   const document = shown?.ruleSet as RuleSetDocument | undefined
   const language: ContentLanguage = document?.language ?? 'en'
   const policy = usePolicy(chosen?.policyId ?? null)
@@ -69,17 +88,31 @@ export function RulesScreen({
   const paragraphs = policy.data?.versions?.[0]?.paragraphs ?? []
   const citedParagraph =
     citedIndex === null ? undefined : paragraphs.find((one) => one.index === citedIndex)
+  // a paragraph a finding points at wins over the selected rule's until another rule is chosen
+  const highlighted = asked ?? citedParagraph?.index ?? null
 
   const refusal = replaceRules.error instanceof ApiError ? replaceRules.error : null
   const publishRefusal = publish.error instanceof ApiError ? publish.error : null
+  const reviewRefusal = runReview.error instanceof ApiError ? runReview.error : null
+  const acknowledgeRefusal = acknowledge.error instanceof ApiError ? acknowledge.error : null
   const findings = shown?.findings ?? []
   const draft = shown?.status === 'DRAFT'
+  const review = shown?.review
+  const blockers = draft ? publishBlockers(review) : []
 
   function editCell(ruleId: string, previous: Leaf, next: Leaf) {
     if (!document) {
       return
     }
-    replaceRules.mutate(withLeaf(document, ruleId, previous, next))
+    replaceRules.mutate(withLeaf(document, ruleId, previous, next), { onSuccess: setLatest })
+  }
+
+  function selectRule(ruleId: string) {
+    setChosenRuleId(ruleId)
+    setAsked(null)
+    if (panel === 'json') {
+      setPanel('rule')
+    }
   }
 
   return (
@@ -128,9 +161,19 @@ export function RulesScreen({
               <Button
                 variant="primary"
                 loading={publish.isPending}
-                disabled={!draft || findings.some((finding) => finding.severity === 'error')}
-                title={draft ? undefined : 'Only a draft is published'}
-                onClick={() => publish.mutate()}
+                disabled={
+                  !draft ||
+                  findings.some((finding) => finding.severity === 'error') ||
+                  blockers.length > 0
+                }
+                title={
+                  draft
+                    ? blockers.length > 0
+                      ? blockers.join(' ')
+                      : undefined
+                    : 'Only a draft is published'
+                }
+                onClick={() => publish.mutate(undefined, { onSuccess: setLatest })}
               >
                 Publish version
               </Button>
@@ -144,6 +187,37 @@ export function RulesScreen({
           <>
             {refusal ? <RefusedEdit error={refusal} /> : null}
             {publishRefusal ? <RefusedEdit error={publishRefusal} /> : null}
+            {reviewRefusal ? <RefusedEdit error={reviewRefusal} /> : null}
+            {acknowledgeRefusal ? <RefusedEdit error={acknowledgeRefusal} /> : null}
+            {draft || review ? (
+              <Panel
+                title="Review"
+                subtitle="What the reviewer found against the policy; a person decides what stands"
+                flush
+              >
+                <ReviewPanel
+                  review={review}
+                  language={language}
+                  draft={draft}
+                  running={runReview.isPending}
+                  onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
+                  acknowledging={
+                    acknowledge.isPending ? (acknowledge.variables.findingId ?? null) : null
+                  }
+                  onAcknowledge={(findingId, resolution, note) =>
+                    acknowledge.mutate({ findingId, resolution, note }, { onSuccess: setLatest })
+                  }
+                  onSelectRule={(ruleId) => {
+                    selectRule(ruleId)
+                    setPanel('rule')
+                  }}
+                  onShowParagraph={(index) => {
+                    setAsked(index)
+                    setPanel('source')
+                  }}
+                />
+              </Panel>
+            ) : null}
             <Panel
               fill
               title="Decision table"
@@ -186,14 +260,10 @@ export function RulesScreen({
                 <DecisionTable
                   document={document}
                   selectedRuleId={selectedRuleId}
-                  onSelect={(ruleId) => {
-                    setChosenRuleId(ruleId)
-                    if (panel === 'json') {
-                      setPanel('rule')
-                    }
-                  }}
+                  onSelect={selectRule}
                   onEditCell={draft ? editCell : undefined}
                   problems={refusal?.details}
+                  reviewFindings={findingsByRule(review)}
                 />
               ) : null}
               {!document && !(ruleset !== null && version.isPending) && !version.error ? (
@@ -227,9 +297,11 @@ export function RulesScreen({
               fill
               title="Policy"
               subtitle={
-                selectedRule?.provenance.kind === 'quoted'
-                  ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
-                  : 'Choose a rule to see the paragraph it cites'
+                asked !== null
+                  ? `Paragraph ${String(asked)}, which a finding of the review names`
+                  : selectedRule?.provenance.kind === 'quoted'
+                    ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
+                    : 'Choose a rule to see the paragraph it cites'
               }
               flush
             >
@@ -237,7 +309,7 @@ export function RulesScreen({
                 <PolicyText
                   language={policy.data.language as ContentLanguage}
                   paragraphs={paragraphs}
-                  highlighted={citedParagraph?.index ?? null}
+                  highlighted={highlighted}
                 />
               ) : (
                 <LoadingRows rows={5} label="Loading the policy" />

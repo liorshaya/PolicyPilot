@@ -9,15 +9,16 @@ import {
 } from './seeded'
 
 /**
- * Demo step 1 in a real browser, without the reviewer flags that arrive on day 10 (Document 1, Demo script; Work
- * Plan day 7). The generation stream is answered by the test: the point here is that the analyst sees the stages
- * in order and then a draft, not that a model was called.
+ * Demo step 1 in a real browser, complete with the reviewer's two warnings (Document 1, Demo script; Work Plan days 7
+ * and 10). The generation stream is answered by the test: the point here is that the analyst sees the stages in order,
+ * then a draft, then what the reviewer found, not that a model was called.
  */
 
 const STAGES =
   'event:parsing\ndata:{"paragraphs":9}\n\n' +
   'event:authoring\ndata:{"paragraphs":9}\n\n' +
-  'event:validating\ndata:{"paragraphs":9}\n\n'
+  'event:validating\ndata:{"paragraphs":9}\n\n' +
+  'event:reviewing\ndata:{"paragraphs":9}\n\n'
 
 const DRAFT = {
   rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b9',
@@ -28,6 +29,40 @@ const DRAFT = {
   versionNo: 1,
   status: 'DRAFT',
   findings: [],
+}
+
+/**
+ * The review of step 1: SF-1 and SF-2 of fixtures/eval/policies/consumer-lending/seeded.findings.json, the undefined
+ * "stable income" and the age conflict of paragraphs 1 and 8 (Document 1, demo step 1: "two rows carry warnings").
+ */
+const REVIEW = {
+  status: 'DONE',
+  promptVersion: 'v1',
+  coverage: {},
+  findings: [
+    {
+      id: 'F-1',
+      kind: 'ambiguity',
+      severity: 'warning',
+      ruleIds: ['R-420'],
+      paragraphIndexes: [4],
+      message: 'הכנסה יציבה אינה מוגדרת',
+      suggestion: 'להוסיף סימון לבדיקה ידנית',
+      confidence: 0.8,
+      blocking: false,
+    },
+    {
+      id: 'F-2',
+      kind: 'conflict',
+      severity: 'error',
+      ruleIds: ['R-110', 'R-115'],
+      paragraphIndexes: [1, 8],
+      message: 'סעיף 1 מגביל את הגיל ל-70 וסעיף 8 מתיר גמלאים עד 75',
+      suggestion: 'להחריג גמלאים מ-R-110',
+      confidence: 0.9,
+      blocking: true,
+    },
+  ],
 }
 
 const REFUSAL =
@@ -57,6 +92,67 @@ test.describe('demo step 1: the rules are written from the policy', () => {
     // the engine decides, and nothing decides anything until a person publishes this draft
     await expect(page.getByText('Nothing decides cases until a person publishes it.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Review the draft' })).toBeVisible()
+  })
+
+  // Work Plan day 10, Done when: "Step 1 shows the ambiguity and the conflict"
+  test('shows the ambiguity and the conflict the reviewer found, on the rows they name', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    const draft = {
+      ...DRAFT,
+      ruleSet,
+      review: REVIEW,
+      policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d1',
+    }
+    await page.route('**/api/v1/policies/*/rulesets', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: STAGES + `event:draft\ndata:${JSON.stringify(draft)}\n\n`,
+      }),
+    )
+    await page.route('**/api/v1/rulesets', (route) =>
+      route.fulfill({
+        json: {
+          rulesets: [
+            {
+              id: DRAFT.rulesetId,
+              name: DRAFT.name,
+              domain: DRAFT.domain,
+              protected: false,
+              policyId: POLICY_ID,
+              versions: [{ versionNo: 1, status: 'DRAFT' }],
+            },
+          ],
+        },
+      }),
+    )
+    await page.route(`**/api/v1/rulesets/${DRAFT.rulesetId}/versions/*`, (route) =>
+      route.fulfill({ json: draft }),
+    )
+    await page.goto('/')
+    await page.getByLabel('Access code').fill('qwertyui')
+    await page.getByRole('button', { name: 'Enter' }).click()
+    await page.getByRole('navigation', { name: 'Workspace' }).waitFor()
+
+    await page.getByRole('button', { name: 'Generate rules' }).click()
+
+    await expect(
+      page.getByText('The reviewer found 2 things to check against the policy:'),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Review the draft' }).click()
+    const table = page.getByRole('table')
+    await expect(
+      table.getByRole('row').filter({ hasText: 'R-110' }).getByText('Conflict'),
+    ).toBeVisible()
+    await expect(
+      table.getByRole('row').filter({ hasText: 'R-420' }).getByText('Ambiguity'),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Publishing waits: 1 finding must be acknowledged: F-2.'),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Publish version' })).toBeDisabled()
   })
 
   test('says what was refused and that nothing was stored', async ({ page }) => {

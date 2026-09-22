@@ -1,10 +1,13 @@
 import { API_BASE_URL } from './config'
 import { CLIENT_HEADER } from './auth'
 import type {
+  Audience,
   BatchResult,
   ChatSessionResponse,
   Decision,
   ErrorEnvelope,
+  Explanation,
+  GapResolution,
   PoliciesResponse,
   PolicyResponse,
   RulesetsResponse,
@@ -123,6 +126,26 @@ export const api = {
 
   publish: (rulesetId: string, versionNo: number) =>
     request<VersionResponse>('POST', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/publish`),
+
+  review: (rulesetId: string, versionNo: number) =>
+    request<VersionResponse>('POST', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/review`),
+
+  acknowledge: (
+    rulesetId: string,
+    versionNo: number,
+    findingId: string,
+    body: { resolution?: GapResolution; note?: string },
+  ) =>
+    request<VersionResponse>(
+      'POST',
+      `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/findings/${findingId}/acknowledge`,
+      { body },
+    ),
+
+  explain: (decisionId: string, audience: Audience) =>
+    request<Explanation>('POST', `/api/v1/decisions/${decisionId}/explain`, {
+      body: { audience },
+    }),
 
   decideCase: (rulesetId: string, versionNo: number, input: Record<string, unknown>) =>
     request<Decision>('POST', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/decide`, {

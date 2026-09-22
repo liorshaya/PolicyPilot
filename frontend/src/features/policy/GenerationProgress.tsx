@@ -1,12 +1,13 @@
-import type { RuleSetDocument } from '../../api/types'
+import type { RuleSetDocument, VersionResponse } from '../../api/types'
 import type { Generation } from './useGeneration'
 import { STAGES, STAGE_LABELS } from './useGeneration'
 import { Button } from '../../shared/ui/Button'
+import { KIND_LABELS } from '../rules/findings'
 import './GenerationProgress.css'
 
 /**
- * Where the generation is, while it runs (Document 2, API Surface: the stream reports parsing, authoring and
- * validating). The stages are numbered because they always happen in this order, and the model's own name is
+ * Where the generation is, while it runs (Document 2, API Surface: the stream reports parsing, authoring, validating
+ * and reviewing). The stages are numbered because they always happen in this order, and the model's own name is
  * never shown as the author of a decision: what it writes becomes a draft a person publishes.
  */
 export function GenerationProgress({
@@ -64,6 +65,7 @@ export function GenerationProgress({
               </ul>
             </div>
           ) : null}
+          <ReviewSummary draft={generation.draft} />
           <Button variant="primary" onClick={onOpenRules}>
             Review the draft
           </Button>
@@ -88,6 +90,43 @@ export function GenerationProgress({
           ) : null}
         </div>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * What the reviewer found, before the analyst opens the draft (Document 1, demo step 1: "two rows carry warnings").
+ * The findings are the model's reading of the policy; the rule set screen is where each one is acknowledged.
+ */
+function ReviewSummary({ draft }: { draft: VersionResponse }) {
+  const review = draft.review
+  if (review === undefined) {
+    return null
+  }
+  if (review.status === 'FAILED') {
+    return (
+      <p className="generation__noted-title">
+        The review could not run; run it again from the rule set before publishing.
+      </p>
+    )
+  }
+  if (review.findings.length === 0) {
+    return <p className="generation__noted-title">The reviewer found nothing to check.</p>
+  }
+  return (
+    <div className="generation__noted">
+      <p className="generation__noted-title">
+        The reviewer found <span className="tabular">{review.findings.length}</span> thing
+        {review.findings.length === 1 ? '' : 's'} to check against the policy:
+      </p>
+      <ul className="generation__findings">
+        {review.findings.slice(0, 5).map((finding) => (
+          <li key={finding.id}>
+            <span>{KIND_LABELS[finding.kind]}</span>
+            <bdi dir="auto">{finding.message}</bdi>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

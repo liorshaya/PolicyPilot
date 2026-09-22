@@ -1,0 +1,85 @@
+/* The explanation of a decision: asked for, marked as a model's reading, and kept above the engine's trace. */
+.explain {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.explain__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.explain__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-accent-wash);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.explain__provenance {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.explain__summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.explain__heading {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.explain__factors,
+.explain__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explain__factor,
+.explain__list li {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.explain__cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.explain__cite {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-accent-wash);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-wash);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+}
+
+button.explain__cite {
+  cursor: pointer;
+}
+
+button.explain__cite:hover {
+  border-color: var(--color-accent);
+}
+
+button.explain__cite:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}

@@ -36,6 +36,7 @@ const draftRulesets: RulesetsResponse = {
   ],
 }
 
+/** A draft whose review found nothing, so publishing waits for nothing (Document 2, Flow 1). */
 const draftVersion: VersionResponse = {
   ...publishedVersion,
   protected: false,
@@ -43,6 +44,56 @@ const draftVersion: VersionResponse = {
   status: 'DRAFT',
   publishedAt: undefined,
   publishedBy: undefined,
+  review: { status: 'DONE', promptVersion: 'v1', findings: [], coverage: {} },
+}
+
+/**
+ * The review of the lending draft with three of the seeded findings of fixtures/eval/policies/consumer-lending/
+ * seeded.findings.json: SF-1 the undefined "stable income" (paragraph 4, R-420), SF-2 the age conflict (paragraphs 1
+ * and 8, R-110 and R-115), SF-4 the self-employed seniority clause without a rule (paragraph 3).
+ */
+const reviewedDraft: VersionResponse = {
+  ...draftVersion,
+  review: {
+    status: 'DONE',
+    promptVersion: 'v1',
+    coverage: {},
+    findings: [
+      {
+        id: 'F-1',
+        kind: 'ambiguity',
+        severity: 'warning',
+        ruleIds: ['R-420'],
+        paragraphIndexes: [4],
+        message: 'הכנסה יציבה אינה מוגדרת',
+        suggestion: 'להוסיף סימון לבדיקה ידנית',
+        confidence: 0.8,
+        blocking: false,
+      },
+      {
+        id: 'F-2',
+        kind: 'conflict',
+        severity: 'error',
+        ruleIds: ['R-110', 'R-115'],
+        paragraphIndexes: [1, 8],
+        message: 'סעיף 1 מגביל את הגיל ל-70 וסעיף 8 מתיר גמלאים עד 75',
+        suggestion: 'להחריג גמלאים מ-R-110',
+        confidence: 0.9,
+        blocking: true,
+      },
+      {
+        id: 'F-3',
+        kind: 'gap',
+        severity: 'warning',
+        ruleIds: [],
+        paragraphIndexes: [3],
+        message: 'סעיף הוותק לעצמאים אינו מכוסה',
+        suggestion: 'להוסיף כלל',
+        confidence: 0.7,
+        blocking: true,
+      },
+    ],
+  },
 }
 
 function serveDraft(): void {
@@ -385,5 +436,165 @@ describe('RulesScreen', () => {
       .map((option) => option.textContent)
     expect(new Set(labels).size).toBe(2)
     expect(labels[1]).toContain('draft-of-it')
+  })
+})
+
+/**
+ * The review on the rule set screen (Brief FR-5; Document 2, Flow 1 and the acknowledge route; Work Plan day 10: "the
+ * findings rendering"). The draft is the lending draft with SF-1, SF-2 and SF-4 of the seeded findings.
+ */
+describe('RulesScreen, the review of a draft', () => {
+  function serveReviewed(version: VersionResponse = reviewedDraft): void {
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json(draftRulesets)),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () => HttpResponse.json(version)),
+    )
+  }
+
+  function rowOf(ruleId: string): HTMLElement {
+    const row = screen
+      .getAllByRole('row')
+      .find((one) => one.querySelector('.table__rule')?.textContent?.startsWith(ruleId))
+    if (!row) {
+      throw new Error(`no row for ${ruleId}`)
+    }
+    return row
+  }
+
+  it('marks the rows of the rules each finding names', async () => {
+    serveReviewed()
+    renderScreen()
+
+    await screen.findByText('הכנסה יציבה אינה מוגדרת')
+
+    expect(within(rowOf('R-110')).getByText('Conflict')).toBeInTheDocument()
+    expect(within(rowOf('R-115')).getByText('Conflict')).toBeInTheDocument()
+    expect(within(rowOf('R-420')).getByText('Ambiguity')).toBeInTheDocument()
+    expect(within(rowOf('R-100')).queryByText('Conflict')).not.toBeInTheDocument()
+  })
+
+  it('says what publishing waits for and keeps the button disabled', async () => {
+    serveReviewed()
+    renderScreen()
+
+    expect(
+      await screen.findByText('Publishing waits: 2 findings must be acknowledged: F-2, F-3.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish version' })).toBeDisabled()
+    expect(screen.getAllByText('Blocks publishing')).toHaveLength(2)
+  })
+
+  it('acknowledges a gap only with a resolution, and sends the one chosen', async () => {
+    const user = userEvent.setup()
+    serveReviewed()
+    const sent: unknown[] = []
+    server.use(
+      http.post(
+        `${BASE}/rulesets/:id/versions/:no/findings/:finding/acknowledge`,
+        async ({ request, params }) => {
+          sent.push({ finding: params.finding, body: await request.json() })
+          const findings = reviewedDraft.review!.findings.map((one) =>
+            one.id === 'F-3'
+              ? {
+                  ...one,
+                  blocking: false,
+                  acknowledgement: {
+                    resolution: 'flag_added' as const,
+                    at: '2026-09-24T09:00:00Z',
+                  },
+                }
+              : one,
+          )
+          return HttpResponse.json({
+            ...reviewedDraft,
+            review: { ...reviewedDraft.review!, findings },
+          })
+        },
+      ),
+    )
+    renderScreen()
+    const gap = (await screen.findByText('סעיף הוותק לעצמאים אינו מכוסה')).closest('li')!
+
+    await user.click(within(gap).getByRole('button', { name: 'Acknowledge' }))
+    const record = within(gap).getByRole('button', { name: 'Record the acknowledgement' })
+    expect(record).toBeDisabled()
+    await user.click(within(gap).getByLabelText('A manual-check flag surfaces it'))
+    await user.click(record)
+
+    expect(
+      await within(gap).findByText('Acknowledged: A manual-check flag surfaces it'),
+    ).toBeInTheDocument()
+    expect(sent).toEqual([{ finding: 'F-3', body: { resolution: 'flag_added' } }])
+  })
+
+  it('acknowledges an error only with a note, and sends the note', async () => {
+    const user = userEvent.setup()
+    serveReviewed()
+    const sent: unknown[] = []
+    server.use(
+      http.post(
+        `${BASE}/rulesets/:id/versions/:no/findings/:finding/acknowledge`,
+        async ({ request }) => {
+          sent.push(await request.json())
+          return HttpResponse.json(reviewedDraft)
+        },
+      ),
+    )
+    renderScreen()
+    const conflict = (
+      await screen.findByText('סעיף 1 מגביל את הגיל ל-70 וסעיף 8 מתיר גמלאים עד 75')
+    ).closest('li')!
+
+    await user.click(within(conflict).getByRole('button', { name: 'Acknowledge' }))
+    const record = within(conflict).getByRole('button', { name: 'Record the acknowledgement' })
+    expect(record).toBeDisabled()
+    await user.type(
+      within(conflict).getByLabelText('Why the draft stands as it is (required)'),
+      'R-110 is narrowed to non-retirees',
+    )
+    await user.click(record)
+
+    await waitFor(() => expect(sent).toEqual([{ note: 'R-110 is narrowed to non-retirees' }]))
+  })
+
+  it('offers to review a draft that has no review yet, and shows what the review found', async () => {
+    const user = userEvent.setup()
+    serveReviewed({ ...draftVersion, review: undefined })
+    let reviewed = 0
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/review`, () => {
+        reviewed += 1
+        return HttpResponse.json(reviewedDraft)
+      }),
+    )
+    renderScreen()
+
+    expect(
+      await screen.findByText('Publishing waits: The draft has not been reviewed yet.'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Review the draft' }))
+
+    expect(await screen.findByText('הכנסה יציבה אינה מוגדרת')).toBeInTheDocument()
+    expect(reviewed).toBe(1)
+  })
+
+  it('opens the paragraph a finding names beside the table', async () => {
+    const user = userEvent.setup()
+    serveReviewed()
+    renderScreen()
+    const ambiguity = (await screen.findByText('הכנסה יציבה אינה מוגדרת')).closest('li')!
+
+    await user.click(within(ambiguity).getByRole('button', { name: 'Paragraph 4' }))
+
+    expect(
+      await screen.findByText('Paragraph 4, which a finding of the review names'),
+    ).toBeInTheDocument()
+  })
+
+  it("writes the reviewer's Hebrew right to left", async () => {
+    serveReviewed()
+    renderScreen()
+
+    expect(await screen.findByText('הכנסה יציבה אינה מוגדרת')).toHaveAttribute('dir', 'rtl')
   })
 })

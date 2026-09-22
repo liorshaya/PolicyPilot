@@ -296,3 +296,36 @@
 .table tbody + tbody .table__band th {
   padding-top: var(--space-4);
 }
+
+/* The reviewer's findings on a rule (Document 2, Flow 1): a mark per finding under the rule's label. */
+.table__marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.table__mark {
+  padding: 0 var(--space-1);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table__mark--error {
+  border-color: var(--color-declined-line);
+  background: var(--color-declined-bg);
+  color: var(--color-declined-text);
+}
+
+.table__mark--warning {
+  border-color: var(--color-review-line);
+  background: var(--color-review-bg);
+  color: var(--color-review-text);
+}
+
+.table__mark--done {
+  opacity: 0.6;
+}

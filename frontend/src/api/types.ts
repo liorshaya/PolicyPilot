@@ -17,6 +17,15 @@ export type Aggregates = components['schemas']['AggregatesResponse']
 export type ErrorEnvelope = components['schemas']['ErrorEnvelope']
 export type ErrorDetail = components['schemas']['ErrorDetail']
 export type ChatSessionResponse = components['schemas']['ChatSessionResponse']
+export type Review = components['schemas']['ReviewResponse']
+export type ReviewFinding = components['schemas']['ReviewFindingResponse']
+export type FindingKind = ReviewFinding['kind']
+export type Explanation = components['schemas']['ExplanationResponse']
+export type Audience = Explanation['audience']
+/** How a gap is resolved (Document 3, Publishing gate). */
+export type GapResolution = NonNullable<
+  components['schemas']['AcknowledgementResponse']['resolution']
+>
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'

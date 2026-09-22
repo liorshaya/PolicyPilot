@@ -55,7 +55,122 @@ function renderHarness(ui: ReactElement) {
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
 }
 
+/** SF-1 and SF-2 of fixtures/eval/policies/consumer-lending/seeded.findings.json, as the review of a draft. */
+const lendingReview = {
+  status: 'DONE' as const,
+  promptVersion: 'v1',
+  coverage: {},
+  findings: [
+    {
+      id: 'F-1',
+      kind: 'ambiguity' as const,
+      severity: 'warning' as const,
+      ruleIds: ['R-420'],
+      paragraphIndexes: [4],
+      message: 'הכנסה יציבה אינה מוגדרת',
+      suggestion: 'להוסיף סימון לבדיקה ידנית',
+      confidence: 0.8,
+      blocking: false,
+    },
+    {
+      id: 'F-2',
+      kind: 'conflict' as const,
+      severity: 'error' as const,
+      ruleIds: ['R-110', 'R-115'],
+      paragraphIndexes: [1, 8],
+      message: 'סעיף 1 מגביל את הגיל ל-70 וסעיף 8 מתיר גמלאים עד 75',
+      suggestion: 'להחריג גמלאים מ-R-110',
+      confidence: 0.9,
+      blocking: true,
+    },
+  ],
+}
+
 describe('useGeneration', () => {
+  // Document 2, API Surface: progress events parsing, authoring, validating, reviewing; the reviewer reads the draft
+  // last, and that stage is the one named while it runs
+  it('names the reviewing stage while the reviewer reads the draft', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () => {
+        const stream = new ReadableStream({
+          start(controller) {
+            for (const stage of ['parsing', 'authoring', 'validating', 'reviewing']) {
+              controller.enqueue(
+                new TextEncoder().encode(`event:${stage}\ndata:{"paragraphs":9}\n\n`),
+              )
+            }
+          },
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      }),
+    )
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    const reviewing = await screen.findByText(STAGE_LABELS.reviewing)
+    await waitFor(() =>
+      expect(reviewing.closest('li')).toHaveClass('generation__stage generation__stage--now'),
+    )
+    expect(screen.getByText(STAGE_LABELS.validating).closest('li')).not.toHaveClass(
+      'generation__stage--now',
+    )
+  })
+
+  // Document 1, demo step 1: "Two rows carry warnings: one ambiguity and one conflict"
+  it('shows what the reviewer found once the draft arrives', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        streamOf([
+          ['parsing', { paragraphs: 9 }],
+          ['reviewing', { paragraphs: 9 }],
+          ['draft', { ...publishedVersion, status: 'DRAFT', versionNo: 1, review: lendingReview }],
+        ]),
+      ),
+    )
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    expect(await screen.findByText(/The reviewer found/)).toHaveTextContent(
+      'The reviewer found 2 things to check against the policy:',
+    )
+    expect(screen.getByText('Ambiguity')).toBeInTheDocument()
+    expect(screen.getByText('Conflict')).toBeInTheDocument()
+    expect(screen.getByText('הכנסה יציבה אינה מוגדרת')).toHaveAttribute('dir', 'auto')
+  })
+
+  // Document 2, Flow 1: a failed review keeps the draft, and publishing waits for the review to run again
+  it('says a review that failed must be run again before publishing', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        streamOf([
+          [
+            'draft',
+            {
+              ...publishedVersion,
+              status: 'DRAFT',
+              versionNo: 1,
+              review: { status: 'FAILED', promptVersion: 'v1', findings: [], coverage: {} },
+            },
+          ],
+        ]),
+      ),
+    )
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    expect(
+      await screen.findByText(
+        'The review could not run; run it again from the rule set before publishing.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('shows every stage and then the draft it was given', async () => {
     const user = userEvent.setup()
     server.use(

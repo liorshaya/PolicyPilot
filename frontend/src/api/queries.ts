@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tan
 import { api } from './client'
 import type {
   Aggregates,
+  Audience,
   BatchResult,
   Decision,
+  GapResolution,
   PolicyResponse,
   PolicySummary,
   RulesetSummary,
@@ -95,6 +97,45 @@ export function usePublish(ruleset: { id: string; versionNo: number }) {
       client.setQueryData(keys.version(version.rulesetId, version.versionNo), version)
       void client.invalidateQueries({ queryKey: keys.rulesets })
     },
+  })
+}
+
+/**
+ * Running the review of a draft again (Document 2, Flow 1: after an edit made it STALE, or a call left it FAILED); the
+ * version it answers with replaces the one on the screen. It can take a minute: the reviewer reads the whole draft.
+ */
+export function useRunReview(ruleset: { id: string; versionNo: number }) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.review(ruleset.id, ruleset.versionNo),
+    onSuccess: (version) => {
+      client.setQueryData(keys.version(version.rulesetId, version.versionNo), version)
+    },
+  })
+}
+
+/** Acknowledging one review finding: a gap with its resolution, an error with a note (Document 3, Publishing gate). */
+export function useAcknowledge(ruleset: { id: string; versionNo: number }) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { findingId: string; resolution?: GapResolution; note?: string }) =>
+      api.acknowledge(ruleset.id, ruleset.versionNo, input.findingId, {
+        resolution: input.resolution,
+        note: input.note,
+      }),
+    onSuccess: (version) => {
+      client.setQueryData(keys.version(version.rulesetId, version.versionNo), version)
+    },
+  })
+}
+
+/**
+ * The explanation of one decision for one reader (Document 4, Prompt 3). It is asked for, not loaded with the trace:
+ * the trace is the engine's, the explanation is a model's reading of it, and the reader chooses to see it.
+ */
+export function useExplain(decisionId: string) {
+  return useMutation({
+    mutationFn: (audience: Audience) => api.explain(decisionId, audience),
   })
 }
 
