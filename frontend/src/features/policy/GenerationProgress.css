@@ -37,12 +37,24 @@
   font-size: var(--text-xs);
 }
 
+/* The sentence and the button share the first row; what the validator and the reviewer noted reads full width
+   beneath, because a reviewer's Hebrew sentence does not fit a narrow column. */
 .generation__done {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
+}
+
+.generation__done > .generation__noted,
+.generation__done > .generation__noted-title {
+  grid-column: 1 / -1;
+}
+
+.generation__done > .generation__open {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .generation__refused {
@@ -68,8 +80,12 @@
 
 @media (max-width: 700px) {
   .generation__done {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .generation__done > .generation__open {
+    grid-column: 1;
+    grid-row: auto;
   }
 }
 

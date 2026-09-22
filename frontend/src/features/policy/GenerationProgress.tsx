@@ -66,7 +66,7 @@ export function GenerationProgress({
             </div>
           ) : null}
           <ReviewSummary draft={generation.draft} />
-          <Button variant="primary" onClick={onOpenRules}>
+          <Button variant="primary" className="generation__open" onClick={onOpenRules}>
             Review the draft
           </Button>
         </div>

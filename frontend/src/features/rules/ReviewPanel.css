@@ -31,11 +31,14 @@
   font-size: var(--text-sm);
 }
 
+/* The findings scroll inside the panel, so the decision table and the marks on its rows stay in view below. */
 .review__findings {
   display: grid;
   gap: var(--space-2);
+  max-height: 22rem;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
   list-style: none;
 }
 
@@ -55,6 +58,11 @@
 
 .review__finding--warning {
   border-inline-start-color: var(--color-review-text);
+}
+
+/* A finding's button keeps its own width; the card is a grid, which would stretch it across. */
+.review__finding > .button {
+  justify-self: start;
 }
 
 .review__finding--done {
