@@ -186,7 +186,7 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 **Day 15, Mon Oct 12: buffer and G3**
 
 - [ ] ~~Fix list of days 12 to 14~~ (rung 10)
-- [ ] ~~`demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion~~ (not scheduled in the two-week version: a known limitation)
+- [ ] ~~`demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion~~ (not scheduled in the two-week version: the reset is a known limitation)
 - [ ] ~~Second-domain fixture (municipal tax discount) loaded as a second protected policy~~ (rung 2)
 - [ ] ~~Evaluation run 2: 18 policies, 30 questions, 6 changes, both providers; report committed to `docs/eval/`~~ (rung 4 and the evaluation runner)
 - [ ] ~~Tests: reset tests; second-domain fixture through the reference and one recorded generation; traceability matrix has no empty row for FR-17 to FR-20~~ (rungs 2 and 10; the reset is not built)

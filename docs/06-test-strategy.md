@@ -244,7 +244,7 @@ One GitHub Actions workflow on every push, ordered so the cheapest and most info
 
 | Stage | Contents | Budget | Gate |
 | --- | --- | --- | --- |
-| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date | 1 min | hard |
+| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date; the README's known limitations name every cut the progress checklist strikes through | 1 min | hard |
 | 2 Fast tests | API unit, architecture and conformance tests with JaCoCo; web Vitest with coverage; Python reference self-test | 3 min | hard, including the coverage thresholds of the unit-measured packages |
 | 3 Mutation | PIT on `engine` and `rules` | 3 min | hard, 90% |
 | 4 Static and supply chain | Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report | 2 min | hard |

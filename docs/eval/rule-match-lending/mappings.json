@@ -1,0 +1,797 @@
+{
+ "_about": "Hand-written mapping from each run's generated field names and enum values to the labeled expected ones (fixtures/eval/policies/consumer-lending/expected.ruleset.json). null means no counterpart.",
+ "runs": {
+  "1": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "self_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_last_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "has_guarantor": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "loan_end_age": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employed": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retiree": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "2": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "self_employment_duration_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "repayment_end_age": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retiree": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "3": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "employee_tenure_months": {
+     "to": "employment_months",
+     "why": "salaried tenure at current employer (p3); expected employment_months covers it"
+    },
+    "self_employed_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_last_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "has_guarantor": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "months_until_age_78": {
+     "to": null,
+     "why": "an applicant-supplied input 'months left until age 78' (p8); the label has no such input"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "pensioner": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "4": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "employment_tenure_months": {
+     "to": "employment_months",
+     "why": "tenure in months (p3); expected employment_months covers salaried tenure and self-employed months"
+    },
+    "income_stable": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_payments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employed": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retired": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "5": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "employment_tenure_months": {
+     "to": "employment_months",
+     "why": "tenure in months (p3); expected employment_months covers salaried tenure and self-employed months"
+    },
+    "self_employed_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "has_guarantor": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "debt_to_income_band": {
+     "to": null,
+     "why": "derived band of the ratio (p6); the label has no such field (it compares debt_to_income directly)"
+    },
+    "age_at_repayment_end": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "pensioner": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "6": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "self_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "age_at_repayment_end": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employed": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retired": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "7": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_last_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "age_at_repayment_end": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "salaried": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retiree": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "8": {
+   "fields": {
+    "applicant_age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "self_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "has_stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "age_at_repayment_end": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retiree": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "9": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "employment_tenure_months": {
+     "to": "employment_months",
+     "why": "tenure in months (p3); expected employment_months covers salaried tenure and self-employed months"
+    },
+    "self_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "debt_to_income_band": {
+     "to": null,
+     "why": "derived band of the ratio (p6); the label has no such field (it compares debt_to_income directly)"
+    },
+    "repayment_end_age": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "retiree": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  },
+  "10": {
+   "fields": {
+    "age": {
+     "to": "age",
+     "why": "applicant's age at application (p1), the same quantity as expected age"
+    },
+    "loan_amount": {
+     "to": "requested_amount",
+     "why": "requested loan amount (p2), expected requested_amount"
+    },
+    "repayment_term_months": {
+     "to": "term_months",
+     "why": "repayment term in months (p2), expected term_months"
+    },
+    "employment_status": {
+     "to": "employment_type",
+     "why": "employment status enum salaried/self-employed/retired/unemployed (p3), expected employment_type"
+    },
+    "current_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months at the current employer (p3); expected employment_months is 'tenure at current workplace, or months active as self-employed'"
+    },
+    "self_employment_tenure_months": {
+     "to": "employment_months",
+     "why": "months active as self-employed (p3); expected employment_months covers it"
+    },
+    "stable_income": {
+     "to": null,
+     "why": "'stable income' (p4) is not an input in the label; the label handles it with the flag R-420, so no counterpart"
+    },
+    "monthly_net_income": {
+     "to": "monthly_income",
+     "why": "net monthly income, 12-month average for self-employed (p4), expected monthly_income"
+    },
+    "existing_monthly_repayments": {
+     "to": "existing_monthly_debt",
+     "why": "total existing monthly repayments (p6), expected existing_monthly_debt"
+    },
+    "negative_credit_events_last_24_months": {
+     "to": "credit_events_24m",
+     "why": "count of negative credit events in 24 months (p7), expected credit_events_24m"
+    },
+    "guarantor_provided": {
+     "to": "has_guarantor",
+     "why": "whether a guarantor is provided (p7), expected has_guarantor"
+    },
+    "monthly_installment": {
+     "to": "monthly_installment",
+     "why": "derived Spitzer installment at 9% (p5), expected derived monthly_installment"
+    },
+    "debt_to_income_ratio": {
+     "to": "debt_to_income",
+     "why": "derived (existing + installment) / income (p6), expected derived debt_to_income"
+    },
+    "repayment_end_age": {
+     "to": null,
+     "why": "derived age at the end of the term (p8); the label has no such field (R-116 inlines 78 - term/12)"
+    }
+   },
+   "enums": {
+    "employment_status": {
+     "employee": {
+      "to": "salaried",
+      "why": "שכיר (salaried employee, p3)"
+     },
+     "self_employed": {
+      "to": "self_employed",
+      "why": "עצמאי (self-employed, p3)"
+     },
+     "pensioner": {
+      "to": "retired",
+      "why": "גמלאי (retiree, p3 and p8)"
+     },
+     "unemployed": {
+      "to": "unemployed",
+      "why": "מובטל (unemployed, p3)"
+     }
+    }
+   }
+  }
+ }
+}

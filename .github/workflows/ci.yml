@@ -45,6 +45,8 @@ jobs:
         run: python3 scripts/ci/check_fixture_privacy.py
       - name: Schema and demo fixture copies match the backend resources
         run: scripts/ci/check_schema_copies.sh
+      - name: The README's known limitations name every cut of the checklist
+        run: python3 scripts/ci/check_readme_limitations.py
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
