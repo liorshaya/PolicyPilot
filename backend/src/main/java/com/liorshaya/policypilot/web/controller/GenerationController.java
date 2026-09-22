@@ -39,11 +39,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 /**
  * {@code POST /api/v1/policies/{id}/rulesets}: generate a draft rule set from the policy's latest version
  * (Document 2, API Surface; Work Plan day 7). The answer is a stream, because the work takes tens of seconds and
- * the analyst should see where it is: {@code parsing}, {@code authoring}, {@code validating}, then the draft
- * itself. Reviewing joins the sequence on day 10.
+ * the analyst should see where it is: {@code parsing}, {@code authoring}, {@code validating}, {@code reviewing},
+ * then the draft itself with its review (Document 2, Flow 1).
  *
  * <p>Nothing is stored unless the document validates: a failed generation answers an {@code error} event with the
- * findings, and the analyst sees what went wrong.
+ * findings, and the analyst sees what went wrong. A review that fails does not lose the draft: it arrives with a
+ * {@code FAILED} review, which blocks publishing until the review is run again.
  */
 @RestController
 public class GenerationController {
@@ -51,15 +52,17 @@ public class GenerationController {
     private static final Logger log = LoggerFactory.getLogger(GenerationController.class);
 
     private final AuthorService author;
+    private final DraftReviewer reviewer;
     private final PolicyService policies;
     private final RulesetService rulesets;
     private final StreamRegistry streams;
     private final ExecutorService generations;
     private final Clock clock;
 
-    public GenerationController(AuthorService author, PolicyService policies, RulesetService rulesets,
-            StreamRegistry streams, ExecutorService generations, Clock clock) {
+    public GenerationController(AuthorService author, DraftReviewer reviewer, PolicyService policies,
+            RulesetService rulesets, StreamRegistry streams, ExecutorService generations, Clock clock) {
         this.author = author;
+        this.reviewer = reviewer;
         this.policies = policies;
         this.rulesets = rulesets;
         this.streams = streams;
@@ -68,7 +71,8 @@ public class GenerationController {
     }
 
     @Operation(summary = "Generate a draft rule set from a policy, as a stream of progress events")
-    @ApiResponse(responseCode = "200", description = "An event stream: parsing, authoring, validating, draft")
+    @ApiResponse(responseCode = "200",
+            description = "An event stream: parsing, authoring, validating, reviewing, then draft or error")
     @PostMapping(value = ApiPaths.POLICY_RULESETS, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter generate(@PathVariable UUID id, @RequestBody(required = false) GenerateRulesRequest body,
             @AuthenticationPrincipal SandboxSession session) {
@@ -102,7 +106,8 @@ public class GenerationController {
             } else {
                 VersionView draft = rulesets.createDraft(sandboxId, version.id(), authored.document(),
                         ValidationContext.AUTHORING, Set.of());
-                send(emitter, lease, "draft", VersionResponse.of(draft));
+                send(emitter, lease, "reviewing", new Progress(version.paragraphs().size()));
+                send(emitter, lease, "draft", VersionResponse.of(reviewed(draft, sandboxId)));
             }
             emitter.complete();
         } catch (LlmUnavailableException e) {
@@ -113,6 +118,16 @@ public class GenerationController {
             fail(emitter, lease, ErrorCode.INTERNAL_ERROR, "the generation failed", e);
         } finally {
             lease.close();
+        }
+    }
+
+    /** The draft with its review; when the provider fails, with the FAILED review the reviewer stored. */
+    private VersionView reviewed(VersionView draft, UUID sandboxId) {
+        try {
+            return reviewer.review(draft, sandboxId);
+        } catch (LlmUnavailableException e) {
+            log.warn("review failed: {}", e.reason());
+            return rulesets.version(draft.rulesetId(), draft.versionNo(), sandboxId).orElseThrow();
         }
     }
 

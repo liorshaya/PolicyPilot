@@ -63,6 +63,11 @@ public class RulesetVersionEntity {
     @Column(name = "embedding_status")
     private String embeddingStatus;
 
+    /** The draft's review (V9); null until the draft is reviewed, frozen with the rest of the row once published. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "review_json")
+    private String reviewJson;
+
     protected RulesetVersionEntity() {}
 
     /** A new DRAFT version. */
@@ -84,6 +89,12 @@ public class RulesetVersionEntity {
         requireDraft();
         this.rulesJson = rulesJson;
         this.fieldSchemaJson = fieldSchemaJson;
+    }
+
+    /** Stores the review of a DRAFT, replacing any earlier one (Document 2, Flow 1). */
+    public void review(String reviewJson) {
+        requireDraft();
+        this.reviewJson = reviewJson;
     }
 
     /** Publishes a DRAFT: the last change the row ever takes. */
@@ -139,6 +150,10 @@ public class RulesetVersionEntity {
 
     public String getEmbeddingStatus() {
         return embeddingStatus;
+    }
+
+    public String getReviewJson() {
+        return reviewJson;
     }
 
     public UUID getParentVersionId() {

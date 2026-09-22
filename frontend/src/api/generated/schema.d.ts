@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rulesets/{id}/versions/{no}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run the review again on a DRAFT, after an edit or a failed review */
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rulesets/{id}/versions/{no}/retrieval": {
         parameters: {
             query?: never;
@@ -66,6 +83,23 @@ export interface paths {
         put?: never;
         /** Publish a DRAFT version: compile, snapshot its rules and write the audit entry */
         post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rulesets/{id}/versions/{no}/findings/{findingId}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge one review finding of a DRAFT: a gap with its resolution, an error with a note */
+        post: operations["acknowledge"];
         delete?: never;
         options?: never;
         head?: never;
@@ -281,6 +315,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcknowledgementResponse: {
+            /** @enum {string} */
+            resolution?: "rule_added" | "flag_added" | "interpretation";
+            note?: string;
+            /** Format: date-time */
+            at: string;
+        };
         FindingResponse: {
             code: string;
             severity: string;
@@ -288,6 +329,30 @@ export interface components {
             message: string;
             ruleIds: string[];
             fieldNames: string[];
+        };
+        ReviewFindingResponse: {
+            id: string;
+            /** @enum {string} */
+            kind: "ambiguity" | "conflict" | "unsupported" | "gap" | "duplicate" | "injection";
+            /** @enum {string} */
+            severity: "error" | "warning";
+            ruleIds: string[];
+            paragraphIndexes: number[];
+            message: string;
+            suggestion: string;
+            /** Format: double */
+            confidence: number;
+            blocking: boolean;
+            acknowledgement?: components["schemas"]["AcknowledgementResponse"];
+        };
+        ReviewResponse: {
+            /** @enum {string} */
+            status: "DONE" | "FAILED" | "STALE";
+            promptVersion: string;
+            findings: components["schemas"]["ReviewFindingResponse"][];
+            coverage: {
+                [key: string]: string[];
+            };
         };
         VersionResponse: {
             /** Format: uuid */
@@ -312,6 +377,7 @@ export interface components {
             /** @description The whole DSL document (Document 3) */
             ruleSet: unknown;
             findings: components["schemas"]["FindingResponse"][];
+            review?: components["schemas"]["ReviewResponse"];
         };
         ErrorDetail: {
             path: string;
@@ -354,6 +420,10 @@ export interface components {
             chunks?: components["schemas"]["Chunk"][];
             citations?: components["schemas"]["Cite"][];
             notCovered?: string;
+        };
+        AcknowledgeFindingRequest: {
+            resolution?: string;
+            note?: string;
         };
         Paragraph: {
             /** Format: int32 */
@@ -584,6 +654,56 @@ export interface operations {
             };
         };
     };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version with its new review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionResponse"];
+                };
+            };
+            /** @description No such rule set version in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The version is not a DRAFT, or is protected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The model provider failed; the review is left FAILED */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     retrieve: {
         parameters: {
             query?: never;
@@ -686,8 +806,63 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description The rule set fails the Document 3 validator */
+            /** @description The rule set fails the Document 3 validator, or its review does not allow publishing yet */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    acknowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+                findingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AcknowledgeFindingRequest"];
+            };
+        };
+        responses: {
+            /** @description The version with the finding acknowledged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionResponse"];
+                };
+            };
+            /** @description The resolution or the note the finding's kind needs is missing */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such rule set version or finding in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The version's status does not allow this */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -818,7 +993,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description An event stream: parsing, authoring, validating, draft */
+            /** @description An event stream: parsing, authoring, validating, reviewing, then draft or error */
             200: {
                 headers: {
                     [name: string]: unknown;

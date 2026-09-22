@@ -13,6 +13,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Reviews;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.UUID;
@@ -127,7 +128,7 @@ class RuleSetEditIT extends ApiIntegrationTest {
     void putRulesOnAPublishedVersionIsRefusedAndChangesNothing() {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = fixtures.draft(sandbox);
-        rulesets.publish(draft.rulesetId(), 1, sandbox);
+        rulesets.publish(Reviews.reviewed(rulesets, draft, sandbox).rulesetId(), 1, sandbox);
         ObjectNode edited = RulesetFixtures.lendingWithPriority("R-320", 321);
 
         assertThatThrownBy(() -> rulesets.replaceRules(draft.rulesetId(), 1, sandbox, edited))

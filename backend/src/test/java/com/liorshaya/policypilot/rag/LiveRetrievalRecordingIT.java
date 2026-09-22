@@ -16,6 +16,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
+import com.liorshaya.policypilot.support.Reviews;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -109,7 +110,8 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
         UUID policyVersion = policies.version(view.id(), 1, sandbox).orElseThrow().id();
         VersionView draft = rulesets.createDraft(sandbox, policyVersion,
                 Fixtures.json(question.required("ruleset").asString()), ValidationContext.ANALYST_EDIT, Set.of());
-        UUID version = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow().versionId();
+        UUID version = rulesets.publish(Reviews.reviewed(rulesets, draft, sandbox).rulesetId(), 1, sandbox)
+                .orElseThrow().versionId();
         awaitReady(version);
         return new Target(sandbox, draft.rulesetId());
     }

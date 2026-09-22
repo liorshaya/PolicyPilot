@@ -1,0 +1,18 @@
+# The review prompt (Document 4, Prompt 2: Review). It reads a validated draft next to the policy it was written
+# from and reports what a program cannot compute; the API checks every anchor before anyone sees a finding.
+name: review
+active: v1
+role: policy reviewer
+task: compare a draft rule set with the policy it was written from and report every ambiguity, conflict, unsupported rule, gap and duplicate, with anchors
+outputSchema: schemas/findings-1.0.schema.json
+modelRole: strong
+# Document 4 asks for 0; the strong model of the current OpenAI lineup accepts only its own temperature (author/v1
+# CHANGELOG), so the prompt asks for the model's default and the anchors are checked by the API instead.
+temperature: default
+# Document 4, Model Configuration: 16,000 and 180 s, not 4,000 and 45 s. The first live run timed out at 45 s three
+# times on the lending draft; the model reasons over the whole draft and policy first, and the cap counts that too.
+maxOutputTokens: 16000
+timeoutSeconds: 180
+repairs: 0
+cache: by-input-hash
+languages: [he, en]

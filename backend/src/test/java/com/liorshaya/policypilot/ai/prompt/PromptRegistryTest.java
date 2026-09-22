@@ -191,15 +191,15 @@ class PromptRegistryTest {
 
     @Test
     void refusesAPromptItWasNeverGiven() {
-        assertThatThrownBy(() -> registry().get("review"))
+        assertThatThrownBy(() -> registry().get("change"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no prompt named review");
+                .hasMessageContaining("no prompt named change");
     }
 
     @Test
     void refusesAPromptWhoseDirectoryIsNotThere() {
-        assertThatThrownBy(() -> new PromptRegistry(List.of("review"), Map.of()))
+        assertThatThrownBy(() -> new PromptRegistry(List.of("change"), Map.of()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("prompts/review/prompt.yml");
+                .hasMessageContaining("prompts/change/prompt.yml");
     }
 }

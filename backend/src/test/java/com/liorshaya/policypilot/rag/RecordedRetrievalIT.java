@@ -16,6 +16,7 @@ import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Reviews;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +81,7 @@ class RecordedRetrievalIT {
         UUID policyVersion = policies.version(policy.id(), 1, sandbox).orElseThrow().id();
         VersionView draft = rulesets.createDraft(sandbox, policyVersion, Fixtures.lendingV1(),
                 ValidationContext.ANALYST_EDIT, Set.of());
-        rulesetId = draft.rulesetId();
+        rulesetId = Reviews.reviewed(rulesets, draft, sandbox).rulesetId();
         fixtures.awaitStatus(rulesets.publish(rulesetId, 1, sandbox).orElseThrow().versionId(), "READY");
     }
 

@@ -7,6 +7,7 @@ import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Reviews;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
@@ -36,7 +37,8 @@ final class RagFixtures {
     Published publish(String tenthParagraph) {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = draft(sandbox, tenthParagraph);
-        UUID version = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow().versionId();
+        UUID version = rulesets.publish(Reviews.reviewed(rulesets, draft, sandbox).rulesetId(), 1, sandbox)
+                .orElseThrow().versionId();
         return new Published(sandbox, draft.rulesetId(), version);
     }
 
