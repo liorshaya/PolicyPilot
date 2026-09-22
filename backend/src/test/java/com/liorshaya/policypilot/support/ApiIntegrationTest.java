@@ -21,7 +21,9 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
     "spring.ai.openai.api-key=test-key-not-real",
-    "server.forward-headers-strategy=native"})
+    "server.forward-headers-strategy=native",
+    // every distinct test context keeps its own pool against the one container, whose limit is 100 connections
+    "spring.datasource.hikari.maximum-pool-size=5"})
 @ActiveProfiles("openai")
 @Import({ApiIntegrationTest.FixedClock.class, OfflineEmbeddings.class})
 public abstract class ApiIntegrationTest extends PostgresContainerSupport {

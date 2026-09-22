@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.JsonNode;
 
@@ -36,6 +37,7 @@ import tools.jackson.databind.JsonNode;
  * the documents and the labeled set, not from the model.
  */
 @Requirement("FR-5")
+@Isolated
 class DraftReviewIT extends ApiIntegrationTest {
 
     @Autowired
@@ -227,7 +229,7 @@ class DraftReviewIT extends ApiIntegrationTest {
 
         assertThatThrownBy(() -> rulesets.recordReview(seeded, 1, sandbox, review()))
                 .isInstanceOf(VersionStatusException.class);
-        // test classes run in parallel and share the registry, so the assertion is on this test's own increment
+        // the class is @Isolated, so no other test's protected write lands between the two reads
         assertThat(registry.counter("security.protected.write_attempt", "entity", "ruleset").count() - before)
                 .isEqualTo(1.0);
     }

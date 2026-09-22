@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
 import java.net.http.HttpResponse;
 import java.util.List;
@@ -16,10 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -28,7 +26,7 @@ import tools.jackson.databind.node.ObjectNode;
  * review route's model is the recorded gateway, scripted per test.
  */
 @Requirement({"FR-5", "FR-6", "FR-7"})
-@Import(RulesetControllerContractIT.RecordedModel.class)
+@Import(RecordedModel.class)
 @Isolated
 class RulesetControllerContractIT extends ApiIntegrationTest {
 
@@ -281,15 +279,5 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
     /** The cookie is {@code sandboxId.issuedAt.signature}, so its first part is the actor a publish records. */
     private static String sandboxOf(String session) {
         return session.substring(0, session.indexOf('.'));
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class RecordedModel {
-
-        @Bean
-        @Primary
-        RecordedGateway recordedGateway() {
-            return RecordedGateway.answering();
-        }
     }
 }
