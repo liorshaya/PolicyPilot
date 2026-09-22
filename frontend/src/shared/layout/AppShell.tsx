@@ -6,6 +6,8 @@ import './AppShell.css'
 interface AppShellProps {
   current: ScreenId
   onNavigate: (screen: ScreenId) => void
+  /** Sits under the navigation: the guided demo panel, which drives the scripted steps (Brief FR-23). */
+  aside?: ReactNode
   children: ReactNode
 }
 
@@ -13,7 +15,7 @@ interface AppShellProps {
  * The frame every screen sits in (the brief, Layout and navigation): a compact sidebar on the left, the workspace
  * on the right. The chrome is English and left-to-right; only content blocks turn around.
  */
-export function AppShell({ current, onNavigate, children }: AppShellProps) {
+export function AppShell({ current, onNavigate, aside, children }: AppShellProps) {
   return (
     <div className="shell">
       <a className="shell__skip" href="#workspace">
@@ -42,6 +44,7 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
             </li>
           ))}
         </ul>
+        {aside === undefined ? null : <div className="shell__aside">{aside}</div>}
         <p className="shell__principle">
           The model proposes and explains. The rules engine decides. A person approves.
         </p>

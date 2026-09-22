@@ -8,6 +8,8 @@ import { RulesScreen } from './features/rules/RulesScreen'
 import { ChatScreen } from './features/chat/ChatScreen'
 import { EmptyState } from './shared/ui/States'
 import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
+import { GuidedPanel } from './features/demo/GuidedPanel'
+import type { DemoStep } from './features/demo/steps'
 
 /** The screen the address bar names, so a screen can be linked to and the back button works. */
 function screenFromHash(): ScreenId {
@@ -26,6 +28,8 @@ export function App() {
   const [focusRuleId, setFocusRuleId] = useState<string | null>(null)
   // the rule set the workspace is on, so opening a policy's rules does not land on someone else's
   const [rulesetId, setRulesetId] = useState<string | null>(null)
+  // the scripted step the guided panel asked for, which its screen carries out and then clears (Brief FR-23)
+  const [demo, setDemo] = useState<DemoStep['id'] | null>(null)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -42,10 +46,21 @@ export function App() {
     return <AccessGate onEntered={() => setEntered(true)} />
   }
 
+  function runDemoStep(step: DemoStep) {
+    setDemo(step.id)
+    navigate(step.screen)
+  }
+
   return (
-    <AppShell current={screen} onNavigate={navigate}>
+    <AppShell
+      current={screen}
+      onNavigate={navigate}
+      aside={<GuidedPanel current={demo} onRun={runDemoStep} />}
+    >
       {screen === 'policies' ? (
         <PoliciesScreen
+          demoAsked={demo === 1}
+          onDemoHandled={() => setDemo(null)}
           onOpenRules={(chosen) => {
             setRulesetId(chosen)
             setFocusRuleId(null)
@@ -67,6 +82,8 @@ export function App() {
       {screen === 'cases' ? (
         <CasesScreen
           rulesetId={rulesetId}
+          demoAsked={demo === 2}
+          onDemoHandled={() => setDemo(null)}
           onOpenRule={(ruleId) => {
             setFocusRuleId(ruleId)
             navigate('rules')
@@ -76,6 +93,8 @@ export function App() {
       {screen === 'assistant' ? (
         <ChatScreen
           rulesetId={rulesetId}
+          demoAsked={demo === 3}
+          onDemoHandled={() => setDemo(null)}
           onOpenRule={(ruleId) => {
             setFocusRuleId(ruleId)
             navigate('rules')

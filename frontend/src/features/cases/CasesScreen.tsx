@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
 import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from '../../api/queries'
@@ -29,10 +30,15 @@ const FIXTURE_SET = 'cases-200'
 export function CasesScreen({
   onOpenRule,
   rulesetId = null,
+  demoAsked = false,
+  onDemoHandled,
 }: {
   onOpenRule: (ruleId: string | null) => void
   /** The rule set the workspace is on; without one the sandbox's first is used. */
   rulesetId?: string | null
+  /** Step 2 of the guided demo: run the 200 seeded cases (Brief FR-23). */
+  demoAsked?: boolean
+  onDemoHandled?: () => void
 }) {
   const rulesets = useRulesets()
   const list = rulesets.data ?? []
@@ -46,6 +52,8 @@ export function CasesScreen({
   const run = useRunFixtureSet(ruleset ?? { id: '', versionNo: 1 })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const decision = useDecision(selectedId)
+  // step 2 of the demo is the button a presenter would press, pressed for them once the version is known
+  useDemoStep(demoAsked && ruleset !== null, () => run.mutate(FIXTURE_SET), onDemoHandled)
 
   const document = version.data?.ruleSet as RuleSetDocument | undefined
   const language: ContentLanguage = document?.language ?? 'en'

@@ -159,7 +159,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [x] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
 - [x] Evaluation run 1: the live answer pass over all 30 questions, 58,714 tokens; the author and review passes scored from the recordings, so the 9-policy author run is what day 15 pays for with `author/v2` (restored: the evaluation runner)
 - [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3) — **slipped to day 15 as the row allows: Ollama is not installed on this machine. The report carries the column, empty, and says why**
-- [ ] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7)
+- [x] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7); step 4 is listed in the panel and marked Day 14
 - [x] The `stats` and `rules` tools of day 9's row (restored: rung 6)
 - [x] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze) — no prompt changed, so nothing needed re-warming, and the three scripted questions still answer from the cache on the cloud site in 0.47 to 0.49 s; RTL is checked in the browser and in `panel.spec.ts`
 - [x] Tests: runner units (normalization rules); runner on two labeled policies with recordings; both columns present; Playwright step 3; first token under 3 s for cached questions (restored: the evaluation runner)

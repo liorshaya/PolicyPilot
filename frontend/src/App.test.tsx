@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { AUTH_CODE_URL } from './api/auth'
 import { server } from './test/msw/server'
 import { App } from './App'
+import { SCRIPTED_QUESTIONS } from './features/demo/steps'
 
 /** The application: the gate, then the workspace with its sidebar (Document 2, Frontend Architecture). */
 function renderApp() {
@@ -55,5 +56,38 @@ describe('App', () => {
     // the assistant arrived on day 9; the audit log is still to come
     expect(screen.getByRole('button', { name: /Assistant/ })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Audit log/ })).toBeDisabled()
+  })
+
+  // Brief FR-23; Document 2: the panel's steps "pre-fill the inputs and call the same API the regular screens
+  // use". Expected: step 3 opens the assistant on the first of the brief's three scripted questions
+  it('runs a scripted step on the screen that step belongs to', async () => {
+    server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    await screen.findByRole('navigation', { name: 'Workspace' })
+
+    await user.click(screen.getByRole('button', { name: /guided demo/i }))
+    await user.click(screen.getAllByRole('button', { name: 'Run' })[2]!)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Assistant' })).toBeInTheDocument()
+    expect(await screen.findByLabelText(/question/i)).toHaveValue(SCRIPTED_QUESTIONS[0])
+    expect(window.location.hash).toBe('#/assistant')
+  })
+
+  // Expected: the step the demo is on is the one the panel marks, so a presenter can see where they are
+  it('marks the step the workspace is on in the panel', async () => {
+    server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    await screen.findByRole('navigation', { name: 'Workspace' })
+    await user.click(screen.getByRole('button', { name: /guided demo/i }))
+
+    await user.click(screen.getAllByRole('button', { name: 'Run' })[1]!)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Cases' })).toBeInTheDocument()
   })
 })

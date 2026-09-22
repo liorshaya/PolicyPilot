@@ -180,7 +180,9 @@ restored: each cut leaves this list in the pull request that ships it.
 
 - **The change flow** (rung 10): no change requests, patches, regression report, approval or version 2. Demo step 4
   is a closing slide from the design. Brief line 7 is not met.
-- **The guided demo panel** (rung 7): the presenter types the inputs; this script carries them.
+- **The guided demo panel is not yet the whole demo** (rung 7): it drives steps 1 to 3 with one click each;
+  step 4 is listed in the panel and marked Day 14, and the Playwright run of all four steps in one go is
+  day 16's.
 - **The full-set evaluation run** (rung 4) and **the evaluation runner**: the runner exists and its report is
   committed ([the run of 2026-09-23](docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md)); what is still missing is
   the full set --- all 18 labeled policies, the six change requests, and the local Ollama column --- which day 15
