@@ -118,13 +118,16 @@ text, demo questions and the model's free-text output are in Hebrew. `RUNBOOK.md
 5. Last hour: Definition of Done for the day's tasks, the demo-step check on the cloud site, the worklog line:
    `date | day N | done | slipped | decisions | coverage per package, PIT score, batch time, first-token time`.
 
-## Schedule (decided 2026-09-18)
+## Schedule (restored 2026-09-22)
 
-The interview is on Monday 2026-10-05, so the plan runs as the two-week version of Document 7 (Scope ladder). Day 1
-is done; days 2 to 9 keep their Work Plan content, except that day 9 builds only the `decision` and `simulate` tools;
-day 10 (Sun Oct 4) is rehearsal, video, README and freeze. Rungs 2 to 10 and the evaluation runner are cut: do not
-build the reviewer, explain, the guided panel, the `stats` and `rules` tools, the change flow, the resets or the
-evaluation runner unless the owner adds one back. Dates and struck-through boxes: `docs/progress-checklist.md`.
+The interview is on Monday 2026-10-05. The two-week version of Document 7 ran first and ended in the v1.0.0 freeze
+(2026-09-22, tag `v1.0.0` at 7ad29de, the fallback). The owner then restored the full plan: rungs 2 to 10 of the Scope
+ladder and the evaluation runner are back, and days 10 to 19 keep their Work Plan numbers and content. Days 10 to 16
+build (Sep 22 to Sep 28), Sep 29 takes only what slipped, days 17 to 19 are the rehearsals, the video, the secrets
+rotation and the freeze (Sep 30 to Oct 4). If the plan runs late, cut from the end of the Scope ladder's order of demo
+value, never days 17 to 19. Migrations stay additive so the `v1.0.0` image still runs on the live database. Dates and
+the "(restored: ...)" boxes: `docs/progress-checklist.md`; a known limitation leaves the README in the pull request
+that ticks the last box of its cut (`scripts/ci/check_readme_limitations.py`).
 
 ## Where to look
 

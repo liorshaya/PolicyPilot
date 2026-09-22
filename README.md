@@ -175,7 +175,8 @@ waits for the recorded run. The [known limitations](#known-limitations) give eac
 ## Known limitations
 
 The plan ran in two weeks instead of four. Document 7's scope ladder was cut from rung 2 to rung 10 on entry, together
-with the evaluation runner. Each cut below names its rung.
+with the evaluation runner. Each cut below names its rung. On 2026-09-22, after the `v1.0.0` tag, the full plan was
+restored: each cut leaves this list in the pull request that ships it.
 
 - **The change flow** (rung 10): no change requests, patches, regression report, approval or version 2. Demo step 4
   is a closing slide from the design. Brief line 7 is not met.

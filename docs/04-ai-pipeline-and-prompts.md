@@ -368,7 +368,7 @@ Retrieval runs before the answer prompt and decides two things: which chunks the
 
 The answer prompt is the only one that streams text, so its contract is a citation protocol instead of a schema: every factual sentence carries a marker that points at a chunk, a decision or a simulation the API supplied, and the API verifies the markers before it shows citations.
 
-**Tools** (plain `ChatTool` objects in `ai`, registered by `ai.adapter` with Spring AI as tool callbacks, since only the adapter may import Spring AI; all scoped to the session's version; the application number is the case number a person reads on the screen, naming the sandbox's latest stored decision of that case on the session's version; the two-week version builds `getDecision` and `simulate` only):
+**Tools** (plain `ChatTool` objects in `ai`, registered by `ai.adapter` with Spring AI as tool callbacks, since only the adapter may import Spring AI; all scoped to the session's version; the application number is the case number a person reads on the screen, naming the sandbox's latest stored decision of that case on the session's version; the two-week version built `getDecision` and `simulate` only, and the restored plan adds the other two on day 11):
 
 | Tool | Signature | Returns | When the prompt is told to use it |
 | --- | --- | --- | --- |
