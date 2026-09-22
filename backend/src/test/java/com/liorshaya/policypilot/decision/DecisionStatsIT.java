@@ -6,6 +6,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
 import java.net.http.HttpResponse;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,29 @@ class DecisionStatsIT extends ApiIntegrationTest {
         assertThat(stats.required("decisions").asInt()).isEqualTo(Decisions.cases().size());
     }
 
+    // Document 2, stats; Document 4, getDecisionStats. Expected: the flags of cases-expected.json, counted by code:
+    // the reference produced them, so the count is the fixture's and never the engine's own
+    @Test
+    void flagCountsEqualTheFlagsTheExpectedCasesCarry() {
+        decisions.decide(FIXTURE_SET);
+
+        JsonNode stats = JSON.readTree(decisions.stats().body());
+
+        assertThat(counts(stats.required("flagCounts"))).isEqualTo(expectedFlagCounts());
+    }
+
+    // Document 2: the latest decision of each case counts once, flags included. Expected: the same counts after two
+    // runs, so a second run of the fixture set does not double them
+    @Test
+    void rerunningTheFixtureSetDoesNotDoubleTheFlagCounts() {
+        decisions.decide(FIXTURE_SET);
+        decisions.decide(FIXTURE_SET);
+
+        JsonNode stats = JSON.readTree(decisions.stats().body());
+
+        assertThat(counts(stats.required("flagCounts"))).isEqualTo(expectedFlagCounts());
+    }
+
     // Document 2: the latest decision of each case counts once. Expected: the same summary after two runs
     @Test
     void rerunningTheFixtureSetDoesNotDoubleTheCounts() {
@@ -75,5 +99,21 @@ class DecisionStatsIT extends ApiIntegrationTest {
         Map<String, Integer> outcomes = JsonPath.read(response.body(), "$.outcomes");
         assertThat(outcomes).containsOnly(Map.entry("approve", 0), Map.entry("reject", 0), Map.entry("refer", 0));
         assertThat((List<?>) JsonPath.read(response.body(), "$.topDecidingRules")).isEmpty();
+        assertThat(counts(JSON.readTree(response.body()).required("flagCounts"))).isEmpty();
+    }
+
+    /** The flags the reference attached to the 200 cases, counted by code; the expectation of every count above. */
+    private static Map<String, Integer> expectedFlagCounts() {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        Decisions.expected().required("cases").valueStream()
+                .flatMap(line -> line.required("flags").valueStream())
+                .forEach(flag -> counts.merge(flag.asString(), 1, Integer::sum));
+        return counts;
+    }
+
+    private static Map<String, Integer> counts(JsonNode flagCounts) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        flagCounts.properties().forEach(entry -> counts.put(entry.getKey(), entry.getValue().asInt()));
+        return counts;
     }
 }

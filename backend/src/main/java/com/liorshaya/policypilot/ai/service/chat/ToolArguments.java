@@ -4,7 +4,9 @@ import com.liorshaya.policypilot.rules.model.Field;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -14,14 +16,18 @@ import tools.jackson.databind.node.ObjectNode;
  * The argument validators of the chat's tools (Document 2, Tools available to the answer prompt; Document 5: model
  * output is untrusted input, parsed and checked before it is used, never used to address another sandbox's data).
  * An application number is one positive whole number of at most nine digits; a simulation's overrides name declared
- * fields of the version. Values are the engine's to judge, as they are for {@code POST .../simulate}.
+ * fields of the version; a rule listing's tag is one plain word, the shape a rule set's tags have. Values are the
+ * engine's to judge, as they are for {@code POST .../simulate}.
  */
 public final class ToolArguments {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String NUMBER = "applicationNumber";
     private static final String OVERRIDES = "overrides";
+    private static final String TAG = "tag";
     private static final long LARGEST = 999_999_999L;
+    /** A tag as Document 3 writes them: a short plain word, which is also all a listing may be narrowed by. */
+    private static final Pattern PLAIN_WORD = Pattern.compile("[a-z][a-z0-9_]{0,39}");
 
     private ToolArguments() {}
 
@@ -62,6 +68,32 @@ public final class ToolArguments {
             }
         }
         return (ObjectNode) overrides;
+    }
+
+    /** {@code {}} and nothing else: the arguments of a tool that takes none. */
+    public static void none(String arguments) {
+        JsonNode node = object(arguments);
+        for (String name : node.propertyNames()) {
+            throw new ToolArgumentException("unexpected argument " + name);
+        }
+    }
+
+    /** The tag of {@code {"tag": "credit_history"}}, or {@code null} when the listing was asked for unnarrowed. */
+    public static @Nullable String tag(String arguments) {
+        JsonNode node = object(arguments);
+        for (String name : node.propertyNames()) {
+            if (!TAG.equals(name)) {
+                throw new ToolArgumentException("unexpected argument " + name);
+            }
+        }
+        JsonNode tag = node.get(TAG);
+        if (tag == null || tag.isNull()) {
+            return null;
+        }
+        if (!tag.isString() || !PLAIN_WORD.matcher(tag.stringValue()).matches()) {
+            throw new ToolArgumentException("tag must be one plain word, as a rule set's tags are written");
+        }
+        return tag.stringValue();
     }
 
     private static JsonNode object(String arguments) {

@@ -22,7 +22,8 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class ToolResults {
 
-    private static final Pattern OUTCOME = Pattern.compile("<tool_result (?:id=\"([^\"]+)\"|error=\"([^\"]+)\")>");
+    private static final Pattern OUTCOME = Pattern.compile(
+            "<tool_result (?:id=\"([^\"]+)\"|name=\"([^\"]+)\"|error=\"([^\"]+)\")>");
 
     private ToolResults() {}
 
@@ -30,17 +31,32 @@ public final class ToolResults {
         return "<tool_result id=\"" + id + "\">" + Sections.escape(body.toString()) + "</tool_result>";
     }
 
+    /**
+     * A result that is not itself citable (Document 4, Marker resolution: the marker kinds are {@code p}, {@code r},
+     * {@code d} and {@code sim}). Statistics and a rule listing are not one of those four, so their section carries
+     * the tool's name; what the model may cite from them is the sources they list.
+     */
+    public static String named(String name, JsonNode body) {
+        return "<tool_result name=\"" + name + "\">" + Sections.escape(body.toString()) + "</tool_result>";
+    }
+
     public static String refusal(String reason, String message) {
         return "<tool_result error=\"" + reason + "\">" + Sections.escape(message) + "</tool_result>";
     }
 
-    /** What a call's record keeps: the id its result may be cited by, or {@code refused:<reason>}, not the body. */
+    /**
+     * What a call's record keeps, never the body: the id its result may be cited by, the tool's name when the result
+     * is not itself citable, or {@code refused:<reason>}.
+     */
     public static String outcomeOf(String result) {
         Matcher outcome = OUTCOME.matcher(result);
         if (!outcome.lookingAt()) {
             throw new IllegalStateException("a tool result without its section: " + result);
         }
-        return outcome.group(1) != null ? outcome.group(1) : "refused:" + outcome.group(2);
+        if (outcome.group(3) != null) {
+            return "refused:" + outcome.group(3);
+        }
+        return outcome.group(1) != null ? outcome.group(1) : outcome.group(2);
     }
 
     /**
@@ -58,6 +74,18 @@ public final class ToolResults {
         sources.add("r:" + rule.get().id());
         if (rule.get().provenance() instanceof Provenance.Quoted quoted) {
             sources.add("p:" + quoted.paragraph());
+        }
+        return sources;
+    }
+
+    /**
+     * The sources several rules supply, in the order they were named and each id once: a result that names rules
+     * (statistics, a rule listing) supplies every one of them the version has, with the paragraph it quotes.
+     */
+    public static List<String> sourcesOfEach(RuleSet ruleSet, List<String> ruleIds) {
+        List<String> sources = new ArrayList<>();
+        for (String ruleId : ruleIds) {
+            sourcesOf(ruleSet, ruleId).stream().filter(source -> !sources.contains(source)).forEach(sources::add);
         }
         return sources;
     }

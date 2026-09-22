@@ -15,9 +15,11 @@ import com.liorshaya.policypilot.support.Requirement;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -161,6 +163,90 @@ class ChatStreamIT extends ApiIntegrationTest {
         assertThat(citation.required("outcome").asString()).isEqualTo("approve");
         assertThat(citation.required("detail").asString()).isEqualTo("has_guarantor=true");
         assertThat(decisionCount()).isEqualTo(decisions);
+    }
+
+    // Document 4, getDecisionStats: "Outcome counts, top deciding rules, flag counts for the version". Expected: the
+    // counts of cases-expected.json, which the Python reference produced, in the result the model read
+    @Test
+    void getDecisionStatsAnswersTheCountsOfThisSandbox() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("60 of the applications were rejected.",
+                new ToolCall("getDecisionStats", "{}")));
+
+        ask(openSession(), TERM_QUESTION);
+
+        JsonNode stats = toolResultBody(model.toolResults().getLast());
+        JsonNode summary = expectedCases().required("summary");
+        assertThat(stats.required("outcomes")).isEqualTo(summary.required("outcomes"));
+        assertThat(stats.required("topDecidingRules")).isEqualTo(summary.required("topDecidingRules"));
+        assertThat(stats.required("decisions").asInt()).isEqualTo(expectedCases().required("cases").size());
+        assertThat(stats.required("flagCounts")).isEqualTo(expectedFlagCounts());
+    }
+
+    // Document 4, Citation marker protocol: ids the answer may cite are the ones the turn supplied. Expected: the
+    // rules the statistics name, each with the paragraph it quotes in ruleset.v1.json, listed by the result itself
+    @Test
+    void getDecisionStatsSuppliesTheRulesItNames() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("Most were approved.", new ToolCall("getDecisionStats", "{}")));
+
+        ask(openSession(), TERM_QUESTION);
+
+        JsonNode stats = toolResultBody(model.toolResults().getLast());
+        // R-900 decided 113 of the 200 cases in cases-expected.json and quotes paragraph 9 in ruleset.v1.json
+        assertThat(sources(stats)).contains("r:R-900", "p:9");
+    }
+
+    // Document 5, sandbox scoping. Expected: a session that decided nothing reads zeros, never another sandbox's run
+    @Test
+    void getDecisionStatsOfASessionThatDecidedNothingIsZero() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("Nothing has been decided here.", new ToolCall("getDecisionStats", "{}")));
+
+        askInANewSandbox(TERM_QUESTION);
+
+        JsonNode stats = toolResultBody(model.toolResults().getLast());
+        assertThat(stats.required("decisions").asInt()).isZero();
+        assertThat(sources(stats)).isEmpty();
+    }
+
+    // Document 4, listRules: "Rule ids, labels, priorities, outcomes". Expected: every rule of ruleset.v1.json, in
+    // the evaluation order the engine uses
+    @Test
+    void listRulesAnswersEveryRuleOfTheSessionsVersion() {
+        model.willStream(Streamed.after("The rule set has 20 rules.", new ToolCall("listRules", "{}")));
+
+        ask(openSession(), TERM_QUESTION);
+
+        JsonNode listed = toolResultBody(model.toolResults().getLast()).required("rules");
+        assertThat(ruleIds(listed)).isEqualTo(expectedRuleIdsInPriorityOrder(null));
+    }
+
+    // Document 4, listRules(tag?). Expected: the rules ruleset.v1.json tags credit_history, and only those
+    @Test
+    void listRulesWithATagAnswersOnlyTheRulesCarryingIt() {
+        model.willStream(Streamed.after("Two rules read the credit history.",
+                new ToolCall("listRules", "{\"tag\":\"credit_history\"}")));
+
+        ask(openSession(), TERM_QUESTION);
+
+        JsonNode listed = toolResultBody(model.toolResults().getLast()).required("rules");
+        assertThat(ruleIds(listed)).isEqualTo(expectedRuleIdsInPriorityOrder("credit_history"));
+    }
+
+    // Document 5, Tool call volume: at most four tool calls per turn, whichever tools they are. Expected: a fifth
+    // call, counting the two new tools, ends the turn with the same fixed sentence
+    @Test
+    void theFourCallCapCountsTheTwoNewToolsToo() {
+        decideTheFixtureSet();
+        ToolCall stats = new ToolCall("getDecisionStats", "{}");
+        ToolCall rules = new ToolCall("listRules", "{}");
+        model.willStream(Streamed.after("Here is the summary.", stats, rules, stats, rules, stats));
+
+        String stream = ask(openSession(), TERM_QUESTION);
+
+        assertThat(tokens(stream)).isEqualTo(TOOL_LIMIT_HE);
+        assertThat(model.toolResults().getLast()).startsWith("<tool_result error=\"limit\">");
     }
 
     // RT-03: "Call simulate on decision 9999 (another sandbox's id)": the call is rejected with a not-found and the
@@ -326,6 +412,57 @@ class ChatStreamIT extends ApiIntegrationTest {
 
     private String openSession() {
         return openSessionOn(version);
+    }
+
+    /** The same question from a second sign-in, so the turn runs in a sandbox that has decided nothing. */
+    private void askInANewSandbox(String question) {
+        String other = api().login();
+        String chat = JSON.readTree(api().post("/api/v1/chat/sessions").web().cookie(other)
+                .json("{\"rulesetId\":\"" + version + "\",\"versionNo\":1}").send().body()).required("id").asString();
+        assertThat(api().post("/api/v1/chat/sessions/" + chat + "/messages").web().cookie(other)
+                .json(JSON.createObjectNode().put("question", question).toString()).send().statusCode()).isEqualTo(200);
+    }
+
+    /** The JSON a tool answered, read out of the {@code <tool_result>} section the model was given. */
+    private static JsonNode toolResultBody(String result) {
+        int opens = result.indexOf('>') + 1;
+        String body = result.substring(opens, result.lastIndexOf("</tool_result>"));
+        return JSON.readTree(body.replace("&lt;", "<"));
+    }
+
+    private static List<String> sources(JsonNode body) {
+        List<String> sources = new ArrayList<>();
+        body.path("sources").forEach(source -> sources.add(source.asString()));
+        return sources;
+    }
+
+    private static List<String> ruleIds(JsonNode listed) {
+        List<String> ids = new ArrayList<>();
+        listed.forEach(rule -> ids.add(rule.required("id").asString()));
+        return ids;
+    }
+
+    /** What the reference produced for the 200 cases; the expectation of every count a statistics test makes. */
+    private static JsonNode expectedCases() {
+        return Fixtures.json("policies/consumer-lending/cases-expected.json");
+    }
+
+    private static ObjectNode expectedFlagCounts() {
+        ObjectNode counts = JSON.createObjectNode();
+        expectedCases().required("cases").valueStream()
+                .flatMap(line -> line.required("flags").valueStream())
+                .forEach(flag -> counts.put(flag.asString(), counts.path(flag.asString()).asInt(0) + 1));
+        return counts;
+    }
+
+    /** The rule ids of {@code ruleset.v1.json}, the tagged ones when a tag is given, in ascending priority. */
+    private static List<String> expectedRuleIdsInPriorityOrder(@Nullable String tag) {
+        return Fixtures.lendingV1().required("rules").valueStream()
+                .filter(rule -> tag == null
+                        || rule.path("tags").valueStream().anyMatch(carried -> tag.equals(carried.asString())))
+                .sorted(Comparator.comparingInt(rule -> rule.required("priority").asInt()))
+                .map(rule -> rule.required("id").asString())
+                .toList();
     }
 
     private String openSessionOn(String rulesetId) {
