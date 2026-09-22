@@ -86,6 +86,9 @@ first answer the model says "the result was approval" rather than the label's wo
 position was kept. The third then follows a live answer, so its prompt matches no kept one and it is answered live
 too. Asked on its own, each of the three is served from the cache. The fourth never reaches the model.
 
+Screenshots of each step on the live site, on a desktop and on a phone, are in [`docs/demo/`](docs/demo/). The
+recorded two-minute run is linked here once it is recorded.
+
 **Closing line**: "The model wrote and explained every rule you saw. It never made a single decision."
 
 ## Setup
