@@ -5,13 +5,13 @@ import { openSse } from '../../api/sse'
 import type { Finding, VersionResponse } from '../../api/types'
 
 /**
- * The generation stream of a rule set (Document 2, API Surface: `parsing`, `authoring`, `validating`, then the
- * draft). The hook owns the stream: it aborts on a new run and reports where the work is, so the button can show
+ * The generation stream of a rule set (Document 2, API Surface: `parsing`, `authoring`, `validating`, `reviewing`,
+ * then the draft with its review). The hook owns the stream: it aborts on a new run and reports where the work is, so the button can show
  * progress instead of a spinner with nothing behind it.
  */
 
 /** The stages the API reports, in the order it reports them. */
-export const STAGES = ['parsing', 'authoring', 'validating'] as const
+export const STAGES = ['parsing', 'authoring', 'validating', 'reviewing'] as const
 
 export type Stage = (typeof STAGES)[number]
 
@@ -20,6 +20,7 @@ export const STAGE_LABELS: Record<Stage, string> = {
   parsing: 'Reading the policy',
   authoring: 'Writing the rules',
   validating: 'Checking every rule against the policy',
+  reviewing: 'Reviewing the draft for gaps, conflicts and ambiguities',
 }
 
 export interface GenerationRefusal {

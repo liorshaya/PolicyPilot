@@ -12,6 +12,7 @@ import { VersionTag } from '../../shared/ui/StatusTag'
 import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { Dashboard } from './Dashboard'
 import { DecisionList } from './DecisionList'
+import { ExplainPanel } from './ExplainPanel'
 import { TraceView } from './TraceView'
 import { engineTime } from './outcomes'
 import './CasesScreen.css'
@@ -195,7 +196,15 @@ export function CasesScreen({
               />
             ) : null}
             {decision.data ? (
-              <TraceView decision={decision.data} language={language} onSelectRule={onOpenRule} />
+              <>
+                <ExplainPanel
+                  key={decision.data.id}
+                  decisionId={decision.data.id}
+                  language={language}
+                  onOpenRule={onOpenRule}
+                />
+                <TraceView decision={decision.data} language={language} onSelectRule={onOpenRule} />
+              </>
             ) : null}
           </Panel>
         }

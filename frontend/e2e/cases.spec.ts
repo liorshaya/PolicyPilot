@@ -42,4 +42,35 @@ test.describe('the case runner', () => {
     await expect(steps.first()).toContainText('9,500')
     await expect(steps.last()).toContainText('Matched')
   })
+
+  // Work Plan day 10, Done when: "Explain on case 17 cites R-330 and its paragraph" (paragraph 7, R-330's provenance)
+  test('explains case 17 by R-330 and its paragraph when the reader asks', async ({ page }) => {
+    let asked: unknown = null
+    await page.route('**/api/v1/decisions/*/explain', (route) => {
+      asked = route.request().postDataJSON()
+      return route.fulfill({
+        json: {
+          decisionId: '0f4c1c9e-0000-4000-8000-0000000000e1',
+          audience: 'officer',
+          language: 'he',
+          promptVersion: 'v1',
+          summary:
+            'הבקשה הופנתה לבדיקת חתם לפי R-330, משום שנרשם אירוע אשראי אחד ב-24 החודשים האחרונים ואין ערב.',
+          factors: [{ ruleId: 'R-330', paragraph: 7, statement: 'נמצא אירוע אשראי אחד ואין ערב.' }],
+          conditions: [],
+          notApplied: [],
+        },
+      })
+    })
+    await page.getByRole('button', { name: 'Run 200 cases' }).first().click()
+    await page.getByRole('button', { name: '17', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Explain for an officer' }).click()
+
+    const explanation = page.getByRole('region', { name: 'Explanation' })
+    await expect(explanation.getByRole('button', { name: 'R-330' })).toBeVisible()
+    await expect(explanation.getByText('¶ 7')).toBeVisible()
+    await expect(explanation.getByText(/Written by a model from this trace alone/)).toBeVisible()
+    expect(asked).toEqual({ audience: 'officer' })
+  })
 })

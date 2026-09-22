@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import type { FieldSchema, Rule, RuleSetDocument } from '../../api/types'
+import type { FieldSchema, ReviewFinding, Rule, RuleSetDocument } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { parseCell, type Leaf } from './cellGrammar'
 import { DecisionTag } from '../../shared/ui/StatusTag'
+import { KIND_LABELS } from './findings'
 import { bandedRows, columnsOf, decisionOf, type Cell, type Row } from './tableModel'
 import './DecisionTable.css'
 
@@ -15,6 +16,8 @@ interface DecisionTableProps {
   onEditCell?: (ruleId: string, previous: Leaf, next: Leaf) => void
   /** The JSON pointers the API refused (Document 2, 422 with the error list), shown on the cells they name. */
   problems?: { path: string; problem: string }[]
+  /** The reviewer's findings by the rules they name (Document 2, Flow 1), shown as warnings on those rows. */
+  reviewFindings?: Map<string, ReviewFinding[]>
 }
 
 /**
@@ -28,6 +31,7 @@ export function DecisionTable({
   onSelect,
   onEditCell,
   problems = [],
+  reviewFindings = new Map(),
 }: DecisionTableProps) {
   const columns = columnsOf(document)
   const bands = bandedRows(document)
@@ -99,6 +103,7 @@ export function DecisionTable({
                       {row.rule.label}
                     </bdi>
                   </button>
+                  <ReviewMarks findings={reviewFindings.get(row.rule.id) ?? []} />
                 </th>
                 <td className="table__priority tabular">{row.rule.priority}</td>
                 {columns.map((column) => (
@@ -122,6 +127,31 @@ export function DecisionTable({
         ))}
       </table>
     </div>
+  )
+}
+
+/**
+ * The reviewer's findings on one rule, as small marks under its label: the kind in words, an error told apart from a
+ * warning, and an acknowledged one muted. The findings themselves are read in the review panel.
+ */
+function ReviewMarks({ findings }: { findings: ReviewFinding[] }) {
+  if (findings.length === 0) {
+    return null
+  }
+  return (
+    <span className="table__marks">
+      {findings.map((finding) => (
+        <span
+          key={finding.id}
+          className={`table__mark table__mark--${finding.severity}${
+            finding.acknowledgement ? ' table__mark--done' : ''
+          }`}
+          title={`${finding.id}: ${finding.message}`}
+        >
+          {KIND_LABELS[finding.kind]}
+        </span>
+      ))}
+    </span>
   )
 }
 
