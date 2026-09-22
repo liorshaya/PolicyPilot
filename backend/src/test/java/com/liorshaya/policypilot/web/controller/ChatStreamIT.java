@@ -44,7 +44,11 @@ import tools.jackson.databind.node.ObjectNode;
 class ChatStreamIT extends ApiIntegrationTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-    private static final String TERM_QUESTION = "מהי תקופת ההחזר המקסימלית להלוואה?";
+    /**
+     * A term question that is not one of the scripted questions, so its answers are never cached (Document 4, Serving
+     * the scripted questions from the cache) and each test's scripted stream is the one it reads.
+     */
+    private static final String TERM_QUESTION = "What is the longest term a loan may have?";
     private static final String NOT_COVERED_HE =
             "המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.";
     private static final String TOOL_LIMIT_HE =
@@ -91,6 +95,20 @@ class ChatStreamIT extends ApiIntegrationTest {
         String messageId = dataOf(stream, "done").required("messageId").asString();
         assertThat(jdbc.sql("select content from chat_message where id = :id").param("id", UUID.fromString(messageId))
                 .query(String.class).single()).isEqualTo("The maximum term is 84 months.[[p:2]]");
+    }
+
+    // Document 4: only the scripted questions are cached. Expected: an unscripted question answered twice by the model,
+    // the second time with the second answer, though the first cited its paragraph and said 84
+    @Test
+    void anUnscriptedQuestionIsAnsweredByTheModelEveryTime() {
+        model.willStream(Streamed.text("The maximum term is 84 months.[[p:2]]"),
+                Streamed.text("Seven years, 84 months.[[p:2]]"));
+
+        ask(openSession(), TERM_QUESTION);
+        String again = ask(openSession(), TERM_QUESTION);
+
+        assertThat(tokens(again)).isEqualTo("Seven years, 84 months.[[p:2]]");
+        assertThat(model.asked()).hasSize(2);
     }
 
     // Document 4, Marker resolution: a marker whose id was not supplied is removed and not cited. Expected: R-999,

@@ -388,11 +388,20 @@ public class SpringAiLlmGateway implements LlmGateway {
     }
 
     private String modelFor(ModelRole role) {
+        return modelFor(role, properties);
+    }
+
+    /** The model a role names in the active profile. */
+    static String modelFor(ModelRole role, PolicyPilotProperties properties) {
         return role == ModelRole.STRONG ? properties.ai().models().strong() : properties.ai().models().fast();
     }
 
-    /** The provider's own name, taken from the model implementation: OpenAiChatModel is openai, and so on. */
     private String provider() {
+        return providerOf(chat);
+    }
+
+    /** The provider's own name, taken from the model implementation: OpenAiChatModel is openai, and so on. */
+    static String providerOf(ChatModel chat) {
         String name = chat.getClass().getSimpleName().toLowerCase(Locale.ROOT);
         return name.endsWith("chatmodel") ? name.substring(0, name.length() - "chatmodel".length()) : name;
     }
