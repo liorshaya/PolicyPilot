@@ -148,11 +148,11 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 10, Tue Sep 22 to Wed Sep 23: `review` and `explain`**
 
-- [ ] `review/v1` with the six kinds, anchors, severities; `reviewing` stage; warnings on decision table rows; gap acknowledgement before publish (restored: rung 9)
-- [ ] `explain/v1`: `POST /decisions/{id}/explain`, trace as the only source, fired-rules filter, caching, two audiences; "Explain" in the trace view (restored: rungs 8 and 5)
+- [x] `review/v1` with the six kinds, anchors, severities; `reviewing` stage; warnings on decision table rows; gap acknowledgement before publish (restored: rung 9; #82, #85, #87)
+- [x] `explain/v1`: `POST /decisions/{id}/explain`, trace as the only source, fired-rules filter, caching, two audiences; "Explain" in the trace view (restored: rungs 8 and 5; #83, #84)
 - [x] Labeled policies 4 to 9 with seeded findings (committed before day 1)
-- [ ] Tests: anchor validation; review recording per kind including `injection`; RT-05; publish blocked by an unacknowledged gap; explanation contract; skipped-rule citation filtered; explain caching; Playwright step 1 complete; findings rendering (restored: rungs 9 and 8)
-- [ ] Step 1 shows the ambiguity and the conflict on the cloud site; "Explain" on case 17 cites R-330 and its paragraph (restored: rungs 9 and 8)
+- [x] Tests: anchor validation; review recording per kind including `injection`; RT-05; publish blocked by an unacknowledged gap; explanation contract; skipped-rule citation filtered; explain caching; Playwright step 1 complete; findings rendering (restored: rungs 9 and 8)
+- [x] Step 1 shows the ambiguity and the conflict on the cloud site; "Explain" on case 17 cites R-330 and its paragraph (restored: rungs 9 and 8; the cloud check of 2026-09-22 in the worklog)
 
 **Day 11, Wed Sep 23: `EvalRunner` and G2**
 
