@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.rag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
@@ -27,6 +28,9 @@ class ChunkSchemaIT extends ApiIntegrationTest {
 
     @Autowired
     private RulesetService rulesets;
+
+    @Autowired
+    private PolicyService policies;
 
     // Document 2, Storage: vector(1536) for text-embedding-3-small; the openai profile. Expected: vector(1536)
     @Test
@@ -62,10 +66,12 @@ class ChunkSchemaIT extends ApiIntegrationTest {
     }
 
     // Document 5, principle 1, and the day-8 brief: the API role writes and replaces a version's chunks. Expected:
-    // one row inserted, read back through the role, and deleted
+    // one row inserted, read back through the role, and deleted. The row goes into a draft of this test's own, never
+    // into the seeded version: EmbeddingJobIT counts the seeded version's 29 chunks while this class runs beside it.
     @Test
     void apiRoleInsertsReadsAndDeletesChunks() {
-        UUID version = seededVersionId();
+        UUID version = new RagFixtures(policies, rulesets, jdbc).draft(UUID.randomUUID(), "פסקה לבדיקת הרשאות")
+                .versionId();
         String refId = "grant-check-" + UUID.randomUUID();
 
         int inserted = insert(version, "PARAGRAPH", refId);
