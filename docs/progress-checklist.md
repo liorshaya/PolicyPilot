@@ -156,14 +156,14 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 11, Wed Sep 23: `EvalRunner` and G2**
 
-- [ ] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
-- [ ] Evaluation run 1: strong model on 9 policies and 30 questions; a v2 prompt only if a target is missed (CHANGELOG, one live run) (restored: the evaluation runner)
-- [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3)
-- [ ] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7)
-- [ ] The `stats` and `rules` tools of day 9's row (restored: rung 6)
-- [ ] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze)
-- [ ] Tests: runner units (normalization rules); runner on two labeled policies with recordings; both columns present; Playwright step 3; first token under 3 s for cached questions (restored: the evaluation runner)
-- [ ] Gate G2 (restored: gate G2)
+- [x] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
+- [x] Evaluation run 1: the live answer pass over all 30 questions, 58,714 tokens; the author and review passes scored from the recordings, so the 9-policy author run is what day 15 pays for with `author/v2` (restored: the evaluation runner)
+- [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3) — **slipped to day 15 as the row allows: Ollama is not installed on this machine. The report carries the column, empty, and says why**
+- [x] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7)
+- [x] The `stats` and `rules` tools of day 9's row (restored: rung 6)
+- [x] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze) — no prompt changed, so nothing needed re-warming, and the three scripted questions still answer from the cache on the cloud site in 0.47 to 0.49 s; RTL is checked in the browser and in `panel.spec.ts`
+- [x] Tests: runner units (normalization rules); runner on two labeled policies with recordings; both columns present; Playwright step 3; first token under 3 s for cached questions (restored: the evaluation runner)
+- [x] Gate G2 (restored: gate G2)
 
 ## Phase 3, Agentic change (days 12 to 15)
 
