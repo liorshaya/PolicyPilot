@@ -9,6 +9,8 @@ import com.liorshaya.policypilot.policy.service.PolicyView;
 import com.liorshaya.policypilot.rag.service.Retrieval;
 import com.liorshaya.policypilot.rag.service.RetrievalService;
 import com.liorshaya.policypilot.rag.service.RetrievedChunk;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
+import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
@@ -67,6 +69,7 @@ class EvalRunnerIT {
     private static final String PROVIDER = System.getProperty("provider", "openai");
     /** Whose vectors {@link RecordedEmbeddingGateway} replays; day 8 recorded one provider's and no other's. */
     private static final String EMBEDDINGS_RECORDED_FOR = "openai";
+    private static final RuleSetMapper MAPPER = new RuleSetMapper();
 
     /** A database of its own: another context's embedding job must never meet this context's recorded gateway. */
     @ServiceConnection
@@ -176,6 +179,7 @@ class EvalRunnerIT {
             writeIfDated(report, date);
             return;
         }
+        scoreCitations(report, asked);
         report.score(PROVIDER, "Retrieval recall at 8", Metric.Score.of(answered, scored.size()))
                 .score(PROVIDER, "Refusal accuracy",
                         Metric.Score.of(refusedRight + coveredRight, refusals.size() + covered.size()))
@@ -205,6 +209,55 @@ class EvalRunnerIT {
         if (!date.isEmpty()) {
             System.out.println("report written to " + report.write().normalize());
         }
+    }
+
+    /**
+     * Document 4: "Citation accuracy --- answers whose markers are all valid and include the expected source",
+     * over the answers a live pass recorded. A question with no recorded answer is not counted either way; the
+     * report says how many were scored.
+     */
+    private void scoreCitations(EvalReport report, List<Asked> asked) {
+        Recordings answers = Recordings.of(PROVIDER, "answer", "v1");
+        if (answers.isEmpty()) {
+            return;
+        }
+        int counted = 0;
+        int scored = 0;
+        for (Asked one : asked) {
+            JsonNode question = one.question();
+            if (question.required("expectedMarkers").isEmpty()) {
+                continue;
+            }
+            scored++;
+            Recordings recorded = answers.about(List.of(question.required("question").asString()));
+            if (recorded.isEmpty()) {
+                // the Threshold stopped the question, so there is no answer at all. A question that expects a
+                // marker and got none has not cited its source, and counting it anywhere but against the metric
+                // would be the runner excusing the one case it exists to catch
+                report.mismatch(question.required("id").asString()
+                        + " (citations): no answer was written; the retrieval threshold stopped the question");
+                continue;
+            }
+            RuleSet version = MAPPER.toRuleSet(Fixtures.json(question.required("ruleset").asString()));
+            CitationScoring.Scored line = CitationScoring.score(question,
+                    recorded.calls().getFirst().required("response").asString(),
+                    recorded.calls().getFirst().path("steps"), version, paragraphsOf(question));
+            if (line.counted()) {
+                counted++;
+            } else {
+                report.mismatch(line.questionId() + " (citations): " + line.note());
+            }
+        }
+        report.score(PROVIDER, "Citation accuracy", Metric.Score.of(counted, scored));
+        report.note("Citation accuracy is scored over every one of the " + scored + " questions that expect a "
+                + "marker, including any the Threshold stopped before the model: an answer that was never written "
+                + "did not cite its source. A marker counts as valid when the version can supply it: a paragraph "
+                + "the policy has, a rule the version has, or a decision or simulation a tool returned.");
+    }
+
+    private static int paragraphsOf(JsonNode question) {
+        return (int) read(question.required("policyText").asString()).lines()
+                .map(String::strip).filter(line -> !line.isEmpty()).count();
     }
 
     /** Publishes one policy's expected rule set in a sandbox of its own and waits for the recorded vectors. */

@@ -10,7 +10,7 @@
   "steps" : [ ],
   "response" : "תקופת ההחזר המקסימלית להלוואה היא 84 חודשים. [[p:2]] [[r:R-130]]",
   "usage" : {
-    "inputTokens" : 1648,
+    "inputTokens" : 1723,
     "outputTokens" : 32
   }
 }

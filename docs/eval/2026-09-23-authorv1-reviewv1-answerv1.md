@@ -13,7 +13,7 @@ Document 4, "Evaluation Set and Metrics". Prompt versions: `author` v1, `review`
 | Reviewer recall | 0.80 | 0.87 (78 of 90) | not run | PASS |
 | Reviewer precision | 0.70 | at least 0.46 (78 of 170) | not run | undecided (needs an analyst pass) |
 | Retrieval recall at 8 | 0.90 | 0.91 (21 of 23) | not run | PASS |
-| Citation accuracy | 0.90 | not run | not run | not run |
+| Citation accuracy | 0.90 | 0.96 (22 of 23) | not run | PASS |
 | Refusal accuracy | 0.90 | 0.90 (27 of 30) | not run | PASS |
 | Change correctness | 0.83 | not run | not run | not run |
 | Confidence calibration | reported | 1.00 (1 of 1) | not run | reported |
@@ -21,6 +21,7 @@ Document 4, "Evaluation Set and Metrics". Prompt versions: `author` v1, `review`
 - Reviewer precision is the floor Document 4's definition allows a runner to compute: the findings answering a seeded defect over all of them. The other half, "confirmed real on inspection", needs a person, so a floor under the target settles nothing.
 - Retrieval and refusal are measured on the vectors of text-embedding-3-small, recorded by the day 8 live pass; the rest of the column is the strong model's.
 - Author metrics cover 1 of the labeled policies, the ones whose authoring is recorded; reviewer metrics cover 18.
+- Citation accuracy is scored over every one of the 23 questions that expect a marker, including any the Threshold stopped before the model: an answer that was never written did not cite its source. A marker counts as valid when the version can supply it: a paragraph the policy has, a rule the version has, or a decision or simulation a tool returned.
 - Retrieval recall at 8 is counted as Document 4 words it: a question whose expected chunk is among the eight. Read strictly, as every expected chunk of a question, it is 16 of 23; counted chunk by chunk it is 48 expected chunks of which 38 were kept.
 - Refusal accuracy counts both directions: 4 of 6 not-covered questions stopped before the model, and 23 of 24 covered questions not stopped.
 
@@ -109,6 +110,7 @@ Document 4, "Evaluation Set and Metrics". Prompt versions: `author` v1, `review`
 - scholarship-need SF-1: no finding of kind ambiguity on paragraphs [3] or rules [R-040]
 - synthetic-referral-first SF-1: no finding of kind ambiguity on paragraphs [3] or rules [R-230]
 - warranty-claim-electronics SF-1: no finding of kind ambiguity on paragraphs [3] or rules [R-110]
+- Q-14 (citations): no answer was written; the retrieval threshold stopped the question
 - Q-01 (consumer-lending): missed p:7, r:R-330; the question's own tool is getDecision
 - Q-05 (consumer-lending): missed p:7
 - Q-07 (consumer-lending): missed p:6
