@@ -35,10 +35,11 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The review use case (Document 4, Prompt 2: Review; Brief FR-5): a validated draft goes to the model next to the
- * policy it was written from, and what comes back is checked before anyone sees it. The answer must match the
- * Findings contract; then each finding must pass the three rules the schema cannot express and name only rules the
- * draft has and paragraphs the policy has. A finding that fails is dropped and logged as a reviewer error, never
- * shown; the rest are numbered {@code F-1}, {@code F-2}, ... in the order the model gave them.
+ * policy it was written from, and what comes back is checked before anyone sees it. The answer must be an object with
+ * a findings list; then each finding must match the Findings contract, pass the three rules the schema cannot express
+ * and name only rules the draft has and paragraphs the policy has. A finding that fails is dropped and logged as a
+ * reviewer error, never shown; the rest are numbered {@code F-1}, {@code F-2}, ... in the order the model gave them.
+ * An answer that is not a findings list at all is forgotten by the cache, so it is never served again.
  *
  * <p>Nothing is stored here: the caller keeps the review with its draft (Document 2, Flow 1).
  */
@@ -68,20 +69,33 @@ public class ReviewService {
      * @param title the policy's title, shown to the model in the data section
      * @param language the policy's language, which the messages are written in
      * @param draft the validated DSL document
+     * @param fresh true to read the draft again rather than take a cached answer (Document 2, {@code POST .../review})
      * @throws com.liorshaya.policypilot.ai.LlmUnavailableException when the provider failed
-     * @throws LlmMalformedOutputException when the answer was not a Findings object
+     * @throws LlmMalformedOutputException when the answer was not an object with a findings list
      */
-    public Reviewed review(PolicyVersionRef policy, String title, String language, JsonNode draft) {
+    public Reviewed review(PolicyVersionRef policy, String title, String language, JsonNode draft, boolean fresh) {
         PromptSpec spec = specFor(policy, title, language, draft);
+        if (fresh) {
+            gateway.forget(spec);
+        }
         Completion<String> answer = gateway.complete(spec, String.class);
-        JsonNode findings = parse(answer.value());
+        JsonNode findings;
+        try {
+            findings = parse(answer.value());
+        } catch (LlmMalformedOutputException e) {
+            // Document 2, Flow 1: an answer the checks refuse is never served from the cache again
+            gateway.forget(spec);
+            throw e;
+        }
         Set<String> ruleIds = ruleIds(draft);
         int paragraphs = policy.paragraphs().size();
 
         List<ReviewFinding> kept = new ArrayList<>();
         List<String> dropped = new ArrayList<>();
         for (JsonNode finding : findings.path("findings")) {
-            Optional<String> problem = problemOf(finding, ruleIds, paragraphs);
+            Optional<String> problem = keepsTheContract(finding)
+                    ? problemOf(finding, ruleIds, paragraphs)
+                    : Optional.of("CONTRACT");
             if (problem.isPresent()) {
                 dropped.add(problem.get());
                 // Document 4: a finding whose anchors do not exist is a reviewer error for the evaluation
@@ -121,6 +135,10 @@ public class ReviewService {
         return prompts.get("review").version();
     }
 
+    /**
+     * Document 4, Output Contracts: the review fails only when the answer is not an object with a findings list; a
+     * finding that breaks the contract is dropped later, one by one, and a misshapen coverage entry is dropped here.
+     */
     private JsonNode parse(String answer) {
         JsonNode parsed;
         try {
@@ -128,14 +146,22 @@ public class ReviewService {
         } catch (RuntimeException e) {
             throw new LlmMalformedOutputException("the review answer was not JSON", answer, e);
         }
-        if (!parsed.isObject()) {
-            throw new LlmMalformedOutputException("the review answer is not a Findings object", answer, null);
+        if (!(parsed instanceof ObjectNode object) || !object.path("findings").isArray()) {
+            throw new LlmMalformedOutputException("the review answer is not a findings list", answer, null);
         }
-        dropMisshapenCoverage((ObjectNode) parsed);
-        if (!schema.validate(parsed).isEmpty()) {
-            throw new LlmMalformedOutputException("the review answer is not a Findings object", answer, null);
+        if (!object.path("coverage").isObject()) {
+            object.putObject("coverage");
         }
-        return parsed;
+        dropMisshapenCoverage(object);
+        return object;
+    }
+
+    /** Whether one finding matches the Findings contract, checked on its own so the others stand without it. */
+    private boolean keepsTheContract(JsonNode finding) {
+        ObjectNode alone = JSON.createObjectNode();
+        alone.putArray("findings").add(finding);
+        alone.putObject("coverage");
+        return schema.validate(alone).isEmpty();
     }
 
     /**
@@ -160,7 +186,10 @@ public class ReviewService {
         }
     }
 
-    /** Why a finding cannot be shown, or empty when it can (Document 4, Output Contracts and Prompt 2). */
+    /**
+     * Why a finding that keeps the contract still cannot be shown, or empty when it can (Document 4, Output Contracts
+     * and Prompt 2).
+     */
     private static Optional<String> problemOf(JsonNode finding, Set<String> ruleIds, int paragraphs) {
         FindingKind kind = FindingKind.of(finding.required("kind").asString());
         String severity = finding.required("severity").asString();

@@ -47,6 +47,14 @@ public class ProposalCache {
                 .map(stored -> JSON.readTree(stored).path(FIELD).asString());
     }
 
+    /** Drops the answer stored under the key, if there is one. */
+    @Transactional
+    public void forget(String key) {
+        if (responses.existsById(key)) {
+            responses.deleteById(key);
+        }
+    }
+
     @Transactional
     public void put(String key, String promptName, String answer) {
         ObjectNode stored = JSON.createObjectNode();

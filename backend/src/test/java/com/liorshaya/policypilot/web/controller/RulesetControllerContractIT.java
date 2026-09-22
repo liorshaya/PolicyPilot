@@ -170,6 +170,8 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
         assertThat((String) JsonPath.read(response.body(), "$.review.status")).isEqualTo("DONE");
         assertThat((String) JsonPath.read(response.body(), "$.review.findings[0].id")).isEqualTo("F-1");
         assertThat((Boolean) JsonPath.read(response.body(), "$.review.findings[0].blocking")).isTrue();
+        // Document 2: "a fresh call: the cached answer for the same draft is forgotten first"
+        assertThat(model.forgotten()).extracting(spec -> spec.promptName()).containsExactly("review");
     }
 
     // Document 2, POST .../review: "503 PROVIDER_UNAVAILABLE leaves the review FAILED"

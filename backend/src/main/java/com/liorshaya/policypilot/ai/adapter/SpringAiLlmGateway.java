@@ -139,6 +139,11 @@ public class SpringAiLlmGateway implements LlmGateway {
         return (Completion<T>) Completion.fromProvider(answer, usage);
     }
 
+    @Override
+    public void forget(PromptSpec spec) {
+        cache.forget(ProposalCache.keyOf(spec, modelFor(spec.role())));
+    }
+
     /**
      * One streamed answer (Document 4, Prompt 4): the budget and the breaker first, as for every call, then the
      * provider's stream with the tools registered as callbacks, the first piece within the chat's first-token deadline

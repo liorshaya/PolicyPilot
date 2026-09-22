@@ -133,6 +133,24 @@ class SpringAiLlmGatewayIT extends ApiIntegrationTest {
         assertThat(recorded().get(1).cacheHit()).isTrue();
     }
 
+    // Document 2, Flow 1: a review run again reads the draft again, and a refused answer is never served twice.
+    // Expected: after forget, the same call reaches the provider a second time and answers what it says now
+    @Test
+    void aForgottenAnswerIsAskedOfTheProviderAgain() {
+        model.willAnswer("{\"findings\": \"first\"}");
+        model.willAnswer("{\"findings\": []}");
+        gateway.complete(spec(), String.class);
+
+        gateway.forget(spec());
+        Completion<String> again = gateway.complete(spec(), String.class);
+
+        assertThat(again.cacheHit()).isFalse();
+        assertThat(again.value()).isEqualTo("{\"findings\": []}");
+        assertThat(model.calls()).isEqualTo(2);
+        // forgetting what was never cached is not an error
+        gateway.forget(spec());
+    }
+
     @Test
     void aRateLimitIsRetriedAndThenSucceeds() {
         model.willFail("429 Too Many Requests");

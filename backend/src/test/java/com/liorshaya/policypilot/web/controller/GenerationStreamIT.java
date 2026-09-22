@@ -404,6 +404,11 @@ class GenerationStreamIT extends ApiIntegrationTest {
         }
 
         @Override
+        public void forget(PromptSpec spec) {
+            // the scripted model keeps no cache
+        }
+
+        @Override
         public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
             throw new UnsupportedOperationException("generation never streams text from the model");
         }

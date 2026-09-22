@@ -117,6 +117,11 @@ class LiveAnswerRecordingIT {
         }
 
         @Override
+        public void forget(PromptSpec spec) {
+            provider.forget(spec);
+        }
+
+        @Override
         public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
             ArrayNode steps = JSON.createArrayNode();
             StringBuilder text = new StringBuilder();

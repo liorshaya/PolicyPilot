@@ -521,7 +521,7 @@ Four JSON schemas and one text protocol; the RuleSet and Patches shapes are defi
 }
 ```
 
-The API enforces three rules the schema cannot: `conflict` and `unsupported` must carry `severity: error`, `injection` must carry `severity: warning` and anchor at least one paragraph, and every finding must anchor at least one rule or one paragraph. A coverage entry that is not a list of rule ids is dropped and logged rather than failing the review, because coverage only feeds the evaluation and the findings are what the analyst acts on; its first live run wrote one map as objects in 1 of 11 answers (decided 2026-09-22, day 10).
+The API enforces three rules the schema cannot: `conflict` and `unsupported` must carry `severity: error`, `injection` must carry `severity: warning` and anchor at least one paragraph, and every finding must anchor at least one rule or one paragraph. A coverage entry that is not a list of rule ids is dropped and logged rather than failing the review, because coverage only feeds the evaluation and the findings are what the analyst acts on; its first live run wrote one map as objects in 1 of 11 answers (decided 2026-09-22, day 10). For the same reason a finding that breaks the contract (a kind outside the six, a message over 400 characters, more anchors than allowed) is dropped and logged like one whose anchors do not exist, and the review fails only when the answer is not an object with a findings list: the first review of the demo draft on the cloud site broke the contract and left the draft with no findings at all, while a second run of the same draft passed it.
 
 **Explanation** (`schemas/explanation-1.0.schema.json`):
 

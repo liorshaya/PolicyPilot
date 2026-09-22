@@ -138,7 +138,7 @@ public class RulesetController {
                 throw new VersionStatusException("only a DRAFT of the sandbox's own rule set is reviewed");
             }
             try {
-                return Optional.of(reviewer.review(version.get(), session.sandboxId()));
+                return Optional.of(reviewer.review(version.get(), session.sandboxId(), true));
             } catch (LlmUnavailableException e) {
                 throw new ApiException(ErrorCode.PROVIDER_UNAVAILABLE);
             }

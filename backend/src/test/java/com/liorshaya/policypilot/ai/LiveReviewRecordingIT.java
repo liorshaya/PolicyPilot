@@ -111,7 +111,7 @@ class LiveReviewRecordingIT extends ApiIntegrationTest {
             Completion<String> answer = gateway.complete(spec, String.class);
             write(spec, answer.value());
         }
-        return replay.review(policy, title, language, draft).review().findings();
+        return replay.review(policy, title, language, draft, false).review().findings();
     }
 
     private static Path recordingOf(PromptSpec spec) {
