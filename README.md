@@ -64,7 +64,7 @@ visitor, by a script and in Chromium on a desktop and on an emulated iPhone 13.
 
 | Step | Input | What appears | Measured |
 | --- | --- | --- | --- |
-| 1. Author | Policy screen, the seeded Hebrew lending policy (12 paragraphs), "Generate rules" | The stages parsing, authoring and validating, then a draft of 22 rules. Each row opens the paragraph it quotes | 0.6 s to the draft, from the response cache (a run the cache has not seen takes 67 to 101 s) |
+| 1. Author | Policy screen, the seeded Hebrew lending policy (9 paragraphs), "Generate rules" | The stages parsing, authoring and validating, then a draft of 22 rules. Each row opens the paragraph it quotes | 0.6 s to the draft, from the response cache (a run the cache has not seen takes 67 to 101 s) |
 | 2. Decide | Cases screen, "Run 200 cases" | 113 approved, 60 rejected, 27 referred, the rules that decided most, and case 17: referred by R-330 with the values it compared | 1.3 to 1.7 s end to end, of which about 0.5 s is the network (76 to 129 ms inside the test environment) |
 | 3. Ask | Assistant screen, the three questions below, then the rate question | Hebrew answers streamed right to left, with citation chips that open the paragraph, the rule or the decision | first token: 0.7 s, 1.9 s, 1.2 s and 0.6 s |
 
