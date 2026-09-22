@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Aggregates } from '../../api/types'
-import { milliseconds, outcomeCounts, percent } from './outcomes'
+import { engineTime, outcomeCounts, percent } from './outcomes'
 
 /**
  * The dashboard's arithmetic (Document 2, statistics; Document 6, Frontend Test Design: "the dashboard
@@ -62,15 +62,23 @@ describe('outcomeCounts', () => {
   })
 })
 
-describe('percent and milliseconds', () => {
+describe('percent and engine time', () => {
   it('writes a share as a whole percentage', () => {
     expect(percent(0.565)).toBe('57%')
     expect(percent(0)).toBe('0%')
     expect(percent(1)).toBe('100%')
   })
 
-  it('writes the microseconds the engine reports as milliseconds', () => {
-    expect(milliseconds(412)).toBe('0.4 ms')
-    expect(milliseconds(76_000)).toBe('76.0 ms')
+  // The engine decides one lending case in 4 to 113 microseconds on the live site (2026-09-22); one decimal of a
+  // millisecond showed most of them as "0.0 ms"
+  it('writes a decision under a millisecond in whole microseconds, never as 0.0 ms', () => {
+    expect(engineTime(4)).toBe('4 µs')
+    expect(engineTime(412)).toBe('412 µs')
+    expect(engineTime(999)).toBe('999 µs')
+  })
+
+  it('writes a decision of a millisecond or more in milliseconds with one decimal', () => {
+    expect(engineTime(1000)).toBe('1.0 ms')
+    expect(engineTime(76_000)).toBe('76.0 ms')
   })
 })

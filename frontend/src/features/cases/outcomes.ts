@@ -42,7 +42,10 @@ export function percent(share: number): string {
   return `${String(Math.round(Number((share * 100).toFixed(6))))}%`
 }
 
-/** Microseconds as milliseconds with one decimal, the unit the engine's own budget is written in. */
-export function milliseconds(micros: number): string {
-  return `${(micros / 1000).toFixed(1)} ms`
+/**
+ * How long the engine took for one case: whole microseconds below a millisecond, where most lending cases fall, so a
+ * fast decision never reads as "0.0 ms"; milliseconds with one decimal from there, the unit of the engine's budget.
+ */
+export function engineTime(micros: number): string {
+  return micros < 1000 ? `${String(Math.round(micros))} µs` : `${(micros / 1000).toFixed(1)} ms`
 }
