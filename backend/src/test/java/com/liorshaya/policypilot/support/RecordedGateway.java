@@ -40,6 +40,7 @@ public final class RecordedGateway implements LlmGateway {
     private final List<PromptSpec> asked = new ArrayList<>();
     private final Deque<Streamed> streams = new ArrayDeque<>();
     private final List<String> toolResults = new ArrayList<>();
+    private final List<PromptSpec> forgotten = new ArrayList<>();
 
     private RecordedGateway(Path recordings, Deque<Supplier<String>> scripted) {
         this.recordings = recordings;
@@ -93,6 +94,7 @@ public final class RecordedGateway implements LlmGateway {
     public synchronized void reset() {
         streams.clear();
         scripted.clear();
+        forgotten.clear();
         asked.clear();
         toolResults.clear();
     }
@@ -168,6 +170,17 @@ public final class RecordedGateway implements LlmGateway {
         }
         String answer = scripted.isEmpty() ? replay(spec) : scripted.removeFirst().get();
         return (Completion<T>) Completion.fromProvider(answer, new TokenUsage(1_000, 500));
+    }
+
+    /** A recording has no cache to forget; the gateway keeps what a caller asked it to forget, for a test to read. */
+    @Override
+    public synchronized void forget(PromptSpec spec) {
+        forgotten.add(spec);
+    }
+
+    /** The specs a caller asked to forget, in order. */
+    public synchronized List<PromptSpec> forgotten() {
+        return List.copyOf(forgotten);
     }
 
     /** Every spec the gateway was asked, in order: what a test asserts the rendered prompt on. */

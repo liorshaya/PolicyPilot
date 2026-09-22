@@ -34,7 +34,8 @@ class RecordedReviewTest {
             new PromptRegistry(PromptRegistry.PROMPTS, Map.of()));
 
     private List<ReviewFinding> reviewOf(String slug) {
-        return reviews.review(SeededDrafts.policy(slug), slug, SeededDrafts.language(slug), SeededDrafts.draft(slug))
+        return reviews.review(SeededDrafts.policy(slug), slug, SeededDrafts.language(slug), SeededDrafts.draft(slug),
+                        false)
                 .review().findings();
     }
 
@@ -46,7 +47,8 @@ class RecordedReviewTest {
         JsonNode draft = JSON.readTree(Fixtures.json(DEMO_DRAFT).required("response").asString());
         PolicyVersionRef lending = SeededDrafts.policy("consumer-lending");
 
-        List<ReviewFinding> findings = reviews.review(lending, "מדיניות אשראי צרכני - הלוואות אישיות", "he", draft)
+        List<ReviewFinding> findings = reviews
+                .review(lending, "מדיניות אשראי צרכני - הלוואות אישיות", "he", draft, false)
                 .review().findings();
 
         List<JsonNode> seeded = SeededDrafts.seeded("consumer-lending");

@@ -124,7 +124,7 @@ public class GenerationController {
     /** The draft with its review; when the provider fails, with the FAILED review the reviewer stored. */
     private VersionView reviewed(VersionView draft, UUID sandboxId) {
         try {
-            return reviewer.review(draft, sandboxId);
+            return reviewer.review(draft, sandboxId, false);
         } catch (LlmUnavailableException e) {
             log.warn("review failed: {}", e.reason());
             return rulesets.version(draft.rulesetId(), draft.versionNo(), sandboxId).orElseThrow();

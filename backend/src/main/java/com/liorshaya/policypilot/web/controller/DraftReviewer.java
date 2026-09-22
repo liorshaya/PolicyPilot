@@ -45,9 +45,10 @@ class DraftReviewer {
     /**
      * Reviews the draft and answers it with its review.
      *
+     * @param fresh true when the analyst runs it again: the draft is read again, not taken from the cache
      * @throws LlmUnavailableException when the provider failed; the review is stored as FAILED first
      */
-    VersionView review(VersionView draft, UUID sandboxId) {
+    VersionView review(VersionView draft, UUID sandboxId, boolean fresh) {
         PolicyVersionRef policy = policies.version(draft.policyVersionId())
                 .orElseThrow(() -> new IllegalStateException("no policy version " + draft.policyVersionId()));
         PolicyView view = policies.find(policy.documentId(), sandboxId)
@@ -55,7 +56,7 @@ class DraftReviewer {
         Review review;
         try {
             review = reviews.review(policy, view.title(), view.language().name().toLowerCase(Locale.ROOT),
-                    draft.document()).review();
+                    draft.document(), fresh).review();
         } catch (LlmUnavailableException e) {
             store(draft, sandboxId, Review.failed(reviews.promptVersion()));
             throw e;

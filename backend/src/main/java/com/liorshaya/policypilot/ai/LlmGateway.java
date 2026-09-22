@@ -20,6 +20,13 @@ public interface LlmGateway {
     <T> Completion<T> complete(PromptSpec spec, Class<T> type);
 
     /**
+     * Forgets the cached answer to this call, so the next identical call asks the provider again (Document 2, Flow 1:
+     * a review run again reads the draft again, and an answer the checks refused is never served twice). Nothing
+     * happens when no answer is cached.
+     */
+    void forget(PromptSpec spec);
+
+    /**
      * One streamed text answer (the {@code answer} prompt): each piece of text goes to {@code tokens} as the provider
      * sends it, the tools the model calls run in between, and the call returns when the answer ends. It blocks, so a
      * caller runs it off the request thread; the generation stream already works that way.
