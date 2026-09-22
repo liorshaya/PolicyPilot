@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
+import { publishedTarget } from '../../api/published'
 import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from '../../api/queries'
-import type { RuleSetDocument, RulesetSummary } from '../../api/types'
+import type { RuleSetDocument } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
@@ -37,15 +38,9 @@ export function CasesScreen({
   const list = rulesets.data ?? []
   // Document 2, decide: only a published version decides. The workspace may be on a draft written a moment ago, so
   // the cases run on its latest published version, or on the first rule set that has one, and the screen says so
-  const wanted = list.find((one) => one.id === rulesetId) ?? list[0]
-  const chosen =
-    wanted && latestPublished(wanted) !== undefined
-      ? wanted
-      : list.find((one) => latestPublished(one) !== undefined)
-  const publishedNo = chosen ? latestPublished(chosen) : undefined
-  const ruleset =
-    chosen && publishedNo !== undefined ? { id: chosen.id, versionNo: publishedNo } : null
-  const elsewhere = wanted !== undefined && chosen !== undefined && wanted.id !== chosen.id
+  const target = publishedTarget(list, rulesetId)
+  const ruleset = target ? { id: target.ruleset.id, versionNo: target.versionNo } : null
+  const elsewhere = target?.elsewhere ?? false
   const version = useVersion(ruleset)
   const stats = useStats(ruleset)
   const run = useRunFixtureSet(ruleset ?? { id: '', versionNo: 1 })
@@ -224,10 +219,4 @@ export function CasesScreen({
       />
     </>
   )
-}
-
-/** The number of a rule set's newest published version, or undefined when it has none yet. */
-function latestPublished(ruleset: RulesetSummary): number | undefined {
-  return [...ruleset.versions].reverse().find((version) => version.status === 'PUBLISHED')
-    ?.versionNo
 }
