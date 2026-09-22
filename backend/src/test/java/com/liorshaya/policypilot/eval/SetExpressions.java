@@ -27,6 +27,8 @@ import tools.jackson.databind.node.ObjectNode;
 final class SetExpressions {
 
     private static final RuleEngine ENGINE = new RuleEngine();
+    /** Stands for a case the expression could not be evaluated on; never equal to a value the engine wrote. */
+    private static final Object UNEVALUABLE = new Object();
 
     private SetExpressions() {}
 
@@ -36,8 +38,13 @@ final class SetExpressions {
         CompiledRuleSet compiled = CompiledRuleSet.compile(derivationsOnly(expected, target, expression));
         List<@Nullable Object> values = new ArrayList<>();
         for (ObjectNode input : cases) {
-            Evaluation evaluation = ENGINE.evaluate(compiled, input.deepCopy());
-            values.add(evaluation instanceof Decision decision ? decision.derived().get(target) : null);
+            try {
+                Evaluation evaluation = ENGINE.evaluate(compiled, input.deepCopy());
+                values.add(evaluation instanceof Decision decision ? decision.derived().get(target) : null);
+            } catch (RuntimeException e) {
+                // an expression the labeled fields cannot satisfy writes no value here, and agrees with none
+                values.add(UNEVALUABLE);
+            }
         }
         return values;
     }

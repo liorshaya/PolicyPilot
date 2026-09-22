@@ -142,6 +142,12 @@ final class RuleMatcher {
                 if (!other.field().equals(set.field())) {
                     yield "it sets " + other.field() + ", not " + set.field();
                 }
+                Set<String> unknown = new TreeSet<>(FieldNames.ofValue(other.value()));
+                unknown.removeIf(name -> labeled.fields().stream().anyMatch(field -> field.name().equals(name)));
+                if (!unknown.isEmpty()) {
+                    yield "the set value reads " + String.join(", ", unknown)
+                            + " (no field of that name is expected)";
+                }
                 yield SetExpressions.agree(labeled, set.field(), set.value(), other.value(), cases) ? null
                         : "the set value " + SetExpressions.difference(labeled, set.field(), set.value(),
                                 other.value(), cases);

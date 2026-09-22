@@ -2,7 +2,6 @@ package com.liorshaya.policypilot.eval;
 
 import com.liorshaya.policypilot.rules.model.Call;
 import com.liorshaya.policypilot.rules.model.Condition;
-import com.liorshaya.policypilot.rules.model.Expression;
 import com.liorshaya.policypilot.rules.model.FieldRef;
 import com.liorshaya.policypilot.rules.model.Operand;
 import java.util.LinkedHashSet;
@@ -47,10 +46,10 @@ final class FieldNames {
         }
     }
 
-    /** Every field an expression reads, for the same reason. */
-    static Set<String> of(Expression expression) {
+    /** Every field a value reads: the right-hand side of a comparison, or what a {@code set} action writes. */
+    static Set<String> ofValue(Operand operand) {
         Set<String> names = new LinkedHashSet<>();
-        collect((Operand) expression, names);
+        collect(operand, names);
         return names;
     }
 }
