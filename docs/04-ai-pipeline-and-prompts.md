@@ -344,7 +344,7 @@ Return only the JSON object.
 
 **Output**: `{ "summary": "...", "factors": [ { "ruleId", "paragraph", "statement" } ], "conditions": [ { "flagCode", "statement" } ], "notApplied": [ { "ruleId", "statement" } ], "language" }`; the API checks that every `ruleId` appears in the trace with status `fired` (for `factors`) or `not_fired` (for `notApplied`), that every paragraph number matches that rule's provenance in the trace, and that no `skipped` rule is mentioned; a violation drops the offending entry and logs it.
 
-**Caching**: keyed by decision id and prompt version and audience, so the same decision explained twice costs one call; the demo's step 2 opens case 17 from the cache.
+**Caching**: keyed by the decision object, the audience and the prompt version (with the model, as every cached call is), so the same decision explained twice costs one call. The object carries no decision id: every visitor decides case 17 in a sandbox of their own under a new id, and a key by id would miss for each of them, while the same trace shares one explanation (decided 2026-09-22, day 10). The demo's step 2 opens case 17 from the cache.
 
 ## Retrieval Pipeline
 
@@ -561,7 +561,7 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 | `author` | strong | 0 | 24,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
 | `repair` | same as the prompt it repairs | 0 | same | shares the original budget | n/a | none |
 | `review` | strong | 0 | 4,000 | 45 s | 0 | by input hash |
-| `explain` | fast | 0.3 | 800 | 20 s | 0 | by decision id, audience, prompt version |
+| `explain` | fast | 0.3 | 800 | 20 s | 0 | by decision object, audience, prompt version |
 | `answer` | fast | 0.3 | 1,200 | 20 s to first token, 60 s total | 0 | scripted demo questions that meet their label, tool results re-checked on every hit |
 | `change` | strong | 0 | 6,000 | 60 s | 2 | by input hash (request, version id, prompt version, model) |
 
