@@ -152,8 +152,9 @@ public class DecisionService {
     }
 
     /**
-     * Outcome counts and the top deciding rules over this sandbox's decisions on this version (Document 2, stats):
-     * the latest decision of each case counts once, so running the fixture set twice does not double the numbers.
+     * Outcome counts, the top deciding rules and the flag counts over this sandbox's decisions on this version
+     * (Document 2, stats): the latest decision of each case counts once, so running the fixture set twice does not
+     * double the numbers.
      */
     @Transactional(readOnly = true)
     public Aggregates stats(UUID versionId, UUID sandboxId) {
@@ -231,6 +232,7 @@ public class DecisionService {
     private static Aggregates aggregates(Iterable<DecisionEntity> rows) {
         Map<String, Integer> outcomes = new LinkedHashMap<>(Map.of("approve", 0, "reject", 0, "refer", 0));
         Map<String, Integer> deciding = new LinkedHashMap<>();
+        Map<String, Integer> flags = new LinkedHashMap<>();
         int errors = 0;
         int decisions = 0;
         for (DecisionEntity row : rows) {
@@ -243,6 +245,7 @@ public class DecisionService {
             if (row.getDecidingRuleId() != null) {
                 deciding.merge(row.getDecidingRuleId(), 1, Integer::sum);
             }
+            flagsOf(row).forEach(flag -> flags.merge(flag, 1, Integer::sum));
         }
         List<Aggregates.TopRule> top = deciding.entrySet().stream()
                 .map(entry -> new Aggregates.TopRule(entry.getKey(), entry.getValue()))
@@ -250,7 +253,7 @@ public class DecisionService {
                         .thenComparing(Aggregates.TopRule::ruleId))
                 .limit(Aggregates.TOP_RULES)
                 .toList();
-        return new Aggregates(outcomes, errors, top, decisions);
+        return new Aggregates(outcomes, errors, top, decisions, flags);
     }
 
     private DecisionView view(PublishedVersion version, DecisionEntity row) {

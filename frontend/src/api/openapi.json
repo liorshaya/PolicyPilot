@@ -1739,9 +1739,16 @@
           "decisions" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "flagCounts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         },
-        "required" : [ "decisions", "errors", "outcomes", "topDecidingRules" ]
+        "required" : [ "decisions", "errors", "flagCounts", "outcomes", "topDecidingRules" ]
       },
       "TopRule" : {
         "type" : "object",

@@ -559,6 +559,9 @@ export interface components {
             topDecidingRules: components["schemas"]["TopRule"][];
             /** Format: int32 */
             decisions: number;
+            flagCounts: {
+                [key: string]: number;
+            };
         };
         TopRule: {
             ruleId: string;

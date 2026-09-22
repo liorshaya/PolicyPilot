@@ -14,7 +14,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 /**
  * The argument validators of the chat's tools (Document 2, Tools available to the answer prompt; Document 5, model
  * output is untrusted input): {@code getDecision(applicationNumber)} and {@code simulate(applicationNumber,
- * overrides)}, whose overrides must name declared fields of the version. The fields are the lending fixture's.
+ * overrides)}, whose overrides must name declared fields of the version, {@code getDecisionStats()}, which takes
+ * none, and {@code listRules(tag?)}, whose tag is optional. The fields are the lending fixture's.
  */
 @Requirement("FR-14")
 class ToolArgumentsTest {
@@ -44,6 +45,32 @@ class ToolArgumentsTest {
 
         assertThat(ToolArguments.applicationNumber(arguments, "overrides")).isEqualTo(17);
         assertThat(ToolArguments.overrides(arguments, LENDING).toString()).isEqualTo("{\"has_guarantor\":true}");
+    }
+
+    // Document 4, getDecisionStats(). Expected: the empty object the tool's schema declares is accepted, and an
+    // argument the tool has no use for is refused rather than ignored (Document 5, model output is untrusted)
+    @Test
+    void getDecisionStatsTakesNoArguments() {
+        ToolArguments.none("{}");
+
+        assertThatThrownBy(() -> ToolArguments.none("{\"versionNo\":2}")).isInstanceOf(ToolArgumentException.class);
+        assertThatThrownBy(() -> ToolArguments.none("not json")).isInstanceOf(ToolArgumentException.class);
+    }
+
+    // Document 4, listRules(tag?). Expected: the tag as written, and nothing when it is left out
+    @Test
+    void readsTheOptionalTagOfARuleListing() {
+        assertThat(ToolArguments.tag("{\"tag\":\"credit_history\"}")).isEqualTo("credit_history");
+        assertThat(ToolArguments.tag("{}")).isNull();
+    }
+
+    // Document 5, model output is untrusted input. Expected: a tag that is not a short plain word, and any other
+    // argument, are refused rather than passed to the listing
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"{\"tag\":17}", "{\"tag\":\"\"}", "{\"tag\":\"a tag with spaces\"}",
+        "{\"tag\":\"credit_history\",\"limit\":5}", "[\"credit_history\"]", "not json"})
+    void refusesATagThatIsNotAPlainWord(String arguments) {
+        assertThatThrownBy(() -> ToolArguments.tag(arguments)).isInstanceOf(ToolArgumentException.class);
     }
 
     // Document 2, simulate: "overrides must name declared fields". Expected: no overrides, an empty object, a field the
