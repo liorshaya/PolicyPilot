@@ -1,0 +1,16 @@
+# The scripted demo questions whose answers the cache keeps (Document 4, Prompt 4: Serving the scripted questions from
+# the cache), each with the label a kept answer must meet: every marker cited ("sim:*" is any simulation) and every
+# word said. Copied from Q-01 to Q-03 of fixtures/eval/questions.json; ScriptedAnswersTest keeps them equal.
+questions:
+  - id: Q-01
+    question: "למה בקשה מספר 17 הופנתה לבדיקה?"
+    cites: ["d:17", "p:7"]
+    contains: ["ערב"]
+  - id: Q-02
+    question: "האם בקשה 17 הייתה מאושרת אם היה ערב?"
+    cites: ["sim:*", "r:R-900"]
+    contains: ["מאושר"]
+  - id: Q-03
+    question: "מהי תקופת ההחזר המקסימלית להלוואה?"
+    cites: ["p:2"]
+    contains: ["84"]

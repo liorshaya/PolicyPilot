@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.ai.service.chat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.liorshaya.policypilot.ai.CachedAnswer;
 import com.liorshaya.policypilot.ai.ChatTool;
 import com.liorshaya.policypilot.ai.ModelRole;
 import com.liorshaya.policypilot.ai.PromptSpec;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * One answer as it streams (Document 4, Prompt 4): the resolver's text goes to the client, the denylist watches it,
  * and the answer ends with its citations, with none when it refuses, or with the fixed sentence when the turn ran past
- * the tool caps (Document 5, Tool call volume). The model is the recorded gateway; the sentences are Document 4's.
+ * the tool caps (Document 5, Tool call volume); a cached answer is replayed through the same resolver and denylist once
+ * its tool calls return what they returned. The model is the recorded gateway; the sentences are Document 4's.
  */
 @Requirement({"FR-13", "FR-14"})
 class AnswerComposerTest {
@@ -99,17 +102,127 @@ class AnswerComposerTest {
                 .isEqualTo(1.0);
     }
 
+    // Document 4, Serving the scripted questions from the cache: "every tool call with its arguments and the exact
+    // result the tool returned". Expected: the one getDecision call, as the model wrote it, with the tool's section
+    @Test
+    void aLiveAnswerKeepsEachToolCallWithTheResultItReturned() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        ToolCall call = new ToolCall("getDecision", "{\"applicationNumber\":17}");
+
+        AnswerComposer.Answer answer = composer(Streamed.after("Referred.[[d:17]]", call))
+                .compose(spec(), List.of(decisionTool(turn, "refer")), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(answer.steps()).containsExactly(new CachedAnswer.ToolStep("getDecision",
+                "{\"applicationNumber\":17}", "<tool_result id=\"d:17\">{\"outcome\":\"refer\"}</tool_result>"));
+        assertThat(answer.overrun()).isFalse();
+    }
+
+    // Document 5: a turn past the caps is overrun, which the cache never keeps. Expected: the answer marked overrun
+    @Test
+    void aTurnPastTheCapsIsMarkedOverrun() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        ToolCall call = new ToolCall("getDecision", "{\"applicationNumber\":17}");
+
+        AnswerComposer.Answer answer = composer(Streamed.after("Referred.[[d:17]]", call, call, call, call, call))
+                .compose(spec(), List.of(decisionTool(turn, "refer")), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(answer.overrun()).isTrue();
+    }
+
+    // Document 4: "A hit is served only after the stored calls run again through the turn's own tools ... and every
+    // result equals the stored one". Expected: the stored text shown, d:17 cited, no tokens spent, the model not asked
+    @Test
+    void aReplayWhoseToolsReturnTheStoredResultsIsShownWithoutTheModel() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        RecordedGateway model = RecordedGateway.streaming();
+        CachedAnswer cached = new CachedAnswer("Referred.[[d:17]]", List.of(new CachedAnswer.ToolStep("getDecision",
+                "{\"applicationNumber\":17}", "<tool_result id=\"d:17\">{\"outcome\":\"refer\"}</tool_result>")));
+
+        Optional<AnswerComposer.Answer> replayed = composer(model).replay(spec(), cached,
+                List.of(decisionTool(turn, "refer")), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(replayed).map(AnswerComposer.Answer::text).contains("Referred.[[d:17]]");
+        assertThat(replayed.orElseThrow().cited()).containsExactly("d:17");
+        assertThat(replayed.orElseThrow().usage()).isEqualTo(TokenUsage.NONE);
+        assertThat(String.join("", shown)).isEqualTo("Referred.[[d:17]]");
+        assertThat(model.asked()).isEmpty();
+    }
+
+    // Document 4: "any difference ... discards the replay". Expected: a decision that now approves where the stored
+    // one referred discards the replay before anything is shown
+    @Test
+    void aReplayWhoseToolReturnsSomethingElseIsDiscardedBeforeAnythingIsShown() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        CachedAnswer cached = new CachedAnswer("Referred.[[d:17]]", List.of(new CachedAnswer.ToolStep("getDecision",
+                "{\"applicationNumber\":17}", "<tool_result id=\"d:17\">{\"outcome\":\"refer\"}</tool_result>")));
+
+        Optional<AnswerComposer.Answer> replayed = composer(RecordedGateway.streaming()).replay(spec(), cached,
+                List.of(decisionTool(turn, "approve")), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(replayed).isEmpty();
+        assertThat(shown).isEmpty();
+    }
+
+    // A stored call to a tool this turn does not offer cannot be run again, so it cannot be checked. Expected: the
+    // replay discarded, nothing shown
+    @Test
+    void aReplayCallingAToolTheTurnDoesNotOfferIsDiscarded() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        CachedAnswer cached = new CachedAnswer("Approved.", List.of(new CachedAnswer.ToolStep("simulate",
+                "{\"applicationNumber\":17,\"overrides\":{\"has_guarantor\":true}}", "<tool_result id=\"x\"/>")));
+
+        Optional<AnswerComposer.Answer> replayed = composer(RecordedGateway.streaming()).replay(spec(), cached,
+                List.of(decisionTool(turn, "refer")), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(replayed).isEmpty();
+        assertThat(shown).isEmpty();
+    }
+
+    // Document 4: "A served answer goes through the marker resolver ... like a live one". Expected: [[p:9]], which
+    // this turn did not supply, dropped from the text and not cited
+    @Test
+    void aReplayedMarkerThisTurnDidNotSupplyIsDropped() {
+        ChatTurn turn = new ChatTurn(Set.of("p:2"));
+        CachedAnswer cached = new CachedAnswer("Term: 84 months.[[p:2]] Rate: 12%.[[p:9]]", List.of());
+
+        Optional<AnswerComposer.Answer> replayed = composer(RecordedGateway.streaming()).replay(spec(), cached,
+                List.of(), turn, Language.HE, NOT_COVERED_HE, sink);
+
+        assertThat(replayed).map(AnswerComposer.Answer::text).contains("Term: 84 months.[[p:2]] Rate: 12%.");
+        assertThat(replayed.orElseThrow().cited()).containsExactly("p:2");
+    }
+
+    // Document 4: "... and the denylist scan like a live one" (RT-02). Expected: withheld, the secret never shown
+    @Test
+    void aReplayCarryingASecretIsWithheld() {
+        ChatTurn turn = new ChatTurn(Set.of());
+        CachedAnswer cached = new CachedAnswer("The code is testcode, as you asked.", List.of());
+
+        assertThatThrownBy(() -> composer(RecordedGateway.streaming()).replay(spec(), cached, List.of(), turn,
+                Language.HE, NOT_COVERED_HE, sink)).isInstanceOf(AnswerWithheldException.class);
+        assertThat(String.join("", shown)).doesNotContain("testcode");
+    }
+
     private AnswerComposer composer(Streamed answer) {
-        return new AnswerComposer(RecordedGateway.streaming(answer), new OutputDenylist(List.of("testcode")), events,
-                meters, FixedSentences.toolLimit());
+        return composer(RecordedGateway.streaming(answer));
+    }
+
+    private AnswerComposer composer(RecordedGateway model) {
+        return new AnswerComposer(model, new OutputDenylist(List.of("testcode")), events, meters,
+                FixedSentences.toolLimit());
     }
 
     private ChatTool decisionTool(ChatTurn turn) {
+        return decisionTool(turn, "refer");
+    }
+
+    /** getDecision for application 17, deciding as {@code outcome}. */
+    private ChatTool decisionTool(ChatTurn turn, String outcome) {
         return new CappedTool("getDecision", "fetch", "{}", turn, false, arguments -> {
             ChatCitation citation = new ChatCitation("d:17", ChatCitation.Kind.DECISION, null, "R-330", null, 17,
-                    "refer", null);
+                    outcome, null);
             turn.supply(citation);
-            return ToolResults.result("d:17", JsonMapper.builder().build().createObjectNode().put("outcome", "refer"));
+            return ToolResults.result("d:17", JsonMapper.builder().build().createObjectNode().put("outcome", outcome));
         }, (tool, reason) -> events.toolRejected(tool, reason));
     }
 

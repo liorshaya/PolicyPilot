@@ -1,5 +1,7 @@
 package com.liorshaya.policypilot.ai.chat;
 
+import com.liorshaya.policypilot.ai.AnswerCache;
+import com.liorshaya.policypilot.ai.CachedAnswer;
 import com.liorshaya.policypilot.ai.LlmGateway;
 import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
@@ -17,6 +19,7 @@ import com.liorshaya.policypilot.ai.service.chat.ChatPrompt;
 import com.liorshaya.policypilot.ai.service.chat.ChatTurn;
 import com.liorshaya.policypilot.ai.service.chat.FixedSentences;
 import com.liorshaya.policypilot.ai.service.chat.OutputDenylist;
+import com.liorshaya.policypilot.ai.service.chat.ScriptedAnswers;
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.rag.service.NotCoveredSentences;
@@ -46,9 +49,11 @@ import tools.jackson.databind.node.ObjectNode;
  * The chat use case (Document 2, Flow 3; Document 4, Prompt 4): a session bound to one published version of the
  * caller's sandbox, and a question answered from what retrieval found, the last 10 turns and what the tools return.
  * A question below the Threshold gets the fixed sentence without a model call; any other is streamed by the
- * {@link AnswerComposer}. The question and the answer shown are stored as one turn, with the answer's citations, tool
- * calls and usage. This class is the part that reads and writes the database; what can be tested without one lives in
- * {@code ai.service.chat}.
+ * {@link AnswerComposer}. A scripted question is served from the {@link AnswerCache} when the answer kept for it still
+ * holds in this sandbox, and a live answer to one is kept when it meets its label (Document 4, Serving the scripted
+ * questions from the cache). The question and the answer shown are stored as one turn, with the answer's citations,
+ * tool calls and usage. This class is the part that reads and writes the database; what can be tested without one
+ * lives in {@code ai.service.chat}.
  */
 @Service
 public class ChatService {
@@ -64,12 +69,14 @@ public class ChatService {
     private final PromptRegistry prompts;
     private final Clock clock;
     private final AnswerComposer composer;
+    private final AnswerCache cache;
+    private final ScriptedAnswers scripted = ScriptedAnswers.load();
     private final NotCoveredSentences notCovered = NotCoveredSentences.load();
 
     public ChatService(ChatSessionRepository sessions, ChatMessageRepository messages, RulesetService rulesets,
-            RetrievalService retrieval, DecisionTools tools, LlmGateway gateway, PromptRegistry prompts,
-            SecurityEvents events, MeterRegistry meters, Clock clock, PolicyPilotProperties properties,
-            @Value("${spring.ai.openai.api-key:}") String providerKey) {
+            RetrievalService retrieval, DecisionTools tools, LlmGateway gateway, AnswerCache cache,
+            PromptRegistry prompts, SecurityEvents events, MeterRegistry meters, Clock clock,
+            PolicyPilotProperties properties, @Value("${spring.ai.openai.api-key:}") String providerKey) {
         this.sessions = sessions;
         this.messages = messages;
         this.rulesets = rulesets;
@@ -77,6 +84,7 @@ public class ChatService {
         this.tools = tools;
         this.prompts = prompts;
         this.clock = clock;
+        this.cache = cache;
         OutputDenylist denylist = new OutputDenylist(List.of(orEmpty(properties.accessCode()),
                 orEmpty(properties.adminCode()), orEmpty(properties.cookieSecret()), providerKey));
         this.composer = new AnswerComposer(gateway, denylist, events, meters, FixedSentences.toolLimit());
@@ -137,12 +145,37 @@ public class ChatService {
             sink.token(found.notCovered());
             return finish(session, turnNo, question, found.notCovered(), List.of(), List.of(), TokenUsage.NONE, sink);
         }
-        ChatTurn turn = new ChatTurn(found.chunks().stream().map(RetrievedChunk::id).collect(Collectors.toSet()));
         PromptSpec spec = ChatPrompt.spec(prompts.get(PROMPT), session.versionNo(), session.domain(), language,
                 found.chunks(), ChatHistory.of(turns(earlier)), question, notCovered.of(language));
+        Optional<ScriptedAnswers.Label> label = scripted.labelOf(question);
+        Optional<CachedAnswer> cached = label.isPresent() ? cache.find(spec) : Optional.empty();
+        if (cached.isPresent()) {
+            ChatTurn turn = turnOf(found);
+            Optional<AnswerComposer.Answer> replayed = composer.replay(spec, cached.get(),
+                    tools.forTurn(turn, prepared.version(), corpus.ruleSet(), session.sandboxId()), turn, language,
+                    notCovered.of(language), sink);
+            if (replayed.isPresent()) {
+                cache.served(spec);
+                return finish(session, turnNo, question, replayed.get(), turn, corpus, sink);
+            }
+        }
+        ChatTurn turn = turnOf(found);
         AnswerComposer.Answer answer = composer.compose(spec,
                 tools.forTurn(turn, prepared.version(), corpus.ruleSet(), session.sandboxId()), turn, language,
                 notCovered.of(language), sink);
+        if (label.isPresent() && !answer.overrun() && label.get().metBy(answer.text(), answer.cited())) {
+            cache.keep(spec, new CachedAnswer(answer.text(), answer.steps()));
+        }
+        return finish(session, turnNo, question, answer, turn, corpus, sink);
+    }
+
+    /** A turn that may cite what retrieval found. */
+    private static ChatTurn turnOf(Retrieval found) {
+        return new ChatTurn(found.chunks().stream().map(RetrievedChunk::id).collect(Collectors.toSet()));
+    }
+
+    private UUID finish(ChatSessionView session, int turnNo, String question, AnswerComposer.Answer answer,
+            ChatTurn turn, EmbeddingSource corpus, ChatEvents sink) {
         return finish(session, turnNo, question, answer.text(),
                 ChatCitations.of(answer.cited(), turn, corpus.ruleSet(), corpus.paragraphs()), turn.calls(),
                 answer.usage(), sink);

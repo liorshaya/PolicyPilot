@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.RulesetView;
 import com.liorshaya.policypilot.support.Fixtures;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,19 +27,26 @@ final class ScriptedQuestions {
     static final List<String> SCRIPTED = List.of("Q-01", "Q-02", "Q-03");
 
     private final ChatService chat;
-    private final RulesetService rulesets;
     private final JdbcClient jdbc;
     private final UUID sandbox = UUID.randomUUID();
     private final RulesetView seeded;
 
     ScriptedQuestions(ChatService chat, RulesetService rulesets, DecisionService decisions, JdbcClient jdbc) {
+        this(chat, rulesets, jdbc);
+        decisions.decideFixtureSet(rulesets.published(seeded.id(), 1, sandbox).orElseThrow(), sandbox, "cases-200");
+    }
+
+    private ScriptedQuestions(ChatService chat, RulesetService rulesets, JdbcClient jdbc) {
         this.chat = chat;
-        this.rulesets = rulesets;
         this.jdbc = jdbc;
         this.seeded = rulesets.protectedRulesets().getFirst();
         PublishedVersion version = rulesets.published(seeded.id(), 1, sandbox).orElseThrow();
         awaitReady(version.versionId());
-        decisions.decideFixtureSet(version, sandbox, "cases-200");
+    }
+
+    /** A sandbox of its own that has decided nothing, so application 17 does not exist in it. */
+    static ScriptedQuestions undecided(ChatService chat, RulesetService rulesets, JdbcClient jdbc) {
+        return new ScriptedQuestions(chat, rulesets, jdbc);
     }
 
     /** The labeled question with this id (fixtures/eval/questions.json). */
@@ -55,7 +63,7 @@ final class ScriptedQuestions {
     Asked ask(String question) {
         ChatSessionView session = chat.open(seeded.id(), 1, sandbox).orElseThrow();
         ChatService.Prepared prepared = chat.prepare(session.id(), sandbox).orElseThrow();
-        Asked asked = new Asked();
+        Asked asked = new Asked(System.nanoTime());
         UUID messageId = chat.answer(prepared, question, asked);
         asked.toolCalls = jdbc.sql("select tool_calls_json::text from chat_message where id = :id")
                 .param("id", messageId).query(String.class).single();
@@ -77,9 +85,15 @@ final class ScriptedQuestions {
     /** Everything one answer sent: its text as shown, the ids it cited, and the tool calls stored with it. */
     static final class Asked implements ChatEvents {
 
+        private final long askedAt;
         private final StringBuilder text = new StringBuilder();
         private final List<String> cited = new ArrayList<>();
         private String toolCalls = "[]";
+        private long firstTokenAt;
+
+        private Asked(long askedAt) {
+            this.askedAt = askedAt;
+        }
 
         String text() {
             return text.toString();
@@ -93,8 +107,16 @@ final class ScriptedQuestions {
             return toolCalls;
         }
 
+        /** From the question to its first token (Document 6, Performance and Load: cached chat first token). */
+        Duration firstToken() {
+            return Duration.ofNanos(firstTokenAt - askedAt);
+        }
+
         @Override
         public void token(String piece) {
+            if (text.isEmpty()) {
+                firstTokenAt = System.nanoTime();
+            }
             text.append(piece);
         }
 

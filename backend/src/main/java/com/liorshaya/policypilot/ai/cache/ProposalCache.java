@@ -6,6 +6,7 @@ import com.liorshaya.policypilot.ai.repository.CachedResponseRepository;
 import com.liorshaya.policypilot.common.Hashes;
 import java.time.Clock;
 import java.util.Optional;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Component;
@@ -51,5 +52,25 @@ public class ProposalCache {
         ObjectNode stored = JSON.createObjectNode();
         stored.put(FIELD, answer);
         responses.save(new CachedResponseEntity(key, promptName, stored.toString(), clock.instant()));
+    }
+
+    /** The whole stored object, for a caller that keeps more than the text beside it (the chat's tool calls). */
+    @Transactional(readOnly = true)
+    public Optional<JsonNode> findStored(String key) {
+        return responses.findById(key).map(CachedResponseEntity::response).map(JSON::readTree);
+    }
+
+    /**
+     * Stores an object that carries the answer's text under {@code text} and whatever its caller keeps beside it,
+     * unless something is already stored under the key: the first answer kept stands.
+     */
+    @Transactional
+    public void putIfAbsent(String key, String promptName, ObjectNode stored) {
+        if (!stored.path(FIELD).isString()) {
+            throw new IllegalArgumentException("a stored answer carries its text under \"" + FIELD + "\"");
+        }
+        if (!responses.existsById(key)) {
+            responses.save(new CachedResponseEntity(key, promptName, stored.toString(), clock.instant()));
+        }
     }
 }
