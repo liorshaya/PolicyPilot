@@ -26,8 +26,8 @@ to the next.
 ticked as it is done and never before its tests are green; a box skipped on purpose is struck through
 with the scope ladder rung that cut it. Documents 1 to 7 and the fixtures built ahead of day 1 are
 already ticked. Since the switch to the two-week version on 2026-09-18 it is maintained here, not
-exported: it holds the new dates and the struck-through boxes, and its living document is frozen with a
-pointer to this file.
+exported, and its living document is frozen with a pointer to this file. Since the full plan was
+restored on 2026-09-22 it holds the new dates, and every box that came back says which cut it undoes.
 
 ## What was built before day 1
 

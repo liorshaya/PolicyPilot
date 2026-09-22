@@ -24,19 +24,27 @@ The plan runs from Tuesday, September 22 to Sunday, October 18, 2026: 19 working
 
 **Phase sizes** are 1, 6, 4, 4 and 4 days, the upper end of every range in the Brief's phase table, so the only slack is day 15 (the Phase 3 buffer). The Brief's Phase 4 items are spread over the plan rather than stacked at the end: the deployment pipeline is set up on day 1 so that every green `main` is live from then on; the evaluation harness grows with the prompts (days 11, 13 and 15); the guided demo panel gains one step at the end of each phase; the README, the Hebrew and RTL pass and the recorded video are days 16 to 18.
 
-## Two-week version in force (decided 2026-09-18)
+## Four-week plan restored (decided 2026-09-22)
 
-The interview is on Monday, October 5, 2026, so the plan runs as the two-week version of the Scope ladder: ten working days, with the interview on the eleventh. Day 1 was finished on Friday, September 18, and days 2 to 7 keep their content. Day 8 is retrieval with the not-covered threshold; day 9 is the answer prompt with the `decision` and `simulate` tools and the chat screen; day 10 is rehearsal, the video, a short README and the freeze. The dates in this table replace those written in the day rows.
+The interview is still on Monday, October 5, 2026, but the owner restores the full plan: rungs 2 to 10 of the Scope ladder and the evaluation runner come back, and days 10 to 19 keep their numbers and their content. The dates in this table replace those written in the day rows; where two days share a date, both are done that day. Hol HaMoed Sukkot is worked, and Fridays and Saturdays are off.
 
-| Day | Date | Day | Date |
-| --- | --- | --- | --- |
-| 1 | Fri Sep 18, done | 6 | Mon Sep 28 |
-| 2 | Tue Sep 22 | 7 | Tue Sep 29, gate G1 |
-| 3 | Wed Sep 23 | 8 | Wed Sep 30 |
-| 4 | Thu Sep 24 | 9 | Thu Oct 1 |
-| 5 | Sun Sep 27 | 10 | Sun Oct 4, freeze and gate G4 |
+| Day | Date | Note |
+| --- | --- | --- |
+| 10 | Tue Sep 22 to Wed Sep 23 | Starts after this document change |
+| 11 | Wed Sep 23 | Gate G2 |
+| 12 | Thu Sep 24 |  |
+| 13 | Thu Sep 24 |  |
+| 14 | Sun Sep 27 |  |
+| 15 | Sun Sep 27 | Gate G3 |
+| 16 | Mon Sep 28 | The last day that adds anything |
+| Slack | Tue Sep 29 | Only what slipped from days 10 to 16 |
+| 17 | Wed Sep 30 | Rehearsal 1 |
+| 18 | Thu Oct 1 | Rehearsal 2, the video, the secrets rotation |
+| 19 | Sun Oct 4 | Rehearsal 3, the tag, the freeze, gate G4 |
 
-Cut on entry: rungs 2 to 10 of the Scope ladder and the evaluation runner, so the demo is three steps and the change flow is the closing slide. Gates G2 and G3 fall away; G4 moves to day 10 and asks for the Brief's Definition of Done lines 1 to 6. The nightly and manual resets (day 15) and the provider badge in the UI (day 16) are not scheduled, so they go to the README's known limitations. Hol HaMoed Sukkot is worked, and Fridays and Saturdays are off. The progress checklist in the repository, `docs/progress-checklist.md`, carries these dates and strikes through each cut box with the rung that cut it.
+The two-week version ran first (decided 2026-09-18): days 1 to 9 as planned, day 9 with the `decision` and `simulate` tools only, then a tenth working day of warm-up, a short README, the Definition of Done walk and the tag. That day is named **the v1.0.0 freeze (2026-09-22)**; it is not day 10. The `v1.0.0` tag (7ad29de, with its SBOMs) stays the fallback, so every restored day keeps its migrations additive and the v1.0.0 image still runs on the live database; `main` deploys itself and stays demonstrable after every merge.
+
+The `stats` and `rules` tools (day 9's row, cut by rung 6) are built on day 11. Gates G2, G3 and G4 return with their criteria, and the Brief's whole Definition of Done applies again. Day 0's Ollama models are pulled before day 16. Nothing stays cut; if the plan runs late, the Scope ladder's order of demo value decides what goes, and the progress checklist, `docs/progress-checklist.md`, carries the dates.
 
 ## Phase gates
 
@@ -213,9 +221,9 @@ When a phase runs late, items are cut in this order and nowhere else; each cut i
 
 **Never cut**: the engine with its conformance suite and mutation gate, the validator, the security front door, decision persistence, the cloud deployment, the recorded-model tests, and days 17 to 19. A plan that keeps these and loses everything below rung 10 still shows a deterministic engine that a model feeds and a person governs, which is the project's principle.
 
-**When ahead of plan**, the ladder runs backwards from rung 2: the encore first, then the Ollama column, then FR-20, then the remaining labeled policies; query rewriting for retrieval stays out unless recall at 8 misses its target on the Hebrew questions (Document 4).
+**When ahead of plan**, cut items return in order of demo value, not in reverse cut order: the reviewer and explain with both audiences (they complete steps 1 and 2, and the reviewer raises the policy's undefined "stable income"); the evaluation runner (it measures the Brief's 90% rule-match line, and a new `author` version must land before the rehearsals because it replaces step 1's cached draft); Phase 3 with the side-by-side diff (step 4, and the approval that completes the principle); the guided panel; the resets; the `stats` and `rules` tools; the Ollama column with the provider badge; the full-set evaluation run; the second domain and the encore last. When a restored plan runs late, items are cut from the end of that order, never from days 17 to 19. Query rewriting for retrieval stays out unless recall at 8 misses its target on the Hebrew questions (Document 4).
 
-**The two-week version** (10 working days, interview on the 11th): days 1 to 7 exactly as planned; day 8 is retrieval with the not-covered threshold; day 9 is the answer prompt with the `decision` and `simulate` tools and the chat screen; day 10 is rehearsal, the video, a short README and the freeze. Cut on entry: rungs 2 to 10 above, plus the evaluation runner (the Brief's 90% rule-match line is then measured by its manual checklist on the lending policy). The demo is three steps; the change flow is the closing slide.
+**The two-week version** (10 working days, interview on the 11th): days 1 to 7 exactly as planned; day 8 is retrieval with the not-covered threshold; day 9 is the answer prompt with the `decision` and `simulate` tools and the chat screen; day 10 is rehearsal, the video, a short README and the freeze. Cut on entry: rungs 2 to 10 above, plus the evaluation runner (the Brief's 90% rule-match line is then measured by its manual checklist on the lending policy). The demo is three steps; the change flow is the closing slide. It ran from 2026-09-18 to the v1.0.0 freeze on 2026-09-22, when the full plan was restored (Four-week plan restored, above).
 
 ## Daily routine and tracking
 
