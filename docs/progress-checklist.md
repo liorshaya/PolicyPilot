@@ -193,6 +193,12 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [ ] Fix list of days 12 to 14 (restored: rung 10)
 - [ ] `demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion (restored: the reset)
 - [ ] Second-domain fixture (municipal tax discount) loaded as a second protected policy (restored: rung 2)
+- [ ] `author/v2` and `answer/v2` with evaluation run 2, in that one live run (decided on day 11 from
+  `docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md`): `author/v2` gives the model the field names the labeled
+  cases use instead of asking it to invent them, which is the whole of the 0.12 rule recall; `answer/v2` says that
+  a question about how many or about which rules is a tool call, which is why Q-08 and Q-14 were refused. Each
+  changes a rendered prompt and so the response cache's key, so both re-warm the scripted outputs on the cloud
+  site in the demo order, and step 1 and step 3 are walked again afterwards
 - [ ] Evaluation run 2: 18 policies, 30 questions, 6 changes, both providers; report committed to `docs/eval/` (restored: rung 4 and the evaluation runner)
 - [ ] Tests: reset tests; second-domain fixture through the reference and one recorded generation; traceability matrix has no empty row for FR-17 to FR-20 (restored: rungs 2 and 10, the reset)
 - [ ] Gate G3 (restored: rung 10)

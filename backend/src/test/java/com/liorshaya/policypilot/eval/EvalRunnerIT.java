@@ -150,10 +150,17 @@ class EvalRunnerIT {
         int chunks = scored.stream().mapToInt(Asked::found).sum();
         int chunksExpected = scored.stream().mapToInt(one -> one.expected().size()).sum();
 
+        // Document 4: "Not-covered questions answered with the fixed sentence, and covered questions not refused".
+        // What counts is the answer, not how it was reached: the Threshold stopping a question and the model
+        // quoting the sentence are the same outcome to the person who asked, and a covered question that gets the
+        // sentence anyway is a miss however it got there.
+        Recordings answers = Recordings.of(PROVIDER, "answer", "v1");
         List<Asked> refusals = asked.stream().filter(Asked::refusal).toList();
         List<Asked> covered = asked.stream().filter(one -> !one.refusal()).toList();
-        int refusedRight = (int) refusals.stream().filter(Asked::stopped).count();
-        int coveredRight = (int) covered.stream().filter(one -> !one.stopped()).count();
+        int refusedRight = (int) refusals.stream().filter(one -> refusedWithTheSentence(one, answers)).count();
+        int coveredRight = (int) covered.stream().filter(one -> !refusedWithTheSentence(one, answers)).count();
+        List<String> refusedCovered = covered.stream().filter(one -> refusedWithTheSentence(one, answers))
+                .map(one -> one.question().required("id").asString()).toList();
 
         Map<String, String> versions = new LinkedHashMap<>();
         versions.put("author", "v1");
@@ -167,6 +174,11 @@ class EvalRunnerIT {
         RecordedScoring.Reviewing reviewing = recorded.scoreReviewing(report);
         report.note("Retrieval and refusal are measured on the vectors of text-embedding-3-small, recorded by "
                 + "the day 8 live pass; the rest of the column is the strong model's.");
+        report.note("Two prompt versions this run argues for, both held until evaluation run 2 on day 15: "
+                + "`author/v2` gives the model the field names instead of asking it to invent them, and "
+                + "`answer/v2` tells it that a question about how many or about which rules is a tool call and "
+                + "not a refusal. Each changes a rendered prompt, which is the response cache's key, so each "
+                + "costs the demo a re-warm; neither buys a demo moment, and gate G2 is due today.");
         report.note("Author metrics cover " + authoring.policies() + " of the labeled policies, the ones whose "
                 + "authoring is recorded; reviewer metrics cover " + reviewing.policies() + ".");
         if (!EMBEDDINGS_RECORDED_FOR.equals(PROVIDER)) {
@@ -187,9 +199,12 @@ class EvalRunnerIT {
                         + "among the eight. Read strictly, as every expected chunk of a question, it is "
                         + fully + " of " + scored.size() + "; counted chunk by chunk it is " + chunksExpected
                         + " expected chunks of which " + chunks + " were kept.")
-                .note("Refusal accuracy counts both directions: " + refusedRight + " of " + refusals.size()
-                        + " not-covered questions stopped before the model, and " + coveredRight + " of "
-                        + covered.size() + " covered questions not stopped.");
+                .note("Refusal accuracy counts both directions, on the answer rather than on how it was reached: "
+                        + refusedRight + " of " + refusals.size() + " not-covered questions answered with the fixed "
+                        + "sentence, and " + coveredRight + " of " + covered.size() + " covered questions not "
+                        + "refused" + (refusedCovered.isEmpty() ? ""
+                                : "; the covered questions that were refused are " + String.join(", ", refusedCovered))
+                        + ".");
         scored.stream().filter(one -> one.found() < one.expected().size()).forEach(one -> {
             Set<String> missed = one.expected();
             missed.removeAll(one.kept());
@@ -253,6 +268,16 @@ class EvalRunnerIT {
                 + "marker, including any the Threshold stopped before the model: an answer that was never written "
                 + "did not cite its source. A marker counts as valid when the version can supply it: a paragraph "
                 + "the policy has, a rule the version has, or a decision or simulation a tool returned.");
+    }
+
+    /**
+     * Whether the person who asked got the fixed sentence: because the Threshold stopped the question before any
+     * model call, or because the model itself answered with it.
+     */
+    private static boolean refusedWithTheSentence(Asked one, Recordings answers) {
+        Recordings recorded = answers.about(List.of(one.question().required("question").asString()));
+        return RefusalScoring.refused(one.stopped(),
+                recorded.isEmpty() ? null : recorded.calls().getFirst().required("response").asString());
     }
 
     private static int paragraphsOf(JsonNode question) {

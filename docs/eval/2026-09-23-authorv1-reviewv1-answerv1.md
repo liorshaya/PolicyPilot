@@ -14,16 +14,17 @@ Document 4, "Evaluation Set and Metrics". Prompt versions: `author` v1, `review`
 | Reviewer precision | 0.70 | at least 0.46 (78 of 170) | not run | undecided (needs an analyst pass) |
 | Retrieval recall at 8 | 0.90 | 0.91 (21 of 23) | not run | PASS |
 | Citation accuracy | 0.90 | 0.96 (22 of 23) | not run | PASS |
-| Refusal accuracy | 0.90 | 0.90 (27 of 30) | not run | PASS |
+| Refusal accuracy | 0.90 | 0.93 (28 of 30) | not run | PASS |
 | Change correctness | 0.83 | not run | not run | not run |
 | Confidence calibration | reported | 1.00 (1 of 1) | not run | reported |
 
 - Reviewer precision is the floor Document 4's definition allows a runner to compute: the findings answering a seeded defect over all of them. The other half, "confirmed real on inspection", needs a person, so a floor under the target settles nothing.
 - Retrieval and refusal are measured on the vectors of text-embedding-3-small, recorded by the day 8 live pass; the rest of the column is the strong model's.
+- Two prompt versions this run argues for, both held until evaluation run 2 on day 15: `author/v2` gives the model the field names instead of asking it to invent them, and `answer/v2` tells it that a question about how many or about which rules is a tool call and not a refusal. Each changes a rendered prompt, which is the response cache's key, so each costs the demo a re-warm; neither buys a demo moment, and gate G2 is due today.
 - Author metrics cover 1 of the labeled policies, the ones whose authoring is recorded; reviewer metrics cover 18.
 - Citation accuracy is scored over every one of the 23 questions that expect a marker, including any the Threshold stopped before the model: an answer that was never written did not cite its source. A marker counts as valid when the version can supply it: a paragraph the policy has, a rule the version has, or a decision or simulation a tool returned.
 - Retrieval recall at 8 is counted as Document 4 words it: a question whose expected chunk is among the eight. Read strictly, as every expected chunk of a question, it is 16 of 23; counted chunk by chunk it is 48 expected chunks of which 38 were kept.
-- Refusal accuracy counts both directions: 4 of 6 not-covered questions stopped before the model, and 23 of 24 covered questions not stopped.
+- Refusal accuracy counts both directions, on the answer rather than on how it was reached: 6 of 6 not-covered questions answered with the fixed sentence, and 22 of 24 covered questions not refused; the covered questions that were refused are Q-08, Q-14.
 
 ## Per policy
 
