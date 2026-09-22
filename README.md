@@ -69,8 +69,8 @@ visitor, by a script and in Chromium on a desktop and on an emulated iPhone 13.
 
 | Step | Input | What appears | Measured |
 | --- | --- | --- | --- |
-| 1. Author | Policy screen, the seeded Hebrew lending policy (9 paragraphs), "Generate rules" | The stages parsing, authoring and validating, then a draft of 22 rules. Each row opens the paragraph it quotes | 0.6 s to the draft, from the response cache (a run the cache has not seen takes 67 to 101 s) |
-| 2. Decide | Cases screen, "Run 200 cases" | 113 approved, 60 rejected, 27 referred, the rules that decided most, and case 17: referred by R-330 with the values it compared | 1.3 to 1.7 s end to end, of which about 0.5 s is the network (76 to 129 ms inside the test environment) |
+| 1. Author | Policy screen, the seeded Hebrew lending policy (9 paragraphs), "Generate rules" | The stages parsing, authoring, validating and reviewing, then a draft of 22 rules with the reviewer's 10 findings: among them the conflict between paragraphs 1 and 8 (age 70 against retirees to 75) and the undefined "stable income" of paragraph 4. "Review the draft" opens the rule set: each finding names the rules and paragraphs it concerns, every rule it names carries a mark on its row, and publishing waits until the errors, the gaps and the injections are acknowledged | 0.9 s to the draft, both answers from the response cache (a draft the cache has not seen takes 67 to 101 s, its review 50 to 80 s) |
+| 2. Decide | Cases screen, "Run 200 cases", then case 17, then "Explain for an officer" | 113 approved, 60 rejected, 27 referred, the rules that decided most, and case 17: referred by R-330 with the values it compared. The explanation cites R-010 (¶ 5), R-020 (¶ 6) and R-330 (¶ 7), says a model wrote it from the trace alone, and lists the rules that were evaluated and did not apply | 1.4 s for the 200 cases, 0.5 s for the explanation from the cache (14 s the first time); case 17 itself decides in 61 µs |
 | 3. Ask | Assistant screen, the three questions below, then the rate question | Hebrew answers streamed right to left, with citation chips that open the paragraph, the rule or the decision | first token: 0.6 to 0.8 s for each question in 12 of 14 asks |
 
 The questions of step 3, as asked, with what the answer must contain (the labels of
@@ -180,12 +180,8 @@ restored: each cut leaves this list in the pull request that ships it.
 
 - **The change flow** (rung 10): no change requests, patches, regression report, approval or version 2. Demo step 4
   is a closing slide from the design. Brief line 7 is not met.
-- **The reviewer pass** (rung 9): step 1 shows the validator's findings but not the reviewer's ambiguity and conflict
-  warnings.
-- **Explain** (rung 8): a decision is explained by its trace and by the chat, not by a dedicated explanation.
 - **The guided demo panel** (rung 7): the presenter types the inputs; this script carries them.
 - **The `stats` and `rules` chat tools** (rung 6): the chat has `getDecision` and `simulate` only.
-- **The applicant audience of explain** (rung 5): cut with explain.
 - **The full-set evaluation run** (rung 4) and **the evaluation runner**: there is no automated report of
   precision, recall or citation accuracy, and gate G2 fell away with them. The labeled set is committed and the
   reference admits it.
@@ -193,9 +189,10 @@ restored: each cut leaves this list in the pull request that ships it.
   matches 14 of the 18 labeled rules (78%) and the median of the ten runs 12 (67%)
   ([report](docs/eval/rule-match-lending.md)). Two misses are in every run. The model leaves the installment and the
   debt ratio unrounded, a convention of the label that the policy never states. It also turns "stable income", which
-  the policy leaves undefined, into a yes/no field that rejects, where the label flags it for a manual check. That is
-  the ambiguity the cut reviewer (rung 9) was meant to raise. The author prompt was not tuned before the interview,
-  because a new version would need ten new live runs and would change demo step 1 on its last day.
+  the policy leaves undefined, into a yes/no field that rejects, where the label flags it for a manual check. The
+  reviewer now raises that ambiguity on the draft itself (paragraph 4), and the analyst resolves it before publishing;
+  the rules the model writes are still the ones scored here. Whether `author/v2` is written is decided by the
+  evaluation runner on day 11, because a new version needs ten new live runs and changes demo step 1.
 - **The Ollama column** (rung 3): the `ollama` profile starts (its context test passes) but the chat step was not
   run on a local model, so Brief line 8 is not verified.
 - **The second domain and the encore** (rung 2): only the lending policy is seeded.
