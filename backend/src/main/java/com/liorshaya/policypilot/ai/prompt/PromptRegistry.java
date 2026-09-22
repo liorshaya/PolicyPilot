@@ -29,8 +29,8 @@ import org.yaml.snakeyaml.Yaml;
 @Component
 public final class PromptRegistry {
 
-    /** The prompts that exist so far; explain and change join them on their own days. */
-    public static final List<String> PROMPTS = List.of("author", "repair", "answer", "review");
+    /** The prompts that exist so far; change joins them on its own day. */
+    public static final List<String> PROMPTS = List.of("author", "repair", "answer", "review", "explain");
 
     private static final String ROOT = "prompts/";
     private static final String CONDUCT = ROOT + "_shared/conduct.st";

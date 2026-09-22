@@ -651,6 +651,73 @@
         }
       }
     },
+    "/api/v1/decisions/{id}/explain" : {
+      "post" : {
+        "tags" : [ "explain-controller" ],
+        "summary" : "Explain a stored decision from its trace, for an officer or an applicant",
+        "operationId" : "explain",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExplainRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "The explanation, every entry checked against the trace",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExplanationResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The audience is not officer or applicant",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such decision in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "The model provider failed, or its answer was not an explanation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/chat/sessions" : {
       "post" : {
         "tags" : [ "chat-controller" ],
@@ -1450,6 +1517,97 @@
             "format" : "int64"
           }
         }
+      },
+      "ExplainRequest" : {
+        "type" : "object",
+        "properties" : {
+          "audience" : {
+            "type" : "string",
+            "enum" : [ "officer", "applicant" ]
+          }
+        }
+      },
+      "ConditionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "flagCode" : {
+            "type" : "string"
+          },
+          "statement" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "flagCode", "statement" ]
+      },
+      "ExplanationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "decisionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "audience" : {
+            "type" : "string",
+            "enum" : [ "officer", "applicant" ]
+          },
+          "language" : {
+            "type" : "string",
+            "enum" : [ "he", "en" ]
+          },
+          "promptVersion" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : "string"
+          },
+          "factors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FactorResponse"
+            }
+          },
+          "conditions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConditionResponse"
+            }
+          },
+          "notApplied" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NotAppliedResponse"
+            }
+          }
+        },
+        "required" : [ "audience", "conditions", "decisionId", "factors", "language", "notApplied", "promptVersion", "summary" ]
+      },
+      "FactorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "ruleId" : {
+            "type" : "string"
+          },
+          "paragraph" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "statement" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "paragraph", "ruleId", "statement" ]
+      },
+      "NotAppliedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "ruleId" : {
+            "type" : "string"
+          },
+          "statement" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "ruleId", "statement" ]
       },
       "OpenChatRequest" : {
         "type" : "object",
