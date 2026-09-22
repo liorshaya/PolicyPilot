@@ -16,6 +16,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Reviews;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -66,6 +67,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = fixtures.draft(sandbox);
 
+        Reviews.reviewed(rulesets, draft, sandbox);
         VersionView published = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow();
 
         assertThat(published.status()).isEqualTo(VersionStatus.PUBLISHED);
@@ -79,6 +81,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = fixtures.draft(sandbox);
 
+        Reviews.reviewed(rulesets, draft, sandbox);
         VersionView published = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow();
 
         List<AuditEntry> entries = audit.forVersion(published.versionId());
@@ -97,6 +100,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
         VersionView draft = fixtures.draft(sandbox);
         JsonNode fixture = Fixtures.lendingV1();
 
+        Reviews.reviewed(rulesets, draft, sandbox);
         VersionView published = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow();
 
         List<String> stored = jdbc.sql("""
@@ -120,6 +124,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
         VersionView draft = fixtures.draft(sandbox, RulesetFixtures.lendingWithPriority("R-320", 210),
                 ValidationContext.ANALYST_EDIT, Set.of());
 
+        Reviews.reviewed(rulesets, draft, sandbox);
         VersionView published = rulesets.publish(draft.rulesetId(), 1, sandbox).orElseThrow();
 
         JsonNode warnings = audit.forVersion(published.versionId()).getFirst().details().path("warnings");
@@ -133,6 +138,8 @@ class PublishTransactionIT extends ApiIntegrationTest {
         JsonNode fixture = Fixtures.json("conformance/invalid-PROVENANCE_PENDING_AT_PUBLISH.json");
         ObjectNode document = (ObjectNode) fixture.path("ruleset");
         VersionView draft = fixtures.draft(sandbox, document, ValidationContext.CHANGE_PROPOSAL, Set.of("R-170"));
+
+        Reviews.reviewed(rulesets, draft, sandbox);
 
         assertThatThrownBy(() -> rulesets.publish(draft.rulesetId(), 1, sandbox))
                 .isInstanceOf(RulesetInvalidException.class)
@@ -148,6 +155,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = fixtures.draft(sandbox);
 
+        Reviews.reviewed(rulesets, draft, sandbox);
         refuseAuditWritesOf(sandbox);
         try {
             assertThatThrownBy(() -> rulesets.publish(draft.rulesetId(), 1, sandbox)).isInstanceOf(Exception.class);
@@ -166,7 +174,7 @@ class PublishTransactionIT extends ApiIntegrationTest {
     void publishingAPublishedVersionIsRefused() {
         UUID sandbox = UUID.randomUUID();
         VersionView draft = fixtures.draft(sandbox);
-        rulesets.publish(draft.rulesetId(), 1, sandbox);
+        rulesets.publish(Reviews.reviewed(rulesets, draft, sandbox).rulesetId(), 1, sandbox);
 
         assertThatThrownBy(() -> rulesets.publish(draft.rulesetId(), 1, sandbox))
                 .isInstanceOf(VersionStatusException.class);

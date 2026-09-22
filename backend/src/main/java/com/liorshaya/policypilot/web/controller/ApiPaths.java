@@ -12,6 +12,9 @@ public final class ApiPaths {
     public static final String RULESET_VERSION = RULESETS + "/{id}/versions/{no}";
     public static final String RULESET_VERSION_RULES = RULESET_VERSION + "/rules";
     public static final String RULESET_VERSION_PUBLISH = RULESET_VERSION + "/publish";
+    public static final String RULESET_VERSION_REVIEW = RULESET_VERSION + "/review";
+    public static final String RULESET_VERSION_FINDING_ACKNOWLEDGE =
+            RULESET_VERSION + "/findings/{findingId}/acknowledge";
     public static final String RULESET_VERSION_DECIDE = RULESET_VERSION + "/decide";
     public static final String RULESET_VERSION_STATS = RULESET_VERSION + "/stats";
     public static final String RULESET_VERSION_SIMULATE = RULESET_VERSION + "/simulate";
@@ -21,6 +24,7 @@ public final class ApiPaths {
     public static final String DECISIONS = V1 + "/decisions";
     public static final String DECISION = DECISIONS + "/{id}";
     public static final String DECISION_EXPORT = DECISION + "/export";
+    public static final String DECISION_EXPLAIN = DECISION + "/explain";
     public static final String DOCS = "/api/docs";
 
     private ApiPaths() {}

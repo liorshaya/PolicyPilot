@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Reviews;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,6 +119,7 @@ class PublishedVersionImmutabilityIT extends ApiIntegrationTest {
     /** A version the sandbox published itself, so a test may move its embedding status without touching the seed. */
     private UUID publishedVersion(UUID sandbox) {
         VersionView draft = fixtures.draft(sandbox);
+        Reviews.reviewed(rulesets, draft, sandbox);
         return rulesets.publish(draft.rulesetId(), draft.versionNo(), sandbox).orElseThrow().versionId();
     }
 }

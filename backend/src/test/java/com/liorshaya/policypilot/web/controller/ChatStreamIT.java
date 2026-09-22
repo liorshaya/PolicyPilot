@@ -359,6 +359,9 @@ class ChatStreamIT extends ApiIntegrationTest {
         String body = api().method("PUT", "/api/v1/rulesets/" + version + "/versions/1/rules").web().cookie(session)
                 .json(document.toString()).send().body();
         String rulesetId = JsonPath.read(body, "$.rulesetId");
+        // a draft is published only after its review (Document 2, Flow 1); this one finds nothing
+        model.willAnswer("{\"findings\": [], \"coverage\": {}}");
+        api().post("/api/v1/rulesets/" + rulesetId + "/versions/1/review").web().cookie(session).send();
         api().post("/api/v1/rulesets/" + rulesetId + "/versions/1/publish").web().cookie(session).send();
         awaitReady(rulesetId);
         return rulesetId;

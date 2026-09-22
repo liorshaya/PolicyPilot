@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -119,6 +120,7 @@ public class RulesetService {
         }
         ValidationResult result = validate(document, version.getPolicyVersionId(), ValidationContext.ANALYST_EDIT);
         version.replace(RuleSetDocuments.json(document), RuleSetDocuments.fieldSchema(document));
+        markStale(version);
         ruleset.describe(result.ruleSet().name(), result.ruleSet().defaults().outcome().json());
         return Optional.of(view(ruleset, version, result.findings()));
     }
@@ -139,7 +141,12 @@ public class RulesetService {
             events.protectedWriteAttempt(ENTITY, sandboxId);
             throw new VersionStatusException("a protected version is never published through the API");
         }
-        return Optional.of(publish(ruleset, found.get().version(), sandboxId.toString()));
+        RulesetVersionEntity version = found.get().version();
+        if (!version.isDraft()) {
+            throw new VersionStatusException("version " + versionNo + " is " + version.getStatus());
+        }
+        requireReviewAllowsPublishing(ReviewJson.read(version.getReviewJson()));
+        return Optional.of(publish(ruleset, version, sandboxId.toString()));
     }
 
     /**
@@ -180,6 +187,65 @@ public class RulesetService {
         RulesetVersionEntity version = versions.save(new RulesetVersionEntity(UUID.randomUUID(), ruleset.getId(), 1,
                 policyVersionId, RuleSetDocuments.json(document), RuleSetDocuments.fieldSchema(document), null));
         return view(ruleset, version);
+    }
+
+    /**
+     * Stores the review of a DRAFT, replacing any earlier one with its acknowledgements (Document 2, Flow 1 and
+     * {@code POST .../review}). Empty when the sandbox cannot see the version.
+     */
+    @Transactional
+    public Optional<VersionView> recordReview(UUID rulesetId, int versionNo, UUID sandboxId, Review review) {
+        Optional<Found> found = found(rulesetId, versionNo, sandboxId);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        RulesetVersionEntity version = requireOwnDraft(found.get(), sandboxId);
+        version.review(ReviewJson.write(review));
+        return Optional.of(view(found.get().ruleset(), version));
+    }
+
+    /**
+     * Acknowledges one review finding of a DRAFT (Document 2, {@code POST .../findings/{findingId}/acknowledge};
+     * Document 3, Publishing gate): a gap needs its resolution and writes a GAP_ACKNOWLEDGED audit entry, an error
+     * needs a note, the other kinds need neither.
+     * Empty when the sandbox cannot see the version or it has no such finding.
+     *
+     * @throws IllegalArgumentException when the resolution or the note the finding's kind needs is missing
+     */
+    @Transactional
+    public Optional<VersionView> acknowledge(UUID rulesetId, int versionNo, UUID sandboxId, String findingId,
+            @Nullable GapResolution resolution,
+            @Nullable String note) {
+        Optional<Found> found = found(rulesetId, versionNo, sandboxId);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        RulesetVersionEntity version = requireOwnDraft(found.get(), sandboxId);
+        Review review = ReviewJson.read(version.getReviewJson());
+        Optional<ReviewFinding> finding = review == null ? Optional.empty() : review.finding(findingId);
+        if (finding.isEmpty()) {
+            return Optional.empty();
+        }
+        FindingKind kind = finding.get().kind();
+        String trimmed = note == null || note.isBlank() ? null : note.strip();
+        if (kind == FindingKind.GAP && resolution == null) {
+            throw new IllegalArgumentException("a gap is acknowledged with a resolution");
+        }
+        if (kind != FindingKind.GAP && resolution != null) {
+            throw new IllegalArgumentException("only a gap takes a resolution");
+        }
+        if (kind.isError() && trimmed == null) {
+            throw new IllegalArgumentException("an error is overridden with a note");
+        }
+        String actor = sandboxId.toString();
+        Acknowledgement acknowledgement = new Acknowledgement(resolution, trimmed, actor, clock.instant());
+        version.review(ReviewJson.write(review.with(finding.get().acknowledgedWith(acknowledgement))));
+        if (kind == FindingKind.GAP) {
+            ObjectNode details = ReviewJson.finding(finding.get().acknowledgedWith(acknowledgement));
+            details.put("rulesetId", found.get().ruleset().getId().toString()).put("versionNo", versionNo);
+            audit.append(AuditAction.GAP_ACKNOWLEDGED, actor, version.getId(), details);
+        }
+        return Optional.of(view(found.get().ruleset(), version));
     }
 
     /**
@@ -254,6 +320,47 @@ public class RulesetService {
         return EnumSet.of(first, rest).stream().map(EmbeddingStatus::name).toList();
     }
 
+    /**
+     * The gate of Document 2, Flow 1: a draft is published only after a review that is DONE, with every error, gap
+     * and injection acknowledged; Document 5, RT-05 depends on it.
+     */
+    private static void requireReviewAllowsPublishing(@Nullable Review review) {
+        if (review == null) {
+            throw new FindingsUnresolvedException(List.of(new RulesetProblem("/review", "REVIEW_MISSING")));
+        }
+        if (review.status() != ReviewStatus.DONE) {
+            throw new FindingsUnresolvedException(List.of(new RulesetProblem("/review", review.status().name())));
+        }
+        List<RulesetProblem> open = review.findings().stream()
+                .filter(ReviewFinding::blocking)
+                .map(finding -> new RulesetProblem("/review/findings/" + finding.id(), finding.kind().name()))
+                .toList();
+        if (!open.isEmpty()) {
+            throw new FindingsUnresolvedException(open);
+        }
+    }
+
+    /** The version the sandbox may review or acknowledge on: its own rule set's DRAFT. */
+    private RulesetVersionEntity requireOwnDraft(Found found, UUID sandboxId) {
+        if (found.ruleset().isProtectedRow()) {
+            events.protectedWriteAttempt(ENTITY, sandboxId);
+            throw new VersionStatusException("a protected version is never reviewed through the API");
+        }
+        if (!found.version().isDraft()) {
+            throw new VersionStatusException(
+                    "version " + found.version().getVersionNo() + " is " + found.version().getStatus());
+        }
+        return found.version();
+    }
+
+    /** An edited draft keeps its findings on screen, but they no longer describe the document (Document 2). */
+    private static void markStale(RulesetVersionEntity version) {
+        Review review = ReviewJson.read(version.getReviewJson());
+        if (review != null && review.status() != ReviewStatus.STALE) {
+            version.review(ReviewJson.write(review.stale()));
+        }
+    }
+
     private VersionView publish(RulesetEntity ruleset, RulesetVersionEntity version, String actor) {
         if (!version.isDraft()) {
             throw new VersionStatusException("version " + version.getVersionNo() + " is " + version.getStatus());
@@ -271,6 +378,11 @@ public class RulesetService {
                 .put("versionNo", version.getVersionNo())
                 .put("rules", rows.size())
                 .set("warnings", RuleSetDocuments.warnings(result.findings()));
+        Review review = ReviewJson.read(version.getReviewJson());
+        if (review != null) {
+            // the analyst's acknowledgements and the warnings left open travel with the publish (Document 3)
+            details.set("review", ReviewJson.tree(review));
+        }
         audit.append(AuditAction.PUBLISH, actor, version.getId(), details);
         // delivered after the commit, so the embedding job never sees a version that might still roll back
         publications.publishEvent(new VersionPublished(version.getId()));
@@ -287,6 +399,7 @@ public class RulesetService {
                 throw new VersionStatusException("version " + latest.getVersionNo() + " is " + latest.getStatus());
             }
             latest.replace(RuleSetDocuments.json(document), RuleSetDocuments.fieldSchema(document));
+            markStale(latest);
             copy.describe(validated.name(), validated.defaults().outcome().json());
             return view(copy, latest);
         }
@@ -370,7 +483,7 @@ public class RulesetService {
                 ruleset.getForkedFromId(), version.getId(), version.getVersionNo(),
                 VersionStatus.valueOf(version.getStatus()), version.getPolicyVersionId(), version.getParentVersionId(),
                 version.getPublishedAt(), version.getPublishedBy(), RuleSetDocuments.read(version.getRulesJson()),
-                findings);
+                findings, ReviewJson.read(version.getReviewJson()));
     }
 
     /** A rule set the caller may see and one of its versions. */

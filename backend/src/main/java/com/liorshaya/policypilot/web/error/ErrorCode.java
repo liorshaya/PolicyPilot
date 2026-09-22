@@ -19,6 +19,7 @@ public enum ErrorCode {
     UPLOAD_REJECTED(HttpStatus.UNPROCESSABLE_CONTENT, "The uploaded file cannot be used as a policy."),
     RULESET_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The rule set is not valid."),
     CASE_INVALID(HttpStatus.UNPROCESSABLE_CONTENT, "The case is not valid against the rule set's fields."),
+    FINDINGS_UNRESOLVED(HttpStatus.UNPROCESSABLE_CONTENT, "The draft's review does not allow publishing yet."),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests; retry later."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong; quote the trace id."),
     PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "The model provider is unavailable."),

@@ -164,6 +164,72 @@
         }
       }
     },
+    "/api/v1/rulesets/{id}/versions/{no}/review" : {
+      "post" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "Run the review again on a DRAFT, after an edit or a failed review",
+        "operationId" : "review",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The version with its new review",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version is not a DRAFT, or is protected",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "The model provider failed; the review is left FAILED",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rulesets/{id}/versions/{no}/retrieval" : {
       "post" : {
         "tags" : [ "retrieval-controller" ],
@@ -304,7 +370,89 @@
             }
           },
           "422" : {
-            "description" : "The rule set fails the Document 3 validator",
+            "description" : "The rule set fails the Document 3 validator, or its review does not allow publishing yet",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rulesets/{id}/versions/{no}/findings/{findingId}/acknowledge" : {
+      "post" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "Acknowledge one review finding of a DRAFT: a gap with its resolution, an error with a note",
+        "operationId" : "acknowledge",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "findingId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcknowledgeFindingRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "The version with the finding acknowledged",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version or finding in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version's status does not allow this",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The resolution or the note the finding's kind needs is missing",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -491,7 +639,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "An event stream: parsing, authoring, validating, draft",
+            "description" : "An event stream: parsing, authoring, validating, reviewing, then draft or error",
             "content" : {
               "text/event-stream" : {
                 "schema" : {
@@ -892,6 +1040,23 @@
   },
   "components" : {
     "schemas" : {
+      "AcknowledgementResponse" : {
+        "type" : "object",
+        "properties" : {
+          "resolution" : {
+            "type" : "string",
+            "enum" : [ "rule_added", "flag_added", "interpretation" ]
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "at" ]
+      },
       "FindingResponse" : {
         "type" : "object",
         "properties" : {
@@ -921,6 +1086,80 @@
           }
         },
         "required" : [ "code", "fieldNames", "message", "path", "ruleIds", "severity" ]
+      },
+      "ReviewFindingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ambiguity", "conflict", "unsupported", "gap", "duplicate", "injection" ]
+          },
+          "severity" : {
+            "type" : "string",
+            "enum" : [ "error", "warning" ]
+          },
+          "ruleIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "paragraphIndexes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "suggestion" : {
+            "type" : "string"
+          },
+          "confidence" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "blocking" : {
+            "type" : "boolean"
+          },
+          "acknowledgement" : {
+            "$ref" : "#/components/schemas/AcknowledgementResponse"
+          }
+        },
+        "required" : [ "blocking", "confidence", "id", "kind", "message", "paragraphIndexes", "ruleIds", "severity", "suggestion" ]
+      },
+      "ReviewResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "DONE", "FAILED", "STALE" ]
+          },
+          "promptVersion" : {
+            "type" : "string"
+          },
+          "findings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReviewFindingResponse"
+            }
+          },
+          "coverage" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          }
+        },
+        "required" : [ "coverage", "findings", "promptVersion", "status" ]
       },
       "VersionResponse" : {
         "type" : "object",
@@ -976,6 +1215,9 @@
             "items" : {
               "$ref" : "#/components/schemas/FindingResponse"
             }
+          },
+          "review" : {
+            "$ref" : "#/components/schemas/ReviewResponse"
           }
         },
         "required" : [ "domain", "findings", "name", "policyVersionId", "protected", "ruleSet", "rulesetId", "status", "versionId", "versionNo" ]
@@ -1095,6 +1337,17 @@
             }
           },
           "notCovered" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AcknowledgeFindingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "resolution" : {
+            "type" : "string"
+          },
+          "note" : {
             "type" : "string"
           }
         }

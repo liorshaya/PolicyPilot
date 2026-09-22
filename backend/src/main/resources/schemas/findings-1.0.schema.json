@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://policypilot.dev/schemas/findings-1.0.json",
+  "title": "PolicyPilot review findings 1.0 (Document 4, Output Contracts)",
+  "type": "object", "additionalProperties": false, "required": ["findings", "coverage"],
+  "properties": {
+    "findings": { "type": "array", "maxItems": 50, "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "severity", "ruleIds", "paragraphIndexes", "message", "suggestion", "confidence"],
+      "properties": {
+        "kind": { "enum": ["ambiguity", "conflict", "unsupported", "gap", "duplicate", "injection"] },
+        "severity": { "enum": ["error", "warning"] },
+        "ruleIds": { "type": "array", "maxItems": 10, "items": { "type": "string", "pattern": "^R-[0-9]{2,4}$" } },
+        "paragraphIndexes": { "type": "array", "maxItems": 10, "items": { "type": "integer", "minimum": 1 } },
+        "message": { "type": "string", "minLength": 3, "maxLength": 400 },
+        "suggestion": { "type": "string", "minLength": 3, "maxLength": 400 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      } } },
+    "coverage": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^R-[0-9]{2,4}$" } } }
+  }
+}

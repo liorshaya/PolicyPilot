@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.web.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.jayway.jsonpath.JsonPath;
@@ -50,7 +51,7 @@ class RulesetControllerTest {
         JsonMapper json = JsonMapper.builder().build();
         SecurityEvents events = new SecurityEvents(registry, "salt".getBytes(StandardCharsets.UTF_8));
         RulesetService rulesets = new RulesetService(null, null, null, null, null, events, null, null);
-        mvc = MockMvcBuilders.standaloneSetup(new RulesetController(rulesets, events))
+        mvc = MockMvcBuilders.standaloneSetup(new RulesetController(rulesets, null, events))
                 .setControllerAdvice(new ApiExceptionHandler(new ErrorResponses(new TraceIds(new SimpleTracer()), json)))
                 .setMessageConverters(new StringHttpMessageConverter(StandardCharsets.UTF_8),
                         new JacksonJsonHttpMessageConverter(json))
@@ -94,6 +95,29 @@ class RulesetControllerTest {
         assertThat(response.getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(response.getContentAsString(), "$.code")).isEqualTo("REQUEST_INVALID");
         assertThat(registry.counter("security.input.rejected", "code", "REQUEST_INVALID").count()).isEqualTo(1.0);
+    }
+
+    // Document 5, Ids in paths, and Document 2, review_json: a finding id is F-1, F-2, ... Expected: 400
+    // REQUEST_INVALID before any lookup (the service here has no repositories)
+    @Test
+    void aFindingIdThatIsNotOneTheReviewGivesIs400() throws Exception {
+        MockHttpServletResponse response = mvc.perform(post(path(1) + "/findings/R-100/acknowledge")
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andReturn().getResponse();
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].path")).isEqualTo("/findingId");
+    }
+
+    // Document 2, acknowledge row: a resolution is one of three names. Expected: 400 at /resolution
+    @Test
+    void aResolutionThatIsNotOneOfTheThreeIs400() throws Exception {
+        MockHttpServletResponse response = mvc.perform(post(path(1) + "/findings/F-1/acknowledge")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"resolution\": \"ignored\"}"))
+                .andReturn().getResponse();
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].path"))
+                .isEqualTo("/resolution");
     }
 
     private static String path(int versionNo) {

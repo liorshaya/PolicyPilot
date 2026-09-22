@@ -72,6 +72,18 @@ public final class RecordedGateway implements LlmGateway {
         return gateway;
     }
 
+    /** Answers this text to the next structured call, before any recording. */
+    public synchronized void willAnswer(String answer) {
+        scripted.add(() -> answer);
+    }
+
+    /** Fails the next structured call the way the provider would. */
+    public synchronized void willFail(RuntimeException failure) {
+        scripted.add(() -> {
+            throw failure;
+        });
+    }
+
     /** Streams these answers next, before any recording, in order. */
     public synchronized void willStream(Streamed... answers) {
         streams.addAll(List.of(answers));
@@ -80,6 +92,7 @@ public final class RecordedGateway implements LlmGateway {
     /** Forgets what was scripted and asked, for a test that shares the gateway with others before it. */
     public synchronized void reset() {
         streams.clear();
+        scripted.clear();
         asked.clear();
         toolResults.clear();
     }

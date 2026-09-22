@@ -23,6 +23,7 @@ public class SecurityEvents {
     public static final String PROTECTED_WRITE_ATTEMPT = "security.protected.write_attempt";
     public static final String TOOL_REJECTED = "ai.tool.rejected";
     public static final String OUTPUT_DENYLIST = "security.output.denylist";
+    public static final String INJECTION_FINDING = "ai.finding.injection";
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityEvents.class);
     /** 16 hex characters: enough to tell clients apart in a log, too short to be a useful digest. */
@@ -88,6 +89,16 @@ public class SecurityEvents {
         registry.counter(OUTPUT_DENYLIST, "prompt", promptVersion, "pattern", patternClass).increment();
         LOG.atWarn().setMessage(OUTPUT_DENYLIST).addKeyValue("prompt", promptVersion)
                 .addKeyValue("pattern", patternClass).log();
+    }
+
+    /**
+     * The reviewer reported a passage that reads as an instruction to the system (Document 5, Security Logging: rule
+     * set id, paragraph, kind); the passage itself is never logged.
+     */
+    public void injectionFound(UUID rulesetId, int paragraph) {
+        registry.counter(INJECTION_FINDING).increment();
+        LOG.atWarn().setMessage(INJECTION_FINDING).addKeyValue("ruleset", rulesetId).addKeyValue("paragraph", paragraph)
+                .addKeyValue("kind", "injection").log();
     }
 
     /** The keyed hash under which a client or an id is logged. */
