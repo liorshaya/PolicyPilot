@@ -155,7 +155,7 @@ Every requirement in the Brief maps to the tests that prove it; a requirement wi
 | FR-10 Persist decisions with version and snapshot |  | Decision row has version id, input snapshot, trace JSON; replay equals stored |  |  |
 | FR-11 Explain a decision citing rules and passages | Explanation contract checks (fired rules only, no skipped) | Explain with a recorded output that cites a skipped rule is filtered | Explain recordings | Step 2 |
 | FR-12 Chunk and embed on publish | Chunker (paragraphs, rule rendering) | Embedding job with the fake embedding gateway; `embedding_status` transitions; scoping by version |  |  |
-| FR-13 Chat with retrieved context and citations, streamed | Marker parser and resolver | Chat SSE sequence; citations event resolves ids | Answer recordings; citation accuracy metric | Step 3 |
+| FR-13 Chat with retrieved context and citations, streamed | Marker parser and resolver | Chat SSE sequence; citations event resolves ids; a scripted answer is kept only when it meets its label and served only when its tool results are equal | Answer recordings; citation accuracy metric | Step 3 |
 | FR-14 Tools: decision, stats, rules, simulate | Tool argument validators | Tool calls through the recorded gateway; foreign ids rejected | RT-03; simulation counterfactual | Step 3 guarantor question |
 | FR-15 Not-covered answers | Threshold logic | Off-corpus question short-circuits without a model call | Refusal accuracy metric | Step 3 last question |
 | FR-16 Conversation memory, last N turns |  | Session with 12 turns keeps the last 10 |  |  |
@@ -203,6 +203,7 @@ The two non-functional requirements an interviewer can check with a stopwatch ha
 | Batch endpoint | `POST .../decide` with the 200-case fixture set, persistence on, Testcontainers PostgreSQL | Under 1 second wall time (NFR-6), measured three times, median |
 | Single decision | One case through the API with persistence | Under 50 ms median over 20 calls after warm-up |
 | Chat first token | Recorded gateway with an artificial 100 ms delay, SSE consumed by the test | First `token` event within 500 ms of the request (the network and the real model are excluded; the live target of 3 s is checked in the rehearsal) |
+| Cached chat first token | A scripted question asked twice in new sessions of one sandbox; the second is served from the cache | The gateway is not called for the second, and its first `token` event arrives within 500 ms of the request; the live target, under 3 s on the cloud site, is measured after the warm-up |
 | Regression run | 200 stored decisions re-evaluated against a patched copy | Under 2 seconds; report lists exactly the 12 flipped cases |
 | Retrieval query | Corpus of the lending version (29 chunks) and a 500-chunk synthetic version | Hybrid query under 50 ms on the small corpus and under 200 ms on the large one |
 | Byte-identical traces | 200 cases evaluated twice in different JVM runs (two CI jobs write their JSON, a third compares) | Identical bytes (C-26) |
