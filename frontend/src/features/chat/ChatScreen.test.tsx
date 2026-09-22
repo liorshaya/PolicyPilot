@@ -47,11 +47,15 @@ function serveSession(language = 'he') {
   )
 }
 
-function renderScreen(onOpenRule = vi.fn(), onOpenCases = vi.fn()) {
+function renderScreen(
+  onOpenRule = vi.fn(),
+  onOpenCases = vi.fn(),
+  rulesetId: string | null = null,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <ChatScreen onOpenRule={onOpenRule} onOpenCases={onOpenCases} />
+      <ChatScreen onOpenRule={onOpenRule} onOpenCases={onOpenCases} rulesetId={rulesetId} />
     </QueryClientProvider>,
   )
   return { onOpenRule, onOpenCases }
@@ -220,5 +224,54 @@ describe('ChatScreen', () => {
     renderScreen()
 
     expect(await screen.findByText('No published version to ask about')).toBeInTheDocument()
+  })
+
+  // Document 2, chat sessions: a session is opened on a PUBLISHED version. After demo step 1 the workspace is on the
+  // draft just written, and the questions are asked of the seeded published version instead, which the screen says
+  it('asks about the seeded published version when the workspace is on a draft', async () => {
+    const DRAFT_ID = '0f4c1c9e-0000-4000-8000-0000000000b9'
+    const opened: unknown[] = []
+    serveSession()
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            {
+              id: SEEDED_RULESET_ID,
+              name: 'מדיניות אשראי צרכני',
+              domain: 'consumer-lending',
+              protected: true,
+              policyId: '0f4c1c9e-0000-4000-8000-0000000000a1',
+              versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+            },
+            {
+              id: DRAFT_ID,
+              name: 'מדיניות אשראי צרכני',
+              domain: 'consumer-lending',
+              protected: false,
+              policyId: '0f4c1c9e-0000-4000-8000-0000000000a1',
+              versions: [{ versionNo: 1, status: 'DRAFT' }],
+            },
+          ],
+        }),
+      ),
+      http.post(`${BASE}/chat/sessions`, async ({ request }) => {
+        opened.push(await request.json())
+        return HttpResponse.json(
+          { id: SESSION, rulesetId: SEEDED_RULESET_ID, versionNo: 1, language: 'he' },
+          { status: 201 },
+        )
+      }),
+    )
+
+    renderScreen(vi.fn(), vi.fn(), DRAFT_ID)
+
+    expect(
+      await screen.findByText(
+        'The rule set on the workspace has no published version yet; the questions are about the seeded one.',
+      ),
+    ).toBeInTheDocument()
+    expect(await screen.findByLabelText('Question')).toBeInTheDocument()
+    await waitFor(() => expect(opened).toEqual([{ rulesetId: SEEDED_RULESET_ID, versionNo: 1 }]))
   })
 })

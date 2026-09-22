@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { publishedTarget } from '../../api/published'
 import { usePolicy, useRulesets } from '../../api/queries'
 import type { RulesetSummary } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
@@ -30,14 +31,14 @@ export function ChatScreen({
 }) {
   const rulesets = useRulesets()
   const list = rulesets.data ?? []
-  const chosen =
-    list.find((one) => one.id === rulesetId) ?? list.find((one) => one.protected) ?? list[0]
-  const published = chosen ? latestPublished(chosen) : null
+  // Document 2, chat sessions: a session is opened on a PUBLISHED version. The workspace may be on a draft written a
+  // moment ago (demo step 1), so the questions are asked of the first rule set that has a published version
+  const target = publishedTarget(list, rulesetId)
 
   if (rulesets.isPending) {
     return <LoadingRows label="Loading the rule sets" />
   }
-  if (!chosen || published === null) {
+  if (target === null) {
     return (
       <>
         <WorkspaceHeader title="Assistant" />
@@ -51,9 +52,10 @@ export function ChatScreen({
   return (
     <Conversation
       // a new version is a new session, with a conversation of its own
-      key={`${chosen.id}:${String(published)}`}
-      ruleset={chosen}
-      target={{ rulesetId: chosen.id, versionNo: published }}
+      key={`${target.ruleset.id}:${String(target.versionNo)}`}
+      ruleset={target.ruleset}
+      elsewhere={target.elsewhere}
+      target={{ rulesetId: target.ruleset.id, versionNo: target.versionNo }}
       onOpenRule={onOpenRule}
       onOpenCases={onOpenCases}
     />
@@ -62,11 +64,14 @@ export function ChatScreen({
 
 function Conversation({
   ruleset,
+  elsewhere,
   target,
   onOpenRule,
   onOpenCases,
 }: {
   ruleset: RulesetSummary
+  /** The workspace is on a rule set with no published version; the questions are about this one instead. */
+  elsewhere: boolean
   target: ChatTarget
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
@@ -100,6 +105,12 @@ function Conversation({
         version={<span className="tabular">Version {target.versionNo}</span>}
       />
       <div className="chat">
+        {elsewhere ? (
+          <p className="chat__elsewhere" role="note">
+            The rule set on the workspace has no published version yet; the questions are about the
+            seeded one.
+          </p>
+        ) : null}
         <section className="chat__conversation" aria-label="Conversation">
           {chat.openFailure ? (
             <p className="chat__failure" role="alert">
@@ -299,12 +310,6 @@ function chipTitle(citation: ChatCitation): string {
     case 'SIMULATION':
       return `If ${citation.detail ?? ''}: ${citation.outcome ?? ''}, as the engine simulated`
   }
-}
-
-/** The number of the last published version, or null when there is none. */
-function latestPublished(ruleset: RulesetSummary): number | null {
-  const published = ruleset.versions.filter((version) => version.status === 'PUBLISHED')
-  return published[published.length - 1]?.versionNo ?? null
 }
 
 function policyLanguage(language: string | undefined): ContentLanguage {
