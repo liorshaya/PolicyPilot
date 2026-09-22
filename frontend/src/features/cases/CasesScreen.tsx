@@ -13,7 +13,7 @@ import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { Dashboard } from './Dashboard'
 import { DecisionList } from './DecisionList'
 import { TraceView } from './TraceView'
-import { milliseconds } from './outcomes'
+import { engineTime } from './outcomes'
 import './CasesScreen.css'
 
 /** The seeded set of the demo (`policypilot.demo.fixture-set` in application.yml). */
@@ -173,7 +173,7 @@ export function CasesScreen({
             }
             subtitle={
               decision.data
-                ? `Decided in ${milliseconds(decision.data.durationMicros)} by the engine`
+                ? `Decided in ${engineTime(decision.data.durationMicros)} by the engine`
                 : 'The trace of the chosen case'
             }
             actions={

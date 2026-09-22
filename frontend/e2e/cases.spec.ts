@@ -35,7 +35,7 @@ test.describe('the case runner', () => {
 
     await page.getByRole('button', { name: '17', exact: true }).click()
 
-    await expect(page.getByText('Decided in 0.4 ms by the engine')).toBeVisible()
+    await expect(page.getByText('Decided in 412 µs by the engine')).toBeVisible()
     const steps = page.getByRole('complementary').getByRole('listitem')
     await expect(steps).toHaveCount(2)
     await expect(steps.first()).toContainText('Did not match')

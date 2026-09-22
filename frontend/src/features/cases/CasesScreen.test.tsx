@@ -141,7 +141,7 @@ describe('CasesScreen', () => {
     const panel = within(await screen.findByRole('complementary'))
     expect(panel.getByText('debt_to_income')).toBeInTheDocument()
     expect(panel.getByText('0.2835')).toBeInTheDocument()
-    expect(panel.getByText('Decided in 0.4 ms by the engine')).toBeInTheDocument()
+    expect(panel.getByText('Decided in 412 µs by the engine')).toBeInTheDocument()
   })
 
   it('leads from the step that decided to the rule that decided it', async () => {
