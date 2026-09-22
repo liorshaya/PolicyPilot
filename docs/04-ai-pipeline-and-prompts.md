@@ -521,7 +521,7 @@ Four JSON schemas and one text protocol; the RuleSet and Patches shapes are defi
 }
 ```
 
-The API enforces three rules the schema cannot: `conflict` and `unsupported` must carry `severity: error`, `injection` must carry `severity: warning` and anchor at least one paragraph, and every finding must anchor at least one rule or one paragraph.
+The API enforces three rules the schema cannot: `conflict` and `unsupported` must carry `severity: error`, `injection` must carry `severity: warning` and anchor at least one paragraph, and every finding must anchor at least one rule or one paragraph. A coverage entry that is not a list of rule ids is dropped and logged rather than failing the review, because coverage only feeds the evaluation and the findings are what the analyst acts on; its first live run wrote one map as objects in 1 of 11 answers (decided 2026-09-22, day 10).
 
 **Explanation** (`schemas/explanation-1.0.schema.json`):
 
