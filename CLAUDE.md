@@ -19,7 +19,7 @@ with its tests. Leave every folder you touch tidier than you found it.
 | `backend/` | Maven project: Java 21, Spring Boot 4.0.x, Spring AI 2.0.x; `Dockerfile`; `railway.json` (deploy settings the CI deploy job applies); Flyway migrations; prompts from day 7 |
 | `frontend/` | Vite project: React 19, TypeScript strict, TanStack Query; `vercel.json` with the SPA rewrite |
 | `fixtures/` | The DSL schema, the demo policy with its rule set and 200 cases, the conformance suite, the evaluation set, the Python reference |
-| `docs/` | Documents 1 to 7, `progress-checklist.md`, `worklog.md`, `agent-briefing.he.md`; `quality/` and `eval/` reports |
+| `docs/` | Documents 1 to 7, `progress-checklist.md`, `worklog.md`, `agent-briefing.he.md`; `quality/` and `eval/` reports; `demo/` (a screenshot per demo step) and `assets/` (the README's images) |
 | `docker-compose.yml` | `db` (pgvector), `backend`, `frontend`; `ollama` and `ollama-pull` behind `--profile ollama` (`docker-compose.ollama.yml`) |
 | `.github/workflows/` | `ci.yml` (the eight stages, then the Railway deploy of the stage 6 digest), `eval.yml` (manual live evaluation), `compose-smoke.yml` (`make up` timed on a clean runner) |
 | `scripts/` | CI hygiene checks and the job summary, the Ollama pull script, the git pre-commit hook, `wait-for-health.sh` |
