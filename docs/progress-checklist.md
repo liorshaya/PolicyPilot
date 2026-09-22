@@ -132,14 +132,14 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 **Day 10, Sun Oct 4: rehearsal, video, README and freeze (two-week version)**
 
-- [ ] Scripted outputs warmed into `model_response_cache`; first token under 3 s for the cached questions; Hebrew and RTL check of the chat
-- [ ] Short README: setup, architecture diagram, design principle, the three-step demo script with inputs, outputs and timings, known limitations (every struck-through box of this checklist), security and testing sections
-- [ ] The Brief's Definition of Done lines 1 to 6 walked on the cloud site, with evidence links in the README
+- [x] Scripted outputs warmed into `model_response_cache`; first token under 3 s for the cached questions; Hebrew and RTL check of the chat (2026-09-22: 0.64 to 0.7 s from the cache; RTL checked in Chromium on a desktop and an iPhone 13 viewport)
+- [x] Short README: setup, architecture diagram, design principle, the three-step demo script with inputs, outputs and timings, known limitations (every struck-through box of this checklist), security and testing sections
+- [x] The Brief's Definition of Done lines 1 to 6 walked on the cloud site, with evidence links in the README (line 3 not met, stated there)
 - [ ] Rehearsal from a second machine and from a phone on mobile data, timed per step; every fix ships with its test
-- [ ] Pre-demo security checklist (Document 5) complete, the reset items excepted
+- [ ] Pre-demo security checklist (Document 5) complete, the reset items excepted (Claude's items done 2026-09-22 and repeated the morning of 5.10; the owner's items are dated in RUNBOOK section 12)
 - [ ] The 2-minute fallback video recorded from a clean run; one screenshot per step; both linked from the README and copied to the phone
 - [ ] Secrets rotated after the video: access code, cookie secret, provider key (old key deleted), admin code
-- [ ] `main` tagged, CI green including the security gates, SBOM attached; freeze rule in force
+- [x] `main` tagged, CI green including the security gates, SBOM attached; freeze rule in force (`v1.0.0` at 7ad29de, 2026-09-22)
 - [ ] Interview kit on paper and on the phone: site URL, access code, the video file; contingencies rehearsed (the video offline, the screenshots without the site)
 - [ ] Gate G4 (two-week version)
 
@@ -240,26 +240,26 @@ worked; Fridays and Saturdays are off. Cut boxes below are struck through with t
 
 **Definition of Done**
 
-- [ ] `docker compose up` plus one command starts the system on a clean machine in under 5 minutes
-- [ ] The lending policy converts to a schema-valid rule set on the first or second attempt in at least 9 of 10 runs
-- [ ] At least 90% of the generated rules match the labeled expected rules for the lending policy (two-week version: measured by the manual checklist on the lending policy, since the evaluation runner is cut)
-- [ ] The 200 cases decide in under 1 second and rerunning yields byte-identical results
-- [ ] Every one of the 200 decisions has a trace naming each fired rule and the compared values
-- [ ] The three scripted chat questions return cited answers; the out-of-scope question returns "not covered by the documents"
+- [x] `docker compose up` plus one command starts the system on a clean machine in under 5 minutes (93 s, 2026-09-22)
+- [x] The lending policy converts to a schema-valid rule set on the first or second attempt in at least 9 of 10 runs
+- [ ] At least 90% of the generated rules match the labeled expected rules for the lending policy (two-week version: measured by the manual checklist on the lending policy, since the evaluation runner is cut; not met on 2026-09-22, 78% on the canonical run and 67% at the median, docs/eval/rule-match-lending.md)
+- [x] The 200 cases decide in under 1 second and rerunning yields byte-identical results (in the test environment; 1.3 to 1.7 s over the network on the live site)
+- [x] Every one of the 200 decisions has a trace naming each fired rule and the compared values
+- [x] The three scripted chat questions return cited answers; the out-of-scope question returns "not covered by the documents"
 - [ ] ~~The scripted change request produces a diff, a regression report and version 2 with an audit entry; version 1 decisions unchanged~~ (rung 10: the change flow is the closing slide)
 - [ ] Switching the profile from `openai` to `ollama` needs no code change and the chat step still works (beyond the two-week minimum: the switch stays in configuration and both profiles load in tests; the chat step on Ollama is not scheduled)
 - [ ] Unit tests cover the engine and the DSL validator at 100% line coverage with a mutation score of at least 90%; integration tests cover every use case with a recorded model; the traceability matrix has no empty row
 - [ ] The README has the architecture diagram, the design principle, the demo script, known limitations and the 2-minute recorded run
-- [ ] The live demo on Railway and Vercel runs the four steps with the access code, and a request without the code is rejected (two-week version: three steps)
+- [x] The live demo on Railway and Vercel runs the four steps with the access code, and a request without the code is rejected (two-week version: three steps)
 
 **Pre-demo security checklist**
 
 - [ ] Secrets rotated within the last 7 days: access code, cookie secret, provider key; old key deleted in the OpenAI dashboard
 - [ ] OpenAI monthly limit set to the demo budget; ledger counter near zero
-- [ ] Security counters for the last 7 days reviewed; no protected-row write attempts, no denylist hits
-- [ ] Protected rule set checksum equals the fixture; 200 cases present; nightly reset ran last night (two-week version: no nightly reset; the checksum and the 200 cases are still checked)
-- [ ] CI green on `main` including the security gates; SBOM attached to the tagged build
+- [x] Security counters for the last 7 days reviewed; no protected-row write attempts, no denylist hits (2026-09-22, the logs of all 20 deployments; repeated the morning of 5.10)
+- [x] Protected rule set checksum equals the fixture; 200 cases present; nightly reset ran last night (two-week version: no nightly reset; the checksum and the 200 cases are still checked)
+- [x] CI green on `main` including the security gates; SBOM attached to the tagged build (`v1.0.0`)
 - [ ] ~~Manual reset endpoint tested with the admin code, then the admin code rotated~~ (the reset is not built in the two-week version)
-- [ ] Vercel and Railway environment variables reviewed; no unused variables; `SPRING_PROFILES_ACTIVE` is `openai,cloud`
+- [ ] Vercel and Railway environment variables reviewed; no unused variables; `SPRING_PROFILES_ACTIVE` is `openai,cloud` (Railway reviewed 2026-09-22: `openai,cloud`, and the unused admin code is the owner's to delete; Vercel is the owner's, RUNBOOK 12.1)
 - [ ] Rate limits tested from a phone on mobile data
-- [ ] The README's security section and known limitations reviewed against Document 5
+- [x] The README's security section and known limitations reviewed against Document 5
