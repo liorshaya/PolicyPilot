@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/assets/policypilot-banner.svg" width="100%"
+       alt="PolicyPilot: clear rules, confident decisions. Policy in natural language, rules the model authors, a decision the engine makes, an audit a person approves.">
+</p>
+
 # PolicyPilot
 
 An AI copilot over a deterministic rules engine. A model writes rules from Hebrew policy text and answers questions
