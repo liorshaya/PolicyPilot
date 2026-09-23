@@ -98,7 +98,7 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
      */
     @Test
     void theScriptedRequestIsProposed() {
-        ChangeService service = new ChangeService(new Recording(gateway),
+        ChangeService service = new ChangeService(new RecordingModel(gateway, properties.ai().models().strong()),
                 new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
 
         Proposal proposal = service.propose(ChangeRequests.lendingBase(), ChangeRequests.scripted(),
@@ -113,19 +113,30 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
                 .map(patch -> patch.path("ruleId").asString(""))).contains("R-170", "R-410");
     }
 
-    /** The live gateway, writing every answer it gives under the hash of the prompt it answered. */
-    private final class Recording implements LlmGateway {
+    /**
+     * The live gateway, writing every answer it gives under the hash of the prompt it answered and printing what each
+     * call spent; {@code LiveChangePassIT} records the other five requests through it.
+     */
+    static final class RecordingModel implements LlmGateway {
 
         private final LlmGateway live;
+        private final String model;
+        private long spentIn;
+        private long spentOut;
 
-        Recording(LlmGateway live) {
+        RecordingModel(LlmGateway live, String model) {
             this.live = live;
+            this.model = model;
         }
 
         @Override
         public <T> Completion<T> complete(PromptSpec spec, Class<T> type) {
             Completion<T> answer = live.complete(spec, type);
             write(spec, String.valueOf(answer.value()));
+            spentIn += answer.usage().inputTokens();
+            spentOut += answer.usage().outputTokens();
+            System.out.printf("%s/%s: %d input + %d output tokens%s%n", spec.promptName(), spec.promptVersion(),
+                    answer.usage().inputTokens(), answer.usage().outputTokens(), answer.cacheHit() ? ", cached" : "");
             return answer;
         }
 
@@ -138,25 +149,38 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
         public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
             throw new UnsupportedOperationException("the change prompt is not streamed");
         }
-    }
 
-    private void write(PromptSpec spec, String response) {
-        String name = Hashes.sha256Hex(spec.system() + "\u001f" + spec.user());
-        ObjectNode recording = JSON.createObjectNode();
-        ObjectNode request = recording.putObject("request");
-        request.put("prompt", spec.promptName());
-        request.put("version", spec.promptVersion());
-        request.put("model", properties.ai().models().strong());
-        request.put("inputHash", name);
-        request.put("system", spec.system());
-        request.put("user", spec.user());
-        recording.put("response", response);
-        Path file = RECORDINGS.resolve(spec.promptVersion()).resolve(name + ".json");
-        try {
-            Files.createDirectories(file.getParent());
-            Files.writeString(file, recording.toPrettyString());
-        } catch (IOException e) {
-            throw new UncheckedIOException("could not write the recording", e);
+        /** What every call so far spent, as the provider reported it. */
+        String spent() {
+            return spentIn + " input + " + spentOut + " output = " + (spentIn + spentOut) + " tokens";
+        }
+
+        /** Where the answer to a prompt is written, and where the replaying gateway looks for it. */
+        static Path fileOf(PromptSpec spec) {
+            return RECORDINGS.resolve(spec.promptVersion()).resolve(hashOf(spec) + ".json");
+        }
+
+        private static String hashOf(PromptSpec spec) {
+            return Hashes.sha256Hex(spec.system() + "\u001f" + spec.user());
+        }
+
+        private void write(PromptSpec spec, String response) {
+            ObjectNode recording = JSON.createObjectNode();
+            ObjectNode request = recording.putObject("request");
+            request.put("prompt", spec.promptName());
+            request.put("version", spec.promptVersion());
+            request.put("model", model);
+            request.put("inputHash", hashOf(spec));
+            request.put("system", spec.system());
+            request.put("user", spec.user());
+            recording.put("response", response);
+            Path file = fileOf(spec);
+            try {
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, recording.toPrettyString());
+            } catch (IOException e) {
+                throw new UncheckedIOException("could not write the recording", e);
+            }
         }
     }
 }

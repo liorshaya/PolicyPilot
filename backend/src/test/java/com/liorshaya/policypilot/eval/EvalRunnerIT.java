@@ -2,6 +2,8 @@ package com.liorshaya.policypilot.eval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.change.ChangeAnalysis;
+import com.liorshaya.policypilot.ai.service.ChangeBase;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.policy.service.PolicyLanguage;
 import com.liorshaya.policypilot.policy.service.PolicyService;
@@ -14,6 +16,7 @@ import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
+import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
@@ -50,7 +53,8 @@ import tools.jackson.databind.JsonNode;
  * {@code docs/eval/<date>-<prompt-versions>.md}"). One run, one report: the author and review passes are scored
  * from the recordings by {@link RecordedScoring}, and retrieval recall at 8 and refusal accuracy are measured
  * here, over the thirty questions of {@code fixtures/eval/questions.json} on the vectors the day 8 live pass
- * recorded. Each question is asked of its own policy, published in a sandbox of its own.
+ * recorded. Each question is asked of its own policy, published in a sandbox of its own. The change requests'
+ * candidates are selected here as well, on the same vectors, because the runner reads them off the recorded prompts.
  *
  * <p>Document 4 defines the metric as "Questions whose expected chunk is among the 8 retrieved", so the unit is a
  * question and one expected chunk is enough: a question the retrieval answered at all counts. The two stricter
@@ -89,6 +93,9 @@ class EvalRunnerIT {
     private RetrievalService retrieval;
 
     @Autowired
+    private ChangeAnalysis analysis;
+
+    @Autowired
     private JdbcClient jdbc;
 
     // Document 4: "Questions whose expected chunk is among the 8 retrieved", at least 0.90 on the strong model
@@ -106,6 +113,29 @@ class EvalRunnerIT {
 
         assertThat(asked).hasSize(30);
         report(asked);
+    }
+
+    // The runner reads each change request's candidates off its recorded prompt, which holds only while candidate
+    // selection on the recorded vectors still gives those very candidates; CR-3's policy is embedded on the vectors
+    // the change pass recorded for it. Expected: for each of the six, the candidates its recorded prompt lists, in
+    // the order it lists them
+    @Test
+    @Requirement("FR-17")
+    void everyRecordedChangePromptShowsTheCandidatesSelectionGives() {
+        Recordings prompts = Recordings.of(EMBEDDINGS_RECORDED_FOR, "change", "v1");
+        Map<String, List<String>> selected = new LinkedHashMap<>();
+        Map<String, List<String>> shown = new LinkedHashMap<>();
+        for (JsonNode request : ChangeRequests.labeled()) {
+            String id = request.required("id").asString();
+            String text = request.required("text").asString();
+            Target target = publish(request.required("policy").asString(), request);
+            ChangeBase base = analysis.base(target.rulesetId(), 1, target.sandboxId()).orElseThrow();
+            selected.put(id, analysis.candidates(base, text).ruleIds());
+            shown.put(id, RecordedScoring.candidateIds(
+                    prompts.about(List.of(text + "\n</change_request>")).prompts().getFirst()));
+        }
+
+        assertThat(selected).hasSize(6).isEqualTo(shown);
     }
 
     /** One question, and what retrieval did with it: the chunks kept, or nothing when the threshold stopped it. */
@@ -292,15 +322,18 @@ class EvalRunnerIT {
                 .map(String::strip).filter(line -> !line.isEmpty()).count();
     }
 
-    /** Publishes one policy's expected rule set in a sandbox of its own and waits for the recorded vectors. */
-    private Target publish(String policy, JsonNode question) {
-        String textPath = question.required("policyText").asString();
+    /**
+     * Publishes one policy's expected rule set in a sandbox of its own and waits for the recorded vectors; a labeled
+     * question and a labeled change request name the policy's text and rule set alike.
+     */
+    private Target publish(String policy, JsonNode labeled) {
+        String textPath = labeled.required("policyText").asString();
         PolicyLanguage language = textPath.endsWith(".en.md") ? PolicyLanguage.EN : PolicyLanguage.HE;
         UUID sandbox = UUID.randomUUID();
         PolicyView view = policies.create(sandbox, policy, language, read(textPath));
         UUID policyVersion = policies.version(view.id(), 1, sandbox).orElseThrow().id();
         VersionView draft = rulesets.createDraft(sandbox, policyVersion,
-                Fixtures.json(question.required("ruleset").asString()), ValidationContext.ANALYST_EDIT, Set.of());
+                Fixtures.json(labeled.required("ruleset").asString()), ValidationContext.ANALYST_EDIT, Set.of());
         UUID version = rulesets.publish(Reviews.reviewed(rulesets, draft, sandbox).rulesetId(), 1, sandbox)
                 .orElseThrow().versionId();
         awaitReady(version);
