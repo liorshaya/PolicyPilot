@@ -69,6 +69,9 @@ class RecordedChangeIT {
 
         @Override
         public void validating() {}
+
+        @Override
+        public void regression() {}
     };
 
     @Autowired

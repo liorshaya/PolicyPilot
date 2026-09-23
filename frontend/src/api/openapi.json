@@ -575,7 +575,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "An event stream: analyzing, proposing, validating, then proposal or error",
+            "description" : "An event stream: analyzing, proposing, validating, regression, then proposal or error",
             "content" : {
               "text/event-stream" : {
                 "schema" : {

@@ -4,7 +4,8 @@ import com.liorshaya.policypilot.ai.service.Candidates;
 
 /**
  * What a change request reports while it is worked on (Document 2, API Surface: {@code analyzing}, {@code proposing}
- * with the candidate rules and fields, {@code validating}); the caller streams each one as it happens.
+ * with the candidate rules and fields, {@code validating}, {@code regression}); the caller streams each one as it
+ * happens.
  */
 public interface ChangeProgress {
 
@@ -16,4 +17,7 @@ public interface ChangeProgress {
 
     /** The model answered; the answer is validated, and repaired when it has errors. */
     void validating();
+
+    /** The proposal validated; the sandbox's decisions on the base version are decided again by the copy. */
+    void regression();
 }

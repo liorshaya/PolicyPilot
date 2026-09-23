@@ -44,7 +44,7 @@ Twelve packages under `com.liorshaya.policypilot`, dependencies allowed inward o
 | `ai` | `rules`, `engine`, `policy`, `ruleset`, `decision`, `rag`, persistence |
 | `ai.adapter` | Spring AI, `ai` interfaces, persistence; **the only package that imports `org.springframework.ai`** |
 | `rag` | `policy`, `rules`, `ruleset`, `ai` (the `EmbeddingGateway` interface), persistence |
-| `change` | `ai`, `ruleset`, `engine`, `decision`, `audit` |
+| `change` | `ai`, `rules`, `ruleset`, `engine`, `decision`, `audit` |
 | `audit` | persistence |
 | `demo` | `policy`, `ruleset`, `decision`, `audit`, persistence |
 | `web` | every package above; **nothing depends on `web`** |
@@ -57,7 +57,9 @@ On 2026-09-22 `ai.chat` joined `ai` (day 9): the chat use case, which reads and 
 the orchestrating modules; what of the chat needs no database is `ai.service.chat`, on the unit-test gate. On
 2026-09-24 `ai.change` joined it the same way (day 12): the change request's impact analysis, which reads the rule
 set and chunk stores; the change prompt and its repair loop need no database and are `ai.service.ChangeService`.
-Patch validation, pure, is `rules.patch`.
+Patch validation, pure, is `rules.patch`. On 2026-09-24 `change` gained `rules` (day 13): applying the stored
+patches, rewriting `pending` into `analyst` at approval and diffing two versions are pure functions of `rules`, and
+the diff is `rules.diff`.
 Two cross-cutting packages were added on 2026-09-18: `config` (Spring configuration, `PolicyPilotProperties`)
 and `common` (dependency-free helpers). Every module may use them except `rules` and `engine`, which stay pure.
 Inside a module that owns state the layers are `service` (entry points other modules call), `entity` and

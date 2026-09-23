@@ -73,7 +73,7 @@ class ChangeStreamIT extends ApiIntegrationTest {
         assertThat(response.headers().firstValue("Content-Type")).hasValueSatisfying(
                 type -> assertThat(type).startsWith("text/event-stream"));
         ServerSentEvents events = ServerSentEvents.parse(response.body());
-        assertThat(events.names()).containsExactly("analyzing", "proposing", "validating", "proposal");
+        assertThat(events.names()).containsExactly("analyzing", "proposing", "validating", "regression", "proposal");
         assertThat(events.first("analyzing").required("rules").asInt())
                 .isEqualTo(Fixtures.lendingV1().required("rules").size());
         assertThat(strings(events.first("proposing").required("candidates"))).isEqualTo(CANDIDATES);
@@ -94,6 +94,35 @@ class ChangeStreamIT extends ApiIntegrationTest {
                 });
         assertThat(strings(proposal.required("untouched"))).containsExactly("R-020", "R-200", "R-320");
         assertThat(strings(proposal.required("candidates"))).isEqualTo(CANDIDATES);
+        assertThat(proposal.required("diff").required("rules").required("modified").valueStream()
+                .map(rule -> rule.required("id").asString())).containsExactly("R-170", "R-410");
+        assertThat(proposal.required("regression").required("decisions").asInt()).isZero();
+    }
+
+    // Document 3, Regression report: "exactly 12 of the 200 cases flip" (change-request-1.json: 12), over the
+    // decisions this sandbox made on the base version, the latest per case. Expected: the fixture set decided twice
+    // and still 200 decided again, twelve flips to reject, and the report stored with the request
+    @Test
+    void theRegressionOfTheScriptedChangeFlipsExactlyTwelve() {
+        for (int run = 0; run < 2; run++) {
+            HttpResponse<String> decided = api().post("/api/v1/rulesets/" + seeded + "/versions/1/decide").web()
+                    .cookie(session).json("{\"fixtureSet\":\"cases-200\"}").send();
+            assertThat(decided.statusCode()).isEqualTo(200);
+        }
+        model.willAnswer(ChangeRequests.scriptedPatches().toString());
+
+        JsonNode proposal = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body()).first("proposal");
+
+        JsonNode regression = proposal.required("regression");
+        int expected = Fixtures.json("policies/consumer-lending/change-request-1.json").required("expected")
+                .required("regression").required("flips").asInt();
+        assertThat(regression.required("decisions").asInt()).isEqualTo(200);
+        assertThat(regression.required("flips")).hasSize(expected);
+        assertThat(regression.required("flips").valueStream().map(flip -> flip.required("after").asString()))
+                .containsOnly("reject");
+        JsonNode stored = JSON.readTree(jdbc.sql("select regression_json::text from change_request where id = :id")
+                .param("id", UUID.fromString(proposal.required("id").asString())).query(String.class).single());
+        assertThat(stored.required("flips")).hasSize(expected);
     }
 
     // Document 2, change_request and audit_entry: the row holds the patches as validated with the request's id in

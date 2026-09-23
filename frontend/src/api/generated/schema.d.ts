@@ -1064,7 +1064,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description An event stream: analyzing, proposing, validating, then proposal or error */
+            /** @description An event stream: analyzing, proposing, validating, regression, then proposal or error */
             200: {
                 headers: {
                     [name: string]: unknown;

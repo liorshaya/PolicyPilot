@@ -84,7 +84,7 @@ class PackageRulesTest {
             .because("Document 4: retrieval and its not-covered answer need no model call");
 
     @ArchTest
-    static final ArchRule change = moduleRule("change", "ai", "ruleset", "engine", "decision", "audit");
+    static final ArchRule change = moduleRule("change", "ai", "rules", "ruleset", "engine", "decision", "audit");
 
     @ArchTest
     static final ArchRule audit = moduleRule("audit");
