@@ -31,6 +31,9 @@ export type Diff = components['schemas']['DiffResponse']
 export type ModifiedRule = components['schemas']['ModifiedRule']
 export type ModifiedField = components['schemas']['ModifiedField']
 export type DiffChange = components['schemas']['Change']
+/** An entry of the audit log (Document 2, GET /audit), whose details depend on its action. */
+export type AuditEntry = components['schemas']['Entry']
+export type AuditEntriesResponse = components['schemas']['AuditEntriesResponse']
 /** A person's decision on a proposed change, with the version an approval published. */
 export type ChangeDecision = components['schemas']['ChangeDecisionResponse']
 

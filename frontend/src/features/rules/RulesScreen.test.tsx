@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import type { RuleSetDocument, RulesetsResponse, VersionResponse } from '../../api/types'
+import { copyRuleset, copyVersion } from '../../test/fixtures/audit'
 import { lendingRuleSet } from '../../test/fixtures/lending'
 import {
   publishedVersion,
@@ -400,6 +401,25 @@ describe('RulesScreen', () => {
     await userEvent.selectOptions(switcher, SECOND_RULESET_ID)
 
     expect(chosen).toEqual([SECOND_RULESET_ID])
+  })
+
+  it('opens an earlier version of the rule set through the version picker', async () => {
+    const asked: string[] = []
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json({ rulesets: [copyRuleset] })),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, ({ params }) => {
+        asked.push(String(params.no))
+        return HttpResponse.json(copyVersion(Number(params.no) === 1 ? 1 : 2))
+      }),
+    )
+    renderScreen(null, copyRuleset.id)
+
+    // the latest version first: version 2, where the approved change stands
+    expect(await screen.findByText('Version 2')).toBeVisible()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1')
+
+    expect(await screen.findByText('Version 1')).toBeVisible()
+    expect(asked).toStrictEqual(['2', '1'])
   })
 
   it('offers no choice when the sandbox holds one rule set', async () => {

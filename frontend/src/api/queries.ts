@@ -3,8 +3,10 @@ import { api } from './client'
 import type {
   Aggregates,
   Audience,
+  AuditEntry,
   BatchResult,
   Decision,
+  Diff,
   GapResolution,
   PolicyResponse,
   PolicySummary,
@@ -25,6 +27,8 @@ export const keys = {
   version: (rulesetId: string, versionNo: number) => ['version', rulesetId, versionNo] as const,
   stats: (rulesetId: string, versionNo: number) => ['stats', rulesetId, versionNo] as const,
   decision: (decisionId: string) => ['decision', decisionId] as const,
+  audit: (versionId: string) => ['audit', versionId] as const,
+  diff: (rulesetId: string, from: number, to: number) => ['diff', rulesetId, from, to] as const,
 }
 
 export function usePolicies(): UseQueryResult<PolicySummary[]> {
@@ -168,7 +172,31 @@ export function useDecideChange() {
   return useMutation({
     mutationFn: (input: { changeId: string; verdict: 'approve' | 'reject'; note: string }) =>
       api.decideChange(input.changeId, input.verdict, input.note),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.rulesets }),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: keys.rulesets })
+      // the base's log gains the decision, and a new version its own entries
+      await client.invalidateQueries({ queryKey: ['audit'] })
+    },
+  })
+}
+
+/** The audit log of one version, newest first (Document 2, GET /audit). */
+export function useAudit(versionId: string | null): UseQueryResult<AuditEntry[]> {
+  return useQuery({
+    queryKey: keys.audit(versionId ?? 'none'),
+    queryFn: async () => (await api.audit(versionId ?? '')).entries,
+    enabled: versionId !== null,
+  })
+}
+
+/** The structural diff of two versions of one rule set (Brief FR-20: any two versions). */
+export function useDiff(
+  compared: { rulesetId: string; from: number; to: number } | null,
+): UseQueryResult<Diff> {
+  return useQuery({
+    queryKey: keys.diff(compared?.rulesetId ?? 'none', compared?.from ?? 0, compared?.to ?? 0),
+    queryFn: () => api.diff(compared?.rulesetId ?? '', compared?.from ?? 0, compared?.to ?? 0),
+    enabled: compared !== null,
   })
 }
 

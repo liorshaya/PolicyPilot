@@ -34,13 +34,14 @@ const streamed = (events: [string, unknown][]) =>
 
 function renderScreen(rulesetId: string | null = SEEDED_RULESET_ID) {
   const onPublished = vi.fn()
+  const onOpenAudit = vi.fn()
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <ChangeScreen rulesetId={rulesetId} onPublished={onPublished} />
+      <ChangeScreen rulesetId={rulesetId} onPublished={onPublished} onOpenAudit={onOpenAudit} />
     </QueryClientProvider>,
   )
-  return { onPublished }
+  return { onPublished, onOpenAudit }
 }
 
 async function propose(text = TEXT) {
@@ -168,7 +169,7 @@ describe('ChangeScreen', () => {
         return HttpResponse.json(approvedDecision)
       }),
     )
-    const { onPublished } = renderScreen()
+    const { onPublished, onOpenAudit } = renderScreen()
     const user = await proposalShown()
 
     await user.type(screen.getByLabelText('Note for the audit log'), 'אושר בוועדת האשראי')
@@ -182,6 +183,9 @@ describe('ChangeScreen', () => {
     expect(sent).toStrictEqual([{ id: PROPOSAL_ID, body: { note: 'אושר בוועדת האשראי' } }])
     expect(onPublished).toHaveBeenCalledWith(approvedDecision.result)
     expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
+    // the audit entry of the new version is one click away (Brief, demo step 4)
+    await user.click(screen.getByRole('button', { name: 'Open the audit log' }))
+    expect(onOpenAudit).toHaveBeenCalledOnce()
   })
 
   it('rejects, and says that nothing was published', async () => {
