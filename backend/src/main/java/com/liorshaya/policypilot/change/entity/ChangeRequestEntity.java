@@ -40,6 +40,10 @@ public class ChangeRequestEntity {
     @Column(name = "rationale_json", nullable = false)
     private String rationaleJson;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "regression_json")
+    private String regressionJson;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -50,7 +54,7 @@ public class ChangeRequestEntity {
 
     /** A proposal as it is first stored: PROPOSED, not decided. */
     public ChangeRequestEntity(UUID id, UUID sandboxId, UUID baseVersionId, String requestText, String patchesJson,
-            String rationaleJson, Instant createdAt, String actor) {
+            String rationaleJson, String regressionJson, Instant createdAt, String actor) {
         this.id = id;
         this.sandboxId = sandboxId;
         this.baseVersionId = baseVersionId;
@@ -58,6 +62,7 @@ public class ChangeRequestEntity {
         this.status = "PROPOSED";
         this.patchesJson = patchesJson;
         this.rationaleJson = rationaleJson;
+        this.regressionJson = regressionJson;
         this.createdAt = createdAt;
         this.actor = actor;
     }
@@ -88,6 +93,10 @@ public class ChangeRequestEntity {
 
     public String getRationaleJson() {
         return rationaleJson;
+    }
+
+    public String getRegressionJson() {
+        return regressionJson;
     }
 
     public Instant getCreatedAt() {

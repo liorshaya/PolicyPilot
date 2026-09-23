@@ -7,18 +7,23 @@ import com.liorshaya.policypilot.decision.repository.CaseFixtureRepository;
 import com.liorshaya.policypilot.decision.repository.DecisionRepository;
 import com.liorshaya.policypilot.decision.service.CaseInvalidException.CaseProblemView;
 import com.liorshaya.policypilot.engine.CaseError;
+import com.liorshaya.policypilot.engine.CompiledRuleSet;
 import com.liorshaya.policypilot.engine.Decision;
 import com.liorshaya.policypilot.engine.DecisionJson;
 import com.liorshaya.policypilot.engine.Evaluation;
 import com.liorshaya.policypilot.engine.RuleEngine;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -44,6 +49,8 @@ public class DecisionService {
     private static final JsonMapper JSON = JsonMapper.builder()
             .enable(StreamWriteFeature.WRITE_BIGDECIMAL_AS_PLAIN)
             .build();
+    /** Reads a patched copy the regression decides with; it passed Patch validation, so it maps. */
+    private static final RuleSetMapper RULES = new RuleSetMapper();
 
     private final DecisionRepository decisions;
     private final CaseFixtureRepository cases;
@@ -158,13 +165,36 @@ public class DecisionService {
      */
     @Transactional(readOnly = true)
     public Aggregates stats(UUID versionId, UUID sandboxId) {
-        List<DecisionEntity> stored = decisions
-                .findBySandboxIdAndRulesetVersionIdOrderByDecidedAtAscIdAsc(sandboxId, versionId);
+        return aggregates(latestPerCase(versionId, sandboxId));
+    }
+
+    /**
+     * The regression of a change on a version (Document 3, Regression report): every decision this sandbox made on it,
+     * the latest per case, decided again by the patched copy; a sandbox that decided nothing gets an empty report.
+     *
+     * @param copy the patched document, which Patch validation passed
+     */
+    @Transactional(readOnly = true)
+    public Regression regression(UUID versionId, UUID sandboxId, JsonNode copy) {
+        Collection<DecisionEntity> latest = latestPerCase(versionId, sandboxId);
+        Map<UUID, Integer> caseNumbers = new HashMap<>();
+        cases.findAllById(latest.stream().map(DecisionEntity::getCaseId).filter(Objects::nonNull).toList())
+                .forEach(fixture -> caseNumbers.put(fixture.getId(), fixture.getCaseNo()));
+        List<Regression.Decided> decided = latest.stream().map(row -> new Regression.Decided(row.getId(),
+                row.getCaseId() == null ? null : caseNumbers.get(row.getCaseId()),
+                row.getOutcome() != null ? row.getOutcome() : Regression.ERROR, row.getDecidingRuleId(),
+                (ObjectNode) JSON.readTree(row.getInput()))).toList();
+        return Regression.of(decided, CompiledRuleSet.compile(RULES.toRuleSet(copy)), engine);
+    }
+
+    /** This sandbox's decisions on a version: the latest of each stored case, and every case decided on its own. */
+    private Collection<DecisionEntity> latestPerCase(UUID versionId, UUID sandboxId) {
         Map<Object, DecisionEntity> latest = new LinkedHashMap<>();
-        for (DecisionEntity row : stored) {
+        for (DecisionEntity row : decisions.findBySandboxIdAndRulesetVersionIdOrderByDecidedAtAscIdAsc(sandboxId,
+                versionId)) {
             latest.put(row.getCaseId() != null ? row.getCaseId() : row.getId(), row);
         }
-        return aggregates(latest.values());
+        return latest.values();
     }
 
     /**

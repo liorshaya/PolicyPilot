@@ -9,21 +9,26 @@ import com.liorshaya.policypilot.audit.service.AuditAction;
 import com.liorshaya.policypilot.audit.service.AuditLog;
 import com.liorshaya.policypilot.change.entity.ChangeRequestEntity;
 import com.liorshaya.policypilot.change.repository.ChangeRequestRepository;
+import com.liorshaya.policypilot.decision.service.DecisionService;
+import com.liorshaya.policypilot.decision.service.Regression;
+import com.liorshaya.policypilot.rules.diff.StructuralDiff;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Change requests up to the proposal (Document 2, Flow 4; Work Plan day 12): the impact analysis, the model's proposal
- * and its validation, and, only for a proposal that validated, the stored PROPOSED request with its CHANGE_PROPOSED
- * audit entry in one transaction. A proposal that fails Patch validation after its repairs or is refused by the
- * proposal validator is never stored (Document 3, Patch validation).
+ * Change requests up to the proposal (Document 2, Flow 4; Work Plan days 12 and 13): the impact analysis, the model's
+ * proposal and its validation, and, only for a proposal that validated, its regression and its diff, then the stored
+ * PROPOSED request with its CHANGE_PROPOSED audit entry in one transaction. A proposal that fails Patch validation
+ * after its repairs or is refused by the proposal validator is never stored (Document 3, Patch validation).
  *
  * <p>The actor is the sandbox (Document 5, Why no user accounts). The model is called outside any transaction, so a
  * slow provider holds no connection.
@@ -32,18 +37,21 @@ import tools.jackson.databind.node.ObjectNode;
 public class ChangeRequestService {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final RuleSetMapper DSL = new RuleSetMapper();
 
     private final ChangeAnalysis analysis;
     private final ChangeService proposer;
+    private final DecisionService decisions;
     private final ChangeRequestRepository requests;
     private final AuditLog audit;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
-    public ChangeRequestService(ChangeAnalysis analysis, ChangeService proposer, ChangeRequestRepository requests,
-            AuditLog audit, TransactionTemplate transactions, Clock clock) {
+    public ChangeRequestService(ChangeAnalysis analysis, ChangeService proposer, DecisionService decisions,
+            ChangeRequestRepository requests, AuditLog audit, TransactionTemplate transactions, Clock clock) {
         this.analysis = analysis;
         this.proposer = proposer;
+        this.decisions = decisions;
         this.requests = requests;
         this.audit = audit;
         this.transactions = transactions;
@@ -59,7 +67,7 @@ public class ChangeRequestService {
     }
 
     /**
-     * Analyzes the request, asks for a proposal and stores it when it validates.
+     * Analyzes the request, asks for a proposal and, when it validates, runs its regression and stores it.
      *
      * @param request the request as the analyst wrote it, normalized
      * @throws com.liorshaya.policypilot.ai.LlmUnavailableException when the embedding or the model failed
@@ -77,15 +85,20 @@ public class ChangeRequestService {
         if (!proposal.valid()) {
             return new Submitted.NotStored(proposal);
         }
+        progress.regression();
+        JsonNode copy = Objects.requireNonNull(proposal.validation().patched());
+        Regression regression = decisions.regression(base.versionId(), sandboxId, copy);
+        StructuralDiff diff = StructuralDiff.between(base.ruleSet(), DSL.toRuleSet(copy));
         return new Submitted.Stored(Objects.requireNonNull(
-                transactions.execute(status -> store(base, request, proposal, sandboxId))));
+                transactions.execute(status -> store(base, request, proposal, diff, regression, sandboxId))));
     }
 
     /**
      * The row Document 2 describes: {@code patches_json} the patches as validated with the request's id in every
      * pending provenance, {@code rationale_json} the summary, the untouched rules, the notes and the candidates.
      */
-    private ChangeRequestView store(ChangeBase base, String request, Proposal proposal, UUID sandboxId) {
+    private ChangeRequestView store(ChangeBase base, String request, Proposal proposal, StructuralDiff diff,
+            Regression regression, UUID sandboxId) {
         UUID id = UUID.randomUUID();
         ObjectNode stored = proposal.storedAs(id.toString());
         ArrayNode patches = (ArrayNode) stored.required("patches");
@@ -96,13 +109,15 @@ public class ChangeRequestService {
         rationale.set("candidates", JSON.valueToTree(proposal.candidates()));
         String actor = sandboxId.toString();
         ChangeRequestEntity entity = requests.save(new ChangeRequestEntity(id, sandboxId, base.versionId(), request,
-                patches.toString(), rationale.toString(), clock.instant(), actor));
+                patches.toString(), rationale.toString(), JSON.valueToTree(regression).toString(), clock.instant(),
+                actor));
         ObjectNode details = JSON.createObjectNode()
                 .put("rulesetId", base.rulesetId().toString())
                 .put("versionNo", base.versionNo())
                 .put("patches", patches.size());
         audit.append(AuditAction.CHANGE_PROPOSED, actor, base.versionId(), id, details);
         return new ChangeRequestView(entity.getId(), entity.getBaseVersionId(), entity.getRequestText(),
-                entity.getStatus(), stored, proposal.candidates(), entity.getCreatedAt(), entity.getActor());
+                entity.getStatus(), stored, proposal.candidates(), diff, regression, entity.getCreatedAt(),
+                entity.getActor());
     }
 }

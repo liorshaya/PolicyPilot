@@ -40,11 +40,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * {@code POST /api/v1/rulesets/{id}/versions/{no}/changes}: a change request in natural language (Document 2, API
- * Surface; Work Plan day 12), refused before any stream opens when the text is not a valid short text (400), the
- * sandbox cannot see the version (404), or the version is not PUBLISHED or not embedded (409). The answer is a stream,
- * {@code analyzing}, {@code proposing} with the candidate rules and fields, {@code validating}, then {@code proposal}
- * with the stored PROPOSED request; or {@code error} with the code, the findings and the model's last answer, and then
- * nothing is stored. The regression stage and the diff come on day 13.
+ * Surface; Work Plan days 12 and 13), refused before any stream opens when the text is not a valid short text (400),
+ * the sandbox cannot see the version (404), or the version is not PUBLISHED or not embedded (409). The answer is a
+ * stream, {@code analyzing}, {@code proposing} with the candidate rules and fields, {@code validating},
+ * {@code regression}, then {@code proposal} with the stored PROPOSED request, its diff and its regression report; or
+ * {@code error} with the code, the findings and the model's last answer, and then nothing is stored.
  */
 @RestController
 public class ChangeController {
@@ -66,7 +66,7 @@ public class ChangeController {
 
     @Operation(summary = "Submit a change request in natural language, answered as a stream of events")
     @ApiResponse(responseCode = "200",
-            description = "An event stream: analyzing, proposing, validating, then proposal or error")
+            description = "An event stream: analyzing, proposing, validating, regression, then proposal or error")
     @ApiResponse(responseCode = "400", description = "The text is empty, too long or has a control character",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @ApiResponse(responseCode = "404", description = "No such rule set version in this sandbox",
@@ -166,6 +166,11 @@ public class ChangeController {
         @Override
         public void validating() {
             send("validating", new ChangeEventPayloads.Stage(rules));
+        }
+
+        @Override
+        public void regression() {
+            send("regression", new ChangeEventPayloads.Stage(rules));
         }
 
         void send(String event, Object data) {
