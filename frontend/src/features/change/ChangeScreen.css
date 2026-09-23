@@ -1,0 +1,196 @@
+.change__form {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.change__form .field {
+  width: 100%;
+}
+
+.change__input {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+.change__input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.change__seeded {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The workspace is on a draft; the note says which rule set the change is proposed on instead. */
+.change__elsewhere {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-accent-wash);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-wash);
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+}
+
+.change__progress {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.change__stages {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.change__stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.change__stage--now {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.change__stage-number {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  font-size: var(--text-xs);
+}
+
+.change__stage--now .change__stage-number {
+  border-color: var(--color-selected-bar);
+  background: var(--color-accent-wash);
+}
+
+.change__considered {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.change__considered dt {
+  color: var(--color-text-muted);
+}
+
+.change__considered dd {
+  margin: 0;
+}
+
+.change__summary {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.change__patches {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change__patch {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-selected-bar);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.change__patch-head {
+  font-weight: 600;
+}
+
+.change__patch-label {
+  color: var(--color-text);
+}
+
+.change__rationale {
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+.change__untouched,
+.change__notes {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.change__untouched span:first-child {
+  color: var(--color-text-muted);
+}
+
+.change__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.change__decided {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  font-size: var(--text-base);
+}
+
+.change__decided p {
+  margin: 0;
+}
+
+/* A refusal: the declined family, as the case runner shows a refused run. */
+.change__refused {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-declined-line);
+  border-inline-start-width: 3px;
+  border-inline-start-color: var(--color-declined-text);
+  border-radius: var(--radius-md);
+  background: var(--color-declined-bg);
+  color: var(--color-declined-text);
+  font-size: var(--text-sm);
+}
+
+.change__refused p {
+  margin: 0;
+}
+
+.change__reasons,
+.change__attempted {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.change__attempted-title {
+  font-weight: 600;
+}

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -53,8 +53,9 @@ describe('App', () => {
     expect(nav).toHaveTextContent('Policies')
     expect(nav).toHaveTextContent('Rules')
     expect(nav).toHaveTextContent('Cases')
-    // the assistant arrived on day 9; the audit log is still to come
+    // the assistant arrived on day 9 and the change screen on day 14; the audit log is still to come
     expect(screen.getByRole('button', { name: /Assistant/ })).toBeEnabled()
+    expect(within(nav).getByRole('button', { name: /^Change/ })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Audit log/ })).toBeDisabled()
   })
 

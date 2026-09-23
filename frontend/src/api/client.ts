@@ -3,6 +3,7 @@ import { CLIENT_HEADER } from './auth'
 import type {
   Audience,
   BatchResult,
+  ChangeDecision,
   ChatSessionResponse,
   Decision,
   ErrorEnvelope,
@@ -166,6 +167,12 @@ export const api = {
 
   stats: (rulesetId: string, versionNo: number) =>
     request<Aggregates>('GET', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/stats`),
+
+  /** A person's decision on a proposed change; a blank note is no note (Document 2: the note is optional). */
+  decideChange: (changeId: string, verdict: 'approve' | 'reject', note: string) =>
+    request<ChangeDecision>('POST', `/api/v1/changes/${changeId}/${verdict}`, {
+      body: note.trim() === '' ? {} : { note },
+    }),
 
   simulate: (
     rulesetId: string,
