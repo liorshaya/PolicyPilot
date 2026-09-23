@@ -184,13 +184,13 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 14, Sun Sep 27: change screens**
 
-- [ ] Change screen (request, four-stage progress, affected rules with rationale, side-by-side diff, regression report, approve or reject with note); audit log screen; version picker; guided panel step 4; RTL (restored: rung 10)
-- [ ] Tests: diff renderer; regression report table; change reducer; RTL snapshots of diff and audit screens; Playwright step 4; RT-04 visible through the screen (restored: rung 10)
-- [ ] Step 4 runs on the cloud site through the panel (restored: rung 10)
+- [x] Change screen (request, four-stage progress, affected rules with rationale, side-by-side diff, regression report, approve or reject with note); audit log screen; version picker; guided panel step 4; RTL (restored: rung 10; #111 to #114)
+- [x] Tests: diff renderer; regression report table; change reducer; RTL snapshots of diff and audit screens; Playwright step 4; RT-04 visible through the screen (restored: rung 10; #111 to #114)
+- [x] Step 4 runs on the cloud site through the panel (restored: rung 10; the cloud check of 2026-09-24 in the worklog)
 
 **Day 15, Sun Sep 27: buffer and G3**
 
-- [ ] Fix list of days 12 to 14 (restored: rung 10)
+- [ ] Fix list of days 12 to 14, with the two found on day 14: the log event of a failed embedding lost to a duplicate `error` key, and `GenerationStreamIT`'s sign-in answered 404 once under load (restored: rung 10)
 - [ ] `demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion (restored: the reset)
 - [ ] Second-domain fixture (municipal tax discount) loaded as a second protected policy (restored: rung 2)
 - [ ] `author/v2` and `answer/v2` with evaluation run 2, in that one live run (decided on day 11 from
