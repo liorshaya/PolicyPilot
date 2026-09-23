@@ -1,6 +1,6 @@
 # PolicyPilot Rules DSL Specification
 
-2026-09-22 · Lior Shaya
+2026-09-24 · Lior Shaya
 
 Document 3 of the PolicyPilot set. It defines the JSON format in which rules are written, validated, executed and diffed, following the scope in the [Project Brief](01-project-brief.md) and the engine semantics in the [Architecture](02-architecture.md). Document 4 (AI Pipeline and Prompt Specification) describes how the model produces documents in this format.
 
@@ -962,13 +962,28 @@ A change request becomes a list of rule-level patches; patches are applied to a 
 
 | Patch op | Payload | Constraints |
 | --- | --- | --- |
-| `add` | `rule` (full Rule) | `id` must be new for the whole lineage of the rule set (retired ids are never reused); the model proposes `R-` ids in the band of the rule's purpose |
-| `replace` | `ruleId`, `rule` (full Rule with the same `id`) | Whole-rule replacement keeps the format simple; the field-level diff is computed, not sent |
-| `remove` | `ruleId` | The id is retired and recorded in the version's `retiredIds` list |
+| `add` | `ruleId`, `rule` (full Rule with that `id`) | `id` must be new for the whole lineage of the rule set (retired ids are never reused); the model proposes `R-` ids in the band of the rule's purpose |
+| `replace` | `ruleId`, `rule` (full Rule with the same `id`) | Only of a candidate rule; whole-rule replacement keeps the format simple; the field-level diff is computed, not sent |
+| `remove` | `ruleId` | Only of a candidate rule the request names, by its id or by a value its condition tests; the id is retired and recorded in the version's `retiredIds` list |
 | `add_field` | `field` (full Field) | Only for derived fields or optional case fields; a new required case field would invalidate every stored case and is refused |
-| `set_defaults` | `defaults` |  |
+| `set_defaults` | `defaults` | Never accepted from a proposal: the defaults decide every case no rule decides, so only an analyst changes them (Document 5, RT-04) |
 
 Every patch carries a `rationale` in the policy's language; `untouched` lists the candidate rules the impact search retrieved that the model decided not to change, which the UI shows so the analyst can see what was considered. A patched rule whose new content is still supported by the policy text keeps `quoted` provenance; one that is not carries `pending`, and on approval the system rewrites it to `analyst` with the approver as `actor`, the request text and the rationale as `note`, and the `changeRequestId`, so the published version never contains a provenance the model asserted about a person.
+
+**Patch validation** runs in three steps and reports every problem in the shape of Static Validation, at a JSON pointer into the Patches object. First the schema, `schemas/patches-1.0.schema.json`, whose `rule`, `field` and `defaults` are this document's definitions by `$ref`, so a patched rule fails exactly as a rule of a rule set does (`DSL_SCHEMA`). Then the proposal validator, whose refusals end the proposal without a repair. Then the patches are applied to a copy of the version, and the copy is validated in the `CHANGE_PROPOSAL` context with the added and replaced rules as the model's, each finding on a patched rule reported at its patch (`/patches/0/rule/condition/value`). Schema, application and copy errors go back to the model (Document 4, Repair Loop). The patch codes are errors of a proposal, not rows of Static Validation: no rule set document can carry them.
+
+| Step | Code | Condition | On failure |
+| --- | --- | --- | --- |
+| Proposal validator | `PATCH_REMOVES_UNMENTIONED` | A `remove` of a rule of the version that the request does not name, by its id or by a value its condition tests: a number, or a word such as an enum value | Refused |
+| Proposal validator | `PATCH_OUTSIDE_CANDIDATES` | A `replace` or `remove` of a rule of the version that was not among the candidates the model was shown | Refused |
+| Proposal validator | `PATCH_SETS_DEFAULTS` | A `set_defaults` | Refused |
+| Application | `PATCH_TARGET_UNKNOWN` | A `replace` or `remove` names a rule the version does not have | Repaired |
+| Application | `PATCH_TARGET_REPEATED` | Two patches name the same rule | Repaired |
+| Application | `PATCH_ID_CHANGED` | The `rule` of an `add` or `replace` has an `id` other than its `ruleId` | Repaired |
+| Application | `PATCH_ID_NOT_NEW` | An `add` of an id in use or retired in the lineage | Repaired |
+| Application | `PATCH_FIELD_REQUIRED` | An `add_field` of a required case field | Repaired |
+
+A refused proposal is shown with its refusals and the model's answer, and nothing of it is stored (Document 5, RT-04). When a proposal is stored, the system writes the change request's id into every `pending` provenance; the value the model wrote is never kept.
 
 **Version lineage**: a `ruleset_version` row is immutable; a new version records `parent_version_id`, the change request that produced it, and the structural diff. Version numbers are sequential per rule set. A version created by approving a change request is the only way to get from one published version to the next; a draft regenerated from a new policy version starts a new lineage only when the analyst chooses "replace", which the demo does not exercise.
 
