@@ -7,8 +7,15 @@
 export type ContentLanguage = 'he' | 'en'
 export type Direction = 'rtl' | 'ltr'
 
-/** Hebrew letters, the range a policy's text uses. */
-const HEBREW = /[֐-׿]/
+/** Hebrew letters, the script a policy's text uses. */
+const HEBREW = /\p{Script=Hebrew}/u
+
+/**
+ * The isolates of the Unicode Bidirectional Algorithm, built from their code points: the characters themselves are
+ * invisible, and a source file never carries one (Document 5, Supply Chain and Build Security: source integrity).
+ */
+const FIRST_STRONG_ISOLATE = String.fromCodePoint(0x2068)
+const POP_DIRECTIONAL_ISOLATE = String.fromCodePoint(0x2069)
 
 /** The direction a block of the given language is written in. */
 export function directionOf(language: ContentLanguage): Direction {
@@ -26,7 +33,7 @@ export function directionOfText(text: string): Direction {
  * {@code R-330} from being read backwards next to Hebrew.
  */
 export function isolate(token: string): string {
-  return `⁨${token}⁩`
+  return `${FIRST_STRONG_ISOLATE}${token}${POP_DIRECTIONAL_ISOLATE}`
 }
 
 /** The attributes a content block carries so the browser lays it out in its own direction. */
