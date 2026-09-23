@@ -616,6 +616,8 @@ The Ollama column is reported with the same metrics and no targets in the first 
 
 **Runner**: `EvalRunner` is a Spring Boot test profile (`./mvnw -Peval test -Dprovider=openai` or `-Dprovider=ollama`) that loads the fixtures, calls the real gateway, records every model call to `fixtures/eval/recordings/<provider>/<prompt>/<version>/` (so a report can be regenerated offline and the recordings double as stubs for the unit tests), computes the metrics and writes `docs/eval/<date>-<prompt-versions>.md` with the table above, per-policy rows, and the list of mismatches with diffs. The report is committed with the pull request that changes a prompt.
 
+**Change correctness** (decided 2026-09-24, day 13): a labeled request is correct when its proposal validates, its patches replace and remove exactly the rules the expected set replaces and removes and add as many rules as it adds, and the patched rule set decides every case of the request's regression case file with the outcome the expected patches give that case; the impossible request is correct when the answer has no patches. The live pass proposes each request on its policy's labeled rule set, with the candidates candidate selection gives it, and records `change/v1`; the runner scores those recordings offline like the other metrics.
+
 **Cases per policy** double as engine conformance material: the expected rule set is evaluated on them by the reference implementation and by the Java engine, and both must agree with the labeled outcomes before the policy is admitted to the set.
 
 ## Guardrails and Failure Handling
