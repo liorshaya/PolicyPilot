@@ -91,6 +91,12 @@ public class RulesetVersionEntity {
         this.fieldSchemaJson = fieldSchemaJson;
     }
 
+    /** Records the rule ids a DRAFT retires, as a JSON array (Document 3, Change Patches: remove). */
+    public void retire(String retiredIdsJson) {
+        requireDraft();
+        this.retiredIds = retiredIdsJson;
+    }
+
     /** Stores the review of a DRAFT, replacing any earlier one (Document 2, Flow 1). */
     public void review(String reviewJson) {
         requireDraft();

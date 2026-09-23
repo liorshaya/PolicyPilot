@@ -226,6 +226,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/changes/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a proposed change: nothing is published */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/changes/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a proposed change: publish the next version with its audit entry */
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/code": {
         parameters: {
             query?: never;
@@ -563,6 +597,26 @@ export interface components {
         };
         ChatMessageRequest: {
             question?: string;
+        };
+        DecideChangeRequest: {
+            note?: string;
+        };
+        ChangeDecisionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            decidedAt: string;
+            result?: components["schemas"]["Result"];
+        };
+        Result: {
+            /** Format: uuid */
+            rulesetId: string;
+            /** Format: int32 */
+            versionNo: number;
+            /** Format: uuid */
+            versionId: string;
         };
         AccessCodeRequest: {
             code?: string;
@@ -1326,6 +1380,112 @@ export interface operations {
                 };
             };
             /** @description The session's version is not embedded yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DecideChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description The request, REJECTED */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeDecisionResponse"];
+                };
+            };
+            /** @description The note is too long or has a control character */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such change request in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The request is not PROPOSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DecideChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description The request, APPROVED, with the version the approval published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeDecisionResponse"];
+                };
+            };
+            /** @description The note is too long or has a control character */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such change request in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The request is not PROPOSED, or its base is no longer the latest version of its rule set */
             409: {
                 headers: {
                     [name: string]: unknown;

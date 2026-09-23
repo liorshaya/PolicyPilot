@@ -5,6 +5,7 @@ import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.ai.service.Candidates;
 import com.liorshaya.policypilot.ai.service.ChangeBase;
 import com.liorshaya.policypilot.ai.service.Proposal;
+import com.liorshaya.policypilot.change.service.ChangeDecision;
 import com.liorshaya.policypilot.change.service.ChangeProgress;
 import com.liorshaya.policypilot.change.service.ChangeRequestService;
 import com.liorshaya.policypilot.change.service.Submitted;
@@ -12,7 +13,9 @@ import com.liorshaya.policypilot.ruleset.service.VersionStatusException;
 import com.liorshaya.policypilot.web.error.ApiException;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorEnvelope;
+import com.liorshaya.policypilot.web.request.DecideChangeRequest;
 import com.liorshaya.policypilot.web.request.SubmitChangeRequest;
+import com.liorshaya.policypilot.web.response.ChangeDecisionResponse;
 import com.liorshaya.policypilot.web.response.ChangeEventPayloads;
 import com.liorshaya.policypilot.web.response.StreamFailure;
 import com.liorshaya.policypilot.web.response.VersionResponse.FindingResponse;
@@ -25,9 +28,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -45,6 +51,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * stream, {@code analyzing}, {@code proposing} with the candidate rules and fields, {@code validating},
  * {@code regression}, then {@code proposal} with the stored PROPOSED request, its diff and its regression report; or
  * {@code error} with the code, the findings and the model's last answer, and then nothing is stored.
+ *
+ * <p>{@code POST /api/v1/changes/{id}/approve} and {@code .../reject}: a person's decision on a stored proposal,
+ * with an optional note (Document 2, API Surface). An approval publishes the next version in one transaction, into
+ * the sandbox's own copy of the rule set when the base is protected; a rejection publishes nothing.
  */
 @RestController
 public class ChangeController {
@@ -94,6 +104,55 @@ public class ChangeController {
         });
         generations.execute(() -> run(emitter, lease, base, text, session.sandboxId()));
         return emitter;
+    }
+
+    @Operation(summary = "Approve a proposed change: publish the next version with its audit entry")
+    @ApiResponse(responseCode = "200", description = "The request, APPROVED, with the version the approval published",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ChangeDecisionResponse.class)))
+    @ApiResponse(responseCode = "400", description = "The note is too long or has a control character",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @ApiResponse(responseCode = "404", description = "No such change request in this sandbox",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @ApiResponse(responseCode = "409",
+            description = "The request is not PROPOSED, or its base is no longer the latest version of its rule set",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @PostMapping(ApiPaths.CHANGE_APPROVE)
+    public ChangeDecisionResponse approve(@PathVariable UUID id,
+            @RequestBody(required = false) @Nullable DecideChangeRequest body,
+            @AuthenticationPrincipal SandboxSession session) {
+        String note = noteOf(body);
+        return decided(() -> changes.approve(id, session.sandboxId(), note));
+    }
+
+    @Operation(summary = "Reject a proposed change: nothing is published")
+    @ApiResponse(responseCode = "200", description = "The request, REJECTED",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ChangeDecisionResponse.class)))
+    @ApiResponse(responseCode = "400", description = "The note is too long or has a control character",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @ApiResponse(responseCode = "404", description = "No such change request in this sandbox",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @ApiResponse(responseCode = "409", description = "The request is not PROPOSED",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @PostMapping(ApiPaths.CHANGE_REJECT)
+    public ChangeDecisionResponse reject(@PathVariable UUID id,
+            @RequestBody(required = false) @Nullable DecideChangeRequest body,
+            @AuthenticationPrincipal SandboxSession session) {
+        String note = noteOf(body);
+        return decided(() -> changes.reject(id, session.sandboxId(), note));
+    }
+
+    private static ChangeDecisionResponse decided(Supplier<Optional<ChangeDecision>> call) {
+        try {
+            return call.get().map(ChangeDecisionResponse::of).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        } catch (VersionStatusException e) {
+            throw new ApiException(ErrorCode.VERSION_STATUS_CONFLICT);
+        }
+    }
+
+    private static @Nullable String noteOf(@Nullable DecideChangeRequest body) {
+        return body == null ? null : body.normalizedNote();
     }
 
     private void run(SseEmitter emitter, StreamRegistry.Lease lease, ChangeBase base, String text, UUID sandboxId) {
