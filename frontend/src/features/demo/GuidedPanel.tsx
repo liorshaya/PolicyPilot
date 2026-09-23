@@ -45,13 +45,9 @@ export function GuidedPanel({ current, onRun }: GuidedPanelProps) {
               <span className="guided__step-title">{step.title}</span>
               <span className="guided__what">{step.what}</span>
             </span>
-            {step.soon === true ? (
-              <span className="guided__soon">Day 14</span>
-            ) : (
-              <Button variant="secondary" onClick={() => onRun(step)}>
-                Run
-              </Button>
-            )}
+            <Button variant="secondary" onClick={() => onRun(step)}>
+              Run
+            </Button>
           </li>
         ))}
       </ol>

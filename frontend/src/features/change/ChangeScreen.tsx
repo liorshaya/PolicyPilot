@@ -10,6 +10,8 @@ import { Field } from '../../shared/ui/Field'
 import { Panel } from '../../shared/ui/Panel'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import { DECISION_LABELS, type VersionStatus } from '../../shared/ui/decisionLabels'
+import { SCRIPTED_CHANGE_REQUEST } from '../demo/steps'
+import { useDemoStep } from '../demo/useDemoStep'
 import { DiffView } from './DiffView'
 import { RegressionReport } from './RegressionReport'
 import { decisionFailureText, proposeFailureText } from './failures'
@@ -61,6 +63,9 @@ interface ChangeScreenProps {
   onOpenRules?: () => void
   /** Opens the audit log, where the published version holds the approval's entry. */
   onOpenAudit?: () => void
+  /** Step 4 of the guided demo: the scripted request filled in (Brief FR-23). */
+  demoAsked?: boolean
+  onDemoHandled?: () => void
 }
 
 /**
@@ -74,6 +79,8 @@ export function ChangeScreen({
   onPublished,
   onOpenRules,
   onOpenAudit,
+  demoAsked = false,
+  onDemoHandled,
 }: ChangeScreenProps) {
   const rulesets = useRulesets()
   // Document 2: a change is proposed on a PUBLISHED version; the workspace may be on a draft written a moment ago
@@ -90,6 +97,8 @@ export function ChangeScreen({
   const state = change.state
   const running = state.status === 'running'
   const proposal = state.status === 'proposed' || state.status === 'decided' ? state.proposal : null
+  // step 4 of the demo types the request a presenter would; proposing it is still the presenter's click
+  useDemoStep(demoAsked, () => setText(SCRIPTED_CHANGE_REQUEST), onDemoHandled)
 
   function submit(event: FormEvent) {
     event.preventDefault()

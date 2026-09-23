@@ -105,6 +105,8 @@ export function App() {
       {screen === 'change' ? (
         <ChangeScreen
           rulesetId={rulesetId}
+          demoAsked={demo === 4}
+          onDemoHandled={() => setDemo(null)}
           onPublished={(published) => {
             // a protected base is approved into the sandbox's own copy: the workspace follows the new version
             setRulesetId(published.rulesetId)
