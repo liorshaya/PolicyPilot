@@ -1,6 +1,6 @@
 # PolicyPilot Test Strategy
 
-2026-09-20 · Lior Shaya
+2026-09-27 · Lior Shaya
 
 Document 6 of the PolicyPilot set. It turns the test plans scattered across the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md), the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md) and the [Security Specification](05-security-specification.md) into one discipline: what gets tested at which level, what coverage is required where, what a task must include before it counts as done, and how the tests are written alongside the code rather than after it. The work plan (Document 7) schedules every test named here next to its feature.
 
@@ -244,7 +244,7 @@ One GitHub Actions workflow on every push, ordered so the cheapest and most info
 
 | Stage | Contents | Budget | Gate |
 | --- | --- | --- | --- |
-| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date; the README's known limitations name every cut the progress checklist strikes through | 1 min | hard |
+| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date; the README's known limitations name every cut the progress checklist strikes through; no tracked file carries an invisible or bidi control character (Unicode Cc or Cf, newline and tab aside) | 1 min | hard |
 | 2 Fast tests | API unit, architecture and conformance tests with JaCoCo; web Vitest with coverage; Python reference self-test | 3 min | hard, including the coverage thresholds of the unit-measured packages |
 | 3 Mutation | PIT on `engine` and `rules` | 3 min | hard, 90% |
 | 4 Static and supply chain | Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report | 2 min | hard |

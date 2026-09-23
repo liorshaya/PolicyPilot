@@ -1,6 +1,6 @@
 # PolicyPilot Security Specification
 
-2026-09-24 · Lior Shaya
+2026-09-27 · Lior Shaya
 
 Document 5 of the PolicyPilot set. It defines the threat model and every security control of the system, with injection in all its forms as the center of gravity, because a rules engine driven by a language model has two attack surfaces a normal web application does not: the text it reads and the text it produces. It builds on the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md) and the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md), the Test Strategy (Document 6) carries its tests in the traceability matrix, and the work plan (Document 7) schedules the controls it lists.
 
@@ -242,12 +242,13 @@ The build is the fourth attack surface; the controls are the standard ones, chos
 | Known vulnerabilities | OWASP Dependency-Check on the Maven tree and `npm audit --audit-level=high` on the web app in every CI run; a high or critical finding without a documented exception fails the build |
 | Container image | Multi-stage Dockerfile; build stage on a pinned Maven image, runtime on a pinned Temurin JRE image referenced by digest; runs as a non-root user; no shell tools beyond the base image; Trivy scans the built image in CI |
 | Secrets in the repository | gitleaks in CI on every push and as a pre-commit hook; the history is scanned once at repository creation |
+| Source integrity | No tracked file carries an invisible or bidi control character (Unicode categories Cc and Cf, newline and tab aside), so the code a reviewer reads is the code that runs (the Trojan Source attack, CVE-2021-42574): a character a test needs is written as an escape or built from its code point, and CI stage 1 scans every tracked file (decided 2026-09-27, day 14) |
 | GitHub Actions | Actions pinned to commit SHAs, not tags; minimal `permissions:` per workflow; no secrets exposed to pull-request builds from forks (the evaluation workflow that needs the provider key is manual and restricted) |
 | Software bill of materials | CycloneDX SBOM generated for the API and the web app in the release workflow and attached to the tagged build, so the interviewers can see exactly what ships |
 | Static analysis | Semgrep with a small ruleset in CI: SQL string concatenation, `dangerouslySetInnerHTML`, `ProcessBuilder`, `Runtime.exec`, `javax.script`, hard-coded secrets patterns; ESLint with `react/no-danger`; ArchUnit rules for package boundaries and forbidden APIs |
 | Reproducibility | The Docker image is built once in CI and the same image digest is what Railway deploys; the web app build is deterministic from the lock file |
 
-The CI pipeline (Architecture, Observability and Testing) therefore runs, in order: gitleaks, unit and architecture tests, Dependency-Check and `npm audit`, Semgrep and ESLint, integration and contract tests, image build and Trivy, Playwright, SBOM; a security gate failing stops the deployment even when the functional tests pass.
+The CI pipeline (Architecture, Observability and Testing) therefore runs, in order: gitleaks and the invisible-character check, unit and architecture tests, Dependency-Check and `npm audit`, Semgrep and ESLint, integration and contract tests, image build and Trivy, Playwright, SBOM; a security gate failing stops the deployment even when the functional tests pass.
 
 ## Security Logging and Monitoring
 
@@ -321,7 +322,7 @@ Every control above has a test that fails when the control is removed; the plan 
 | Architecture | ArchUnit: no `ProcessBuilder`, `Runtime.exec`, `javax.script`, `@JsonTypeInfo`; Spring AI only in `ai.adapter`; no `createNativeQuery` outside the `rag` package and only with parameters | Every push |
 | Integration | Authentication: no cookie gives 401 on every `/api/**` route (walked from the OpenAPI document, so a new endpoint cannot be forgotten); wrong code, expired cookie, tampered signature, missing custom header, foreign `Origin`; brute-force lockout timing. Authorization: every entity type fetched and mutated with another sandbox's id returns 404; writes to protected rows fork a sandbox; publish and approve on protected versions are refused. Injection: the SQL payload question; the `.exe` upload; the 60-page and JavaScript PDFs; the ReDoS pattern timing; the XSS label rendering. Limits: body size, batch size, rate limits with `Retry-After`, SSE connection cap | Every push, against Testcontainers PostgreSQL |
 | Red team | The RT-01 to RT-10 fixtures through the recorded gateway on every push and through the live gateway in the evaluation run; assertion on system behavior, not on model wording | Every push (recorded), on demand (live) |
-| Static and supply chain | gitleaks, Semgrep, ESLint, Dependency-Check, `npm audit`, Trivy, SBOM | Every push |
+| Static and supply chain | gitleaks, the invisible-character check, Semgrep, ESLint, Dependency-Check, `npm audit`, Trivy, SBOM | Every push |
 | End to end | Playwright: the four demo steps with the cookie flow; a session without the code sees only the gate; a second browser context cannot see the first's sandbox | Pull requests |
 
 **Pre-demo security checklist** (part of the rehearsal two days before the interview):

@@ -17,10 +17,12 @@ describe('direction', () => {
   })
 
   it('isolates a rule id so it keeps its order inside a Hebrew sentence', () => {
-    const sentence = `ההחלטה התקבלה לפי ${isolate('R-330')}`
+    // U+2068 FIRST STRONG ISOLATE opens it and U+2069 POP DIRECTIONAL ISOLATE closes it (Unicode Bidirectional
+    // Algorithm); built from their code points, because the characters themselves are invisible in the source
+    const opens = String.fromCodePoint(0x2068)
+    const closes = String.fromCodePoint(0x2069)
 
-    expect(sentence).toContain('⁨R-330⁩')
-    expect(isolate('R-330')).toHaveLength('R-330'.length + 2)
+    expect(isolate('R-330')).toBe(`${opens}R-330${closes}`)
   })
 
   it('gives a content block its direction and its language', () => {
