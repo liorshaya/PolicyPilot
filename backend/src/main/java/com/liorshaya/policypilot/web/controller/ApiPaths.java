@@ -23,6 +23,9 @@ public final class ApiPaths {
     public static final String RULESET_VERSION_DIFF = RULESETS + "/{id}/versions/{a}/diff/{b}";
     public static final String CHAT_SESSIONS = V1 + "/chat/sessions";
     public static final String CHAT_MESSAGES = CHAT_SESSIONS + "/{id}/messages";
+    public static final String CHANGES = V1 + "/changes";
+    public static final String CHANGE_APPROVE = CHANGES + "/{id}/approve";
+    public static final String CHANGE_REJECT = CHANGES + "/{id}/reject";
     public static final String DECISIONS = V1 + "/decisions";
     public static final String DECISION = DECISIONS + "/{id}";
     public static final String DECISION_EXPORT = DECISION + "/export";

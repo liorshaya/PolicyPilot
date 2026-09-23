@@ -11,7 +11,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * A row of {@code change_request} (Document 2, Data Model): a stored proposal, the version it was proposed against,
- * the request as the analyst wrote it and the patches as validated. Day 12 writes it PROPOSED; day 13 decides it.
+ * the request as the analyst wrote it and the patches as validated; PROPOSED until a person approves or rejects it.
  */
 @Entity
 @Table(name = "change_request")
@@ -44,8 +44,14 @@ public class ChangeRequestEntity {
     @Column(name = "regression_json")
     private String regressionJson;
 
+    @Column(name = "result_version_id")
+    private UUID resultVersionId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Column(name = "decided_at")
+    private Instant decidedAt;
 
     @Column(nullable = false)
     private String actor;
@@ -65,6 +71,31 @@ public class ChangeRequestEntity {
         this.regressionJson = regressionJson;
         this.createdAt = createdAt;
         this.actor = actor;
+    }
+
+    /** Approves a PROPOSED request, whose result is the version the approval published. */
+    public void approve(UUID resultVersionId, Instant at) {
+        requireProposed();
+        this.status = "APPROVED";
+        this.resultVersionId = resultVersionId;
+        this.decidedAt = at;
+    }
+
+    /** Rejects a PROPOSED request; nothing is published. */
+    public void reject(Instant at) {
+        requireProposed();
+        this.status = "REJECTED";
+        this.decidedAt = at;
+    }
+
+    public boolean isProposed() {
+        return "PROPOSED".equals(status);
+    }
+
+    private void requireProposed() {
+        if (!isProposed()) {
+            throw new IllegalStateException("change request " + id + " is " + status);
+        }
     }
 
     public UUID getId() {
@@ -99,8 +130,16 @@ public class ChangeRequestEntity {
         return regressionJson;
     }
 
+    public UUID getResultVersionId() {
+        return resultVersionId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getDecidedAt() {
+        return decidedAt;
     }
 
     public String getActor() {

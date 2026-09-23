@@ -20,16 +20,18 @@ import com.liorshaya.policypilot.ruleset.repository.RuleRepository;
 import com.liorshaya.policypilot.ruleset.repository.RulesetRepository;
 import com.liorshaya.policypilot.ruleset.repository.RulesetVersionRepository;
 import java.time.Clock;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -266,6 +268,49 @@ public class RulesetService {
     }
 
     /**
+     * Publishes an approved change as the next version of its base's rule set (Document 3, Version lineage; Document 2,
+     * approve), inside the caller's transaction: the patched document becomes the version after the base, the base
+     * its parent, recorded in one CHANGE_APPROVED audit entry with the caller's details. A protected base is approved
+     * into the sandbox's own copy of its rule set, whose version 1 is the base as published and version 2 the change,
+     * so the protected version never changes.
+     *
+     * @param document the base with the change applied and every pending provenance rewritten to analyst
+     * @param retired the rule ids the change removed
+     * @throws VersionStatusException when the base is no longer the latest version of its rule set, or the sandbox
+     *     already has its copy of the protected rule set
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public VersionView publishApproved(UUID baseVersionId, UUID sandboxId, JsonNode document,
+            Collection<String> retired, UUID changeRequestId, ObjectNode details) {
+        RulesetVersionEntity base = versions.findById(baseVersionId).orElseThrow();
+        RulesetEntity ruleset = rulesets.findVisible(base.getRulesetId(), sandboxId).orElseThrow();
+        String actor = sandboxId.toString();
+        RulesetEntity target = ruleset;
+        RulesetVersionEntity parent = base;
+        if (ruleset.isProtectedRow()) {
+            if (rulesets.findBySandboxIdAndForkedFromId(sandboxId, ruleset.getId()).isPresent()) {
+                throw new VersionStatusException("the sandbox already has its copy of this rule set; propose on it");
+            }
+            target = rulesets.save(new RulesetEntity(UUID.randomUUID(), sandboxId, false, ruleset.getId(),
+                    ruleset.getName(), ruleset.getDomain(), ruleset.getDefaultOutcome(), clock.instant()));
+            parent = versions.save(new RulesetVersionEntity(UUID.randomUUID(), target.getId(), 1,
+                    base.getPolicyVersionId(), base.getRulesJson(),
+                    RuleSetDocuments.fieldSchema(RuleSetDocuments.read(base.getRulesJson())), base.getId()));
+            parent.retire(base.getRetiredIds());
+            publish(target, parent, actor, AuditAction.PUBLISH, null,
+                    JSON.createObjectNode().put("forkedFromVersionId", base.getId().toString()));
+        } else if (versions.findByRulesetIdOrderByVersionNo(ruleset.getId()).getLast().getVersionNo()
+                != base.getVersionNo()) {
+            throw new VersionStatusException("version " + base.getVersionNo() + " is no longer the latest");
+        }
+        RulesetVersionEntity next = versions.save(new RulesetVersionEntity(UUID.randomUUID(), target.getId(),
+                parent.getVersionNo() + 1, base.getPolicyVersionId(), RuleSetDocuments.json(document),
+                RuleSetDocuments.fieldSchema(document), parent.getId()));
+        next.retire(JSON.valueToTree(retired).toString());
+        return publish(target, next, actor, AuditAction.CHANGE_APPROVED, changeRequestId, details);
+    }
+
+    /**
      * Seeds the demo rule set as a protected, published version 1 with its audit entry (Work Plan day 5): no sandbox
      * owns it, every sandbox reads it and none may write to it.
      */
@@ -391,6 +436,15 @@ public class RulesetService {
     }
 
     private VersionView publish(RulesetEntity ruleset, RulesetVersionEntity version, String actor) {
+        return publish(ruleset, version, actor, AuditAction.PUBLISH, null, JSON.createObjectNode());
+    }
+
+    /**
+     * Publishes a DRAFT: validated in the PUBLISH context, compiled, snapshotted as {@code rule} rows, and recorded in
+     * one audit entry of the given action, whose details are the publish's own and the caller's.
+     */
+    private VersionView publish(RulesetEntity ruleset, RulesetVersionEntity version, String actor, AuditAction action,
+            @Nullable UUID changeRequestId, ObjectNode more) {
         if (!version.isDraft()) {
             throw new VersionStatusException("version " + version.getVersionNo() + " is " + version.getStatus());
         }
@@ -412,7 +466,8 @@ public class RulesetService {
             // the analyst's acknowledgements and the warnings left open travel with the publish (Document 3)
             details.set("review", ReviewJson.tree(review));
         }
-        audit.append(AuditAction.PUBLISH, actor, version.getId(), details);
+        details.setAll(more);
+        audit.append(action, actor, version.getId(), changeRequestId, details);
         // delivered after the commit, so the embedding job never sees a version that might still roll back
         publications.publishEvent(new VersionPublished(version.getId()));
         return view(ruleset, version, result.findings());
