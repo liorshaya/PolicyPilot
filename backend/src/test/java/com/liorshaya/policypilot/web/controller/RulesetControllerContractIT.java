@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -44,6 +45,8 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
 
     private static final String RULESETS = "/api/v1/rulesets";
     private static final String VERSION = "/api/v1/rulesets/{id}/versions/{no}";
+    private static final String DIFF = "/api/v1/rulesets/{id}/versions/{a}/diff/{b}";
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private String session;
     private OpenApiContract contract;
@@ -239,6 +242,35 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(contract.violations("post", VERSION + "/findings/{findingId}/acknowledge", 404, response.body()))
                 .isEmpty();
+    }
+
+    // Document 2, GET .../diff/{b}; Document 3, Structural diff. Expected: the served document's shape, and a
+    // version against itself with nothing added, removed or modified
+    @Test
+    void aDiffOfAVersionWithItselfMatchesTheDocumented200() {
+        HttpResponse<String> response = api().get(versionPath(seeded(), 1) + "/diff/1").cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", DIFF, 200, response.body())).isEmpty();
+        assertThat(JSON.readTree(response.body())).isEqualTo(JSON.readTree("""
+                {"fields": {"added": [], "removed": [], "modified": []},
+                 "rules": {"added": [], "removed": [], "modified": []},
+                 "defaults": null}"""));
+    }
+
+    // Document 5, no existence oracle. Expected: 404 for a version the rule set does not have, and for the version of
+    // a rule set another sandbox owns
+    @Test
+    void aDiffWithAVersionThatIsNotThereMatchesTheDocumented404() {
+        UUID fork = UUID.fromString(JsonPath.read(put(seeded(), 1, edited()).body(), "$.rulesetId"));
+
+        HttpResponse<String> missing = api().get(versionPath(seeded(), 1) + "/diff/2").cookie(session).send();
+        HttpResponse<String> foreign = api().get(versionPath(fork, 1) + "/diff/1")
+                .cookie(api().login("198.51.100.23")).send();
+
+        assertThat(missing.statusCode()).isEqualTo(404);
+        assertThat(contract.violations("get", DIFF, 404, missing.body())).isEmpty();
+        assertThat(foreign.statusCode()).isEqualTo(404);
     }
 
     /** The sandbox's copy of the seeded rule set, edited and reviewed with the answer given. */

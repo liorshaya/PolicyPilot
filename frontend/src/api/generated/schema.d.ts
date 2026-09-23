@@ -294,6 +294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rulesets/{id}/versions/{a}/diff/{b}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The structural diff between two versions of a rule set */
+        get: operations["diff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/policies/{id}": {
         parameters: {
             query?: never;
@@ -587,6 +604,39 @@ export interface components {
             ruleId: string;
             /** Format: int32 */
             count: number;
+        };
+        Change: {
+            path: string;
+            from: unknown;
+            to: unknown;
+        };
+        DiffResponse: {
+            fields: components["schemas"]["Fields"];
+            rules: components["schemas"]["Rules"];
+            /** @description Both sides of the defaults, or null when they are the same */
+            defaults: unknown;
+        };
+        Fields: {
+            added: unknown[];
+            removed: unknown[];
+            modified: components["schemas"]["ModifiedField"][];
+        };
+        ModifiedField: {
+            name: string;
+            from: unknown;
+            to: unknown;
+            changes: components["schemas"]["Change"][];
+        };
+        ModifiedRule: {
+            id: string;
+            from: unknown;
+            to: unknown;
+            changes: components["schemas"]["Change"][];
+        };
+        Rules: {
+            added: unknown[];
+            removed: unknown[];
+            modified: components["schemas"]["ModifiedRule"][];
         };
         PoliciesResponse: {
             policies: components["schemas"]["Policy"][];
@@ -1392,6 +1442,39 @@ export interface operations {
             };
             /** @description The version is not published */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    diff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                a: number;
+                b: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fields by name, rules by id and the defaults, each added, removed or modified */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiffResponse"];
+                };
+            };
+            /** @description No such rule set or version in this sandbox */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

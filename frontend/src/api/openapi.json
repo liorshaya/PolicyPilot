@@ -1064,6 +1064,60 @@
         }
       }
     },
+    "/api/v1/rulesets/{id}/versions/{a}/diff/{b}" : {
+      "get" : {
+        "tags" : [ "ruleset-controller" ],
+        "summary" : "The structural diff between two versions of a rule set",
+        "operationId" : "diff",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "a",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "b",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Fields by name, rules by id and the defaults, each added, removed or modified",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiffResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set or version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/policies/{id}" : {
       "get" : {
         "tags" : [ "policy-controller" ],
@@ -1846,6 +1900,106 @@
           }
         },
         "required" : [ "count", "ruleId" ]
+      },
+      "Change" : {
+        "type" : "object",
+        "properties" : {
+          "path" : {
+            "type" : "string"
+          },
+          "from" : { },
+          "to" : { }
+        },
+        "required" : [ "from", "path", "to" ]
+      },
+      "DiffResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "$ref" : "#/components/schemas/Fields"
+          },
+          "rules" : {
+            "$ref" : "#/components/schemas/Rules"
+          },
+          "defaults" : {
+            "description" : "Both sides of the defaults, or null when they are the same"
+          }
+        },
+        "required" : [ "defaults", "fields", "rules" ]
+      },
+      "Fields" : {
+        "type" : "object",
+        "properties" : {
+          "added" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "removed" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "modified" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ModifiedField"
+            }
+          }
+        },
+        "required" : [ "added", "modified", "removed" ]
+      },
+      "ModifiedField" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "from" : { },
+          "to" : { },
+          "changes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Change"
+            }
+          }
+        },
+        "required" : [ "changes", "from", "name", "to" ]
+      },
+      "ModifiedRule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "from" : { },
+          "to" : { },
+          "changes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Change"
+            }
+          }
+        },
+        "required" : [ "changes", "from", "id", "to" ]
+      },
+      "Rules" : {
+        "type" : "object",
+        "properties" : {
+          "added" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "removed" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "modified" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ModifiedRule"
+            }
+          }
+        },
+        "required" : [ "added", "modified", "removed" ]
       },
       "PoliciesResponse" : {
         "type" : "object",

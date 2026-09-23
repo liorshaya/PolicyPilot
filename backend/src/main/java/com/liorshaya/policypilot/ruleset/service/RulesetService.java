@@ -6,6 +6,7 @@ import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.engine.CompiledRuleSet;
 import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
+import com.liorshaya.policypilot.rules.diff.StructuralDiff;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.rules.validation.Finding;
@@ -97,6 +98,21 @@ public class RulesetService {
     }
 
     /**
+     * The structural diff of two versions of one rule set the sandbox can see (Document 3, Structural diff); empty when
+     * it cannot see the rule set or has no such version.
+     */
+    @Transactional(readOnly = true)
+    public Optional<StructuralDiff> diff(UUID rulesetId, int from, int to, UUID sandboxId) {
+        Optional<Found> before = found(rulesetId, from, sandboxId);
+        if (before.isEmpty()) {
+            return Optional.empty();
+        }
+        return found(rulesetId, to, sandboxId).map(after -> StructuralDiff.between(
+                mapper.toRuleSet(RuleSetDocuments.read(before.get().version().getRulesJson())),
+                mapper.toRuleSet(RuleSetDocuments.read(after.version().getRulesJson()))));
+    }
+
+    /**
      * Replaces the document of a DRAFT after manual edits (Document 2, {@code PUT .../rules}; Brief FR-6). A write
      * against a protected rule set forks the sandbox's own copy, whose version 1 is a DRAFT holding the edit; the
      * protected rows never change.
@@ -112,7 +128,8 @@ public class RulesetService {
         requireSameDocumentId(ruleset, document);
         if (ruleset.isProtectedRow()) {
             events.protectedWriteAttempt(ENTITY, sandboxId);
-            RuleSet validated = validate(document, version.getPolicyVersionId(), ValidationContext.ANALYST_EDIT).ruleSet();
+            RuleSet validated = validate(document, version.getPolicyVersionId(), ValidationContext.ANALYST_EDIT)
+                    .ruleSet();
             return Optional.of(fork(ruleset, version, sandboxId, document, validated));
         }
         if (!version.isDraft()) {
@@ -431,7 +448,8 @@ public class RulesetService {
             }
             return Optional.empty();
         }
-        return versions.findByRulesetIdAndVersionNo(rulesetId, versionNo).map(version -> new Found(ruleset.get(), version));
+        return versions.findByRulesetIdAndVersionNo(rulesetId, versionNo)
+                .map(version -> new Found(ruleset.get(), version));
     }
 
     private void requireSameDocumentId(RulesetEntity ruleset, JsonNode document) {
