@@ -176,11 +176,11 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 13, Thu Sep 24: regression, diff, approval**
 
-- [ ] Regression run with flips by id; structural diff at `GET .../diff/{b}`; `regression` stage and report; `POST /changes/{id}/approve` transaction (pending to analyst, new version, audit entry) and `reject`; `GET /audit`, `GET /audit/export` (restored: rung 10)
+- [x] Regression run with flips by id; structural diff at `GET .../diff/{b}`; `regression` stage and report; `POST /changes/{id}/approve` transaction (pending to analyst, new version, audit entry) and `reject`; `GET /audit`, `GET /audit/export` (restored: rung 10)
 - [x] `fixtures/eval/changes.json` with the six requests, expected patches and flip counts (committed before day 1)
-- [ ] Change metric in the runner (restored: rung 10)
+- [x] Change metric in the runner (restored: rung 10)
 - [ ] Tests: exactly 12 flips; diff units; approve transaction with version 1 unchanged; approve on protected publishes version 2 into the sandbox's copy, the protected version unchanged; reject publishes nothing; audit CSV prefixing; contract tests; change correctness on six requests (restored: rung 10)
-- [ ] Version 2 on the cloud site with its audit entry; case 17 under version 1 unchanged (restored: rung 10)
+- [x] Version 2 on the cloud site with its audit entry; case 17 under version 1 unchanged (restored: rung 10)
 
 **Day 14, Sun Sep 27: change screens**
 
