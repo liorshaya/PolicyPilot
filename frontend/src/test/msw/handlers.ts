@@ -10,8 +10,20 @@ import type {
   VersionResponse,
 } from '../../api/types'
 import { depositRuleSet, lendingParagraphs, lendingRuleSet } from '../fixtures/lending'
-import { approvedDecision, rejectedDecision, scriptedEvents } from '../fixtures/change'
+import {
+  approvedDecision,
+  COPY_VERSION_ID,
+  rejectedDecision,
+  scriptedEvents,
+  scriptedProposalEvent,
+} from '../fixtures/change'
 import { eventStream } from '../fixtures/changeRequest'
+import {
+  approvalEntry,
+  COPY_FIRST_VERSION_ID,
+  copyPublishEntry,
+  seedPublishEntry,
+} from '../fixtures/audit'
 
 /**
  * The API as the component tests see it (Document 6, Frontend Test Design: components render from realistic
@@ -259,4 +271,20 @@ export const handlers: RequestHandler[] = [
   ),
   http.post(`${BASE}/changes/:id/approve`, () => HttpResponse.json(approvedDecision)),
   http.post(`${BASE}/changes/:id/reject`, () => HttpResponse.json(rejectedDecision)),
+  // the audit log of a version, as the scripted change leaves it, and the diff of any two versions
+  http.get(`${BASE}/audit`, ({ request }) => {
+    const versionId = new URL(request.url).searchParams.get('versionId')
+    const entries =
+      versionId === COPY_VERSION_ID
+        ? [approvalEntry]
+        : versionId === COPY_FIRST_VERSION_ID
+          ? [copyPublishEntry]
+          : versionId === SEEDED_VERSION_ID
+            ? [seedPublishEntry]
+            : []
+    return HttpResponse.json({ entries })
+  }),
+  http.get(`${BASE}/rulesets/:id/versions/:a/diff/:b`, () =>
+    HttpResponse.json(scriptedProposalEvent.diff),
+  ),
 ]

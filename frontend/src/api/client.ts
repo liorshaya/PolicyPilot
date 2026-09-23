@@ -2,8 +2,10 @@ import { API_BASE_URL } from './config'
 import { CLIENT_HEADER } from './auth'
 import type {
   Audience,
+  AuditEntriesResponse,
   BatchResult,
   ChangeDecision,
+  Diff,
   ChatSessionResponse,
   Decision,
   ErrorEnvelope,
@@ -61,7 +63,7 @@ function url(path: string, query?: Query): string {
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT',
   path: string,
-  options: { body?: unknown; formData?: FormData; accept?: string } = {},
+  options: { body?: unknown; formData?: FormData; accept?: string; query?: Query } = {},
 ): Promise<T> {
   const headers: Record<string, string> = { [CLIENT_HEADER]: 'web' }
   if (options.accept) {
@@ -70,7 +72,7 @@ async function request<T>(
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json'
   }
-  const response = await fetch(url(path), {
+  const response = await fetch(url(path, options.query), {
     method,
     credentials: 'include',
     headers,
@@ -167,6 +169,14 @@ export const api = {
 
   stats: (rulesetId: string, versionNo: number) =>
     request<Aggregates>('GET', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/stats`),
+
+  /** A version's audit entries, newest first (Document 2, GET /audit). */
+  audit: (versionId: string) =>
+    request<AuditEntriesResponse>('GET', '/api/v1/audit', { query: { versionId } }),
+
+  /** The structural diff of two versions of one rule set (Document 2, GET .../diff/{b}). */
+  diff: (rulesetId: string, from: number, to: number) =>
+    request<Diff>('GET', `/api/v1/rulesets/${rulesetId}/versions/${from}/diff/${to}`),
 
   /** A person's decision on a proposed change; a blank note is no note (Document 2: the note is optional). */
   decideChange: (changeId: string, verdict: 'approve' | 'reject', note: string) =>

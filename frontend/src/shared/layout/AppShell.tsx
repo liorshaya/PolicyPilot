@@ -32,14 +32,10 @@ export function AppShell({ current, onNavigate, aside, children }: AppShellProps
                 type="button"
                 className={`shell__link${screen.id === current ? ' shell__link--current' : ''}`}
                 aria-current={screen.id === current ? 'page' : undefined}
-                disabled={'soon' in screen && screen.soon === true}
                 title={screen.hint}
                 onClick={() => onNavigate(screen.id)}
               >
                 <span>{screen.label}</span>
-                {'soon' in screen && screen.soon === true ? (
-                  <span className="shell__soon">Soon</span>
-                ) : null}
               </button>
             </li>
           ))}

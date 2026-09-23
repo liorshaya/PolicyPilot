@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AuditScreen > RTL: the Hebrew of an entry turns right to left inside the English log (snapshot) 1`] = `
+"
+page -           Change rejected
+page -           2026-09-27 09:20 UTC
+page -           By
+page -           5f0c1c9e-0000-4000-8000-00000000a0a0
+page -           Request
+rtl  he          העלה את ההכנסה החודשית המינימלית ל-9,000
+page -           Note
+rtl  he          לא בתקופת הבחירות
+page -           Change proposed
+page -           2026-09-27 09:10 UTC
+page -           By
+page -           5f0c1c9e-0000-4000-8000-00000000a0a0
+page -           2 patches proposed on version 1
+page -           Published
+page -           2026-09-20 09:00 UTC
+page -           By
+page -           demo-analyst
+page -           20 rules published, 1 warning left open
+"
+`;

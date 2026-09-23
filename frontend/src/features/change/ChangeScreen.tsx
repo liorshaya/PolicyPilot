@@ -59,6 +59,8 @@ interface ChangeScreenProps {
   onPublished?: (published: { rulesetId: string; versionNo: number; versionId: string }) => void
   /** Opens the rule set, where the published version shows its rules. */
   onOpenRules?: () => void
+  /** Opens the audit log, where the published version holds the approval's entry. */
+  onOpenAudit?: () => void
 }
 
 /**
@@ -67,7 +69,12 @@ interface ChangeScreenProps {
  * cases again on the proposal, and a person approves or rejects with a note: nothing is published before that. A
  * proposal the validator refused is shown with its refusals and what the model attempted (Document 5, RT-04).
  */
-export function ChangeScreen({ rulesetId = null, onPublished, onOpenRules }: ChangeScreenProps) {
+export function ChangeScreen({
+  rulesetId = null,
+  onPublished,
+  onOpenRules,
+  onOpenAudit,
+}: ChangeScreenProps) {
   const rulesets = useRulesets()
   // Document 2: a change is proposed on a PUBLISHED version; the workspace may be on a draft written a moment ago
   const target = publishedTarget(rulesets.data ?? [], rulesetId)
@@ -203,9 +210,16 @@ export function ChangeScreen({ rulesetId = null, onPublished, onOpenRules }: Cha
                       {state.decision.status === 'APPROVED' ? (
                         <>
                           <p>{approvedText(state.decision.result?.versionNo, proposedOn)}</p>
-                          {onOpenRules ? (
-                            <Button onClick={onOpenRules}>Open the rules</Button>
-                          ) : null}
+                          <div className="change__actions">
+                            {onOpenAudit ? (
+                              <Button variant="primary" onClick={onOpenAudit}>
+                                Open the audit log
+                              </Button>
+                            ) : null}
+                            {onOpenRules ? (
+                              <Button onClick={onOpenRules}>Open the rules</Button>
+                            ) : null}
+                          </div>
                         </>
                       ) : (
                         <p>Rejected. Nothing was published.</p>

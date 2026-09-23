@@ -70,19 +70,6 @@
   box-shadow: inset 3px 0 0 var(--color-selected-bar);
 }
 
-.shell__link:disabled {
-  color: rgba(255, 255, 255, 0.45);
-  cursor: default;
-}
-
-.shell__soon {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-}
-
 /* the guided demo panel, under the navigation: a remote control beside the workspace, not part of it */
 .shell__aside {
   margin-top: auto;

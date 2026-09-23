@@ -7,8 +7,7 @@ import { CasesScreen } from './features/cases/CasesScreen'
 import { RulesScreen } from './features/rules/RulesScreen'
 import { ChatScreen } from './features/chat/ChatScreen'
 import { ChangeScreen } from './features/change/ChangeScreen'
-import { EmptyState } from './shared/ui/States'
-import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
+import { AuditScreen } from './features/audit/AuditScreen'
 import { GuidedPanel } from './features/demo/GuidedPanel'
 import type { DemoStep } from './features/demo/steps'
 
@@ -112,16 +111,17 @@ export function App() {
             setFocusRuleId(null)
           }}
           onOpenRules={() => navigate('rules')}
+          onOpenAudit={() => navigate('audit')}
         />
       ) : null}
       {screen === 'audit' ? (
-        <>
-          <WorkspaceHeader title={SCREENS.find((item) => item.id === screen)?.label ?? ''} />
-          <EmptyState
-            title="Not built yet"
-            description="This screen arrives with its day of the work plan; the screens that are built are in the sidebar."
-          />
-        </>
+        <AuditScreen
+          rulesetId={rulesetId}
+          onChooseRuleset={(chosen) => {
+            setRulesetId(chosen)
+            setFocusRuleId(null)
+          }}
+        />
       ) : null}
     </AppShell>
   )

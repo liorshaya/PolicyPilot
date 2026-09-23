@@ -41,7 +41,7 @@ describe('App', () => {
     expect(screen.queryByLabelText('Access code')).not.toBeInTheDocument()
   })
 
-  it('lists the screens of the workspace and marks the ones still to come', async () => {
+  it('lists the screens of the workspace, every one of them built', async () => {
     server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
     const user = userEvent.setup()
     renderApp()
@@ -53,10 +53,16 @@ describe('App', () => {
     expect(nav).toHaveTextContent('Policies')
     expect(nav).toHaveTextContent('Rules')
     expect(nav).toHaveTextContent('Cases')
-    // the assistant arrived on day 9 and the change screen on day 14; the audit log is still to come
+    // the assistant arrived on day 9, the change screen and the audit log on day 14
     expect(screen.getByRole('button', { name: /Assistant/ })).toBeEnabled()
     expect(within(nav).getByRole('button', { name: /^Change/ })).toBeEnabled()
-    expect(screen.getByRole('button', { name: /Audit log/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Audit log/ })).toBeEnabled()
+    expect(within(nav).queryByText('Soon')).not.toBeInTheDocument()
+    // and each of the two screens of day 14 opens as itself
+    await user.click(within(nav).getByRole('button', { name: /^Change/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Change' })).toBeVisible()
+    await user.click(within(nav).getByRole('button', { name: /Audit log/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible()
   })
 
   // Brief FR-23; Document 2: the panel's steps "pre-fill the inputs and call the same API the regular screens

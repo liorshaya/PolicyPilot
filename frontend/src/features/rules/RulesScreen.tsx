@@ -20,6 +20,7 @@ import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from '../policy/PolicyText'
 import { DecisionTable } from './DecisionTable'
+import { RulesetSwitcher, VersionPicker } from './Pickers'
 import { findingsByRule, publishBlockers } from './findings'
 import { ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
@@ -54,9 +55,11 @@ export function RulesScreen({
   const list = rulesets.data ?? []
   // the one that was asked for; a policy screen or a generation names it, and the first is only the fallback
   const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
-  const ruleset = chosen
-    ? { id: chosen.id, versionNo: chosen.versions[chosen.versions.length - 1]?.versionNo ?? 1 }
-    : null
+  // the latest version unless the reader picked another; a pick belongs to its rule set (Work Plan day 14)
+  const [picked, setPicked] = useState<{ rulesetId: string; versionNo: number } | null>(null)
+  const latestNo = chosen?.versions[chosen.versions.length - 1]?.versionNo ?? 1
+  const versionNo = picked !== null && picked.rulesetId === chosen?.id ? picked.versionNo : latestNo
+  const ruleset = chosen ? { id: chosen.id, versionNo } : null
   const version = useVersion(ruleset)
   // the version on the screen is the last answer the API gave: an edit, a review, an acknowledgement or a publish
   // replaces it, and an edit of the seeded set answers with the sandbox's own copy, which is what the rest acts on
@@ -141,21 +144,22 @@ export function RulesScreen({
           shown ? (
             <>
               {list.length > 1 && onChooseRuleset ? (
-                <label className="rules__switcher">
-                  <span className="rules__switcher-label">Rule set</span>
-                  <select
-                    className="rules__switcher-select"
-                    value={chosen?.id ?? ''}
-                    onChange={(event) => onChooseRuleset(event.target.value)}
-                  >
-                    {list.map((one) => (
-                      // two rule sets written from one policy share its name, so the domain tells them apart
-                      <option key={one.id} value={one.id}>
-                        {one.name} · {one.domain}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <RulesetSwitcher
+                  rulesets={list}
+                  value={chosen?.id ?? ''}
+                  onChange={onChooseRuleset}
+                />
+              ) : null}
+              {chosen && chosen.versions.length > 1 ? (
+                <VersionPicker
+                  ruleset={chosen}
+                  value={versionNo}
+                  onChange={(next) => {
+                    setPicked({ rulesetId: chosen.id, versionNo: next })
+                    // the last answer was about the version on the screen, which the reader has just left
+                    setAnswered(null)
+                  }}
+                />
               ) : null}
               <Button onClick={onOpenCases}>Run cases</Button>
               <Button
