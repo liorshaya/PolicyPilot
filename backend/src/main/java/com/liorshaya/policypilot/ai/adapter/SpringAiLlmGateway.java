@@ -379,14 +379,22 @@ public class SpringAiLlmGateway implements LlmGateway {
         return options.build();
     }
 
-    /** The provider's variant of the canonical schema the prompt names. */
+    /**
+     * The provider's variant of the canonical schema the prompt names, with the schemas it references copied in:
+     * {@code ruleset-1.0.json} is {@code schemas/ruleset-1.0.schema.json}, as the canonical validator reads it.
+     */
     static String variantOf(String location) {
+        ObjectNode canonical = schemaAt(location);
+        return ProviderSchemaVariant.of(ProviderSchemaVariant.bundled(canonical,
+                file -> schemaAt("schemas/" + file.replace(".json", ".schema.json")))).toString();
+    }
+
+    private static ObjectNode schemaAt(String location) {
         try (InputStream stream = SpringAiLlmGateway.class.getClassLoader().getResourceAsStream(location)) {
             if (stream == null) {
                 throw new IllegalStateException("no schema at " + location);
             }
-            ObjectNode canonical = (ObjectNode) JSON.readTree(stream.readAllBytes());
-            return ProviderSchemaVariant.of(canonical).toString();
+            return (ObjectNode) JSON.readTree(stream.readAllBytes());
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + location, e);
         }

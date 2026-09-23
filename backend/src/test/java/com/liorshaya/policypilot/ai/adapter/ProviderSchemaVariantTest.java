@@ -1,6 +1,7 @@
 package com.liorshaya.policypilot.ai.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,12 +23,21 @@ class ProviderSchemaVariantTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private static ObjectNode canonical() {
-        try (InputStream stream = ProviderSchemaVariantTest.class.getClassLoader()
-                .getResourceAsStream("schemas/ruleset-1.0.schema.json")) {
+        return schema("schemas/ruleset-1.0.schema.json");
+    }
+
+    private static ObjectNode schema(String location) {
+        try (InputStream stream = ProviderSchemaVariantTest.class.getClassLoader().getResourceAsStream(location)) {
             return (ObjectNode) JSON.readTree(stream.readAllBytes());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** The patches schema with the rule set schema it references copied in, as the gateway sends it. */
+    private static ObjectNode bundledPatches() {
+        return ProviderSchemaVariant.bundled(schema("schemas/patches-1.0.schema.json"),
+                file -> schema("schemas/" + file.replace(".json", ".schema.json")));
     }
 
     /**
@@ -178,6 +188,51 @@ class ProviderSchemaVariantTest {
                     .as("every schema says what it is: %s", schema)
                     .isTrue();
         }
+    }
+
+    // Document 4, Output Contracts: "the provider receives one self-contained variant with the referenced definitions
+    // copied in". Expected: every reference of the patches schema points inside it and names a definition it has
+    @Test
+    void aReferenceIntoAnotherSchemaIsBundledIntoOneDocument() {
+        ObjectNode bundled = bundledPatches();
+
+        List<String> references = new ArrayList<>();
+        collectReferences(bundled, references);
+        assertThat(references).isNotEmpty().allMatch(reference -> reference.startsWith("#/$defs/"));
+        for (String reference : references) {
+            assertThat(bundled.get("$defs").has(reference.substring("#/$defs/".length()))).as(reference).isTrue();
+        }
+        assertThat(bundled.get("$defs").propertyNames())
+                .contains("patch", "ruleId", "rule", "field", "defaults", "condition", "provenance");
+    }
+
+    // Two schemas that define the same name would silently change one of them. Expected: refused
+    @Test
+    void aDefinitionBothSchemasHaveIsRefused() {
+        ObjectNode patches = schema("schemas/patches-1.0.schema.json");
+        ((ObjectNode) patches.get("$defs")).putObject("rule").put("type", "object");
+
+        assertThatThrownBy(() -> ProviderSchemaVariant.bundled(patches,
+                file -> schema("schemas/" + file.replace(".json", ".schema.json"))))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("rule");
+    }
+
+    // Document 6, Unit level: "optional properties become nullable", a reference too. Expected: a patch's rule, which
+    // only some ops carry, is that rule or null; its op, which every patch carries, is not nullable
+    @Test
+    void anOptionalReferenceBecomesThatOrNull() {
+        JsonNode patch = ProviderSchemaVariant.of(bundledPatches()).get("$defs").get("patch").get("properties");
+
+        assertThat(patch.get("rule").toString())
+                .isEqualTo("{\"anyOf\":[{\"$ref\":\"#/$defs/rule\"},{\"type\":\"null\"}]}");
+        assertThat(patch.get("op").get("type").asString()).isEqualTo("string");
+    }
+
+    private static void collectReferences(JsonNode node, List<String> references) {
+        if (node.isObject() && node.has("$ref")) {
+            references.add(node.get("$ref").asString());
+        }
+        node.forEach(child -> collectReferences(child, references));
     }
 
     @Test
