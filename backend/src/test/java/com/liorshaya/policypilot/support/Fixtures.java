@@ -43,7 +43,12 @@ public final class Fixtures {
 
     /** The lending policy as it is written, for a test that pastes it the way the web app does. */
     public static String lendingPolicyText() {
-        return read(path("policies/consumer-lending/policy.he.md"));
+        return text("policies/consumer-lending/policy.he.md");
+    }
+
+    /** A fixture text file as it is written, by its path relative to the fixtures root. */
+    public static String text(String relative) {
+        return read(path(relative));
     }
 
     /** The nine paragraphs of the lending policy, split on blank lines as the reference splits them. */

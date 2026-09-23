@@ -61,6 +61,11 @@ record Recordings(List<JsonNode> calls) {
         return calls.stream().map(call -> parse(call.required("response"))).toList();
     }
 
+    /** The rendered user prompt of each call, in the order of {@link #responses()}. */
+    List<String> prompts() {
+        return calls.stream().map(call -> call.path("request").path("user").asString("")).toList();
+    }
+
     boolean isEmpty() {
         return calls.isEmpty();
     }

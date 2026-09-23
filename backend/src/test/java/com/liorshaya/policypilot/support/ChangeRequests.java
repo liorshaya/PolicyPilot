@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.support;
 
 import com.liorshaya.policypilot.ai.service.Candidates;
 import com.liorshaya.policypilot.ai.service.ChangeBase;
+import com.liorshaya.policypilot.policy.service.ParagraphSplitter;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.ruleset.service.EmbeddingSource;
@@ -74,9 +75,18 @@ public final class ChangeRequests {
      * policy titled as the seed titles it (the rule set's name), and random ids, which no prompt may depend on.
      */
     public static ChangeBase lendingBase() {
-        ObjectNode document = Fixtures.lendingV1();
+        return base(labeled("CR-1"));
+    }
+
+    /**
+     * A labeled request's base as the live pass and the runner both build it (Document 4, Change correctness): its
+     * policy's labeled rule set as version 1, titled by the rule set's name as the seed titles the demo policy, the
+     * policy split as the application splits it, and random ids, which no prompt may depend on.
+     */
+    public static ChangeBase base(JsonNode labeled) {
+        ObjectNode document = (ObjectNode) Fixtures.json(labeled.required("ruleset").asString()).deepCopy();
+        List<String> texts = ParagraphSplitter.split(Fixtures.text(labeled.required("policyText").asString()));
         List<PolicyVersionRef.Paragraph> paragraphs = new ArrayList<>();
-        List<String> texts = Fixtures.lendingParagraphs();
         for (int i = 0; i < texts.size(); i++) {
             paragraphs.add(new PolicyVersionRef.Paragraph(UUID.randomUUID(), i + 1, texts.get(i)));
         }
