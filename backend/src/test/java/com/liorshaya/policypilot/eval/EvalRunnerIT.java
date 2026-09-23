@@ -117,12 +117,11 @@ class EvalRunnerIT {
 
     // The runner reads each change request's candidates off its recorded prompt, which holds only while candidate
     // selection on the recorded vectors still gives those very candidates; CR-3's policy is embedded on the vectors
-    // the change pass recorded for it. Expected: for each of the six, the candidates its recorded prompt lists, in
-    // the order it lists them
+    // the change pass recorded for it. Expected: for each of the six, in change/v1's recordings, kept to compare
+    // with, and in change/v2's, the candidates its recorded prompt lists, in the order it lists them
     @Test
     @Requirement("FR-17")
     void everyRecordedChangePromptShowsTheCandidatesSelectionGives() {
-        Recordings prompts = Recordings.of(EMBEDDINGS_RECORDED_FOR, "change", "v1");
         Map<String, List<String>> selected = new LinkedHashMap<>();
         Map<String, List<String>> shown = new LinkedHashMap<>();
         for (JsonNode request : ChangeRequests.labeled()) {
@@ -130,12 +129,15 @@ class EvalRunnerIT {
             String text = request.required("text").asString();
             Target target = publish(request.required("policy").asString(), request);
             ChangeBase base = analysis.base(target.rulesetId(), 1, target.sandboxId()).orElseThrow();
-            selected.put(id, analysis.candidates(base, text).ruleIds());
-            shown.put(id, RecordedScoring.candidateIds(
-                    prompts.about(List.of(text + "\n</change_request>")).prompts().getFirst()));
+            List<String> candidates = analysis.candidates(base, text).ruleIds();
+            for (String version : List.of("v1", "v2")) {
+                selected.put(id + " " + version, candidates);
+                shown.put(id + " " + version, RecordedScoring.candidateIds(Recordings.of(EMBEDDINGS_RECORDED_FOR,
+                        "change", version).about(List.of(text + "\n</change_request>")).prompts().getFirst()));
+            }
         }
 
-        assertThat(selected).hasSize(6).isEqualTo(shown);
+        assertThat(selected).hasSize(12).isEqualTo(shown);
     }
 
     /** One question, and what retrieval did with it: the chunks kept, or nothing when the threshold stopped it. */
@@ -196,18 +198,18 @@ class EvalRunnerIT {
         versions.put("author", "v1");
         versions.put("review", "v1");
         versions.put("answer", "v1");
-        versions.put("change", "v1");
+        versions.put("change", "v2");
         // the report is dated, and a run that names its date is the one that writes it; no assertion depends on it
         String date = System.getProperty("eval.date", "");
         EvalReport report = new EvalReport(date.isEmpty() ? LocalDate.EPOCH : LocalDate.parse(date), versions);
         RecordedScoring recorded = new RecordedScoring(PROVIDER);
         RecordedScoring.Authoring authoring = recorded.scoreAuthoring(report);
         RecordedScoring.Reviewing reviewing = recorded.scoreReviewing(report);
-        RecordedScoring.Changing changing = recorded.scoreChanges(report);
+        RecordedScoring.Changing changing = recorded.scoreChanges(report, versions.get("change"));
         if (!changing.unrecorded().isEmpty()) {
             report.note("Change correctness counts every labeled request, and " + changing.unrecorded() + " have no "
-                    + "recorded change/v1 answer yet, so they count as not correct until the live change pass records "
-                    + "them.");
+                    + "recorded change/" + versions.get("change") + " answer yet, so they count as not correct until "
+                    + "the live change pass records them.");
         }
         report.note("Retrieval and refusal are measured on the vectors of text-embedding-3-small, recorded by "
                 + "the day 8 live pass; the rest of the column is the strong model's.");

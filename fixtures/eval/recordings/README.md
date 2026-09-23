@@ -93,12 +93,14 @@ chain as the live pass received it. The runner finds a request's first call by i
 its prompt and proposes again through the change use case; `EvalRunnerIT` holds those candidates to the ones
 candidate selection gives on the recorded vectors.
 
-The scripted request, CR-1, was recorded on day 12 by `LiveChangeRecordingIT`, the other five by `LiveChangePassIT`.
-The pass publishes each request's policy with its labeled rule set, asks only a request whose first prompt has no
-recording, and embeds only a policy whose vectors have none, writing them beside the others:
-`consumer-lending-en.json`, the policy of CR-3, which no question runs on.
+`change/v1` is kept to compare with: the scripted request, CR-1, was recorded on day 12 by `LiveChangeRecordingIT`,
+the other five by `LiveChangePassIT`. `change/v2`, the active version, has all six from `LiveChangePassIT`. The pass
+publishes each request's policy with its labeled rule set, asks only a request whose first prompt has no recording,
+and embeds only a policy whose vectors have none, writing them beside the others: `consumer-lending-en.json`, the
+policy of CR-3, which no question runs on. `live.budget` caps what it may spend, and a call that could cross it is
+not asked:
 
 ```
-OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveChangePassIT -Dlive.tag= \
+OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveChangePassIT -Dlive.tag= -Dlive.budget=35000 \
     -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
 ```

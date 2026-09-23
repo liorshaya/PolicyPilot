@@ -98,13 +98,14 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
      */
     @Test
     void theScriptedRequestIsProposed() {
-        ChangeService service = new ChangeService(new RecordingModel(gateway, properties.ai().models().strong()),
-                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+        ChangeService service = new ChangeService(new RecordingModel(gateway, properties.ai().models().strong(),
+                properties.ai().dailyTokenBudget()), new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
+                new DslCheatSheet());
 
         Proposal proposal = service.propose(ChangeRequests.lendingBase(), ChangeRequests.scripted(),
                 ChangeRequests.scriptedCandidates(), stage -> { });
 
-        System.out.println("change/v1 on CR-1: " + proposal.repairs() + " repairs, valid " + proposal.valid()
+        System.out.println("change on CR-1: " + proposal.repairs() + " repairs, valid " + proposal.valid()
                 + ", refused " + proposal.refused());
         System.out.println(proposal.answer().toPrettyString());
         // Work Plan day 12, Done when: the scripted request proposes patches to R-170 and R-410, pending
@@ -115,22 +116,36 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
 
     /**
      * The live gateway, writing every answer it gives under the hash of the prompt it answered and printing what each
-     * call spent; {@code LiveChangePassIT} records the other five requests through it.
+     * call spent; {@code LiveChangePassIT} records the labeled requests through it. It asks nothing that could take
+     * the pass past its budget: before each call it adds a high estimate of the call to what is spent, since the
+     * application's own guard refuses only once the day's total has reached the budget, one call too late.
      */
     static final class RecordingModel implements LlmGateway {
 
+        /** Fewer characters per input token than any change prompt measured (2.44), so it estimates high. */
+        private static final int CHARACTERS_PER_TOKEN = 2;
+        /** More output than any change call measured (1,245 tokens, reasoning included). */
+        private static final int OUTPUT_ALLOWANCE = 1_500;
+
         private final LlmGateway live;
         private final String model;
+        private final long budget;
         private long spentIn;
         private long spentOut;
 
-        RecordingModel(LlmGateway live, String model) {
+        RecordingModel(LlmGateway live, String model, long budget) {
             this.live = live;
             this.model = model;
+            this.budget = budget;
         }
 
         @Override
         public <T> Completion<T> complete(PromptSpec spec, Class<T> type) {
+            long estimate = (spec.system().length() + spec.user().length()) / CHARACTERS_PER_TOKEN + OUTPUT_ALLOWANCE;
+            if (spentIn + spentOut + estimate > budget) {
+                throw new IllegalStateException("not asking " + spec.promptName() + "/" + spec.promptVersion() + ": "
+                        + spent() + " spent, and the call could take " + estimate + " more of the " + budget);
+            }
             Completion<T> answer = live.complete(spec, type);
             write(spec, String.valueOf(answer.value()));
             spentIn += answer.usage().inputTokens();

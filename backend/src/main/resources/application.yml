@@ -116,7 +116,7 @@ policypilot:
       review: v1
       explain: v1
       answer: v1
-      change: v1
+      change: v2
     timeouts:
       # A prompt's own timeout, token cap and temperature live in its prompt.yml (Document 2);
       # this one is the chat stream's deadline, which belongs to the stream and not to one call.

@@ -52,19 +52,22 @@ import tools.jackson.databind.node.ObjectNode;
  * The live change pass behind change correctness (Document 4; Work Plan day 13, the six requests): every labeled
  * request of {@code fixtures/eval/changes.json} proposed through the real change use case, on its policy published
  * with its labeled rule set, with the candidates the real candidate selection finds on the provider's vectors. Every
- * answer and every repair is written to {@code fixtures/eval/recordings/openai/change/v1/}, which is what
- * {@code EvalRunnerIT} scores change correctness from, offline and for nothing.
+ * answer and every repair is written under the active version of the change prompt, in
+ * {@code fixtures/eval/recordings/openai/change/<version>/}, which is what {@code EvalRunnerIT} scores change
+ * correctness from, offline and for nothing.
  *
- * <p>Only what has no recording is paid for. A request whose first prompt is recorded is not asked again, which is
- * how the scripted request, recorded on day 12 by {@link LiveChangeRecordingIT}, is left alone; and a policy whose
- * vectors a pass recorded is embedded from them, so the provider embeds only a policy no pass has published, whose
- * vectors are then written beside the others. Before a request is asked, the version the application stored must
- * render the very prompt the runner renders from the labeled files, or the recording would never be replayed.
+ * <p>Only what has no recording is paid for. A request whose first prompt is recorded is not asked again, so a re-run
+ * pays only for what is missing (the scripted request's {@code change/v1} answer, recorded on day 12 by
+ * {@link LiveChangeRecordingIT}, was left alone that way); and a policy whose vectors a pass recorded is embedded
+ * from them, so the provider embeds only a policy no pass has published, whose vectors are then written beside the
+ * others. Before a request is asked, the version the application stored must render the very prompt the runner
+ * renders from the labeled files, or the recording would never be replayed.
  *
- * <p>It is tagged {@code live}, so CI never runs it, and it needs a real {@code OPENAI_API_KEY}:
+ * <p>It is tagged {@code live}, so CI never runs it, and it needs a real {@code OPENAI_API_KEY}. {@code live.budget}
+ * caps what the pass may spend, the day's budget when it is not given; a call that could cross it is not asked:
  *
  * <pre>{@code
- * OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveChangePassIT -Dlive.tag= \
+ * OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveChangePassIT -Dlive.tag= -Dlive.budget=35000 \
  *     -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
  * }</pre>
  */
@@ -108,8 +111,8 @@ class LiveChangePassIT {
 
     @Test
     void everyLabeledRequestIsProposedLiveAndRecorded() {
-        LiveChangeRecordingIT.RecordingModel model =
-                new LiveChangeRecordingIT.RecordingModel(gateway, properties.ai().models().strong());
+        LiveChangeRecordingIT.RecordingModel model = new LiveChangeRecordingIT.RecordingModel(gateway,
+                properties.ai().models().strong(), Long.getLong("live.budget", properties.ai().dailyTokenBudget()));
         ChangeService service = new ChangeService(model, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
                 new DslCheatSheet());
         // the seeded version is embedded at startup, on the recorded vectors, before any corpus is recorded
@@ -133,7 +136,7 @@ class LiveChangePassIT {
             recorded.put(id, Files.exists(LiveChangeRecordingIT.RecordingModel.fileOf(first)));
         }
 
-        System.out.println("spent " + model.spent() + " of the day's 400,000");
+        System.out.println("spent " + model.spent());
         assertThat(recorded).containsOnlyKeys("CR-1", "CR-2", "CR-3", "CR-4", "CR-5", "CR-6")
                 .doesNotContainValue(false);
     }

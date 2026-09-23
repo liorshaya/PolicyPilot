@@ -41,7 +41,8 @@ class ChangePromptTest {
     private static final ChangeService CHANGES =
             new ChangeService(RecordedGateway.answering(), PROMPTS, new DslCheatSheet());
 
-    // Document 4, Prompt 5: the data sections in the template's order, with the attributes the API computes
+    // Document 4, Prompt 5: the data sections in the template's order, with the attributes the API computes, then
+    // change/v2's seven instructions, requirements before the impossible request
     @Test
     void theRenderedPromptHasDocument4sSectionsInOrder() {
         String user = spec(ChangeRequests.scripted()).user();
@@ -51,8 +52,8 @@ class ChangePromptTest {
                 "[1] ", "[9] ", "</policy>", "<fields>", "</fields>", "<defaults>", "</defaults>",
                 "<candidate_rules count=\"5\" version=\"1\">", "</candidate_rules>", "<retired_rule_ids>",
                 "</retired_rule_ids>", "<change_request id=\"cr-", ChangeRequests.scripted(), "</change_request>",
-                "Produce a Patches object for this request:", "1. MINIMAL.", "6. IMPOSSIBLE REQUESTS.",
-                "Return only the JSON object.");
+                "Produce a Patches object for this request:", "1. MINIMAL.", "6. REQUIREMENTS.",
+                "7. IMPOSSIBLE REQUESTS.", "Return only the JSON object.");
     }
 
     // The candidates are the version's own rules, one per line as ruleset.v1.json has them, in evaluation order
@@ -72,15 +73,15 @@ class ChangePromptTest {
         assertThat(section.lines().skip(1).toList()).containsExactlyElementsOf(expected);
     }
 
-    // Document 4, Model Configuration: the strong model at its own temperature, 6,000 tokens, 60 s, two repairs,
-    // cached by input hash, answering the Patches schema
+    // Document 4, Model Configuration: the active version, v2, on the strong model at its own temperature, 6,000
+    // tokens, 60 s, two repairs, cached by input hash, answering the Patches schema
     @Test
     void itRunsWithDocument4sSettings() {
         PromptSpec spec = spec(ChangeRequests.scripted());
         PromptDefinition change = PROMPTS.get("change");
 
         assertThat(spec.promptName()).isEqualTo("change");
-        assertThat(spec.promptVersion()).isEqualTo("v1");
+        assertThat(spec.promptVersion()).isEqualTo("v2");
         assertThat(spec.role()).isEqualTo(ModelRole.STRONG);
         assertThat(spec.temperature()).isNull();
         assertThat(spec.maxOutputTokens()).isEqualTo(6000);
