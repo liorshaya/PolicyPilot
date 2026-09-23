@@ -129,26 +129,32 @@ class ChangeScoringTest {
                 .isEqualTo(ChangeScoring.Verdict.wrong("not valid after 2 repairs"));
     }
 
-    // The runner over the committed recordings: CR-1's answer, recorded live on day 12, replays through the change
-    // use case on the candidates its prompt showed. Expected: it scores correct, the five requests with no recording
-    // are named as such and count against the score, and nothing is listed as a mismatch
+    // The runner over the committed recordings of all six requests, CR-1 recorded live on day 12 and the other five
+    // by LiveChangePassIT, each replayed through the change use case on the candidates its prompt showed, CR-6's
+    // repair included. Expected, from the labels, and the Python reference agrees case by case: CR-1, CR-2, CR-4 and
+    // CR-5 decide every case as their labels do; CR-3 adds its rule deciding refer where the label's rejects, which
+    // case 15 of its file shows; CR-6, which the rule set cannot express, gets a new field and a rule where the label
+    // has no patch. So 4 of 6, under Document 4's target of 5 of 6
     @Test
-    void theRunnerReplaysTheRecordedScriptedRequestAsCorrect() {
+    void theRunnerScoresTheSixRecordedRequests() {
         EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v1"));
 
         RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report);
 
         assertThat(changing.requests()).isEqualTo(6);
-        assertThat(changing.unrecorded()).containsExactly("CR-2", "CR-3", "CR-4", "CR-5", "CR-6");
-        assertThat(report.markdown()).contains("| Change correctness |").contains("1 of 6");
-        assertThat(report.markdown()).doesNotContain("CR-1:");
+        assertThat(changing.unrecorded()).isEmpty();
+        assertThat(report.markdown()).contains("| Change correctness | 0.83 | 0.67 (4 of 6) | not run | FAIL |");
+        assertThat(report.markdown().lines().filter(line -> line.startsWith("- CR-"))).containsExactly(
+                "- CR-3: case 15 is refer where the expected patches make it reject",
+                "- CR-6: 2 patches for a request the rule set cannot express");
     }
 
     // The runner reads the candidates off the recorded prompt. Expected: the five the scripted request's prompt
     // showed, in the evaluation order the prompt lists them
     @Test
     void theCandidatesAreReadOffTheRecordedPrompt() {
-        String prompt = Recordings.of("openai", "change", "v1").prompts().getFirst();
+        String prompt = Recordings.of("openai", "change", "v1")
+                .about(List.of(ChangeRequests.scripted() + "\n</change_request>")).prompts().getFirst();
 
         assertThat(RecordedScoring.candidateIds(prompt)).containsExactly("R-020", "R-170", "R-200", "R-320", "R-410");
     }
