@@ -6,6 +6,7 @@ import { PoliciesScreen } from './features/policy/PoliciesScreen'
 import { CasesScreen } from './features/cases/CasesScreen'
 import { RulesScreen } from './features/rules/RulesScreen'
 import { ChatScreen } from './features/chat/ChatScreen'
+import { ChangeScreen } from './features/change/ChangeScreen'
 import { EmptyState } from './shared/ui/States'
 import { WorkspaceHeader } from './shared/layout/WorkspaceHeader'
 import { GuidedPanel } from './features/demo/GuidedPanel'
@@ -100,6 +101,17 @@ export function App() {
             navigate('rules')
           }}
           onOpenCases={() => navigate('cases')}
+        />
+      ) : null}
+      {screen === 'change' ? (
+        <ChangeScreen
+          rulesetId={rulesetId}
+          onPublished={(published) => {
+            // a protected base is approved into the sandbox's own copy: the workspace follows the new version
+            setRulesetId(published.rulesetId)
+            setFocusRuleId(null)
+          }}
+          onOpenRules={() => navigate('rules')}
         />
       ) : null}
       {screen === 'audit' ? (

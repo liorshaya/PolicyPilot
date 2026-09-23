@@ -10,6 +10,8 @@ import type {
   VersionResponse,
 } from '../../api/types'
 import { depositRuleSet, lendingParagraphs, lendingRuleSet } from '../fixtures/lending'
+import { approvedDecision, rejectedDecision, scriptedEvents } from '../fixtures/change'
+import { eventStream } from '../fixtures/changeRequest'
 
 /**
  * The API as the component tests see it (Document 6, Frontend Test Design: components render from realistic
@@ -247,4 +249,14 @@ export const handlers: RequestHandler[] = [
   http.post(`${BASE}/rulesets/:id/versions/:no/decide`, () => HttpResponse.json(batch)),
   http.get(`${BASE}/rulesets/:id/versions/:no/stats`, () => HttpResponse.json(aggregates)),
   http.get(`${BASE}/decisions/:id`, () => HttpResponse.json(decision)),
+  // the scripted change request, answered as the stream answers it, and a person's decision on it
+  http.post(
+    `${BASE}/rulesets/:id/versions/:no/changes`,
+    () =>
+      new HttpResponse(eventStream(scriptedEvents), {
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+  ),
+  http.post(`${BASE}/changes/:id/approve`, () => HttpResponse.json(approvedDecision)),
+  http.post(`${BASE}/changes/:id/reject`, () => HttpResponse.json(rejectedDecision)),
 ]

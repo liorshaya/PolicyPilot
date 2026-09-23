@@ -95,7 +95,12 @@ async function openThePanel(page: Page): Promise<void> {
 }
 
 function step(page: Page, title: string) {
-  return page.getByRole('listitem').filter({ hasText: title }).getByRole('button', { name: 'Run' })
+  // a step of the panel, not a screen of the sidebar that shares its name
+  return page
+    .getByRole('region', { name: 'Guided demo' })
+    .getByRole('listitem')
+    .filter({ hasText: title })
+    .getByRole('button', { name: 'Run' })
 }
 
 test.describe('the guided demo panel', () => {
@@ -150,7 +155,10 @@ test.describe('the guided demo panel', () => {
   test('step 4 is listed and not offered until its day', async ({ page }) => {
     await openThePanel(page)
 
-    const change = page.getByRole('listitem').filter({ hasText: 'Change' })
+    const change = page
+      .getByRole('region', { name: 'Guided demo' })
+      .getByRole('listitem')
+      .filter({ hasText: 'Change' })
 
     await expect(change).toContainText('Day 14')
     await expect(change.getByRole('button', { name: 'Run' })).toHaveCount(0)

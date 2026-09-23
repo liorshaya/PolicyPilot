@@ -159,6 +159,19 @@ export function useDecision(decisionId: string | null): UseQueryResult<Decision>
   })
 }
 
+/**
+ * A person's decision on a proposed change (Document 2, approve and reject). An approval publishes the next version,
+ * into the sandbox's own copy when the base is protected, so the rule set list is read again either way.
+ */
+export function useDecideChange() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { changeId: string; verdict: 'approve' | 'reject'; note: string }) =>
+      api.decideChange(input.changeId, input.verdict, input.note),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.rulesets }),
+  })
+}
+
 /** Running a seeded set of cases; the statistics of the version are refreshed with the batch's own aggregates. */
 export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
   const client = useQueryClient()
