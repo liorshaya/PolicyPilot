@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.web.error.ApiException;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.request.GenerateRulesRequest;
+import com.liorshaya.policypilot.web.response.StreamFailure;
 import com.liorshaya.policypilot.web.response.VersionResponse;
 import com.liorshaya.policypilot.web.response.VersionResponse.FindingResponse;
 import com.liorshaya.policypilot.web.security.SandboxSession;
@@ -21,6 +22,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -97,11 +99,12 @@ public class GenerationController {
             @Nullable String hints, UUID sandboxId) {
         try {
             send(emitter, lease, "parsing", new Progress(version.paragraphs().size()));
-            AuthorService.Authored authored = author.write(version, policy.title(), policy.language().name().toLowerCase(java.util.Locale.ROOT), hints,
-                    stage -> send(emitter, lease, stage.name().toLowerCase(java.util.Locale.ROOT),
+            AuthorService.Authored authored = author.write(version, policy.title(),
+                    policy.language().name().toLowerCase(Locale.ROOT), hints,
+                    stage -> send(emitter, lease, stage.name().toLowerCase(Locale.ROOT),
                             new Progress(version.paragraphs().size())));
             if (!authored.valid()) {
-                send(emitter, lease, "error", new Failed(ErrorCode.RULESET_INVALID.name(),
+                send(emitter, lease, "error", new StreamFailure(ErrorCode.RULESET_INVALID.name(),
                         authored.findings().stream().map(FindingResponse::of).toList(), authored.document()));
             } else {
                 VersionView draft = rulesets.createDraft(sandboxId, version.id(), authored.document(),
@@ -134,7 +137,7 @@ public class GenerationController {
     private void fail(SseEmitter emitter, StreamRegistry.Lease lease, ErrorCode code, String message,
             RuntimeException cause) {
         log.warn("generation failed: {} ({})", code, message, cause);
-        send(emitter, lease, "error", new Failed(code.name(), List.of(), null));
+        send(emitter, lease, "error", new StreamFailure(code.name(), List.of(), null));
         emitter.complete();
     }
 
@@ -154,9 +157,6 @@ public class GenerationController {
 
     /** The payload of a progress event: what the stage is working on. */
     record Progress(int paragraphs) {}
-
-    /** The payload of the error event: the code, the findings if there are any, and the last document. */
-    record Failed(String code, List<FindingResponse> findings, @Nullable Object document) {}
 
     /** The client stopped listening; the stream ends quietly. */
     static final class GenerationAbandoned extends RuntimeException {

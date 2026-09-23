@@ -5,6 +5,7 @@ import com.liorshaya.policypilot.audit.repository.AuditEntryRepository;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +33,15 @@ public class AuditLog {
     /** Appends an entry at the API's clock, inside the caller's transaction (one is required). */
     @Transactional(propagation = Propagation.MANDATORY)
     public AuditEntry append(AuditAction action, String actor, UUID rulesetVersionId, ObjectNode details) {
+        return append(action, actor, rulesetVersionId, null, details);
+    }
+
+    /** Appends an entry about a change request, which it names, inside the caller's transaction. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuditEntry append(AuditAction action, String actor, UUID rulesetVersionId, @Nullable UUID changeRequestId,
+            ObjectNode details) {
         return view(entries.save(new AuditEntryEntity(UUID.randomUUID(), clock.instant(), actor, action.name(),
-                rulesetVersionId, null, JSON.writeValueAsString(details))));
+                rulesetVersionId, changeRequestId, JSON.writeValueAsString(details))));
     }
 
     /** The entries of a rule set version, oldest first. */

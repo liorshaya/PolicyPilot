@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedGateway.Streamed;
 import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -551,39 +552,16 @@ class ChatStreamIT extends ApiIntegrationTest {
     }
 
     private static List<String> eventNames(String stream) {
-        List<String> names = new ArrayList<>();
-        stream.lines().filter(line -> line.startsWith("event:"))
-                .forEach(line -> names.add(line.substring("event:".length()).trim()));
-        return names;
-    }
-
-    private static List<JsonNode> data(String stream, String event) {
-        List<JsonNode> found = new ArrayList<>();
-        String[] lines = stream.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith("event:") && lines[i].substring(6).trim().equals(event)) {
-                for (int j = i + 1; j < lines.length; j++) {
-                    if (lines[j].startsWith("data:")) {
-                        found.add(JSON.readTree(lines[j].substring("data:".length())));
-                        break;
-                    }
-                }
-            }
-        }
-        return found;
+        return ServerSentEvents.parse(stream).names();
     }
 
     private static JsonNode dataOf(String stream, String event) {
-        List<JsonNode> found = data(stream, event);
-        if (found.isEmpty()) {
-            throw new AssertionError("no " + event + " event in the stream:\n" + stream);
-        }
-        return found.getFirst();
+        return ServerSentEvents.parse(stream).first(event);
     }
 
     private static String tokens(String stream) {
         StringBuilder text = new StringBuilder();
-        data(stream, "token").forEach(token -> text.append(token.required("text").asString()));
+        ServerSentEvents.parse(stream).all("token").forEach(token -> text.append(token.required("text").asString()));
         return text.toString();
     }
 
