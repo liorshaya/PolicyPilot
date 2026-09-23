@@ -1,0 +1,85 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DiffView > RTL: Hebrew content turns right to left inside left-to-right chrome (snapshot) 1`] = `
+"
+page -           2 rules modified
+page -           Item
+page -           Version 1
+page -           Proposed
+page -           R-170
+page -           Modified
+page -           Label
+rtl  he deleted  דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+page -           Priority
+page -           170
+page -           Condition
+ltr  -  deleted  monthly_income < 8,000 ILS
+page -           Action
+page -  deleted  Decline
+rtl  he deleted  ההכנסה החודשית נטו נמוכה מהמינימום 8,000 ש"ח
+page -           Source
+page -  deleted  ¶ 4
+rtl  he deleted  ההכנסה החודשית נטו של המבקש לא תפחת מ-8,000 ש"ח
+page -           Label
+rtl  he inserted דחייה: הכנסה חודשית נטו נמוכה מ-9,000
+page -           Priority
+page -           170
+page -           Condition
+ltr  -  inserted monthly_income < 9,000 ILS
+page -           Action
+page -  inserted Decline
+rtl  he inserted ההכנסה החודשית נטו נמוכה מהמינימום 9,000 ש"ח
+page -           Source
+page -  inserted Pending approval
+rtl  he inserted הסף הועלה ל-9,000 לפי בקשת השינוי; פסקה 4 של המדיניות עדיין נוקבת ב-8,000 ותידרש לעדכון
+page -           /label
+rtl  he          דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+page -           →
+rtl  he          דחייה: הכנסה חודשית נטו נמוכה מ-9,000
+page -           /condition/value
+page -           8,000
+page -           →
+page -           9,000
+page -           /actions
+page -           replaced as a whole
+page -           /provenance
+page -           replaced as a whole
+page -           R-410
+page -           Modified
+page -           Label
+rtl  he          סימון: הכנסה קרובה למינימום
+page -           Priority
+page -           410
+page -           Condition
+ltr  -  deleted  monthly_income ∈ [8,000 ILS .. 9,000 ILS]
+page -           Action
+page -           flag INCOME_NEAR_MINIMUM
+rtl  he          ההכנסה בטווח של 1,000 ש"ח מעל המינימום
+page -           Source
+page -  deleted  Analyst
+page -  deleted  demo-analyst
+rtl  he deleted  סימון לתשומת לב החתם, ללא השפעה על ההחלטה
+page -           Label
+rtl  he          סימון: הכנסה קרובה למינימום
+page -           Priority
+page -           410
+page -           Condition
+ltr  -  inserted monthly_income ∈ [9,000 ILS .. 10,000 ILS]
+page -           Action
+page -           flag INCOME_NEAR_MINIMUM
+rtl  he          ההכנסה בטווח של 1,000 ש"ח מעל המינימום
+page -           Source
+page -  inserted Pending approval
+rtl  he inserted רצועת הסימון הוזזה כדי להישאר 1,000 ש"ח מעל המינימום החדש
+page -           /condition/value/0
+page -           8,000
+page -           →
+page -           9,000
+page -           /condition/value/1
+page -           9,000
+page -           →
+page -           10,000
+page -           /provenance
+page -           replaced as a whole
+"
+`;

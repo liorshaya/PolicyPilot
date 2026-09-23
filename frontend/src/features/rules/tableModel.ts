@@ -1,6 +1,6 @@
 import type { FieldSchema, Rule, RuleSetDocument } from '../../api/types'
 import type { DecisionStatus } from '../../shared/ui/decisionLabels'
-import { isEditable, renderCell, type Leaf } from './cellGrammar'
+import { isEditable, isLeaf, renderCell, type Leaf } from './cellGrammar'
 
 /**
  * The decision table as a view of the DSL document (Document 3, Decision Table Rendering): one row per rule, one
@@ -177,12 +177,4 @@ function sameLeaf(candidate: Leaf, previous: Leaf): boolean {
     candidate.op === previous.op &&
     JSON.stringify(candidate.value ?? null) === JSON.stringify(previous.value ?? null)
   )
-}
-
-function isLeaf(candidate: unknown): candidate is Leaf {
-  if (candidate === null || typeof candidate !== 'object') {
-    return false
-  }
-  const node = candidate as { field?: unknown; op?: unknown }
-  return typeof node.field === 'string' && typeof node.op === 'string'
 }

@@ -1,0 +1,64 @@
+.regression {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.regression__summary,
+.regression__empty {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.regression__empty {
+  color: var(--color-text-muted);
+}
+
+.regression__transitions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  list-style: none;
+}
+
+.regression__transition {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.regression__count {
+  font-weight: 600;
+}
+
+.regression__scroll {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.regression__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.regression__table th {
+  position: sticky;
+  top: 0;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: start;
+  text-transform: uppercase;
+}
+
+.regression__table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}

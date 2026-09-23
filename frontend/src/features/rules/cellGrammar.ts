@@ -185,3 +185,42 @@ function parseLiteral(text: string, field: FieldSchema): unknown {
 function isLiteral(value: unknown): boolean {
   return typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean'
 }
+
+/** Whether a node of a condition is a comparison leaf: one field, one operator (Document 3, Conditions). */
+export function isLeaf(candidate: unknown): candidate is Leaf {
+  if (candidate === null || typeof candidate !== 'object') {
+    return false
+  }
+  const node = candidate as { field?: unknown; op?: unknown }
+  return typeof node.field === 'string' && typeof node.op === 'string'
+}
+
+/**
+ * A whole condition on one line, for a view that reads a rule whole, such as the diff (Document 3, Decision Table
+ * Rendering, the Structure column: "a compact rendering of any and not ... NOT [amount ∈ [10,000 .. 150,000]]"). A
+ * leaf is its field and its cell, `all` joins its children with AND and `any` with OR, each in brackets inside another
+ * combinator, `not` is NOT [...] and the constant condition is `always`; anything else is written as its JSON.
+ */
+export function conditionText(condition: unknown, fields: Map<string, FieldSchema>): string {
+  return nodeText(condition, fields, false)
+}
+
+function nodeText(node: unknown, fields: Map<string, FieldSchema>, nested: boolean): string {
+  if (isLeaf(node)) {
+    const cell = renderCell(node, fields.get(node.field))
+    return node.op === 'between' ? `${node.field} ∈ ${cell}` : `${node.field} ${cell}`
+  }
+  const tree = (node ?? {}) as { all?: unknown; any?: unknown; not?: unknown; always?: unknown }
+  const joined = Array.isArray(tree.all)
+    ? tree.all.map((child) => nodeText(child, fields, true)).join(' AND ')
+    : Array.isArray(tree.any)
+      ? tree.any.map((child) => nodeText(child, fields, true)).join(' OR ')
+      : null
+  if (joined !== null) {
+    return nested ? `(${joined})` : joined
+  }
+  if (tree.not !== undefined) {
+    return `NOT [${nodeText(tree.not, fields, false)}]`
+  }
+  return tree.always === true ? 'always' : String(JSON.stringify(node))
+}
