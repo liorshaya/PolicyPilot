@@ -16,7 +16,8 @@ themselves) and the raw response. The hash is the SHA-256 of `system + U+001F + 
 looks a recording up by: a new prompt version or a new input needs one live run to create its recording, and a
 test that cannot find one fails rather than answering something else.
 
-Recordings are made by `LiveAuthoringRecordingIT`, which is tagged `live` and never runs in CI:
+Recordings are made by the `Live*RecordingIT` classes (authoring, review, answer, explain and change), which are
+tagged `live` and never run in CI; each one's Javadoc has its command, for example:
 
 ```
 OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveAuthoringRecordingIT -Dlive.tag= \
@@ -31,7 +32,7 @@ What the embedding provider returned, so retrieval tests replay real vectors off
 embedding pass over the 30 questions).
 
 ```
-recordings/<provider>/embedding/<model>/<corpus>.json      one file per policy corpus, and questions.json
+recordings/<provider>/embedding/<model>/<corpus>.json      one file per policy corpus, questions.json and changes.json
 ```
 
 Each file names its `provider`, `model`, `dimension` and `corpus`, and lists `embeddings`: every text as it was

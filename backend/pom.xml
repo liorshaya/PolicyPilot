@@ -702,5 +702,33 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- -Djacoco.skip=true skips every coverage goal, the merged check included, which otherwise reads what the
+             last full build left: the live recording runs of fixtures/eval/recordings/README.md run one test -->
+        <profile>
+            <id>without-coverage</id>
+            <activation>
+                <property>
+                    <name>jacoco.skip</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>check-merged</id>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

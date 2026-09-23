@@ -7,6 +7,8 @@ import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
+import com.liorshaya.policypilot.ruleset.service.EmbeddingSource;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
@@ -16,12 +18,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The change prompt as it is rendered (Document 4, Prompt 5: the user prompt, its data sections and its settings in
@@ -30,6 +36,7 @@ import tools.jackson.databind.JsonNode;
 @Requirement("FR-17")
 class ChangePromptTest {
 
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final PromptRegistry PROMPTS = new PromptRegistry(PromptRegistry.PROMPTS, Map.of());
     private static final ChangeService CHANGES =
             new ChangeService(RecordedGateway.answering(), PROMPTS, new DslCheatSheet());
@@ -121,7 +128,41 @@ class ChangePromptTest {
                 .contains("<candidate_rules count=\"5\" version=\"2\">");
     }
 
+    // A version read back from the database has its keys in jsonb's order, shorter keys first, not in the document's.
+    // Expected: the prompt the committed ruleset.v1.json renders, so a recording made from the fixture replays for
+    // the stored version and the response cache has one key for both
+    @Test
+    void theOrderAVersionsKeysWereStoredInDoesNotChangeThePrompt() {
+        ChangeBase fixture = ChangeRequests.lendingBase();
+        ObjectNode stored = (ObjectNode) inJsonbOrder(fixture.document());
+        ChangeBase read = new ChangeBase(fixture.rulesetId(), 1, stored,
+                new EmbeddingSource(fixture.versionId(), new RuleSetMapper().toRuleSet(stored), fixture.paragraphs()),
+                fixture.title(), Set.of());
+
+        assertThat(stored.required("rules").get(0).propertyNames()).startsWith("id", "tags");
+        assertThat(CHANGES.specFor(read, ChangeRequests.scripted(), ChangeRequests.scriptedCandidates()).user())
+                .isEqualTo(spec(ChangeRequests.scripted()).user());
+    }
+
     private static PromptSpec spec(String request) {
         return CHANGES.specFor(ChangeRequests.lendingBase(), request, ChangeRequests.scriptedCandidates());
+    }
+
+    /** The document with every object's keys as PostgreSQL's jsonb returns them: shorter keys first, then by bytes. */
+    private static JsonNode inJsonbOrder(JsonNode node) {
+        if (node.isArray()) {
+            ArrayNode items = JSON.createArrayNode();
+            node.forEach(item -> items.add(inJsonbOrder(item)));
+            return items;
+        }
+        if (!node.isObject()) {
+            return node;
+        }
+        List<Map.Entry<String, JsonNode>> entries = new ArrayList<>(node.properties());
+        entries.sort(Comparator.comparingInt((Map.Entry<String, JsonNode> entry) -> entry.getKey().length())
+                .thenComparing(Map.Entry::getKey));
+        ObjectNode ordered = JSON.createObjectNode();
+        entries.forEach(entry -> ordered.set(entry.getKey(), inJsonbOrder(entry.getValue())));
+        return ordered;
     }
 }

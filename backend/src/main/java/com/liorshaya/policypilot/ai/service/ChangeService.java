@@ -11,6 +11,7 @@ import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.ai.prompt.Sections;
 import com.liorshaya.policypilot.common.Hashes;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.patch.PatchValidation;
 import com.liorshaya.policypilot.rules.patch.PatchValidator;
 import com.liorshaya.policypilot.rules.validation.Finding;
@@ -28,6 +29,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The change use case (Document 4, Prompt 5: Change, and Repair Loop; Brief FR-17): the request and its candidate
@@ -44,6 +46,7 @@ public class ChangeService {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String PROMPT = "change";
+    private static final RuleSetMapper RULES = new RuleSetMapper();
 
     private final LlmGateway gateway;
     private final PromptRegistry prompts;
@@ -133,17 +136,20 @@ public class ChangeService {
 
     private PromptSpec specOf(PromptDefinition change, ChangeBase base, String request, Candidates candidates) {
         String language = PromptRegistry.languageName(base.ruleSet().language().json());
+        // the version as the DSL writes it, not in the order its store gave the keys back (jsonb reorders them), so
+        // the prompt, its cache key and its recordings are the same whether the version came from the database
+        ObjectNode written = RULES.toJson(base.ruleSet());
         String user = change.user().render(Map.ofEntries(
                 Map.entry("cheatsheet", cheatSheet.text()),
                 Map.entry("language", language),
                 Map.entry("title", Sections.escape(base.title())),
                 Map.entry("paragraphCount", String.valueOf(base.paragraphs().size())),
                 Map.entry("policy", Sections.numbered(base.paragraphs())),
-                Map.entry("fields", lines(base.document().required("fields"))),
-                Map.entry("defaults", Sections.escape(base.document().required("defaults").toString())),
+                Map.entry("fields", lines(written.required("fields"))),
+                Map.entry("defaults", Sections.escape(written.required("defaults").toString())),
                 Map.entry("candidateCount", String.valueOf(candidates.ruleIds().size())),
                 Map.entry("versionNo", String.valueOf(base.versionNo())),
-                Map.entry("candidates", candidateLines(base.document().required("rules"), candidates.ruleIds())),
+                Map.entry("candidates", candidateLines(written.required("rules"), candidates.ruleIds())),
                 Map.entry("retiredIds", String.join("\n", new TreeSet<>(base.retiredIds()))),
                 Map.entry("changeRequestId", requestKey(request)),
                 Map.entry("request", Sections.escape(request))));
@@ -167,7 +173,7 @@ public class ChangeService {
         return String.join("\n", lines);
     }
 
-    /** The candidate rules as the version stores them, one per line, in the order candidate selection gave them. */
+    /** The candidate rules as the DSL writes them, one per line, in the order candidate selection gave them. */
     private static String candidateLines(JsonNode rules, List<String> candidates) {
         Map<String, JsonNode> byId = new HashMap<>();
         rules.forEach(rule -> byId.put(rule.required("id").asString(), rule));
