@@ -3,14 +3,8 @@ package com.liorshaya.policypilot.rules.validation;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SchemaRegistryConfig;
-import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.path.PathType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -29,12 +23,7 @@ final class SchemaValidator {
 
     private static final String VERSION_POINTER = "/dslVersion";
 
-    private final Schema schema = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                    registry -> registry.schemaRegistryConfig(SchemaRegistryConfig.builder()
-                            .locale(Locale.ENGLISH)
-                            .pathType(PathType.JSON_POINTER)
-                            .build()))
-            .getSchema(SchemaLocation.of(SCHEMA_LOCATION));
+    private final Schema schema = Schemas.load(SCHEMA_LOCATION);
 
     List<Finding> validate(JsonNode document) {
         List<Finding> findings = new ArrayList<>();
@@ -61,9 +50,7 @@ final class SchemaValidator {
         ValidationCode code = error.getEvaluationPath().toString().startsWith(DERIVED_CONSTRAINT)
                 ? ValidationCode.DERIVED_REQUIRED
                 : ValidationCode.DSL_SCHEMA;
-        String message = error.getKeyword() + " at " + (pointer.isEmpty() ? "the document root" : pointer) + ": "
-                + error.getMessage();
-        return new Finding(code, pointer, message, anchor(document, pointer, "/rules/", "id"),
+        return new Finding(code, pointer, Schemas.message(error, pointer), anchor(document, pointer, "/rules/", "id"),
                 anchor(document, pointer, "/fields/", "name"));
     }
 

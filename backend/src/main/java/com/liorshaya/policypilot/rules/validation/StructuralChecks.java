@@ -3,9 +3,9 @@ package com.liorshaya.policypilot.rules.validation;
 import com.liorshaya.policypilot.rules.model.Action;
 import com.liorshaya.policypilot.rules.model.Call;
 import com.liorshaya.policypilot.rules.model.Condition;
-import com.liorshaya.policypilot.rules.model.Expression;
 import com.liorshaya.policypilot.rules.model.Field;
 import com.liorshaya.policypilot.rules.model.FieldRef;
+import com.liorshaya.policypilot.rules.model.FieldReferences;
 import com.liorshaya.policypilot.rules.model.Function;
 import com.liorshaya.policypilot.rules.model.NumberLiteral;
 import com.liorshaya.policypilot.rules.model.Operand;
@@ -114,7 +114,8 @@ final class StructuralChecks {
             referBeforeReject();
             candidates();
             if (rules.stream().noneMatch(r -> decides(r.rule(), Outcome.APPROVE, null))) {
-                report(ValidationCode.NO_TERMINAL_APPROVE, "/rules", "no rule can produce approve", List.of(), List.of());
+                report(ValidationCode.NO_TERMINAL_APPROVE, "/rules", "no rule can produce approve", List.of(),
+                        List.of());
             }
             return findings;
         }
@@ -130,7 +131,7 @@ final class StructuralChecks {
                         firstSetPath.putIfAbsent(set.field(), placed.path() + "/actions/" + j);
                         used.add(set.field());
                         Set<String> reads = new TreeSet<>();
-                        references(set.value(), reads);
+                        reads.addAll(FieldReferences.inValue(set.value()));
                         // a rule that reads the field it sets (x = max(x, 5)) is a read-modify-write, not a cycle
                         reads.removeIf(name -> !fields.get(name).isDerived() || name.equals(set.field()));
                         dependsOn.computeIfAbsent(set.field(), key -> new TreeSet<>()).addAll(reads);
@@ -169,12 +170,12 @@ final class StructuralChecks {
         private void perRule(Placed placed) {
             Rule rule = placed.rule();
             Set<String> reads = new TreeSet<>();
-            references(rule.condition(), reads);
+            reads.addAll(FieldReferences.inCondition(rule.condition()));
             Map<String, String> divisors = new TreeMap<>();
             List<Action> actions = rule.actions();
             for (int j = 0; j < actions.size(); j++) {
                 if (actions.get(j) instanceof Action.SetField set) {
-                    references(set.value(), reads);
+                    reads.addAll(FieldReferences.inValue(set.value()));
                     divisors(set.value(), placed.path() + "/actions/" + j + "/value", divisors);
                 }
             }
@@ -388,35 +389,6 @@ final class StructuralChecks {
         private static Outcome firstOutcome(Rule rule) {
             return rule.actions().stream().filter(Action.Decide.class::isInstance).map(Action.Decide.class::cast)
                     .findFirst().orElseThrow().outcome();
-        }
-
-        private static void references(Condition condition, Set<String> out) {
-            switch (condition) {
-                case Condition.Comparison c -> {
-                    out.add(c.field());
-                    if (c.value() != null) {
-                        references(c.value(), out);
-                    }
-                }
-                case Condition.All all -> all.all().forEach(child -> references(child, out));
-                case Condition.Any any -> any.any().forEach(child -> references(child, out));
-                case Condition.Not not -> references(not.not(), out);
-                case Condition.Always always -> { }
-            }
-        }
-
-        private static void references(Operand operand, Set<String> out) {
-            if (operand instanceof Expression expression) {
-                references(expression, out);
-            }
-        }
-
-        private static void references(Expression expression, Set<String> out) {
-            switch (expression) {
-                case FieldRef ref -> out.add(ref.field());
-                case Call call -> call.args().forEach(arg -> references(arg, out));
-                case NumberLiteral number -> { }
-            }
         }
 
         private static void divisors(Operand operand, String path, Map<String, String> out) {
