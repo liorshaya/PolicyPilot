@@ -16,8 +16,6 @@ import com.liorshaya.policypilot.rules.validation.RuleSetValidator;
 import com.liorshaya.policypilot.rules.validation.Severity;
 import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.rules.validation.ValidationResult;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +24,6 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The authoring use case (Document 4, Prompt 1: Author, and Repair Loop; Brief FR-2 and FR-3): the policy's
@@ -128,79 +125,21 @@ public class AuthorService {
                 "language", PromptRegistry.languageName(language),
                 "title", Sections.escape(title),
                 "paragraphCount", String.valueOf(policy.paragraphs().size()),
-                "policy", numbered(policy),
+                "policy", Sections.numbered(policy.paragraphs()),
                 "hints", hints == null || hints.isBlank() ? "" : "<hints>\n" + Sections.escape(hints) + "\n</hints>"));
         String system = author.system().render(Map.of("language", PromptRegistry.languageName(language)));
         return new PromptSpec(author.name(), author.version(), author.role(), system, rendered,
                 author.outputSchema(), author.temperature(), author.maxOutputTokens(), author.timeout(), 1);
     }
 
-    /** The paragraphs with the {@code [n]} prefix the prompt cites by (Document 4, Data delimiters). */
-    private static String numbered(PolicyVersionRef policy) {
-        StringBuilder text = new StringBuilder();
-        for (PolicyVersionRef.Paragraph paragraph : policy.paragraphs()) {
-            text.append('[').append(paragraph.index()).append("] ").append(Sections.escape(paragraph.text()))
-                    .append('\n');
-        }
-        return text.toString().stripTrailing();
-    }
-
-
     /** The repair user prompt of Document 4, with only the errors and the paragraphs their quotes came from. */
     private String repairPrompt(Answer answer, List<Finding> findings, PolicyVersionRef policy) {
-        List<Finding> errors = findings.stream().filter(finding -> finding.severity() == Severity.ERROR).toList();
+        List<RepairPrompt.Error> errors = findings.stream().filter(finding -> finding.severity() == Severity.ERROR)
+                .map(RepairPrompt.Error::of).toList();
         JsonNode document = answer.document();
-        return prompts.get("repair").user().render(Map.of(
-                "count", String.valueOf(errors.size()),
-                "errors", errorList(errors),
-                "paragraphTexts", paragraphsFor(errors, document, policy),
-                "document", document == null ? Sections.escape(answer.raw()) : document.toString()));
-    }
-
-    private static String errorList(List<Finding> errors) {
-        StringBuilder text = new StringBuilder();
-        for (Finding error : errors) {
-            ObjectNode entry = JSON.createObjectNode();
-            entry.put("code", error.code().name());
-            entry.put("severity", error.severity().name().toLowerCase(java.util.Locale.ROOT));
-            entry.put("path", error.path());
-            entry.put("message", error.message());
-            entry.set("ruleIds", JSON.valueToTree(error.ruleIds()));
-            entry.set("fieldNames", JSON.valueToTree(error.fieldNames()));
-            text.append(entry).append('\n');
-        }
-        return text.toString().stripTrailing();
-    }
-
-    /**
-     * The full text of every paragraph a failing rule cites, which is what makes the second attempt succeed
-     * almost always (Document 4, Error list shape).
-     */
-    private static String paragraphsFor(
-            List<Finding> errors, @Nullable JsonNode document, PolicyVersionRef policy) {
-        Set<String> failing = new LinkedHashSet<>();
-        errors.forEach(error -> failing.addAll(error.ruleIds()));
-        List<Integer> cited = new ArrayList<>();
-        JsonNode rules = document == null ? JSON.createArrayNode() : document.path("rules");
-        for (JsonNode rule : rules) {
-            if (failing.contains(rule.path("id").asString("")) ) {
-                JsonNode paragraph = rule.path("provenance").path("paragraph");
-                if (paragraph.isInt() && !cited.contains(paragraph.asInt())) {
-                    cited.add(paragraph.asInt());
-                }
-            }
-        }
-        if (cited.isEmpty()) {
-            policy.paragraphs().forEach(paragraph -> cited.add(paragraph.index()));
-        }
-        StringBuilder text = new StringBuilder();
-        for (PolicyVersionRef.Paragraph paragraph : policy.paragraphs()) {
-            if (cited.contains(paragraph.index())) {
-                text.append('[').append(paragraph.index()).append("] ")
-                        .append(Sections.escape(paragraph.text())).append('\n');
-            }
-        }
-        return text.toString().stripTrailing();
+        return RepairPrompt.render(prompts.get("repair"), errors,
+                document == null ? List.of() : document.path("rules"), policy.paragraphs(),
+                document == null ? Sections.escape(answer.raw()) : document.toString());
     }
 
     /** What the authoring pipeline answers: the document, its findings and how it got there. */

@@ -265,6 +265,18 @@ public class RulesetService {
     }
 
     /**
+     * The rule ids every version of the rule set has retired, which an added rule may never take again (Document 3,
+     * Change Patches: "retired ids are never reused"); empty when the sandbox cannot see the rule set.
+     */
+    @Transactional(readOnly = true)
+    public List<String> retiredIds(UUID rulesetId, UUID sandboxId) {
+        return rulesets.findVisible(rulesetId, sandboxId).stream()
+                .flatMap(ruleset -> versions.findByRulesetIdOrderByVersionNo(ruleset.getId()).stream())
+                .flatMap(version -> JSON.readTree(version.getRetiredIds()).valueStream())
+                .map(JsonNode::asString).distinct().toList();
+    }
+
+    /**
      * What retrieval searches on a version the sandbox can see (Document 4, Retrieval Pipeline, Scoping): its rule set
      * and its paragraphs; empty when the sandbox cannot see it, and a status conflict unless its embedding is
      * {@code READY} (Document 4, Embedding: questions on a version still embedding are refused).

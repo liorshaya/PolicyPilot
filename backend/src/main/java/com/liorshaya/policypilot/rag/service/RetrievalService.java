@@ -58,6 +58,15 @@ public class RetrievalService {
         return rulesets.corpus(rulesetId, versionNo, sandboxId).map(corpus -> retrieve(corpus, question));
     }
 
+    /**
+     * The ids of the version's rules nearest a text, nearest first (Document 4, Prompt 5, Candidate selection): the
+     * seeds of a change request's candidates. The caller has the corpus, so the sandbox has already been checked.
+     */
+    public List<String> rulesNearest(EmbeddingSource corpus, String text, int limit) {
+        return chunks.rulesNearest(corpus.versionId(), gateway.embed(text), limit).stream().map(ScoredChunk::refId)
+                .toList();
+    }
+
     private Retrieval retrieve(EmbeddingSource corpus, String question) {
         UUID version = corpus.versionId();
         QuestionSignals signals = QuestionSignals.of(question, corpus.ruleSet());

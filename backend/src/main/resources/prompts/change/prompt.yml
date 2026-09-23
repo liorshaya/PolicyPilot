@@ -1,0 +1,17 @@
+# The change prompt (Document 4, Prompt 5: Change). It turns a change request into rule-level patches against one
+# published version; the model sees only the candidate rules, and Patch validation (Document 3) decides what it may do.
+name: change
+active: v1
+role: rule editor
+task: translate a change request into the smallest set of patches to a published rule set, keeping every rule the request does not touch exactly as it is
+outputSchema: schemas/patches-1.0.schema.json
+modelRole: strong
+# Document 4 first wrote 0; the strong model of the current OpenAI lineup accepts only its own temperature, as the
+# author found on day 7 and the review on day 10, so the prompt asks for the model's default (Document 4, day 12).
+temperature: default
+# Document 4, Model Configuration: they stand until a live run shows them short (decided day 12).
+maxOutputTokens: 6000
+timeoutSeconds: 60
+repairs: 2
+cache: by-input-hash
+languages: [he, en]

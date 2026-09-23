@@ -1,9 +1,15 @@
 package com.liorshaya.policypilot.support;
 
+import com.liorshaya.policypilot.ai.service.Candidates;
+import com.liorshaya.policypilot.ai.service.ChangeBase;
+import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
+import com.liorshaya.policypilot.rules.json.RuleSetMapper;
+import com.liorshaya.policypilot.ruleset.service.EmbeddingSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -34,6 +40,7 @@ public final class ChangeRequests {
             "R-100", "R-110", "R-115", "R-116", "R-120", "R-130", "R-140", "R-150", "R-160", "R-200", "R-220");
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final RuleSetMapper MAPPER = new RuleSetMapper();
 
     private ChangeRequests() {}
 
@@ -60,6 +67,27 @@ public final class ChangeRequests {
         Set<String> candidates = new TreeSet<>();
         labeled(id).required("expected").required("candidates").forEach(rule -> candidates.add(rule.asString()));
         return candidates;
+    }
+
+    /**
+     * The seeded lending version 1 as a change is proposed against it: the committed rule set and policy, with the
+     * policy titled as the seed titles it (the rule set's name), and random ids, which no prompt may depend on.
+     */
+    public static ChangeBase lendingBase() {
+        ObjectNode document = Fixtures.lendingV1();
+        List<PolicyVersionRef.Paragraph> paragraphs = new ArrayList<>();
+        List<String> texts = Fixtures.lendingParagraphs();
+        for (int i = 0; i < texts.size(); i++) {
+            paragraphs.add(new PolicyVersionRef.Paragraph(UUID.randomUUID(), i + 1, texts.get(i)));
+        }
+        EmbeddingSource corpus = new EmbeddingSource(UUID.randomUUID(), MAPPER.toRuleSet(document), paragraphs);
+        return new ChangeBase(UUID.randomUUID(), 1, document, corpus, document.required("name").asString(), Set.of());
+    }
+
+    /** The scripted request's expected candidates, as candidate selection answers them for R-170 and R-410. */
+    public static Candidates scriptedCandidates() {
+        return new Candidates(List.of("R-170", "R-410"), List.of("R-020", "R-170", "R-200", "R-320", "R-410"),
+                List.of("monthly_income"));
     }
 
     /** RT-04: the scripted threshold request with the planted text after it. */

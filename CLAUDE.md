@@ -54,7 +54,10 @@ same day `ai` and `ai.adapter` gained persistence, because Document 2 places the
 ledger and the response cache in them. On 2026-09-21 `rag` gained `ruleset` (day 8): the published version to chunk
 and its `embedding_status` belong to `ruleset`, and `rag` reads them through its service, not its tables.
 On 2026-09-22 `ai.chat` joined `ai` (day 9): the chat use case, which reads and writes the database and is gated with
-the orchestrating modules; what of the chat needs no database is `ai.service.chat`, on the unit-test gate.
+the orchestrating modules; what of the chat needs no database is `ai.service.chat`, on the unit-test gate. On
+2026-09-24 `ai.change` joined it the same way (day 12): the change request's impact analysis, which reads the rule
+set and chunk stores; the change prompt and its repair loop need no database and are `ai.service.ChangeService`.
+Patch validation, pure, is `rules.patch`.
 Two cross-cutting packages were added on 2026-09-18: `config` (Spring configuration, `PolicyPilotProperties`)
 and `common` (dependency-free helpers). Every module may use them except `rules` and `engine`, which stay pure.
 Inside a module that owns state the layers are `service` (entry points other modules call), `entity` and

@@ -44,6 +44,15 @@ public class ChunkRepository {
             where ruleset_version_id = :version and tsv @@ query.words
             order by score desc, kind, ref_id
             limit :limit""";
+    /**
+     * Document 4, Prompt 5, Candidate selection: the rules of a version nearest a text, nearest first, a tie in the
+     * order of their ids.
+     */
+    private static final String RULES_NEAREST = """
+            select kind, ref_id, text, 1 - (embedding <=> cast(:text as vector)) as score
+            from chunk where ruleset_version_id = :version and kind = 'RULE'
+            order by embedding <=> cast(:text as vector), ref_id
+            limit :limit""";
     private static final String BY_KIND_AND_REF = """
             select kind, ref_id, text, 0 as score from chunk
             where ruleset_version_id = :version and kind = :kind and ref_id = :ref""";
@@ -76,6 +85,11 @@ public class ChunkRepository {
 
     public List<ScoredChunk> vectorTop(UUID versionId, float[] question, int limit) {
         return jdbc.sql(VECTOR_TOP).param("version", versionId).param("question", question).param("limit", limit)
+                .query(ChunkRepository::scored).list();
+    }
+
+    public List<ScoredChunk> rulesNearest(UUID versionId, float[] text, int limit) {
+        return jdbc.sql(RULES_NEAREST).param("version", versionId).param("text", text).param("limit", limit)
                 .query(ChunkRepository::scored).list();
     }
 
