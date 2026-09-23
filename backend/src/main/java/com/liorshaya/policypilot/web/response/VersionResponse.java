@@ -2,7 +2,9 @@ package com.liorshaya.policypilot.web.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.liorshaya.policypilot.rules.patch.PatchProblem;
 import com.liorshaya.policypilot.rules.validation.Finding;
+import com.liorshaya.policypilot.rules.validation.Severity;
 import com.liorshaya.policypilot.ruleset.service.Acknowledgement;
 import com.liorshaya.policypilot.ruleset.service.Review;
 import com.liorshaya.policypilot.ruleset.service.ReviewFinding;
@@ -10,6 +12,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import tools.jackson.databind.node.ObjectNode;
@@ -50,8 +53,14 @@ public record VersionResponse(
 
         /** The findings of a generation stream are the same shape, so this is visible to the web layer. */
         public static FindingResponse of(Finding finding) {
-            return new FindingResponse(finding.code().name(), finding.severity().name().toLowerCase(java.util.Locale.ROOT),
+            return new FindingResponse(finding.code().name(), finding.severity().name().toLowerCase(Locale.ROOT),
                     finding.path(), finding.message(), finding.ruleIds(), finding.fieldNames());
+        }
+
+        /** A problem of a change proposal in the same shape (Document 3, Patch validation): every one is an error. */
+        public static FindingResponse of(PatchProblem problem) {
+            return new FindingResponse(problem.code().name(), Severity.ERROR.name().toLowerCase(Locale.ROOT),
+                    problem.path(), problem.message(), problem.ruleIds(), problem.fieldNames());
         }
     }
 

@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -76,25 +77,12 @@ class GenerationStreamIT extends ApiIntegrationTest {
         return JSON.readTree(created.body()).get("id").asString();
     }
 
-    private List<String> eventNames(String stream) {
-        List<String> names = new ArrayList<>();
-        stream.lines().filter(line -> line.startsWith("event:"))
-                .forEach(line -> names.add(line.substring("event:".length()).trim()));
-        return names;
+    private static List<String> eventNames(String stream) {
+        return ServerSentEvents.parse(stream).names();
     }
 
-    private JsonNode dataOf(String stream, String event) {
-        String[] lines = stream.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith("event:") && lines[i].substring(6).trim().equals(event)) {
-                for (int j = i + 1; j < lines.length; j++) {
-                    if (lines[j].startsWith("data:")) {
-                        return JSON.readTree(lines[j].substring("data:".length()).trim());
-                    }
-                }
-            }
-        }
-        throw new AssertionError("no " + event + " event in the stream:\n" + stream);
+    private static JsonNode dataOf(String stream, String event) {
+        return ServerSentEvents.parse(stream).first(event);
     }
 
     /**
@@ -316,14 +304,14 @@ class GenerationStreamIT extends ApiIntegrationTest {
         ObjectNode body = JSON.createObjectNode();
         body.put("title", "bidi");
         body.put("language", "he");
-        body.put("text", "‮גיל המבקש​ לפחות 21‬.\n\nהכנסה חודשית נטו 8,000 ש\"ח לפחות.");
+        body.put("text", "\u202Eגיל המבקש\u200B לפחות 21\u202C.\n\nהכנסה חודשית נטו 8,000 ש\"ח לפחות.");
         String policyId = JSON.readTree(api().post("/api/v1/policies").web().cookie(session)
                 .json(body.toString()).send().body()).get("id").asString();
 
         api().post("/api/v1/policies/" + policyId + "/rulesets").web().cookie(session).json("{}").send();
 
         String prompt = model.lastUserPrompt();
-        assertThat(prompt).doesNotContain("‮").doesNotContain("‬").doesNotContain("​");
+        assertThat(prompt).doesNotContain("\u202E").doesNotContain("\u202C").doesNotContain("\u200B");
         assertThat(prompt).contains("גיל המבקש לפחות 21");
     }
 

@@ -541,6 +541,82 @@
         }
       }
     },
+    "/api/v1/rulesets/{id}/versions/{no}/changes" : {
+      "post" : {
+        "tags" : [ "change-controller" ],
+        "summary" : "Submit a change request in natural language, answered as a stream of events",
+        "operationId" : "submit",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmitChangeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "An event stream: analyzing, proposing, validating, then proposal or error",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The text is empty, too long or has a control character",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The version is not published, or not embedded yet",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/policies" : {
       "get" : {
         "tags" : [ "policy-controller" ],
@@ -1419,6 +1495,23 @@
           }
         }
       },
+      "SubmitChangeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SseEmitter" : {
+        "type" : "object",
+        "properties" : {
+          "timeout" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "Paragraph" : {
         "type" : "object",
         "properties" : {
@@ -1506,15 +1599,6 @@
             "type" : "string",
             "maxLength" : 2048,
             "minLength" : 0
-          }
-        }
-      },
-      "SseEmitter" : {
-        "type" : "object",
-        "properties" : {
-          "timeout" : {
-            "type" : "integer",
-            "format" : "int64"
           }
         }
       },

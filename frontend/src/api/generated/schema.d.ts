@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rulesets/{id}/versions/{no}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a change request in natural language, answered as a stream of events */
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/policies": {
         parameters: {
             query?: never;
@@ -442,6 +459,13 @@ export interface components {
             resolution?: string;
             note?: string;
         };
+        SubmitChangeRequest: {
+            text?: string;
+        };
+        SseEmitter: {
+            /** Format: int64 */
+            timeout?: number;
+        };
         Paragraph: {
             /** Format: int32 */
             index: number;
@@ -473,10 +497,6 @@ export interface components {
         };
         GenerateRulesRequest: {
             hints?: string;
-        };
-        SseEmitter: {
-            /** Format: int64 */
-            timeout?: number;
         };
         ExplainRequest: {
             /** @enum {string} */
@@ -969,6 +989,60 @@ export interface operations {
             };
             /** @description A case fails case validation; nothing is stored */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description An event stream: analyzing, proposing, validating, then proposal or error */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["SseEmitter"];
+                };
+            };
+            /** @description The text is empty, too long or has a control character */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such rule set version in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The version is not published, or not embedded yet */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

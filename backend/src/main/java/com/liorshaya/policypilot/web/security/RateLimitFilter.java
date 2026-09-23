@@ -82,11 +82,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static RequestMatcher modelRoutes() {
         PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
         return new OrRequestMatcher(
-                paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/policies/{id}/rulesets"),
+                paths.matcher(HttpMethod.POST, ApiPaths.POLICY_RULESETS),
                 paths.matcher(HttpMethod.POST, ApiPaths.CHAT_MESSAGES),
-                paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/rulesets/{id}/versions/{no}/changes"),
+                paths.matcher(HttpMethod.POST, ApiPaths.RULESET_VERSION_CHANGES),
                 paths.matcher(HttpMethod.POST, ApiPaths.RULESET_VERSION_REVIEW),
-                paths.matcher(HttpMethod.POST, ApiPaths.V1 + "/decisions/{id}/explain"),
+                paths.matcher(HttpMethod.POST, ApiPaths.DECISION_EXPLAIN),
                 paths.matcher(HttpMethod.POST, ApiPaths.RULESET_VERSION_RETRIEVAL));
     }
 }
