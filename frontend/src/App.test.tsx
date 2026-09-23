@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { AUTH_CODE_URL } from './api/auth'
 import { server } from './test/msw/server'
 import { App } from './App'
-import { SCRIPTED_QUESTIONS } from './features/demo/steps'
+import { SCRIPTED_CHANGE_REQUEST, SCRIPTED_QUESTIONS } from './features/demo/steps'
 
 /** The application: the gate, then the workspace with its sidebar (Document 2, Frontend Architecture). */
 function renderApp() {
@@ -81,6 +81,24 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Assistant' })).toBeInTheDocument()
     expect(await screen.findByLabelText(/question/i)).toHaveValue(SCRIPTED_QUESTIONS[0])
     expect(window.location.hash).toBe('#/assistant')
+  })
+
+  // Brief, demo step 4: "Type: Raise the minimum monthly income to 9,000". Expected: the panel opens the change
+  // screen with the labeled request CR-1 filled in, and the presenter proposes it
+  it('runs step 4 on the change screen, with the scripted request filled in', async () => {
+    server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    await screen.findByRole('navigation', { name: 'Workspace' })
+
+    await user.click(screen.getByRole('button', { name: /guided demo/i }))
+    await user.click(screen.getAllByRole('button', { name: 'Run' })[3]!)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Change' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('What should change')).toHaveValue(SCRIPTED_CHANGE_REQUEST)
+    expect(window.location.hash).toBe('#/change')
   })
 
   // Expected: the step the demo is on is the one the panel marks, so a presenter can see where they are

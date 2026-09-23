@@ -14,8 +14,9 @@ export const ruleSet = JSON.parse(
 ) as RuleSetDocument
 
 /**
- * The seeded policy, rule set and decisions as the tests serve them (Document 6, End to end: CI stage 7 runs without
- * a backend). The rule set is the committed fixture, so the browser shows the rules the demo shows.
+ * The seeded policy, rule set and decisions as the tests serve them: CI stage 7 runs these flows without a backend,
+ * every route the page calls answered here from the committed fixtures. The rule set is the committed fixture, so the
+ * browser shows the rules the demo shows.
  */
 
 export const RULESET_ID = '0f4c1c9e-0000-4000-8000-0000000000b1'
@@ -43,6 +44,16 @@ export const paragraphs = [
     text: 'מבקש שנרשמו לו שני אירועי אשראי שליליים או יותר ב-24 החודשים האחרונים, בקשתו תידחה. מבקש עם אירוע אחד יידרש להעמיד ערב.',
   },
 ]
+
+/** The seeded rule set as GET /rulesets lists it: protected, its one version published. */
+export const seededRuleset = {
+  id: RULESET_ID,
+  name: 'מדיניות אשראי צרכני',
+  domain: 'consumer-lending',
+  protected: true,
+  policyId: POLICY_ID,
+  versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+}
 
 export async function serveTheSeededRuleSet(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/code', (route) => route.fulfill({ status: 204 }))
@@ -76,20 +87,7 @@ export async function serveTheSeededRuleSet(page: Page): Promise<void> {
     }),
   )
   await page.route('**/api/v1/rulesets', (route) =>
-    route.fulfill({
-      json: {
-        rulesets: [
-          {
-            id: RULESET_ID,
-            name: 'מדיניות אשראי צרכני',
-            domain: 'consumer-lending',
-            protected: true,
-            policyId: POLICY_ID,
-            versions: [{ versionNo: 1, status: 'PUBLISHED' }],
-          },
-        ],
-      },
-    }),
+    route.fulfill({ json: { rulesets: [seededRuleset] } }),
   )
   await page.route('**/api/v1/rulesets/*/versions/*', (route) =>
     route.fulfill({

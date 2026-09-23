@@ -96,12 +96,3 @@
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
-
-.guided__soon {
-  flex: none;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-sunken);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}

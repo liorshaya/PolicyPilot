@@ -273,6 +273,21 @@ describe('ChangeScreen', () => {
     )
   })
 
+  it('fills in the scripted request when the guided panel runs step 4, once', async () => {
+    const onDemoHandled = vi.fn()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <ChangeScreen rulesetId={SEEDED_RULESET_ID} demoAsked onDemoHandled={onDemoHandled} />
+      </QueryClientProvider>,
+    )
+
+    // the panel types what a presenter would, and leaves the proposing to them (Document 2, the guided panel)
+    expect(await screen.findByLabelText('What should change')).toHaveValue(TEXT)
+    expect(onDemoHandled).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('list', { name: 'Progress' })).not.toBeInTheDocument()
+  })
+
   it('writes the request and the note right to left when they are Hebrew, within the chat message limit', async () => {
     renderScreen()
     await proposalShown()

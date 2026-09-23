@@ -6,11 +6,11 @@ import { DEMO_STEPS } from './steps'
 
 /**
  * The guided demo panel (the brief FR-23; Document 2: "the four scripted steps as one-click actions"). The
- * expected values are the brief's own demo script: four steps, named Author, Decide, Ask and Change, and step 4
- * arriving on day 14 of the work plan.
+ * expected values are the brief's own demo script: four steps, named Author, Decide, Ask and Change, each of them
+ * offered since step 4 arrived on day 14 of the work plan.
  */
 describe('the guided demo panel', () => {
-  it('lists the four scripted steps, and offers the three that are built', async () => {
+  it('lists the four scripted steps, and offers every one of them', async () => {
     render(<GuidedPanel current={null} onRun={vi.fn()} />)
     await userEvent.click(screen.getByRole('button', { name: /guided demo/i }))
 
@@ -23,8 +23,8 @@ describe('the guided demo panel', () => {
       expect.stringContaining('Ask'),
       expect.stringContaining('Change'),
     ])
-    expect(screen.getAllByRole('button', { name: 'Run' })).toHaveLength(3)
-    expect(screen.getByText('Day 14')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Run' })).toHaveLength(4)
+    expect(screen.queryByText('Day 14')).not.toBeInTheDocument()
   })
 
   it('is collapsed until it is opened, so the workspace is what the audience sees', () => {
