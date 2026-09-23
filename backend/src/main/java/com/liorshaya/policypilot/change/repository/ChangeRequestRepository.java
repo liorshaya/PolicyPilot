@@ -1,6 +1,8 @@
 package com.liorshaya.policypilot.change.repository;
 
 import com.liorshaya.policypilot.change.entity.ChangeRequestEntity;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.repository.Repository;
@@ -15,4 +17,7 @@ public interface ChangeRequestRepository extends Repository<ChangeRequestEntity,
 
     /** A request of this sandbox; another sandbox's reads as absent (Document 5, no existence oracle). */
     Optional<ChangeRequestEntity> findByIdAndSandboxId(UUID id, UUID sandboxId);
+
+    /** Those of the given requests that are this sandbox's. */
+    List<ChangeRequestEntity> findBySandboxIdAndIdIn(UUID sandboxId, Collection<UUID> ids);
 }

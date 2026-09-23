@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
@@ -20,10 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -36,7 +34,7 @@ import tools.jackson.databind.json.JsonMapper;
  * the rule set and leaves version 1 as it was (the owner's decision of 2026-09-24, Document 2).
  */
 @Requirement({"FR-19", "FR-20"})
-@Import(ChangeApprovalIT.ScriptedModel.class)
+@Import(RecordedModel.class)
 @Isolated
 class ChangeApprovalIT extends ApiIntegrationTest {
 
@@ -330,16 +328,6 @@ class ChangeApprovalIT extends ApiIntegrationTest {
                 throw new AssertionError("the version never became READY");
             }
             Thread.onSpinWait();
-        }
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class ScriptedModel {
-
-        @Bean
-        @Primary
-        RecordedGateway recordedGateway() {
-            return RecordedGateway.streaming();
         }
     }
 }

@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.decision;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.common.Csv;
 import com.liorshaya.policypilot.decision.service.DecisionCsv;
 import com.liorshaya.policypilot.decision.service.DecisionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
@@ -58,7 +59,7 @@ class DecisionCsvTest {
 
         String csv = DecisionCsv.of(decisionWithLabel(label));
 
-        assertThat(csv).startsWith(DecisionCsv.BYTE_ORDER_MARK);
+        assertThat(csv).startsWith(Csv.BYTE_ORDER_MARK);
         assertThat(firstRowCells(csv).get(6)).isEqualTo(label);
     }
 
@@ -70,7 +71,7 @@ class DecisionCsvTest {
         String csv = DecisionCsv.of(decision((ObjectNode) sample));
 
         List<String> lines = List.of(csv.split("\r\n"));
-        assertThat(lines.getFirst()).isEqualTo(DecisionCsv.BYTE_ORDER_MARK
+        assertThat(lines.getFirst()).isEqualTo(Csv.BYTE_ORDER_MARK
                 + "decision_id,ruleset_version,outcome,deciding_rule_id,step,rule_id,label,priority,status,"
                 + "comparisons,actions");
         assertThat(lines).hasSize(sample.required("trace").size() + 1);

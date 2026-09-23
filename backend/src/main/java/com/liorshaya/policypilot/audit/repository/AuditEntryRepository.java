@@ -1,6 +1,7 @@
 package com.liorshaya.policypilot.audit.repository;
 
 import com.liorshaya.policypilot.audit.entity.AuditEntryEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.repository.Repository;
@@ -12,4 +13,6 @@ public interface AuditEntryRepository extends Repository<AuditEntryEntity, UUID>
 
     /** The entries of a version, oldest first. */
     List<AuditEntryEntity> findByRulesetVersionIdOrderByAtAscIdAsc(UUID rulesetVersionId);
+
+    List<AuditEntryEntity> findByRulesetVersionIdInOrderByAtDescIdDesc(Collection<UUID> rulesetVersionIds);
 }

@@ -30,6 +30,8 @@ public final class ApiPaths {
     public static final String DECISION = DECISIONS + "/{id}";
     public static final String DECISION_EXPORT = DECISION + "/export";
     public static final String DECISION_EXPLAIN = DECISION + "/explain";
+    public static final String AUDIT = V1 + "/audit";
+    public static final String AUDIT_EXPORT = AUDIT + "/export";
     public static final String DOCS = "/api/docs";
 
     private ApiPaths() {}
