@@ -392,6 +392,8 @@
                                         <exclude>com.liorshaya.policypilot.ai.cache</exclude>
                                         <!-- the chat use case reads and writes the database; see the merged check -->
                                         <exclude>com.liorshaya.policypilot.ai.chat</exclude>
+                                        <!-- so does the change use case's impact analysis -->
+                                        <exclude>com.liorshaya.policypilot.ai.change</exclude>
                                     </excludes>
                                     <limits>
                                         <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.90</minimum></limit>
@@ -436,11 +438,13 @@
                                     </limits>
                                 </rule>
                                 <!-- Orchestrates: 80% line, 75% branch. Document 6 lists the ai use cases here, each with an
-                                     integration test on a real database; the chat's lives in ai.chat -->
+                                     integration test on a real database; the chat's lives in ai.chat, the change's
+                                     impact analysis in ai.change -->
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
                                         <include>com.liorshaya.policypilot.ai.chat</include>
+                                        <include>com.liorshaya.policypilot.ai.change</include>
                                         <include>com.liorshaya.policypilot.policy</include>
                                         <include>com.liorshaya.policypilot.policy.*</include>
                                         <include>com.liorshaya.policypilot.ruleset</include>

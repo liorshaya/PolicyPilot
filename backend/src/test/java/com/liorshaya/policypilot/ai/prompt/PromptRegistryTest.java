@@ -198,8 +198,9 @@ class PromptRegistryTest {
 
     @Test
     void refusesAPromptWhoseDirectoryIsNotThere() {
-        assertThatThrownBy(() -> new PromptRegistry(List.of("change"), Map.of()))
+        // Document 4 has five prompts and the repair prompt; a sixth has no directory
+        assertThatThrownBy(() -> new PromptRegistry(List.of("summarize"), Map.of()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("prompts/change/prompt.yml");
+                .hasMessageContaining("prompts/summarize/prompt.yml");
     }
 }

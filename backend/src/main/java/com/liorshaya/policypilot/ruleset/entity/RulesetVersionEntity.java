@@ -159,4 +159,9 @@ public class RulesetVersionEntity {
     public UUID getParentVersionId() {
         return parentVersionId;
     }
+
+    /** The rule ids this version retired, as the JSON array the column holds. */
+    public String getRetiredIds() {
+        return retiredIds;
+    }
 }
