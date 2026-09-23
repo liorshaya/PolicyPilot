@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-22 · Lior Shaya
+2026-09-24 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 
@@ -14,7 +14,7 @@ The model is used in exactly five places, each with one prompt, one output contr
 | Review a draft against the policy | `review` | Paragraphs plus the validated draft | `Findings` | JSON Schema; anchors must name existing rules and paragraphs |
 | Explain a decision | `explain` | One decision object with its trace | `Explanation` | JSON Schema; every cited rule id and paragraph must appear in the trace |
 | Answer a question | `answer` | Question, retrieved chunks, conversation memory, tool results | Streamed text with citation markers | Marker resolver: every marker must reference a supplied chunk, decision or simulation |
-| Propose a change | `change` | Request, candidate rules, fields, paragraphs, retired ids | `Patches` (Document 3) | Patched copy goes through the full rule set validation in the `CHANGE_PROPOSAL` context, then the regression run |
+| Propose a change | `change` | Request, candidate rules, fields, paragraphs, retired ids | `Patches` (Document 3) | The Patches schema and the proposal validator; the patched copy goes through the full rule set validation in the `CHANGE_PROPOSAL` context, then the regression run |
 
 Six principles apply to all five:
 
@@ -431,7 +431,7 @@ A hit is served only after the stored calls run again through the turn's own too
 
 The change prompt turns a request in natural language into rule-level patches against one published version; the model sees only the rules that could be affected, proposes the smallest change that satisfies the request, and marks every rule the policy text no longer supports as `pending` for a person to approve.
 
-**Candidate selection** (before the prompt): the request text is embedded and the 10 most similar rule chunks of the version are retrieved; every rule that reads or sets a field those rules use is added, so a threshold change and its dependent advisory rule arrive together; the fields, the defaults and the paragraphs are always included in full; the list of retired rule ids of the lineage is included so a new id is never reused.
+**Candidate selection** (before the prompt): the request text is embedded, and the two rule chunks of the version most similar to it are the seeds, with every rule the request names by its id. The fields the seeds' conditions test, and every field the request names, are the request's fields; every rule that reads one of them is a candidate, and so is every rule that reads a field a candidate derives, until no rule is added. A threshold change thus arrives with its dependent advisory rule and the rules downstream of its derivations; for the scripted request, a change to `monthly_income`, the five candidates follow from the rule set alone: `R-170` and `R-410` test it, `R-020` derives `debt_to_income` from it, and `R-200` and `R-320` test that. The candidates are rendered in evaluation order (priority, then id), so the prompt, and the cache key with it, does not depend on how close two similarities were. The fields, the defaults and the paragraphs are always included in full; the list of retired rule ids of the lineage is included so a new id is never reused. Two seeds, not the 10 first written here (decided 2026-09-24, day 12): on the recorded vector of Q-11, the question closest to the scripted request, 10 similar rules and every rule that shares a field with them are 17 of the 20 lending rules, so the model would see almost the whole rule set; one seed is too few when the closest rule is a derivation that tests no field, as the installment formula is.
 
 **Role and task**: role `rule editor`; task `translate a change request into the smallest set of patches to a published rule set, keeping every rule the request does not touch exactly as it is`.
 
@@ -469,8 +469,9 @@ The change prompt turns a request in natural language into rule-level patches ag
 Produce a Patches object for this request:
 
 1. MINIMAL. Change only what the request requires. Prefer "replace" of an existing rule over "remove" plus
-   "add". Never change defaults, fields or priorities unless the request says so. Never remove a rule the
-   request does not mention.
+   "add", and replace or remove only rules listed in <candidate_rules>. Never change the defaults: only an
+   analyst can. Never change fields or priorities unless the request says so. Remove a rule only when the
+   request names it, by its id or by a value its condition tests.
 2. CONSISTENCY. If a change makes another candidate rule inconsistent (an advisory band that no longer
    matches a new threshold, a derivation whose input changed), patch it too and say why in its rationale.
    List every candidate you looked at and left unchanged in "untouched".
@@ -489,7 +490,7 @@ Produce a Patches object for this request:
 Return only the JSON object.
 ```
 
-**After the prompt**: patches are applied to a copy of the version; the copy is validated in the `CHANGE_PROPOSAL` context with the patched rule ids as the model's rules (Document 3), repaired at most twice, then every stored decision of the base version is re-evaluated against the copy and the regression report is built; the proposal, the diff and the report are shown together, and approval is what turns `pending` into `analyst` and publishes the new version.
+**After the prompt**: the answer is checked in the order of Document 3 (Change Patches, Patch validation): the Patches schema, then the proposal validator, then the patches are applied to a copy of the version and the copy is validated in the `CHANGE_PROPOSAL` context with the patched rule ids as the model's rules. Schema, application and validation errors are repaired at most twice, each error on a patched rule reported at its patch. A refusal of the proposal validator is not repaired, because a repair would quietly drop what the request smuggled in (Document 5, RT-04): the stream ends with the refusal and the model's answer, nothing is stored, and the answers are forgotten from the cache, as after a final failure. A valid proposal is stored, then every stored decision of the base version is re-evaluated against the copy and the regression report is built; the proposal, the diff and the report are shown together, and approval is what turns `pending` into `analyst` and publishes the new version. `{changeRequestId}` is `cr-` and the first eight hex digits of the SHA-256 of the request text, not the stored request's id, so the same request on the same version renders the same prompt in every sandbox and the response cache serves it; the system writes the stored request's id into every `pending` provenance, so the model never sets it.
 
 **Scripted demo request** ("raise the minimum monthly income to 9,000"): candidates are `R-170`, `R-410`, `R-020`, `R-200`, `R-320` and the income field; the expected patches replace `R-170` and `R-410` with `pending` provenance and list the other three as untouched; the regression on the 200 fixture cases flips exactly 12 decisions, which the fixture generator guarantees.
 
@@ -548,7 +549,7 @@ The API enforces three rules the schema cannot: `conflict` and `unsupported` mus
 
 `paragraph` is `null` for a rule with `analyst` provenance, and the statement then says the rule was added by an analyst.
 
-**Patches**: the object in Document 3 (Change Patches, Diff and Versioning): `summary`, `patches[]` with `op`, `ruleId`, `rule` or `field` or `defaults`, `rationale`; `untouched[]`; `notes`. Its schema file is `schemas/patches-1.0.schema.json`, and each embedded `rule` is validated against the RuleSet rule definition by `$ref`.
+**Patches**: the object in Document 3 (Change Patches, Diff and Versioning): `summary`, `patches[]` with `op`, `ruleId`, `rule` or `field` or `defaults`, `rationale`; `untouched[]`; `notes`. Its schema file is `schemas/patches-1.0.schema.json`, and each embedded `rule`, `field` and `defaults` is validated against the RuleSet definitions by `$ref`; the provider receives one self-contained variant with the referenced definitions copied in, because a structured-output schema cannot point at another file.
 
 **Citation marker protocol** (answer prompt): markers are `[[p:<paragraphIndex>]]`, `[[r:<ruleId>]]`, `[[d:<decisionId>]]` and `[[sim:<simulationId>]]`, placed after the sentence they support, any number per sentence; ids must have been supplied in the same turn (context chunks or tool results); a decision or simulation result supplies its own id, the rule that decided it and the paragraph that rule quotes, listed in the result as `sources`, so an answer about a decision can cite its policy text even when retrieval did not find it; unknown markers are stripped and logged; the not-covered sentence is a fixed string per language stored in `prompts/answer/not-covered.yml`, and an answer that contains it must contain no markers.
 
@@ -558,18 +559,20 @@ Prompts name a model role, not a model; the provider profile maps the two roles 
 
 | Prompt | Role | Temperature | Max output tokens | Timeout | Repairs | Cache |
 | --- | --- | --- | --- | --- | --- | --- |
-| `author` | strong | 0 | 24,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
-| `repair` | same as the prompt it repairs | 0 | same | shares the original budget | n/a | none |
-| `review` | strong | 0 | 16,000 | 180 s | 0 | by input hash |
+| `author` | strong | the model's own | 24,000 | 180 s | 2 | by input hash (policy text, hints, prompt version, model) |
+| `repair` | same as the prompt it repairs | same | same | shares the original budget | n/a | none |
+| `review` | strong | the model's own | 16,000 | 180 s | 0 | by input hash |
 | `explain` | fast | the model's own | 4,000 | 20 s | 0 | by decision object, audience, prompt version |
 | `answer` | fast | 0.3 | 1,200 | 20 s to first token, 60 s total | 0 | scripted demo questions that meet their label, tool results re-checked on every hit |
-| `change` | strong | 0 | 6,000 | 60 s | 2 | by input hash (request, version id, prompt version, model) |
+| `change` | strong | the model's own | 6,000 | 60 s | 2 | by input hash (request and version as rendered, prompt version, model) |
 
 The author timeout is 180 s because the strong model of the current lineup takes 67 to 101 seconds to write a rule set for a one-page policy, measured over the ten live runs of day 7; a temperature is not sent at all, because that model accepts only its own. Its output cap is 24,000 tokens, not the 8,000 first written here, because on this lineup the completion-token cap counts the model's reasoning tokens as well as the document it returns: one twelve-paragraph policy needed 2,184 reasoning tokens and 6,379 tokens of document, while a run that reasoned harder spent all 8,000 on reasoning alone and returned nothing at all.
 
 The review runs on the same strong model and for the same reason gets 180 s and 16,000 tokens, not the 45 s and 4,000 first written here (decided 2026-09-22, day 10): its first live run timed out at 45 s three times on the lending draft, since the model reasons over the whole draft and the whole policy before it writes a finding. The cap is sized like the author's: a review answer is at most 50 findings of two sentences each, and the rest is room for the reasoning the cap also counts. The review is cached by input hash, so the demo waits for it once per draft.
 
 The explain prompt sends no temperature either: its first live run was refused with "temperature does not support 0.3 with this model; only the default (1) value is supported", so the fast model of this lineup, like the strong one, accepts only its own for a structured call (decided 2026-09-22, day 10). What keeps an explanation close to the trace is the contract filter, not the temperature. Its cap is 4,000 tokens, not 800: the same run spent 658 to 707 output tokens on the three explanations of cases 17 and 2, too close to 800 for a decision with more flags or rules not applied, and a cut-off answer is a failed call.
+
+The change prompt runs on the strong model and sends no temperature either (decided 2026-09-24, day 12). Its 6,000 tokens and 60 s stand until a live run shows them short: a proposal is a few rules and their reasons rather than a rule set, and the scripted one is served from the cache.
 
 **Role to model mapping** (as of September 2026; model names are properties `policypilot.ai.models.strong` and `policypilot.ai.models.fast`, confirmed against the provider's model list when the profile is set up, because the lists change every few months):
 
@@ -631,7 +634,7 @@ The guardrails assume the model is unreliable, the input may be hostile and the 
 | Cost | Daily token ledger with a hard stop that switches to cache-only mode and a UI banner; per-request output token caps; the OpenAI dashboard monthly limit as the outer bound | Token budget guard |
 | Latency on an unknown network | Cache for steps 1, 3 and 4 of the demo; streaming for chat; first-token timeout of 20 s with a visible spinner and a retry button | Answer pipeline, UI |
 | Hebrew pitfalls | Quotes normalized on both sides (punctuation, niqqud, whitespace); `simple` dictionary for lexical search; numbers kept as Western digits; labels and reasons checked by the evaluation set in Hebrew; RTL rendering tested with snapshot tests | Document 3, retrieval, UI |
-| Non-determinism between runs | Temperature 0 for authoring, review and change; cached outputs for the demo; the evaluation report shows variance across 3 runs per policy for the strong model | Model configuration, runner |
+| Non-determinism between runs | The strong model's own temperature for authoring, review and change; cached outputs for the demo; the evaluation report shows variance across 3 runs per policy for the strong model | Model configuration, runner |
 | Data privacy | All fixture data is synthetic; no real applicant data is ever sent to a provider; the README states this and the local profile exists for organizations that cannot use a cloud provider | Brief, deployment |
 
 **Logging for every call**: prompt name and version, model, provider, attempt number, input and output token counts, latency, validation result (or marker statistics for chat), cache hit, trace id; payloads are logged in full only in the local profile. This is the table the cost view and the evaluation runner read, and it is what makes a prompt regression diagnosable after the fact.

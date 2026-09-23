@@ -169,7 +169,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 12, Thu Sep 24: candidates and patches**
 
-- [ ] Candidate selection; `change/v1` with the patches object; patched rules validated by `$ref`; CHANGE\_PROPOSAL context; proposal validator (no unmentioned `remove`, no unrequested `set_defaults`); `POST .../changes` SSE (`analyzing`, `proposing`, `validating`); `change_request` table (restored: rung 10)
+- [ ] Candidate selection; `change/v1` with the patches object; patched rules validated by `$ref`; CHANGE\_PROPOSAL context; proposal validator (no `remove` of a rule the request does not name, no patch outside the candidates, no `set_defaults`); `POST .../changes` SSE (`analyzing`, `proposing`, `validating`); `change_request` table (restored: rung 10)
 - [x] Labeled policies 10 to 18 (committed before day 1)
 - [ ] Tests: the scripted request yields the expected five candidates; recorded change (valid, malformed, RT-04); CHANGE\_PROPOSAL cases; `$ref` validation; SSE sequence; contract test (restored: rung 10)
 - [ ] The scripted request proposes patches to R-170 and R-410 with `pending` provenance on the cloud site (restored: rung 10)
