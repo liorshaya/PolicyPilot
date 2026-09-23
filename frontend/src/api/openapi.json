@@ -1367,6 +1367,104 @@
           }
         }
       }
+    },
+    "/api/v1/audit" : {
+      "get" : {
+        "tags" : [ "audit-controller" ],
+        "summary" : "The audit entries of a rule set version, newest first",
+        "operationId" : "audit",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The entries this sandbox may read",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditEntriesResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "No versionId, or one that is not an id",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/export" : {
+      "get" : {
+        "tags" : [ "audit-controller" ],
+        "summary" : "Export the audit log as JSON or CSV (Accept header)",
+        "operationId" : "export_1",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "Accept",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The entries of the version, or of every version the sandbox can see, newest first",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditEntriesResponse"
+                }
+              },
+              "text/csv" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such rule set version in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components" : {
@@ -2228,6 +2326,50 @@
           }
         },
         "required" : [ "createdAt", "id", "language", "paragraphs", "protected", "title", "versionNo" ]
+      },
+      "AuditEntriesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Entry"
+            }
+          }
+        },
+        "required" : [ "entries" ]
+      },
+      "Entry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "actor" : {
+            "type" : "string"
+          },
+          "action" : {
+            "type" : "string",
+            "enum" : [ "PUBLISH", "CHANGE_PROPOSED", "CHANGE_APPROVED", "CHANGE_REJECTED", "GAP_ACKNOWLEDGED", "RESET" ]
+          },
+          "rulesetVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "changeRequestId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "details" : {
+            "description" : "The entry's details"
+          }
+        },
+        "required" : [ "action", "actor", "at", "changeRequestId", "details", "id", "rulesetVersionId" ]
       }
     }
   }

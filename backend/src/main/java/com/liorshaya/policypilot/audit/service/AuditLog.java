@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.audit.service;
 import com.liorshaya.policypilot.audit.entity.AuditEntryEntity;
 import com.liorshaya.policypilot.audit.repository.AuditEntryRepository;
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -50,8 +51,16 @@ public class AuditLog {
         return entries.findByRulesetVersionIdOrderByAtAscIdAsc(rulesetVersionId).stream().map(AuditLog::view).toList();
     }
 
+    /** The entries of these versions, newest first (Document 2, {@code GET /audit}). */
+    @Transactional(readOnly = true)
+    public List<AuditEntry> newestFirst(Collection<UUID> rulesetVersionIds) {
+        return entries.findByRulesetVersionIdInOrderByAtDescIdDesc(rulesetVersionIds).stream().map(AuditLog::view)
+                .toList();
+    }
+
     private static AuditEntry view(AuditEntryEntity entry) {
         return new AuditEntry(entry.getId(), entry.getAt(), entry.getActor(), AuditAction.valueOf(entry.getAction()),
-                entry.getRulesetVersionId(), (ObjectNode) JSON.readTree(entry.getDetails()));
+                entry.getRulesetVersionId(), entry.getChangeRequestId(),
+                (ObjectNode) JSON.readTree(entry.getDetails()));
     }
 }

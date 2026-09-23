@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
@@ -18,10 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -35,7 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
  * read the income, and R-200 and R-320 read the {@code debt_to_income} R-020 derives.
  */
 @Requirement("FR-17")
-@Import(ChangeStreamIT.ScriptedModel.class)
+@Import(RecordedModel.class)
 @Isolated
 class ChangeStreamIT extends ApiIntegrationTest {
 
@@ -293,15 +291,5 @@ class ChangeStreamIT extends ApiIntegrationTest {
 
     private static List<String> strings(JsonNode array) {
         return array.valueStream().map(JsonNode::asString).toList();
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class ScriptedModel {
-
-        @Bean
-        @Primary
-        RecordedGateway recordedGateway() {
-            return RecordedGateway.streaming();
-        }
     }
 }

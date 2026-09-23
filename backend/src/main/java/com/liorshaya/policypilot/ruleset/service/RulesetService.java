@@ -326,6 +326,21 @@ public class RulesetService {
         return view(ruleset);
     }
 
+    /** Whether the sandbox can see a version: its rule set is the sandbox's own or a protected one. */
+    @Transactional(readOnly = true)
+    public boolean canSee(UUID versionId, UUID sandboxId) {
+        return versions.findById(versionId)
+                .flatMap(version -> rulesets.findVisible(version.getRulesetId(), sandboxId)).isPresent();
+    }
+
+    /** The ids of every version of every rule set the sandbox can see: its own and the protected ones. */
+    @Transactional(readOnly = true)
+    public List<UUID> visibleVersionIds(UUID sandboxId) {
+        return rulesets.findAllVisible(sandboxId).stream()
+                .flatMap(ruleset -> versions.findByRulesetIdOrderByVersionNo(ruleset.getId()).stream())
+                .map(RulesetVersionEntity::getId).toList();
+    }
+
     /**
      * The rule ids every version of the rule set has retired, which an added rule may never take again (Document 3,
      * Change Patches: "retired ids are never reused"); empty when the sandbox cannot see the rule set.

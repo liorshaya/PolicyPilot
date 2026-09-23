@@ -3,7 +3,7 @@ package com.liorshaya.policypilot.decision;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import com.liorshaya.policypilot.decision.service.DecisionCsv;
+import com.liorshaya.policypilot.common.Csv;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.OpenApiContract;
@@ -45,7 +45,7 @@ class DecisionExportIT extends ApiIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         int steps = Fixtures.json("policies/consumer-lending/sample-decision.json").required("trace").size();
         assertThat(response.body().split("\r\n")).hasSize(steps + 1);
-        assertThat(response.body()).startsWith(DecisionCsv.BYTE_ORDER_MARK + "decision_id,");
+        assertThat(response.body()).startsWith(Csv.BYTE_ORDER_MARK + "decision_id,");
     }
 
     // Document 5, CSV row: text/csv, served as an attachment. Expected: the headers of Document 5

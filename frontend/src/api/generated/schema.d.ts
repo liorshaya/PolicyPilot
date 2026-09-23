@@ -396,6 +396,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The audit entries of a rule set version, newest first */
+        get: operations["audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the audit log as JSON or CSV (Accept header) */
+        get: operations["export_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -709,6 +743,24 @@ export interface components {
             paragraphs: number;
             /** Format: date-time */
             createdAt: string;
+        };
+        AuditEntriesResponse: {
+            entries: components["schemas"]["Entry"][];
+        };
+        Entry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            /** @enum {string} */
+            action: "PUBLISH" | "CHANGE_PROPOSED" | "CHANGE_APPROVED" | "CHANGE_REJECTED" | "GAP_ACKNOWLEDGED" | "RESET";
+            /** Format: uuid */
+            rulesetVersionId: string;
+            /** Format: uuid */
+            changeRequestId: string | null;
+            /** @description The entry's details */
+            details: unknown;
         };
     };
     responses: never;
@@ -1721,6 +1773,80 @@ export interface operations {
                 };
             };
             /** @description No such decision in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    audit: {
+        parameters: {
+            query: {
+                versionId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entries this sandbox may read */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntriesResponse"];
+                };
+            };
+            /** @description No versionId, or one that is not an id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No such rule set version in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    export_1: {
+        parameters: {
+            query?: {
+                versionId?: string;
+            };
+            header?: {
+                Accept?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entries of the version, or of every version the sandbox can see, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntriesResponse"];
+                    "text/csv": string;
+                };
+            };
+            /** @description No such rule set version in this sandbox */
             404: {
                 headers: {
                     [name: string]: unknown;
