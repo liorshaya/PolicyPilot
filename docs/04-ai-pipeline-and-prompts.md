@@ -435,7 +435,7 @@ The change prompt turns a request in natural language into rule-level patches ag
 
 **Role and task**: role `rule editor`; task `translate a change request into the smallest set of patches to a published rule set, keeping every rule the request does not touch exactly as it is`.
 
-**User prompt** (`change/v1.user.st`):
+**User prompt** (`change/v2.user.st`):
 
 ```
 <dsl_cheatsheet>
@@ -470,8 +470,9 @@ Produce a Patches object for this request:
 
 1. MINIMAL. Change only what the request requires. Prefer "replace" of an existing rule over "remove" plus
    "add", and replace or remove only rules listed in <candidate_rules>. Never change the defaults: only an
-   analyst can. Never change fields or priorities unless the request says so. Remove a rule only when the
-   request names it, by its id or by a value its condition tests.
+   analyst can. Never change fields or priorities unless the request says so, and never add an input field,
+   one whose value an application supplies, even then: only an analyst decides what an application collects.
+   Remove a rule only when the request names it, by its id or by a value its condition tests.
 2. CONSISTENCY. If a change makes another candidate rule inconsistent (an advisory band that no longer
    matches a new threshold, a derivation whose input changed), patch it too and say why in its rationale.
    List every candidate you looked at and left unchanged in "untouched".
@@ -483,12 +484,18 @@ Produce a Patches object for this request:
    provenance of kind "analyst".
 5. TEXT. Update labels and reasons in {language} to match the new values. Write one "rationale" per patch
    in {language} that an approver can read in ten seconds, and a one-line "summary" of the whole change.
-6. IMPOSSIBLE REQUESTS. If the request cannot be expressed in the DSL, contradicts the candidate rules in a
-   way you cannot resolve, or is not a rule change at all, return an empty "patches" list and put the
-   reason in "notes".
+6. REQUIREMENTS. When the request says an application must meet a condition ("require", "must", "only if",
+   "at least"), an application that fails it is rejected, like one that fails the rule set's other
+   requirements, unless the request asks for a referral or a review instead. The request is the analyst's
+   decision, not ambiguous text: follow it, and let "pending" provenance show where the policy text disagrees.
+7. IMPOSSIBLE REQUESTS. If the request needs an input that <fields> does not have, cannot otherwise be
+   expressed in the DSL, contradicts the candidate rules in a way you cannot resolve, or is not a rule change
+   at all, return an empty "patches" list and put the reason in "notes", naming any input it would need.
 
 Return only the JSON object.
 ```
+
+**`change/v2`** (decided by the owner 2026-09-24, day 13): the live change pass scored `change/v1` at 4 of 6. It referred CR-3's loans over 80,000 ILS without a guarantor where the label rejects them, because the request "does not support rejection", the conduct's reading of ambiguous text; and it answered CR-6 with a new `membership` input field and a rule approving gold members where the label proposes nothing. `change/v2` changes instruction 1, which now forbids an input field even when the request asks for one, since only an analyst decides what an application collects (Document 3 admits an optional field in a patch; the prompt does not use that). It adds instruction 6 on requirements and moves the impossible request to 7, which now begins with an input `<fields>` does not have. The rest is `change/v1`'s, which stays in the registry for comparison through `policypilot.ai.prompt-versions.change`.
 
 **After the prompt**: the answer is checked in the order of Document 3 (Change Patches, Patch validation): the Patches schema, then the proposal validator, then the patches are applied to a copy of the version and the copy is validated in the `CHANGE_PROPOSAL` context with the patched rule ids as the model's rules. Schema, application and validation errors are repaired at most twice, each error on a patched rule reported at its patch. A refusal of the proposal validator is not repaired, because a repair would quietly drop what the request smuggled in (Document 5, RT-04): the stream ends with the refusal and the model's answer, nothing is stored, and the answers are forgotten from the cache, as after a final failure. A valid proposal is stored, then every stored decision of the base version is re-evaluated against the copy and the regression report is built; the proposal, the diff and the report are shown together, and approval is what turns `pending` into `analyst` and publishes the new version. `{changeRequestId}` is `cr-` and the first eight hex digits of the SHA-256 of the request text, not the stored request's id, so the same request on the same version renders the same prompt in every sandbox and the response cache serves it; the system writes the stored request's id into every `pending` provenance, so the model never sets it.
 
@@ -616,7 +623,7 @@ The Ollama column is reported with the same metrics and no targets in the first 
 
 **Runner**: `EvalRunner` is a Spring Boot test profile (`./mvnw -Peval test -Dprovider=openai` or `-Dprovider=ollama`) that loads the fixtures, calls the real gateway, records every model call to `fixtures/eval/recordings/<provider>/<prompt>/<version>/` (so a report can be regenerated offline and the recordings double as stubs for the unit tests), computes the metrics and writes `docs/eval/<date>-<prompt-versions>.md` with the table above, per-policy rows, and the list of mismatches with diffs. The report is committed with the pull request that changes a prompt.
 
-**Change correctness** (decided 2026-09-24, day 13): a labeled request is correct when its proposal validates, its patches replace and remove exactly the rules the expected set replaces and removes and add as many rules as it adds, and the patched rule set decides every case of the request's regression case file with the outcome the expected patches give that case; the impossible request is correct when the answer has no patches. The live pass proposes each request on its policy's labeled rule set, with the candidates candidate selection gives it, and records `change/v1`; the runner scores those recordings offline like the other metrics.
+**Change correctness** (decided 2026-09-24, day 13): a labeled request is correct when its proposal validates, its patches replace and remove exactly the rules the expected set replaces and removes and add as many rules as it adds, and the patched rule set decides every case of the request's regression case file with the outcome the expected patches give that case; the impossible request is correct when the answer has no patches. The live pass proposes each request on its policy's labeled rule set, with the candidates candidate selection gives it, and records the active version of `change`; the runner scores one version's recordings offline like the other metrics, so two versions are compared on the same six requests.
 
 **Cases per policy** double as engine conformance material: the expected rule set is evaluated on them by the reference implementation and by the Java engine, and both must agree with the labeled outcomes before the policy is admitted to the set.
 

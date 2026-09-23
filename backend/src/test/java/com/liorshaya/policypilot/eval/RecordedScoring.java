@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -144,30 +145,22 @@ final class RecordedScoring {
     }
 
     /**
-     * Change correctness (Document 4) over the labeled requests of fixtures/eval/changes.json: each recorded request
-     * is proposed again through the change use case on its base, with the candidates its recorded prompt showed the
-     * model, so the recorded answers and repairs replay as the live pass received them; a request with no recording
-     * counts as not correct, so the score never claims more than was measured.
+     * Change correctness (Document 4) over the labeled requests of fixtures/eval/changes.json, for one version of the
+     * change prompt: each recorded request is replayed ({@link #replayChange}) and its final proposal scored; a
+     * request with no recording counts as not correct, so the score never claims more than was measured.
      */
-    Changing scoreChanges(EvalReport report) {
-        Recordings recorded = Recordings.of(provider, "change", "v1");
-        ChangeService replay = new ChangeService(RecordedGateway.replaying(Recordings.ROOT.resolve(provider)),
-                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+    Changing scoreChanges(EvalReport report, String version) {
         List<JsonNode> labeled = ChangeRequests.labeled();
         List<String> unrecorded = new ArrayList<>();
         int correct = 0;
         for (JsonNode request : labeled) {
             String id = request.required("id").asString();
-            String text = request.required("text").asString();
-            Recordings asked = recorded.about(List.of(text + "\n</change_request>"));
-            if (asked.isEmpty()) {
+            Optional<Proposal> proposal = replayChange(request, version);
+            if (proposal.isEmpty()) {
                 unrecorded.add(id);
                 continue;
             }
-            List<String> candidates = candidateIds(asked.prompts().getFirst());
-            Proposal proposal = replay.propose(ChangeRequests.base(request), text,
-                    new Candidates(candidates, candidates, List.of()), stage -> { });
-            ChangeScoring.Verdict verdict = ChangeScoring.score(request, proposal);
+            ChangeScoring.Verdict verdict = ChangeScoring.score(request, proposal.get());
             if (verdict.correct()) {
                 correct++;
             } else {
@@ -176,6 +169,24 @@ final class RecordedScoring {
         }
         report.score(provider, "Change correctness", Metric.Score.of(correct, labeled.size()));
         return new Changing(labeled.size(), unrecorded);
+    }
+
+    /**
+     * A labeled change request proposed again through the change use case on its base, rendered by one version of the
+     * change prompt, with the candidates its recorded prompt showed the model, so the recorded answer and its repairs
+     * replay as the live pass received them; empty when that version has no recording of the request.
+     */
+    Optional<Proposal> replayChange(JsonNode request, String version) {
+        String text = request.required("text").asString();
+        Recordings asked = Recordings.of(provider, "change", version).about(List.of(text + "\n</change_request>"));
+        if (asked.isEmpty()) {
+            return Optional.empty();
+        }
+        List<String> candidates = candidateIds(asked.prompts().getFirst());
+        ChangeService replay = new ChangeService(RecordedGateway.replaying(Recordings.ROOT.resolve(provider)),
+                new PromptRegistry(PromptRegistry.PROMPTS, Map.of("change", version)), new DslCheatSheet());
+        return Optional.of(replay.propose(ChangeRequests.base(request), text,
+                new Candidates(candidates, candidates, List.of()), stage -> { }));
     }
 
     /** The candidate rules a recorded change prompt showed the model: one rule's JSON per line of the section. */

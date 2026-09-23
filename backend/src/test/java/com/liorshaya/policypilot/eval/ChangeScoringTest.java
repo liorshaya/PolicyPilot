@@ -129,17 +129,17 @@ class ChangeScoringTest {
                 .isEqualTo(ChangeScoring.Verdict.wrong("not valid after 2 repairs"));
     }
 
-    // The runner over the committed recordings of all six requests, CR-1 recorded live on day 12 and the other five
-    // by LiveChangePassIT, each replayed through the change use case on the candidates its prompt showed, CR-6's
-    // repair included. Expected, from the labels, and the Python reference agrees case by case: CR-1, CR-2, CR-4 and
-    // CR-5 decide every case as their labels do; CR-3 adds its rule deciding refer where the label's rejects, which
-    // case 15 of its file shows; CR-6, which the rule set cannot express, gets a new field and a rule where the label
-    // has no patch. So 4 of 6, under Document 4's target of 5 of 6
+    // The runner over change/v1's committed recordings of all six requests, kept to compare change/v2 with: CR-1
+    // recorded live on day 12 and the other five by LiveChangePassIT, each replayed through the change use case on
+    // the candidates its prompt showed, CR-6's repair included. Expected, from the labels, and the Python reference
+    // agrees case by case: CR-1, CR-2, CR-4 and CR-5 decide every case as their labels do; CR-3 adds its rule deciding
+    // refer where the label's rejects, which case 15 of its file shows; CR-6, which the rule set cannot express, gets
+    // a new field and a rule where the label has no patch. So 4 of 6, under Document 4's target of 5 of 6
     @Test
-    void theRunnerScoresTheSixRecordedRequests() {
+    void theRunnerScoresChangeV1AtFourOfSix() {
         EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v1"));
 
-        RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report);
+        RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report, "v1");
 
         assertThat(changing.requests()).isEqualTo(6);
         assertThat(changing.unrecorded()).isEmpty();
@@ -147,6 +147,35 @@ class ChangeScoringTest {
         assertThat(report.markdown().lines().filter(line -> line.startsWith("- CR-"))).containsExactly(
                 "- CR-3: case 15 is refer where the expected patches make it reject",
                 "- CR-6: 2 patches for a request the rule set cannot express");
+    }
+
+    // The runner over change/v2's recordings of all six requests, made by LiveChangePassIT on 2026-09-23, CR-3's
+    // repair included. Expected, from the labels, and the Python reference agrees case by case: CR-3 now adds its
+    // guarantor rule rejecting what its label rejects, and CR-6, which needs an input the rule set does not have, gets
+    // no patch; the other four propose what their labels propose. So 6 of 6, over Document 4's target of 5 of 6
+    @Test
+    void theRunnerScoresChangeV2AtSixOfSix() {
+        EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v2"));
+
+        RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report, "v2");
+
+        assertThat(changing.requests()).isEqualTo(6);
+        assertThat(changing.unrecorded()).isEmpty();
+        assertThat(report.markdown()).contains("| Change correctness | 0.83 | 1.00 (6 of 6) | not run | PASS |");
+        assertThat(report.markdown().lines().filter(line -> line.startsWith("- CR-"))).isEmpty();
+    }
+
+    // change/v2, instruction 7: a request that needs an input the fields do not have is answered with no patch, and
+    // the notes name the input. Expected: CR-6's recorded answer, replayed, is valid, proposes nothing and names the
+    // membership its label says the policy has no field for
+    @Test
+    void changeV2AnswersTheImpossibleRequestWithTheInputItLacks() {
+        Proposal proposal = new RecordedScoring("openai").replayChange(ChangeRequests.labeled("CR-6"), "v2")
+                .orElseThrow();
+
+        assertThat(proposal.valid()).isTrue();
+        assertThat(proposal.answer().required("patches").isEmpty()).isTrue();
+        assertThat(proposal.answer().required("notes").asString()).contains("membership");
     }
 
     // The runner reads the candidates off the recorded prompt. Expected: the five the scripted request's prompt
