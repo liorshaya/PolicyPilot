@@ -14,6 +14,7 @@ import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorDetail;
 import com.liorshaya.policypilot.web.error.ErrorEnvelope;
 import com.liorshaya.policypilot.web.request.AcknowledgeFindingRequest;
+import com.liorshaya.policypilot.web.response.DiffResponse;
 import com.liorshaya.policypilot.web.response.RulesetsResponse;
 import com.liorshaya.policypilot.web.response.VersionResponse;
 import com.liorshaya.policypilot.web.security.SandboxSession;
@@ -64,6 +65,19 @@ public class RulesetController {
     @GetMapping(ApiPaths.RULESETS)
     public RulesetsResponse list(@AuthenticationPrincipal SandboxSession session) {
         return RulesetsResponse.of(rulesets.visible(session.sandboxId()));
+    }
+
+    @Operation(summary = "The structural diff between two versions of a rule set")
+    @ApiResponse(responseCode = "200",
+            description = "Fields by name, rules by id and the defaults, each added, removed or modified",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DiffResponse.class)))
+    @ApiResponse(responseCode = "404", description = "No such rule set or version in this sandbox",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @GetMapping(ApiPaths.RULESET_VERSION_DIFF)
+    public DiffResponse diff(@PathVariable UUID id, @PathVariable int a, @PathVariable int b,
+            @AuthenticationPrincipal SandboxSession session) {
+        return rulesets.diff(id, versionNo(a), versionNo(b), session.sandboxId()).map(DiffResponse::of)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 
     @Operation(summary = "A rule set version with its rules, findings and status")
@@ -209,7 +223,8 @@ public class RulesetController {
     /** Version numbers count from 1 (Document 5, Ids in paths: anything else is refused before any lookup). */
     private static int versionNo(int no) {
         if (no < 1) {
-            throw new ApiException(ErrorCode.REQUEST_INVALID, List.of(new ErrorDetail("/versions", "is not a version number")));
+            throw new ApiException(ErrorCode.REQUEST_INVALID,
+                    List.of(new ErrorDetail("/versions", "is not a version number")));
         }
         return no;
     }
