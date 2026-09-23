@@ -1,6 +1,11 @@
 package com.liorshaya.policypilot.eval;
 
 import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
+import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
+import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
+import com.liorshaya.policypilot.ai.service.Candidates;
+import com.liorshaya.policypilot.ai.service.ChangeService;
+import com.liorshaya.policypilot.ai.service.Proposal;
 import com.liorshaya.policypilot.engine.CompiledRuleSet;
 import com.liorshaya.policypilot.engine.Decision;
 import com.liorshaya.policypilot.engine.Evaluation;
@@ -9,7 +14,9 @@ import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.Provenance;
 import com.liorshaya.policypilot.rules.model.Rule;
 import com.liorshaya.policypilot.rules.model.RuleSet;
+import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.RecordedGateway;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
@@ -18,7 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -29,6 +38,7 @@ import tools.jackson.databind.node.ObjectNode;
  */
 final class RecordedScoring {
 
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final RuleSetMapper MAPPER = new RuleSetMapper();
     private static final RuleEngine ENGINE = new RuleEngine();
 
@@ -41,6 +51,9 @@ final class RecordedScoring {
     record Authoring(int policies) {}
 
     record Reviewing(int policies) {}
+
+    /** How many labeled change requests there are, and which of them have a recorded answer. */
+    record Changing(int requests, List<String> unrecorded) {}
 
     /** Rule precision, recall, provenance accuracy, case agreement and calibration, over the recorded runs. */
     Authoring scoreAuthoring(EvalReport report) {
@@ -128,6 +141,49 @@ final class RecordedScoring {
                 + "findings answering a seeded defect over all of them. The other half, \"confirmed real on "
                 + "inspection\", needs a person, so a floor under the target settles nothing.");
         return new Reviewing(policies);
+    }
+
+    /**
+     * Change correctness (Document 4) over the labeled requests of fixtures/eval/changes.json: each recorded request
+     * is proposed again through the change use case on its base, with the candidates its recorded prompt showed the
+     * model, so the recorded answers and repairs replay as the live pass received them; a request with no recording
+     * counts as not correct, so the score never claims more than was measured.
+     */
+    Changing scoreChanges(EvalReport report) {
+        Recordings recorded = Recordings.of(provider, "change", "v1");
+        ChangeService replay = new ChangeService(RecordedGateway.replaying(Recordings.ROOT.resolve(provider)),
+                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+        List<JsonNode> labeled = ChangeRequests.labeled();
+        List<String> unrecorded = new ArrayList<>();
+        int correct = 0;
+        for (JsonNode request : labeled) {
+            String id = request.required("id").asString();
+            String text = request.required("text").asString();
+            Recordings asked = recorded.about(List.of(text + "\n</change_request>"));
+            if (asked.isEmpty()) {
+                unrecorded.add(id);
+                continue;
+            }
+            List<String> candidates = candidateIds(asked.prompts().getFirst());
+            Proposal proposal = replay.propose(ChangeRequests.base(request), text,
+                    new Candidates(candidates, candidates, List.of()), stage -> { });
+            ChangeScoring.Verdict verdict = ChangeScoring.score(request, proposal);
+            if (verdict.correct()) {
+                correct++;
+            } else {
+                report.mismatch(id + ": " + verdict.reason());
+            }
+        }
+        report.score(provider, "Change correctness", Metric.Score.of(correct, labeled.size()));
+        return new Changing(labeled.size(), unrecorded);
+    }
+
+    /** The candidate rules a recorded change prompt showed the model: one rule's JSON per line of the section. */
+    static List<String> candidateIds(String prompt) {
+        int section = prompt.indexOf('\n', prompt.indexOf("<candidate_rules")) + 1;
+        return prompt.substring(section, prompt.indexOf("</candidate_rules>", section)).lines()
+                .filter(line -> !line.isBlank())
+                .map(line -> JSON.readTree(line.replace("&lt;", "<")).required("id").asString()).toList();
     }
 
     private record Agreement(int agreeing, int total) {
