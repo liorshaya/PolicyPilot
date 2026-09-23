@@ -44,6 +44,7 @@ const TEXT: [string, string, string][] = [
   ['secondary text on a selected row', 'color-text-muted', 'color-accent-wash'],
   ['a link or a primary action on a working surface', 'color-accent', 'color-surface'],
   ['a link on the wash it is selected in', 'color-accent', 'color-accent-wash'],
+  ['a value a diff inserts, on the accent wash', 'color-text', 'color-accent-wash'],
   ['approved, on its own wash', 'color-approved-text', 'color-approved-bg'],
   ['approved, in a table cell', 'color-approved-text', 'color-surface'],
   ['declined, on its own wash', 'color-declined-text', 'color-declined-bg'],

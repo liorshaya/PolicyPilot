@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { lendingRuleSet } from '../../test/fixtures/lending'
 import type { FieldSchema, Rule } from '../../api/types'
 import {
+  conditionText,
   expressionText,
   isEditable,
   literalText,
@@ -191,5 +192,58 @@ describe('literalText and expressionText', () => {
     expect(expressionText(null)).toBe('null')
     // a node that names a function but carries no arguments is not an expression the grammar can write
     expect(expressionText({ fn: 'add' })).toBe('[object Object]')
+  })
+})
+
+/**
+ * A whole condition on one line (Document 3, Decision Table Rendering, the Structure column: "a compact rendering of
+ * any and not ... for example NOT [amount ∈ [10,000 .. 150,000]]"), for the diff view, where a rule is read whole. The
+ * conditions are the lending rule set's own.
+ */
+describe('conditionText', () => {
+  const conditionOf = (id: string): unknown =>
+    lendingRuleSet.rules.find((candidate) => candidate.id === id)?.condition
+
+  it('writes a leaf as its field and its cell', () => {
+    expect(conditionText(conditionOf('R-170'), fields)).toBe('monthly_income < 8,000 ILS')
+    expect(conditionText(conditionOf('R-410'), fields)).toBe(
+      'monthly_income ∈ [8,000 ILS .. 9,000 ILS]',
+    )
+  })
+
+  it('writes not as NOT around its child, and all as the leaves joined by AND', () => {
+    expect(conditionText(conditionOf('R-120'), fields)).toBe(
+      'NOT [requested_amount ∈ [10,000 ILS .. 150,000 ILS]]',
+    )
+    expect(conditionText(conditionOf('R-310'), fields)).toBe(
+      'employment_type ∈ {salaried, self_employed} AND employment_months absent',
+    )
+  })
+
+  it('writes an expression operand in its infix form', () => {
+    expect(conditionText(conditionOf('R-116'), fields)).toBe(
+      'employment_type = retired AND age ≥ (78 − (term_months / 12))',
+    )
+  })
+
+  it('writes any as its children joined by OR, in brackets when it sits inside another', () => {
+    const either = {
+      any: [
+        { field: 'credit_events_24m', op: 'gte', value: 2 },
+        { field: 'has_guarantor', op: 'eq', value: false },
+      ],
+    }
+
+    expect(conditionText(either, fields)).toBe('credit_events_24m ≥ 2 OR has_guarantor = false')
+    expect(conditionText({ all: [{ field: 'age', op: 'gt', value: 70 }, either] }, fields)).toBe(
+      'age > 70 years AND (credit_events_24m ≥ 2 OR has_guarantor = false)',
+    )
+  })
+
+  it('writes the constant condition as always, and anything else as its JSON', () => {
+    expect(conditionText({ always: true }, fields)).toBe('always')
+    expect(conditionText({ unknown: 1 }, fields)).toBe('{"unknown":1}')
+    expect(conditionText(null, fields)).toBe('null')
+    expect(conditionText(undefined, fields)).toBe('undefined')
   })
 })

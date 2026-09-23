@@ -26,6 +26,13 @@ export type Audience = Explanation['audience']
 export type GapResolution = NonNullable<
   components['schemas']['AcknowledgementResponse']['resolution']
 >
+/** The structural diff of two versions (Document 3, Structural diff), and its parts. */
+export type Diff = components['schemas']['DiffResponse']
+export type ModifiedRule = components['schemas']['ModifiedRule']
+export type ModifiedField = components['schemas']['ModifiedField']
+export type DiffChange = components['schemas']['Change']
+/** A person's decision on a proposed change, with the version an approval published. */
+export type ChangeDecision = components['schemas']['ChangeDecisionResponse']
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'
