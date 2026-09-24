@@ -154,6 +154,58 @@ describe('PoliciesScreen', () => {
     expect(onOpenRules).toHaveBeenCalledWith(SECOND_RULESET_ID)
   })
 
+  // Document 4, Field hints: step 1 generates the pasted sample with the seeded rule set's inputs, the fields the 200
+  // cases supply. Expected: the header line, the lending fixture's first and last inputs, and its nine inputs only
+  it("step 1 generates the pasted sample with the seeded rule set's inputs as field hints", async () => {
+    let sent: Record<string, unknown> | null = null
+    server.use(
+      http.post('http://localhost:8080/api/v1/policies/:id/rulesets', async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>
+        return new HttpResponse('event:parsing\ndata:{}\n\n', {
+          headers: { 'Content-Type': 'text/event-stream' },
+        })
+      }),
+    )
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <PoliciesScreen onOpenRules={() => undefined} demoAsked onDemoHandled={() => undefined} />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByLabelText('Policy text')).not.toHaveValue(''))
+    await userEvent.click(screen.getByRole('button', { name: 'Add policy' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate rules' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    // TypeScript narrows `sent` to null here, not seeing the handler assign it
+    const body = sent as Record<string, unknown> | null
+    const hints = String(body?.hints).split('\n')
+    expect(hints[0]).toBe('The application supplies these inputs:')
+    expect(hints[1]).toBe('- age (integer, years)')
+    expect(hints[hints.length - 1]).toBe('- has_guarantor (boolean)')
+    expect(hints).toHaveLength(10)
+  })
+
+  // Document 4: hints are the analyst's, and a person pasting a policy gives none here. Expected: an empty body
+  it('generates a policy a person chose without hints', async () => {
+    let sent: Record<string, unknown> | null = null
+    server.use(
+      http.post('http://localhost:8080/api/v1/policies/:id/rulesets', async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>
+        return new HttpResponse('event:parsing\ndata:{}\n\n', {
+          headers: { 'Content-Type': 'text/event-stream' },
+        })
+      }),
+    )
+    renderScreen()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate rules' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    expect(sent).toEqual({})
+  })
+
   it('shows the error code when the list cannot be read', async () => {
     server.use(
       http.get('http://localhost:8080/api/v1/policies', () =>

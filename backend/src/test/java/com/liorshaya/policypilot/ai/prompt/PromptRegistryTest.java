@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.liorshaya.policypilot.ai.ModelRole;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +29,31 @@ class PromptRegistryTest {
         assertThat(registry().names()).containsExactly("author", "repair", "answer");
     }
 
+    // Document 4, author/v2: "Instruction 1 gains one sentence", and a new version never edits an old one (Version
+    // discipline). Expected: v2's template is v1's with that sentence, word for word, after instruction 1's last line
+    @Test
+    void authorV2IsV1WithTheFieldHintsSentence() throws IOException {
+        Path prompts = Path.of("src/main/resources/prompts/author");
+        String v1 = Files.readString(prompts.resolve("v1.user.st"));
+        String sentence = "When <hints> lists the inputs the application supplies, use exactly those names, types, "
+                + "units and enum values for them, and declare an input the list lacks only when the text cannot be "
+                + "decided without it.";
+
+        String v2 = Files.readString(prompts.resolve("v2.user.st"));
+
+        String instructionOneEnd = "Cite the paragraph that implies the field in \"source\".\n";
+        assertThat(v2.replaceAll("\\s+", " ")).isEqualTo(v1.replace(instructionOneEnd,
+                instructionOneEnd + sentence + "\n").replaceAll("\\s+", " "));
+        assertThat(Files.readString(prompts.resolve("v2.system.st")))
+                .isEqualTo(Files.readString(prompts.resolve("v1.system.st")));
+    }
+
     @Test
     void readsTheSettingsDocument4GivesTheAuthorPrompt() {
         PromptDefinition author = registry().get("author");
 
-        assertThat(author.version()).isEqualTo("v1");
+        // Document 2, policypilot.ai.prompt-versions: author=v2 since day 15 (Document 4, author/v2)
+        assertThat(author.version()).isEqualTo("v2");
         assertThat(author.role()).isEqualTo(ModelRole.STRONG);
         // the strong model of the current lineup accepts only its own temperature (Document 4)
         assertThat(author.temperature()).isNull();

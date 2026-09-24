@@ -348,7 +348,7 @@ class AuthorServiceTest {
 
         var spec = gateway.asked().getFirst();
         assertThat(spec.promptName()).isEqualTo("author");
-        assertThat(spec.promptVersion()).isEqualTo("v1");
+        assertThat(spec.promptVersion()).isEqualTo("v2");
         // no temperature is sent: the strong model of the current lineup accepts only its own (Document 4)
         assertThat(spec.temperature()).isNull();
         // the cap covers the model's reasoning as well as its text (Document 4, day 8)

@@ -43,7 +43,7 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
         assertThat(properties.ai().timeouts().chatFirstTokenSeconds()).isEqualTo(20);
         assertThat(properties.ai().maxRepairAttempts()).isEqualTo(2);
         assertThat(properties.ai().promptVersions())
-                .containsEntry("author", "v1")
+                .containsEntry("author", "v2")
                 .containsEntry("review", "v1")
                 .containsEntry("explain", "v1")
                 .containsEntry("answer", "v1")

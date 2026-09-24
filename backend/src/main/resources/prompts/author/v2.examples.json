@@ -1,0 +1,181 @@
+{
+  "policy": "[1] A card is issued to applicants aged 18 to 75.\n[2] The credit limit is 3 times the net monthly income, and never above 30,000. Applicants whose requested limit exceeds the computed limit are referred to an officer.\n[3] Applicants with any unpaid collection item are declined. Applicants who meet all conditions are approved.",
+  "ruleSet": {
+    "dslVersion": "1.0",
+    "id": "card-issuing",
+    "name": "Card issuing policy",
+    "language": "en",
+    "description": "Who is issued a card, what limit is computed for them, and when an officer decides instead.",
+    "fields": [
+      {
+        "name": "age",
+        "type": "integer",
+        "unit": "years",
+        "required": true,
+        "minimum": 0,
+        "maximum": 120,
+        "description": "The applicant's age when the application is made.",
+        "source": { "kind": "quoted", "paragraph": 1, "quote": "applicants aged 18 to 75", "confidence": 0.97 }
+      },
+      {
+        "name": "monthly_income",
+        "type": "number",
+        "unit": "ILS",
+        "required": true,
+        "minimum": 0,
+        "description": "The applicant's net monthly income.",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "3 times the net monthly income",
+          "confidence": 0.95
+        }
+      },
+      {
+        "name": "requested_limit",
+        "type": "number",
+        "unit": "ILS",
+        "required": true,
+        "minimum": 0,
+        "description": "The credit limit the applicant asked for.",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "Applicants whose requested limit exceeds the computed limit",
+          "confidence": 0.93
+        }
+      },
+      {
+        "name": "unpaid_collections",
+        "type": "integer",
+        "required": true,
+        "minimum": 0,
+        "description": "How many unpaid collection items the applicant has.",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "any unpaid collection item",
+          "confidence": 0.96
+        }
+      },
+      {
+        "name": "computed_limit",
+        "type": "number",
+        "unit": "ILS",
+        "derived": true,
+        "description": "The limit the policy computes from the income, capped at 30,000.",
+        "source": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "never above 30,000",
+          "confidence": 0.94
+        }
+      }
+    ],
+    "defaults": { "outcome": "refer", "reason": "The application needs a manual review." },
+    "rules": [
+      {
+        "id": "R-010",
+        "label": "Compute the credit limit: three times the income, capped at 30,000.",
+        "priority": 10,
+        "condition": { "always": true },
+        "actions": [
+          {
+            "type": "set",
+            "field": "computed_limit",
+            "value": {
+              "fn": "min",
+              "args": [{ "fn": "mul", "args": [{ "field": "monthly_income" }, 3] }, 30000]
+            }
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "The credit limit is 3 times the net monthly income, and never above 30,000.",
+          "confidence": 0.96
+        }
+      },
+      {
+        "id": "R-100",
+        "label": "Decline: the applicant's age is outside 18 to 75.",
+        "priority": 100,
+        "condition": { "not": { "field": "age", "op": "between", "value": [18, 75] } },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "A card is issued only to applicants aged 18 to 75."
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 1,
+          "quote": "A card is issued to applicants aged 18 to 75.",
+          "confidence": 0.97
+        }
+      },
+      {
+        "id": "R-110",
+        "label": "Decline: the applicant has an unpaid collection item.",
+        "priority": 110,
+        "condition": { "field": "unpaid_collections", "op": "gt", "value": 0 },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "reject",
+            "terminal": true,
+            "reason": "An applicant with an unpaid collection item is declined."
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "Applicants with any unpaid collection item are declined.",
+          "confidence": 0.96
+        }
+      },
+      {
+        "id": "R-310",
+        "label": "Manual review: the requested limit is above the computed one.",
+        "priority": 310,
+        "condition": { "field": "requested_limit", "op": "gt", "value": { "field": "computed_limit" } },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "refer",
+            "terminal": true,
+            "reason": "The limit you asked for is above the limit the policy computes, so an officer decides."
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 2,
+          "quote": "Applicants whose requested limit exceeds the computed limit are referred to an officer.",
+          "confidence": 0.95
+        }
+      },
+      {
+        "id": "R-900",
+        "label": "Approve: every condition of the policy is met.",
+        "priority": 900,
+        "condition": { "always": true },
+        "actions": [
+          {
+            "type": "decide",
+            "outcome": "approve",
+            "terminal": true,
+            "reason": "The application meets every condition of the policy."
+          }
+        ],
+        "provenance": {
+          "kind": "quoted",
+          "paragraph": 3,
+          "quote": "Applicants who meet all conditions are approved.",
+          "confidence": 0.95
+        }
+      }
+    ]
+  }
+}

@@ -56,9 +56,13 @@ final class RecordedScoring {
     /** How many labeled change requests there are, and which of them have a recorded answer. */
     record Changing(int requests, List<String> unrecorded) {}
 
-    /** Rule precision, recall, provenance accuracy, case agreement and calibration, over the recorded runs. */
-    Authoring scoreAuthoring(EvalReport report) {
-        Recordings recorded = Recordings.of(provider, "author", "v1");
+    /**
+     * Rule precision, recall, provenance accuracy, case agreement and calibration, over the recorded runs of one
+     * version. A policy whose runs include renders with its field hints (Document 4, Field hints) is scored on those
+     * alone: the same version also has renders without hints, which the tests replay and the evaluation does not ask.
+     */
+    Authoring scoreAuthoring(EvalReport report, String version) {
+        Recordings recorded = Recordings.of(provider, "author", version);
         if (recorded.isEmpty()) {
             return new Authoring(0);
         }
@@ -77,6 +81,10 @@ final class RecordedScoring {
             RuleSet expected = MAPPER.toRuleSet(label);
             List<ObjectNode> cases = casesOf(slug);
             Recordings forPolicy = recorded.about(paragraphsOf(slug));
+            Recordings hinted = forPolicy.about(List.of(FieldHints.of(label)));
+            if (!hinted.isEmpty()) {
+                forPolicy = hinted;
+            }
             if (forPolicy.isEmpty()) {
                 continue;
             }
@@ -110,8 +118,8 @@ final class RecordedScoring {
     }
 
     /** Reviewer recall and the lower bound of precision, over every policy whose review was recorded. */
-    Reviewing scoreReviewing(EvalReport report) {
-        Recordings recorded = Recordings.of(provider, "review", "v1");
+    Reviewing scoreReviewing(EvalReport report, String version) {
+        Recordings recorded = Recordings.of(provider, "review", version);
         if (recorded.isEmpty()) {
             return new Reviewing(0);
         }
