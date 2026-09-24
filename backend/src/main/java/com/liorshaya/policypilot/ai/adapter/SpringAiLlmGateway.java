@@ -17,7 +17,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -30,6 +36,8 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
+import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.tool.ToolCallback;
@@ -53,6 +61,8 @@ import tools.jackson.databind.node.ObjectNode;
 public class SpringAiLlmGateway implements LlmGateway {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    /** Where a call runs while the gateway holds its timeout (a provider whose client takes none per call). */
+    private static final ExecutorService CALLS = Executors.newVirtualThreadPerTaskExecutor();
     /** Document 4, Guardrails: 3 attempts with 1 s, 2 s and 4 s between them. */
     private static final int ATTEMPTS = 3;
     private static final Duration FIRST_BACKOFF = Duration.ofSeconds(1);
@@ -222,6 +232,9 @@ public class SpringAiLlmGateway implements LlmGateway {
         if (chat instanceof OpenAiChatModel) {
             return openAiStreamingOptions(spec, model, callbacks);
         }
+        if (chat instanceof OllamaChatModel) {
+            return ollamaOptions(spec, model).toolCallbacks(callbacks).build();
+        }
         ToolCallingChatOptions.Builder<?> options = ToolCallingChatOptions.builder()
                 .model(model)
                 .maxTokens(spec.maxOutputTokens())
@@ -332,9 +345,9 @@ public class SpringAiLlmGateway implements LlmGateway {
         RuntimeException last = null;
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             try {
-                return chat.call(new Prompt(
+                return callOnce(new Prompt(
                         List.of(new SystemMessage(spec.system()), new UserMessage(spec.user())),
-                        optionsFor(spec, model)));
+                        optionsFor(spec, model)), spec.timeout());
             } catch (RuntimeException e) {
                 last = e;
                 if (attempt == ATTEMPTS || !worthRetrying(e)) {
@@ -346,7 +359,53 @@ public class SpringAiLlmGateway implements LlmGateway {
         throw new LlmUnavailableException(reasonOf(last), "the provider did not answer", last);
     }
 
+    /**
+     * One call within the prompt's timeout. OpenAI's client takes the timeout in its options; Ollama's takes none
+     * per call, so the gateway holds it and gives up the call when it passes (Document 4, Model Configuration per
+     * Prompt).
+     */
+    private ChatResponse callOnce(Prompt prompt, Duration timeout) {
+        if (chat instanceof OpenAiChatModel) {
+            return chat.call(prompt);
+        }
+        CompletableFuture<ChatResponse> call = CompletableFuture.supplyAsync(() -> chat.call(prompt), CALLS);
+        try {
+            return call.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            call.cancel(true);
+            throw new IllegalStateException("the provider did not answer within the timeout of "
+                    + timeout.toSeconds() + " s", e);
+        } catch (ExecutionException e) {
+            throw e.getCause() instanceof RuntimeException cause ? cause : new IllegalStateException(e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while waiting for the provider", e);
+        }
+    }
+
+    /**
+     * Ollama's options: Spring AI's Ollama model reads only its own options type, and a generic one fails inside it
+     * (found on day 15, on the profile's first call). Thinking stays off for every prompt (Document 2); the cap is
+     * Ollama's num_predict, and a structured prompt sends its schema as the response format.
+     */
+    private static OllamaChatOptions.Builder ollamaOptions(PromptSpec spec, String model) {
+        OllamaChatOptions.Builder options = OllamaChatOptions.builder()
+                .model(model)
+                .numPredict(spec.maxOutputTokens())
+                .disableThinking();
+        if (spec.outputSchema() != null) {
+            options.format(JSON.readValue(variantOf(spec.outputSchema()), Map.class));
+        }
+        if (spec.temperature() != null) {
+            options.temperature(spec.temperature());
+        }
+        return options;
+    }
+
     private ChatOptions optionsFor(PromptSpec spec, String model) {
+        if (chat instanceof OllamaChatModel) {
+            return ollamaOptions(spec, model).build();
+        }
         if (chat instanceof OpenAiChatModel && spec.outputSchema() != null) {
             // the current lineup takes max_completion_tokens, not the older max_tokens, and a prompt that asks
             // for the model's own temperature sends none at all
