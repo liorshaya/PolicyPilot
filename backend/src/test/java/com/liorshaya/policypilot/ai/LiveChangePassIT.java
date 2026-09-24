@@ -19,6 +19,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.Reviews;
@@ -111,8 +112,9 @@ class LiveChangePassIT {
 
     @Test
     void everyLabeledRequestIsProposedLiveAndRecorded() {
-        LiveChangeRecordingIT.RecordingModel model = new LiveChangeRecordingIT.RecordingModel(gateway,
-                properties.ai().models().strong(), Long.getLong("live.budget", properties.ai().dailyTokenBudget()));
+        LiveRecordingGateway model = new LiveRecordingGateway("openai", gateway, properties.ai().models().strong(),
+                Long.getLong("live.budget", properties.ai().dailyTokenBudget()),
+                LiveChangeRecordingIT.CHARACTERS_PER_TOKEN, LiveChangeRecordingIT.OUTPUT_ALLOWANCE);
         ChangeService service = new ChangeService(model, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
                 new DslCheatSheet());
         // the seeded version is embedded at startup, on the recorded vectors, before any corpus is recorded
@@ -128,12 +130,12 @@ class LiveChangePassIT {
             assertThat(service.specFor(stored, text, candidates)).isEqualTo(first);
             System.out.printf("%s: seeds %s, candidates %s, the label's %s%n", id, candidates.seeds(),
                     candidates.ruleIds(), ChangeRequests.expectedCandidates(id));
-            if (Files.exists(LiveChangeRecordingIT.RecordingModel.fileOf(first))) {
+            if (Files.exists(LiveRecordingGateway.fileOf("openai", first))) {
                 System.out.println(id + ": recorded already, not asked again");
             } else {
                 propose(service, id, labeled, text, candidates);
             }
-            recorded.put(id, Files.exists(LiveChangeRecordingIT.RecordingModel.fileOf(first)));
+            recorded.put(id, Files.exists(LiveRecordingGateway.fileOf("openai", first)));
         }
 
         System.out.println("spent " + model.spent());

@@ -11,6 +11,7 @@ import com.liorshaya.policypilot.common.Hashes;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.ChangeRequests;
+import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -49,10 +50,14 @@ import tools.jackson.databind.node.ObjectNode;
 @Isolated
 class LiveChangeRecordingIT extends ApiIntegrationTest {
 
+    /** Fewer characters per input token than any change prompt measured (2.44), so the estimate is high. */
+    static final double CHARACTERS_PER_TOKEN = 2;
+    /** More output than any change call measured (1,245 tokens, reasoning included). */
+    static final int OUTPUT_ALLOWANCE = 1_500;
+
     private static final JsonMapper JSON = JsonMapper.builder().build();
     /** The corpus name of the change requests' vectors, beside the questions' and each policy's. */
     private static final String CORPUS = "changes";
-    private static final Path RECORDINGS = Path.of("..", "fixtures", "eval", "recordings", "openai", "change");
 
     @Autowired
     private SpringAiEmbeddingGateway provider;
@@ -98,8 +103,9 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
      */
     @Test
     void theScriptedRequestIsProposed() {
-        ChangeService service = new ChangeService(new RecordingModel(gateway, properties.ai().models().strong(),
-                properties.ai().dailyTokenBudget()), new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
+        ChangeService service = new ChangeService(new LiveRecordingGateway("openai", gateway,
+                properties.ai().models().strong(), properties.ai().dailyTokenBudget(), CHARACTERS_PER_TOKEN,
+                OUTPUT_ALLOWANCE), new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
                 new DslCheatSheet());
 
         Proposal proposal = service.propose(ChangeRequests.lendingBase(), ChangeRequests.scripted(),
@@ -112,90 +118,5 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
         assertThat(proposal.valid()).isTrue();
         assertThat(proposal.answer().required("patches").valueStream()
                 .map(patch -> patch.path("ruleId").asString(""))).contains("R-170", "R-410");
-    }
-
-    /**
-     * The live gateway, writing every answer it gives under the hash of the prompt it answered and printing what each
-     * call spent; {@code LiveChangePassIT} records the labeled requests through it. It asks nothing that could take
-     * the pass past its budget: before each call it adds a high estimate of the call to what is spent, since the
-     * application's own guard refuses only once the day's total has reached the budget, one call too late.
-     */
-    static final class RecordingModel implements LlmGateway {
-
-        /** Fewer characters per input token than any change prompt measured (2.44), so it estimates high. */
-        private static final int CHARACTERS_PER_TOKEN = 2;
-        /** More output than any change call measured (1,245 tokens, reasoning included). */
-        private static final int OUTPUT_ALLOWANCE = 1_500;
-
-        private final LlmGateway live;
-        private final String model;
-        private final long budget;
-        private long spentIn;
-        private long spentOut;
-
-        RecordingModel(LlmGateway live, String model, long budget) {
-            this.live = live;
-            this.model = model;
-            this.budget = budget;
-        }
-
-        @Override
-        public <T> Completion<T> complete(PromptSpec spec, Class<T> type) {
-            long estimate = (spec.system().length() + spec.user().length()) / CHARACTERS_PER_TOKEN + OUTPUT_ALLOWANCE;
-            if (spentIn + spentOut + estimate > budget) {
-                throw new IllegalStateException("not asking " + spec.promptName() + "/" + spec.promptVersion() + ": "
-                        + spent() + " spent, and the call could take " + estimate + " more of the " + budget);
-            }
-            Completion<T> answer = live.complete(spec, type);
-            write(spec, String.valueOf(answer.value()));
-            spentIn += answer.usage().inputTokens();
-            spentOut += answer.usage().outputTokens();
-            System.out.printf("%s/%s: %d input + %d output tokens%s%n", spec.promptName(), spec.promptVersion(),
-                    answer.usage().inputTokens(), answer.usage().outputTokens(), answer.cacheHit() ? ", cached" : "");
-            return answer;
-        }
-
-        @Override
-        public void forget(PromptSpec spec) {
-            live.forget(spec);
-        }
-
-        @Override
-        public TokenUsage stream(PromptSpec spec, List<ChatTool> tools, Consumer<String> tokens) {
-            throw new UnsupportedOperationException("the change prompt is not streamed");
-        }
-
-        /** What every call so far spent, as the provider reported it. */
-        String spent() {
-            return spentIn + " input + " + spentOut + " output = " + (spentIn + spentOut) + " tokens";
-        }
-
-        /** Where the answer to a prompt is written, and where the replaying gateway looks for it. */
-        static Path fileOf(PromptSpec spec) {
-            return RECORDINGS.resolve(spec.promptVersion()).resolve(hashOf(spec) + ".json");
-        }
-
-        private static String hashOf(PromptSpec spec) {
-            return Hashes.sha256Hex(spec.system() + "\u001f" + spec.user());
-        }
-
-        private void write(PromptSpec spec, String response) {
-            ObjectNode recording = JSON.createObjectNode();
-            ObjectNode request = recording.putObject("request");
-            request.put("prompt", spec.promptName());
-            request.put("version", spec.promptVersion());
-            request.put("model", model);
-            request.put("inputHash", hashOf(spec));
-            request.put("system", spec.system());
-            request.put("user", spec.user());
-            recording.put("response", response);
-            Path file = fileOf(spec);
-            try {
-                Files.createDirectories(file.getParent());
-                Files.writeString(file, recording.toPrettyString());
-            } catch (IOException e) {
-                throw new UncheckedIOException("could not write the recording", e);
-            }
-        }
     }
 }

@@ -112,7 +112,7 @@ policypilot:
       strong: gpt-5.6-terra
       fast: gpt-5.6-luna
     prompt-versions:
-      author: v1
+      author: v2
       review: v1
       explain: v1
       answer: v1

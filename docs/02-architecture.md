@@ -442,7 +442,7 @@ The stack is pinned to Spring AI 2.0.x on Spring Boot 4.0.x and Java 21, and the
 | Embedding model | `text-embedding-3-small`, 1536 dimensions | `bge-m3`, 1024 dimensions |
 | Structured output | Provider-native JSON schema, strict mode off (strict makes every declared property mandatory, which the DSL forbids in context; the answer is normalized and the canonical validator holds, Document 4) | `format` JSON schema; the validator does the rest |
 | `policypilot.embedding.dimension` | 1536 | 1024 |
-| `policypilot.ai.prompt-versions.*` | `author=v1, review=v1, explain=v1, answer=v1, change=v2` | same |
+| `policypilot.ai.prompt-versions.*` | `author=v2, review=v1, explain=v1, answer=v1, change=v2` | same |
 
 Notes that come from the Spring AI 2.0 upgrade guide ([upgrade notes](https://docs.spring.io/spring-ai/reference/upgrade-notes.html)) and that the adapter must respect: tool execution does not run inside the model, whose stream ends with the tool call; the adapter runs the calls through Spring AI's `ToolCallingManager` (what `ToolCallingAdvisor` on the `ChatClient` uses) and streams again with the results, at most five rounds, so the deadlines, the summed usage and the ledger cover every round; chat memory requires an explicit conversation id (the chat session id); model property paths are flat (`spring.ai.openai.embedding.model`, no `.options`); options objects are immutable and use `mutate()`.
 

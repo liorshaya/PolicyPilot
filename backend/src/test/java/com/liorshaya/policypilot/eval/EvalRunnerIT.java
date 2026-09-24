@@ -98,6 +98,9 @@ class EvalRunnerIT {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private PolicyPilotProperties properties;
+
     // Document 4: "Questions whose expected chunk is among the 8 retrieved", at least 0.90 on the strong model
     @Test
     void everyQuestionIsAskedOfItsPolicyAndRecallAtEightIsScored() {
@@ -186,7 +189,13 @@ class EvalRunnerIT {
         // What counts is the answer, not how it was reached: the Threshold stopping a question and the model
         // quoting the sentence are the same outcome to the person who asked, and a covered question that gets the
         // sentence anyway is a miss however it got there.
-        Recordings answers = Recordings.of(PROVIDER, "answer", "v1");
+        // the versions the configuration makes active (Document 4, Prompt Registry: policypilot.ai.prompt-versions),
+        // in the order the report's name gives them
+        Map<String, String> versions = new LinkedHashMap<>();
+        for (String prompt : List.of("author", "review", "answer", "change")) {
+            versions.put(prompt, properties.ai().promptVersions().get(prompt));
+        }
+        Recordings answers = Recordings.of(PROVIDER, "answer", versions.get("answer"));
         List<Asked> refusals = asked.stream().filter(Asked::refusal).toList();
         List<Asked> covered = asked.stream().filter(one -> !one.refusal()).toList();
         int refusedRight = (int) refusals.stream().filter(one -> refusedWithTheSentence(one, answers)).count();
@@ -194,17 +203,12 @@ class EvalRunnerIT {
         List<String> refusedCovered = covered.stream().filter(one -> refusedWithTheSentence(one, answers))
                 .map(one -> one.question().required("id").asString()).toList();
 
-        Map<String, String> versions = new LinkedHashMap<>();
-        versions.put("author", "v1");
-        versions.put("review", "v1");
-        versions.put("answer", "v1");
-        versions.put("change", "v2");
         // the report is dated, and a run that names its date is the one that writes it; no assertion depends on it
         String date = System.getProperty("eval.date", "");
         EvalReport report = new EvalReport(date.isEmpty() ? LocalDate.EPOCH : LocalDate.parse(date), versions);
         RecordedScoring recorded = new RecordedScoring(PROVIDER);
-        RecordedScoring.Authoring authoring = recorded.scoreAuthoring(report);
-        RecordedScoring.Reviewing reviewing = recorded.scoreReviewing(report);
+        RecordedScoring.Authoring authoring = recorded.scoreAuthoring(report, versions.get("author"));
+        RecordedScoring.Reviewing reviewing = recorded.scoreReviewing(report, versions.get("review"));
         RecordedScoring.Changing changing = recorded.scoreChanges(report, versions.get("change"));
         if (!changing.unrecorded().isEmpty()) {
             report.note("Change correctness counts every labeled request, and " + changing.unrecorded() + " have no "
@@ -230,7 +234,7 @@ class EvalRunnerIT {
             writeIfDated(report, date);
             return;
         }
-        scoreCitations(report, asked);
+        scoreCitations(report, asked, versions.get("answer"));
         report.score(PROVIDER, "Retrieval recall at 8", Metric.Score.of(answered, scored.size()))
                 .score(PROVIDER, "Refusal accuracy",
                         Metric.Score.of(refusedRight + coveredRight, refusals.size() + covered.size()))
@@ -270,8 +274,8 @@ class EvalRunnerIT {
      * over the answers a live pass recorded. A question with no recorded answer is not counted either way; the
      * report says how many were scored.
      */
-    private void scoreCitations(EvalReport report, List<Asked> asked) {
-        Recordings answers = Recordings.of(PROVIDER, "answer", "v1");
+    private void scoreCitations(EvalReport report, List<Asked> asked, String answerVersion) {
+        Recordings answers = Recordings.of(PROVIDER, "answer", answerVersion);
         if (answers.isEmpty()) {
             return;
         }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
-import { usePolicies, usePolicy, useCreatePolicy, useRulesets } from '../../api/queries'
-import type { PolicySummary } from '../../api/types'
+import { usePolicies, usePolicy, useCreatePolicy, useRulesets, useVersion } from '../../api/queries'
+import type { PolicySummary, RuleSetDocument } from '../../api/types'
+import { fieldHints } from '../demo/fieldHints'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
 import { Button } from '../../shared/ui/Button'
@@ -35,6 +36,8 @@ export function PoliciesScreen({
   const [adding, setAdding] = useState(false)
   // the form opens empty for a person, and holding the sample policy when the guided panel opened it
   const [fromDemo, setFromDemo] = useState(false)
+  // the policy step 1 pasted: generating it sends the seeded rule set's inputs as the author's field hints
+  const [demoPolicyId, setDemoPolicyId] = useState<string | null>(null)
   const create = useCreatePolicy()
 
   const generation = useGeneration()
@@ -49,6 +52,12 @@ export function PoliciesScreen({
   const sampleText = (sampleVersions[sampleVersions.length - 1]?.paragraphs ?? [])
     .map((paragraph) => paragraph.text)
     .join('\n\n')
+  // Document 4, Field hints: the inputs of the seeded rule set, which the 200 cases supply
+  const seededRuleset = (rulesets.data ?? []).find(
+    (one) => one.protected === true && one.policyId === sample?.id,
+  )
+  const seededVersion = useVersion(seededRuleset ? { id: seededRuleset.id, versionNo: 1 } : null)
+  const seededFields = (seededVersion.data?.ruleSet as RuleSetDocument | undefined)?.fields
   useDemoStep(
     demoAsked && sampleText !== '',
     () => {
@@ -103,6 +112,7 @@ export function PoliciesScreen({
                     onSuccess: (policy) => {
                       setAdding(false)
                       setChosenId(policy.id)
+                      setDemoPolicyId(fromDemo ? policy.id : null)
                     },
                   })
                 }
@@ -142,7 +152,11 @@ export function PoliciesScreen({
                       loading={generation.running}
                       disabled={generation.running}
                       onClick={() => {
-                        generation.start(selected.data.id)
+                        const hints =
+                          selected.data.id === demoPolicyId && seededFields !== undefined
+                            ? fieldHints(seededFields)
+                            : undefined
+                        generation.start(selected.data.id, hints)
                       }}
                     >
                       Generate rules

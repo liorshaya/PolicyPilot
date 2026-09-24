@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-24 · Lior Shaya
+2026-09-27 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 
@@ -202,6 +202,10 @@ R-310 refer when requested_limit gt computed_limit [2]; R-900 approve always [3]
 The rendered example carries the full JSON, not this abridgement, so the model sees exact shapes; the abridgement here is for the reader.
 
 **What the validator expects back**: a document that passes every check in Document 3 with no errors; warnings such as `PRIORITY_BAND_UNUSUAL` do not trigger a repair and are shown to the analyst with the reviewer's findings.
+
+**`author/v2`** (decided by the owner 2026-09-23, day 11; where the names come from decided 2026-09-27, day 15): evaluation run 1 scored `author/v1` at 0.12 rule recall and 0.00 case agreement on the lending policy, and the rules it missed read field names the model had invented, such as `loan_amount` and `employment_status`, which the labeled rule set and its cases do not have. The names reach the model through the input the prompt already has, the analyst's hints. Instruction 1 gains one sentence: "When `<hints>` lists the inputs the application supplies, use exactly those names, types, units and enum values for them, and declare an input the list lacks only when the text cannot be decided without it." Derived fields are still the model's to name.
+
+**Field hints**: the list is one line per input, `- <name> (<type>[, <unit>][: <value>, <value>])`, under the line `The application supplies these inputs:`, and it names inputs only, never a derived field, a threshold or a rule. The evaluation runner writes it from each labeled policy's expected rule set. Step 1 of the demo sends the seeded rule set's inputs the same way, because the 200 cases exist before the rules and a rule set that names other fields cannot decide them. The rest of `author/v2`, its example and its settings are `author/v1`'s.
 
 ## Repair Loop
 
