@@ -1,0 +1,386 @@
+{
+  "dslVersion": "1.0",
+  "id": "arnona-discount-seniors",
+  "name": "הנחה בארנונה לאזרחים ותיקים",
+  "language": "he",
+  "fields": [
+    {
+      "name": "age",
+      "type": "integer",
+      "unit": "years",
+      "required": true,
+      "minimum": 0,
+      "maximum": 120,
+      "description": "גיל התושב",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "תושב בן 67 ומעלה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "receives_old_age_pension",
+      "type": "boolean",
+      "required": true,
+      "description": "מקבל קצבת זקנה מהביטוח הלאומי",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "המקבל קצבת זקנה מהביטוח הלאומי",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "receives_income_supplement",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "מקבל השלמת הכנסה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "קצבת זקנה בתוספת השלמת הכנסה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "apartment_count",
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "description": "מספר הדירות שבהחזקת התושב",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "תושב המחזיק ביותר מדירה אחת אינו זכאי להנחה",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "area_sqm",
+      "type": "number",
+      "unit": "sqm",
+      "required": true,
+      "exclusiveMinimum": 0,
+      "description": "שטח דירת המגורים",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "עד 100 מ\"ר",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "municipal_debt",
+      "type": "number",
+      "unit": "ILS",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "description": "חוב לעירייה בגין שנים קודמות",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "תושב שחובו לעירייה בגין שנים קודמות עולה על 5,000 ש\"ח",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "submission_date",
+      "type": "date",
+      "required": true,
+      "description": "מועד הגשת הבקשה",
+      "source": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "בקשה שהוגשה לאחר 31 במרץ 2026",
+        "confidence": 0.95
+      }
+    },
+    {
+      "name": "discount_rate",
+      "type": "number",
+      "unit": "percent",
+      "derived": true,
+      "description": "שיעור ההנחה שנקבע"
+    }
+  ],
+  "defaults": {
+    "outcome": "refer",
+    "reason": "בקשה שלא הוכרעה תועבר לוועדת ההנחות"
+  },
+  "rules": [
+    {
+      "id": "R-010",
+      "label": "הנחה של 100%: קצבת זקנה עם השלמת הכנסה",
+      "priority": 10,
+      "condition": {
+        "all": [
+          {
+            "field": "receives_old_age_pension",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "receives_income_supplement",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 100
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 2,
+        "quote": "תושב המקבל קצבת זקנה בתוספת השלמת הכנסה או קצבה דומה זכאי להנחה של 100%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-020",
+      "label": "הנחה של 25%: בן 67 ומעלה עם קצבת זקנה",
+      "priority": 20,
+      "condition": {
+        "all": [
+          {
+            "field": "receives_old_age_pension",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "receives_income_supplement",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "field": "age",
+            "op": "gte",
+            "value": 67
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "field": "discount_rate",
+          "value": 25
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "תושב בן 67 ומעלה המקבל קצבת זקנה מהביטוח הלאומי זכאי להנחה של 25%",
+        "confidence": 0.95
+      },
+      "tags": [
+        "derivation"
+      ]
+    },
+    {
+      "id": "R-100",
+      "label": "דחייה: יותר מדירה אחת",
+      "priority": 100,
+      "condition": {
+        "field": "apartment_count",
+        "op": "gt",
+        "value": 1
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "תושב המחזיק ביותר מדירה אחת אינו זכאי להנחה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 3,
+        "quote": "תושב המחזיק ביותר מדירה אחת אינו זכאי להנחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-110",
+      "label": "דחייה: אינו מקבל קצבת זקנה",
+      "priority": 110,
+      "condition": {
+        "field": "receives_old_age_pension",
+        "op": "eq",
+        "value": false
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ההנחה ניתנת למקבלי קצבת זקנה בלבד"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "בקשה שאינה עומדת באף תנאי תידחה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-120",
+      "label": "דחייה: מתחת לגיל 67 ללא השלמת הכנסה",
+      "priority": 120,
+      "condition": {
+        "all": [
+          {
+            "field": "receives_income_supplement",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "field": "age",
+            "op": "lt",
+            "value": 67
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "reject",
+          "terminal": true,
+          "reason": "ללא השלמת הכנסה ההנחה ניתנת מגיל 67"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "תושב בן 67 ומעלה המקבל קצבת זקנה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "eligibility"
+      ]
+    },
+    {
+      "id": "R-300",
+      "label": "בדיקת גבייה: חוב מעל 5,000",
+      "priority": 300,
+      "condition": {
+        "field": "municipal_debt",
+        "op": "gt",
+        "value": 5000
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "חוב לעירייה מעל 5,000 ש\"ח מועבר לבדיקת מחלקת הגבייה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 4,
+        "quote": "תושב שחובו לעירייה בגין שנים קודמות עולה על 5,000 ש\"ח, בקשתו תועבר לבדיקת מחלקת הגבייה",
+        "confidence": 0.95
+      },
+      "tags": [
+        "debt"
+      ]
+    },
+    {
+      "id": "R-310",
+      "label": "ועדת הנחות: בקשה שהוגשה לאחר 31 במרץ",
+      "priority": 310,
+      "condition": {
+        "field": "submission_date",
+        "op": "gt",
+        "value": "2026-03-31"
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "refer",
+          "terminal": true,
+          "reason": "בקשה שהוגשה לאחר 31 במרץ 2026 מועברת לוועדת ההנחות"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 5,
+        "quote": "בקשה שהוגשה לאחר 31 במרץ 2026 תועבר לוועדת ההנחות",
+        "confidence": 0.95
+      },
+      "tags": [
+        "deadline"
+      ]
+    },
+    {
+      "id": "R-410",
+      "label": "סימון: ההנחה מוגבלת ל-100 מ\"ר",
+      "priority": 410,
+      "condition": {
+        "field": "area_sqm",
+        "op": "gt",
+        "value": 100
+      },
+      "actions": [
+        {
+          "type": "flag",
+          "code": "AREA_CAP_100",
+          "message": "ההנחה חלה על 100 מ\"ר הראשונים בלבד"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 1,
+        "quote": "עד 100 מ\"ר",
+        "confidence": 0.95
+      },
+      "tags": [
+        "advisory"
+      ]
+    },
+    {
+      "id": "R-900",
+      "label": "אישור בשיעור ההנחה הגבוה ביותר",
+      "priority": 900,
+      "condition": {
+        "always": true
+      },
+      "actions": [
+        {
+          "type": "decide",
+          "outcome": "approve",
+          "terminal": true,
+          "reason": "הבקשה עומדת בתנאי ההנחה"
+        }
+      ],
+      "provenance": {
+        "kind": "quoted",
+        "paragraph": 7,
+        "quote": "בקשה העומדת בתנאים תאושר בשיעור ההנחה הגבוה ביותר שהמבקש זכאי לו",
+        "confidence": 0.95
+      },
+      "tags": [
+        "outcome"
+      ]
+    }
+  ],
+  "description": "הנחות בארנונה לאזרחים ותיקים מקבלי קצבת זקנה"
+}

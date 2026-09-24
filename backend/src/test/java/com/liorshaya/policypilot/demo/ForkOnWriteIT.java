@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.policy.service.PolicyView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Seeded;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,7 +58,7 @@ class ForkOnWriteIT extends ApiIntegrationTest {
         String raw = jdbc.sql("select raw_text from policy_version where document_id = :id")
                 .param("id", seeded.id()).query(String.class).single();
         assertThat(raw).isEqualTo(Files.readString(Fixtures.path("policies/consumer-lending/policy.he.md")));
-        assertThat(policies.protectedPolicies()).containsExactly(seeded);
+        assertThat(policies.protectedPolicies()).contains(seeded).hasSize(2);
     }
 
     @Test
@@ -118,6 +119,6 @@ class ForkOnWriteIT extends ApiIntegrationTest {
     }
 
     private PolicyView seeded() {
-        return policies.protectedPolicies().getFirst();
+        return Seeded.lendingPolicy(policies);
     }
 }

@@ -7,6 +7,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
@@ -127,7 +128,7 @@ class DecisionControllerContractIT extends ApiIntegrationTest {
 
     private String seededVersion() {
         List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         return "/api/v1/rulesets/" + UUID.fromString(ids.getFirst()) + "/versions/1";
     }
 

@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,6 @@ class DecisionOfApplicationIT extends ApiIntegrationTest {
     }
 
     private PublishedVersion seeded(UUID sandbox) {
-        return rulesets.published(rulesets.protectedRulesets().getFirst().id(), 1, sandbox).orElseThrow();
+        return rulesets.published(Seeded.lendingRuleset(rulesets).id(), 1, sandbox).orElseThrow();
     }
 }

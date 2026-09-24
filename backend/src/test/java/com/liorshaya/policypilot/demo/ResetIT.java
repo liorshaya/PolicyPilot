@@ -13,6 +13,7 @@ import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
@@ -76,7 +77,7 @@ class ResetIT extends ApiIntegrationTest {
     @BeforeEach
     void findTheSeededVersion() {
         model.reset();
-        seeded = jdbc.sql("select id from ruleset where protected").query(UUID.class).single();
+        seeded = Seeded.lendingRuleset(rulesets).id();
         seededVersion = jdbc.sql("select id from ruleset_version where ruleset_id = :id and version_no = 1")
                 .param("id", seeded).query(UUID.class).single();
         awaitReady(List.of(seededVersion));

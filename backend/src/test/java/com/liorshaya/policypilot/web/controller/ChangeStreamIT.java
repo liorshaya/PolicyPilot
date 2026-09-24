@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -54,7 +55,7 @@ class ChangeStreamIT extends ApiIntegrationTest {
         model.reset();
         session = api().login();
         List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         seeded = ids.getFirst();
         awaitSeededVersionReady();
     }
@@ -281,7 +282,8 @@ class ChangeStreamIT extends ApiIntegrationTest {
         long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
         while (!"READY".equals(jdbc.sql("""
                 select v.embedding_status from ruleset_version v join ruleset r on r.id = v.ruleset_id
-                where r.protected and v.version_no = 1""").query(String.class).single())) {
+                where r.protected and r.domain = :domain and v.version_no = 1""").param("domain", Seeded.LENDING)
+                .query(String.class).single())) {
             if (System.nanoTime() > deadline) {
                 throw new AssertionError("the seeded version never became READY");
             }

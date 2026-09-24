@@ -37,7 +37,8 @@ class PolicyControllerContractIT extends ApiIntegrationTest {
         contract = new OpenApiContract(api().get("/api/docs").cookie(session).send().body());
     }
 
-    // Document 2, GET /policies. Expected: the served OpenAPI document, and the seeded policy in the list
+    // Document 2, GET /policies. Expected: the served OpenAPI document, and the two seeded policies in the list (the
+    // lending policy and the second domain, Document 2, Second domain), the lending one with its nine Hebrew paragraphs
     @Test
     void listPoliciesMatchesTheDocumented200() throws IOException {
         createFromText(lendingText());
@@ -46,9 +47,11 @@ class PolicyControllerContractIT extends ApiIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(contract.violations("get", POLICIES, 200, response.body())).isEmpty();
-        assertThat((List<?>) JsonPath.read(response.body(), "$.policies[?(@.protected == true)]")).hasSize(1);
-        assertThat((Integer) JsonPath.read(response.body(), "$.policies[0].paragraphs")).isEqualTo(9);
-        assertThat((String) JsonPath.read(response.body(), "$.policies[0].language")).isEqualTo("he");
+        assertThat((List<?>) JsonPath.read(response.body(), "$.policies[?(@.protected == true)]")).hasSize(2);
+        String lending = "$.policies[?(@.protected == true && @.title == '"
+                + Fixtures.lendingV1().required("name").stringValue() + "')]";
+        assertThat((List<Integer>) JsonPath.read(response.body(), lending + ".paragraphs")).containsExactly(9);
+        assertThat((List<String>) JsonPath.read(response.body(), lending + ".language")).containsExactly("he");
     }
 
     // Document 5, Authorization (sandbox): a policy of another sandbox is not in this list

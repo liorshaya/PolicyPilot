@@ -15,9 +15,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Loads the demo policy, its rule set and its 200 cases on an empty database (Document 2, Local: a seed job loads the
- * fixtures; Work Plan days 4 and 5) as the protected rows every sandbox reads and none may modify. It runs at startup
- * and on every reset, and does nothing when the protected rows are already there. The fixture text is clean as
- * committed (NFC, no format or control characters, checked by FixtureSeedIT), so it is stored as it is.
+ * fixtures; Work Plan days 4 and 5), and the second domain's policy and rule set (Document 2, Second domain), as the
+ * protected rows every sandbox reads and none may modify. It runs at startup and on every reset, and does nothing when
+ * the protected rows are already there. The fixture text is clean as committed (NFC, no format or control characters,
+ * checked by FixtureSeedIT), so it is stored as it is.
  */
 @Component
 public class FixtureLoader implements ApplicationRunner {
@@ -46,28 +47,41 @@ public class FixtureLoader implements ApplicationRunner {
      * @return whether anything was missing and so seeded
      */
     public boolean seed() {
-        LendingFixture fixture = LendingFixture.load();
-        boolean seeded = policies.protectedPolicies().isEmpty();
-        PolicyView policy = policies.protectedPolicies().stream().findFirst().orElseGet(() -> seedPolicy(fixture));
-        if (rulesets.protectedRulesets().isEmpty()) {
+        boolean seeded = false;
+        for (DemoFixture fixture : DemoFixture.seeded()) {
+            seeded |= seed(fixture);
+        }
+        return seeded;
+    }
+
+    /** One policy: its rule set, found by its domain, and the policy before it, found by its title; then its cases. */
+    private boolean seed(DemoFixture fixture) {
+        boolean seeded = false;
+        if (rulesets.protectedRulesets().stream().noneMatch(ruleset -> ruleset.domain().equals(fixture.domain()))) {
+            PolicyView policy = policies.protectedPolicies().stream()
+                    .filter(candidate -> candidate.title().equals(fixture.title())).findFirst()
+                    .orElseGet(() -> seedPolicy(fixture));
             seedRuleSet(fixture, policy);
             seeded = true;
         }
-        int seededCases = decisions.seedProtectedCases(fixture.casesJson());
-        if (seededCases > 0) {
-            LOG.atInfo().setMessage("demo.seed.cases").addKeyValue("cases", seededCases).log();
+        if (fixture.casesJson() != null) {
+            int seededCases = decisions.seedProtectedCases(fixture.casesJson());
+            if (seededCases > 0) {
+                LOG.atInfo().setMessage("demo.seed.cases").addKeyValue("cases", seededCases).log();
+                seeded = true;
+            }
         }
-        return seeded || seededCases > 0;
+        return seeded;
     }
 
-    private void seedRuleSet(LendingFixture fixture, PolicyView policy) {
+    private void seedRuleSet(DemoFixture fixture, PolicyView policy) {
         PolicyVersionRef version = policies.version(policy.id(), 1, null).orElseThrow();
         RulesetView seeded = rulesets.seedProtected(version.id(), fixture.ruleSetJson());
         LOG.atInfo().setMessage("demo.seed.ruleset").addKeyValue("ruleset", seeded.id())
                 .addKeyValue("domain", seeded.domain()).log();
     }
 
-    private PolicyView seedPolicy(LendingFixture fixture) {
+    private PolicyView seedPolicy(DemoFixture fixture) {
         PolicyView seeded = policies.createProtected(fixture.title(),
                 PolicyLanguage.fromCode(fixture.language()).orElseThrow(), fixture.text());
         LOG.atInfo().setMessage("demo.seed").addKeyValue("policy", seeded.id())

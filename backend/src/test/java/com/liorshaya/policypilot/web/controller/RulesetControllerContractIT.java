@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
@@ -58,17 +59,18 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
         contract = new OpenApiContract(api().get("/api/docs").cookie(session).send().body());
     }
 
-    // Document 2, GET /rulesets. Expected: the served OpenAPI document, and the seeded rule set in the list
+    // Document 2, GET /rulesets. Expected: the served OpenAPI document, and the two seeded rule sets in the list (the
+    // lending rule set and the second domain's, Document 2, Second domain), the lending one published
     @Test
     void listRuleSetsMatchesTheDocumented200() {
         HttpResponse<String> response = api().get(RULESETS).cookie(session).send();
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(contract.violations("get", RULESETS, 200, response.body())).isEmpty();
-        assertThat((List<?>) JsonPath.read(response.body(), "$.rulesets[?(@.protected == true)]")).hasSize(1);
-        assertThat((String) JsonPath.read(response.body(), "$.rulesets[0].domain"))
-                .isEqualTo(Fixtures.lendingV1().get("id").stringValue());
-        assertThat((String) JsonPath.read(response.body(), "$.rulesets[0].versions[0].status")).isEqualTo("PUBLISHED");
+        assertThat((List<String>) JsonPath.read(response.body(), "$.rulesets[?(@.protected == true)].domain"))
+                .containsExactlyInAnyOrder(Seeded.LENDING, Seeded.SECOND_DOMAIN);
+        assertThat((List<String>) JsonPath.read(response.body(),
+                "$.rulesets[?(@.domain == '" + Seeded.LENDING + "')].versions[0].status")).containsExactly("PUBLISHED");
     }
 
     // Document 2, GET a version. Expected: the served OpenAPI document and ruleset.v1.json
@@ -302,7 +304,7 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
     /** The seeded rule set, as the list route shows it to any session. */
     private UUID seeded() {
         String body = api().get(RULESETS).cookie(session).send().body();
-        List<String> ids = JsonPath.read(body, "$.rulesets[?(@.protected == true)].id");
+        List<String> ids = JsonPath.read(body, Seeded.LENDING_RULESET_ID);
         return UUID.fromString(ids.getFirst());
     }
 

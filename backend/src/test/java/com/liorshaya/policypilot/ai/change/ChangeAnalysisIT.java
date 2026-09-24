@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionStatusException;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,6 @@ class ChangeAnalysisIT extends ApiIntegrationTest {
     }
 
     private UUID seeded() {
-        return rulesets.protectedRulesets().getFirst().id();
+        return Seeded.lendingRuleset(rulesets).id();
     }
 }

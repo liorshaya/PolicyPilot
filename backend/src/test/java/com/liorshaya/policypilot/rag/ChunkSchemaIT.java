@@ -7,6 +7,7 @@ import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -107,7 +108,7 @@ class ChunkSchemaIT extends ApiIntegrationTest {
     }
 
     private UUID seededVersionId() {
-        return rulesets.version(rulesets.protectedRulesets().getFirst().id(), 1, UUID.randomUUID())
+        return rulesets.version(Seeded.lendingRuleset(rulesets).id(), 1, UUID.randomUUID())
                 .orElseThrow().versionId();
     }
 }

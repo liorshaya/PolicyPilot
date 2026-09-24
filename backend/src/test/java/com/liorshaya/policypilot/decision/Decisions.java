@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.decision;
 import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.support.Api;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +33,7 @@ final class Decisions {
     /** The version of the seeded rule set, which every sandbox may decide against. */
     String versionPath() {
         List<String> ids = JsonPath.read(api.get(RULESETS).cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         return RULESETS + "/" + UUID.fromString(ids.getFirst()) + "/versions/1";
     }
 

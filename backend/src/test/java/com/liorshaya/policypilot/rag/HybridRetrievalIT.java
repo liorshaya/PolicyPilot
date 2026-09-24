@@ -14,6 +14,7 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.FakeEmbeddingGateway;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,7 +166,7 @@ class HybridRetrievalIT extends ApiIntegrationTest {
     @Test
     void aVersionIsRetrievableOnlyWhereItIsVisible() {
         RagFixtures.Published version = fixtures.ready("פסקה " + UUID.randomUUID());
-        UUID seeded = rulesets.protectedRulesets().getFirst().id();
+        UUID seeded = Seeded.lendingRuleset(rulesets).id();
         fixtures.awaitStatus(rulesets.version(seeded, 1, UUID.randomUUID()).orElseThrow().versionId(), "READY");
 
         assertThat(retrieval.retrieve(version.rulesetId(), 1, UUID.randomUUID(), "שאלה")).isEmpty();

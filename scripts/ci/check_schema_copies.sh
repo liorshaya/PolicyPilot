@@ -14,6 +14,10 @@ done
 for name in policy.he.md ruleset.v1.json cases-200.json; do
   pairs+=("fixtures/policies/consumer-lending/$name:$resources/fixtures/consumer-lending/$name")
 done
+# the second domain the seed loads (Document 2, Second domain): a labeled policy of the evaluation set
+for name in policy.he.md expected.ruleset.json; do
+  pairs+=("fixtures/eval/policies/arnona-discount-seniors/$name:$resources/fixtures/arnona-discount-seniors/$name")
+done
 
 status=0
 for pair in "${pairs[@]}"; do

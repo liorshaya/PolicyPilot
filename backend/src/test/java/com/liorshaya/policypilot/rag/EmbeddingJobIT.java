@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.FakeEmbeddingGateway;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -167,7 +168,7 @@ class EmbeddingJobIT extends ApiIntegrationTest {
     // protected version 1 READY with its 29 chunks, 9 paragraphs and 20 rules
     @Test
     void theSeededVersionOneIsEmbedded() {
-        UUID version = rulesets.version(rulesets.protectedRulesets().getFirst().id(), 1, UUID.randomUUID())
+        UUID version = rulesets.version(Seeded.lendingRuleset(rulesets).id(), 1, UUID.randomUUID())
                 .orElseThrow().versionId();
 
         awaitStatus(version, "READY");
