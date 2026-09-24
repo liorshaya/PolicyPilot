@@ -50,7 +50,7 @@ Reading the diagram: four attacker classes, three trust boundaries. Everything f
 
 Eight principles, each enforced by something a test can check rather than by a convention someone remembers.
 
-1. **Deny by default.** Every API route requires the access code cookie except the code exchange and the health check; every write is authorized against the caller's sandbox; every tool the model can call is read-only; every database role has the minimum grants (the API role cannot update or delete audit entries or published versions: migrations run as the database owner, and every API connection switches to the role `policypilot_app`, which holds only the grants the API needs).
+1. **Deny by default.** Every API route requires the access code cookie except the code exchange and the health check; every write is authorized against the caller's sandbox; every tool the model can call is read-only; every database role has the minimum grants (the API role cannot update or delete audit entries or published versions: migrations run as the database owner, and every API connection switches to the role `policypilot_app`, which holds only the grants the API needs; the one path that deletes an audit entry or a published version is `purge_stale_sandboxes`, a database procedure that removes only whole sandboxes idle for 24 hours and never a protected row, decided 2026-09-27, day 15).
 2. **Validate at the boundary, then trust the type.** Requests are parsed into typed DTOs with declared limits; rule sets go through the Document 3 validator; model output goes through a schema and semantic checks; after that, code works on typed objects and never re-parses strings.
 3. **Model output is untrusted input.** The same rule as for the browser: parsed, validated, size-limited, never executed, never rendered as HTML, never used to address another user's data.
 4. **Model input is data, not instructions.** Every document, chunk, question and tool result is delimited and escaped, the system prompt says so, and the model's capabilities are narrow enough that a successful injection cannot do anything a validator would not catch.
@@ -148,7 +148,7 @@ sequenceDiagram
 | CSRF | Three independent defenses, any one sufficient: CORS allows only the Vercel origin and localhost with credentials; every state-changing request must carry `X-PolicyPilot-Client: web`, which a cross-site form cannot add; the `Origin` header is checked on every non-GET request and must be present and match the allowlist; the code exchange itself carries both, so a login cannot be forged either |
 | Authorization (sandbox) | Every mutable entity (rule set, version, case, decision, change request, chat session) carries a `sandbox_id`; every repository method that loads by id takes the sandbox id from the session, never from the request, so an id guessed from another sandbox returns 404 (no existence oracle); the seeded rows carry the `protected` flag and a null sandbox id, and any write against them is refused and forks a sandbox copy instead; the audit entries of a version every sandbox reads never show another sandbox's change request |
 | Authorization (protected demo) | Publishing and resetting a protected version are impossible through the API for any session, and approving a change proposed on one publishes into the sandbox's own copy of its rule set, so a protected version never changes; the nightly reset job runs inside the API on a schedule, not through an endpoint |
-| Session revocation | Rotating `POLICYPILOT_COOKIE_SECRET` invalidates every session at once; the nightly reset deletes sandboxes older than 24 hours together with their sessions |
+| Session revocation | Rotating `POLICYPILOT_COOKIE_SECRET` invalidates every session at once; the nightly reset deletes every sandbox whose newest row is older than 24 hours with everything it holds; a session is only its signed cookie, which expires 24 hours after its last renewal, and a cookie that outlives its sandbox's rows opens an empty sandbox that reads the protected rows |
 | Health and docs endpoints | `/actuator/health` is public and returns only status; `/actuator/prometheus` and `/api/docs` require the cookie |
 
 **Why not a token in local storage**: a bearer token readable by JavaScript would be exposed to any script injection on the page; the cookie is invisible to scripts and CSRF is handled by the three defenses above, which is the safer trade for a page that renders model-generated text.
@@ -208,7 +208,7 @@ There is no personal data in PolicyPilot by construction, and the controls below
 | Logs | JSON logs with trace ids; no request bodies, no prompts and no model outputs in the cloud profile; token counts and validation results only; payload logging is a local-profile switch; Railway log retention is the provider default and logs contain nothing that would matter if leaked |
 | Browser storage | The web app keeps only the current tab and a draft question in `localStorage`; the session is in the HttpOnly cookie; no policy text or decision data is cached in the browser beyond the page's in-memory state |
 | Export | CSV and JSON exports carry the same synthetic data with formula-injection prefixing; there is no export of secrets, prompts or other sandboxes |
-| Deletion | The nightly reset deletes sandboxes older than 24 hours with their chat sessions and decisions; a visitor cannot request deletion (no identity), which the README lists as a limitation of the demo, not of the design |
+| Deletion | The nightly reset deletes every sandbox whose newest row is older than 24 hours with everything it holds: its policies and their text, its rule sets and every version with its rules and chunks, its decisions, chat sessions, change requests and their audit entries; the RESET entry keeps only the counts. Keeping those rows unreachable instead would hold a visitor's pasted text past the 24-hour horizon and grow the vector index every retrieval searches. The response cache belongs to no sandbox and stays: it keeps each model answer under its hash, a generation from a pasted policy included, until the prompt's version changes (decided 2026-09-27, day 15); a visitor cannot request deletion (no identity), which the README lists as a limitation of the demo, not of the design |
 
 ## Availability and Abuse Resistance
 
@@ -226,7 +226,7 @@ The demo must answer within seconds during the interview and survive a stranger 
 | Expressions and conditions | Depth 8, 20 children per combinator, 500 rules | Schema |
 | Database | Statement timeout 5 s for request-scoped queries, 60 s for the regression job; connection pool 10 with a 3 s acquire timeout | HikariCP and PostgreSQL settings |
 | Model calls | Timeouts per prompt, retries with backoff, circuit breaker; daily token ledger with a hard stop | Gateway adapter |
-| Nightly reset | Deletes stale sandboxes and re-seeds if the protected rows are missing, so vandalism has a 24-hour horizon and a manual reset endpoint exists for the presenter (requires the cookie and a second `POLICYPILOT_ADMIN_CODE`) | Scheduled job |
+| Nightly reset | Deletes stale sandboxes and re-seeds if the protected rows are missing, so vandalism has a 24-hour horizon and a manual reset endpoint exists for the presenter (requires the cookie and a second code, `POLICYPILOT_ADMIN_CODE`, in the `X-PolicyPilot-Admin-Code` header) | Scheduled job |
 
 **Single-instance rate limits**: Bucket4j buckets are in memory, which is correct for one Railway instance and stated as a limitation; a second instance would need a shared store (PostgreSQL-backed buckets are the planned change) and the deployment section forbids horizontal scaling until then.
 
@@ -263,6 +263,7 @@ Every security-relevant event is a structured log line with a trace id and a Mic
 | Rate limit hit | Endpoint class, sandbox id or IP (hashed) | `security.ratelimit.hit` |
 | Input rejected | Endpoint, validation code (never the value) | `security.input.rejected` |
 | Protected-row write attempt | Entity, sandbox id | `security.protected.write_attempt` |
+| Admin code refused | Reason (missing, wrong, none configured), sandbox id | `security.admin.refused` |
 | Hallucinated citation stripped | Prompt version, marker kind | `ai.citation.invalid` |
 | Tool call rejected | Tool name, reason | `ai.tool.rejected` |
 | Injection finding | Rule set id, paragraph, kind | `ai.finding.injection` |
@@ -270,7 +271,7 @@ Every security-relevant event is a structured log line with a trace id and a Mic
 | Budget stop | Ledger value, mode switched | `ai.budget.stopped` |
 | Circuit breaker opened | Provider, failure count | `ai.provider.open` |
 | Denylist hit in a stream | Prompt version, pattern class | `security.output.denylist` |
-| Nightly reset | Sandboxes deleted, re-seeded flag | `demo.reset` |
+| Nightly reset | Trigger (nightly or manual), sandboxes deleted, re-seeded flag | `demo.reset` |
 
 **Redaction**: the Logback encoder masks any value matching the provider key prefix, the cookie name, the access code and the admin code, and hashes IPs with a per-deployment salt (an HMAC key derived from POLICYPILOT\_COOKIE\_SECRET, so no further variable exists); request bodies and prompts are never logged in the cloud profile.
 

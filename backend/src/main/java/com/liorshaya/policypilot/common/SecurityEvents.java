@@ -21,6 +21,7 @@ public class SecurityEvents {
     public static final String RATELIMIT_HIT = "security.ratelimit.hit";
     public static final String INPUT_REJECTED = "security.input.rejected";
     public static final String PROTECTED_WRITE_ATTEMPT = "security.protected.write_attempt";
+    public static final String ADMIN_REFUSED = "security.admin.refused";
     public static final String TOOL_REJECTED = "ai.tool.rejected";
     public static final String OUTPUT_DENYLIST = "security.output.denylist";
     public static final String INJECTION_FINDING = "ai.finding.injection";
@@ -76,6 +77,12 @@ public class SecurityEvents {
         registry.counter(PROTECTED_WRITE_ATTEMPT, "entity", entity).increment();
         LOG.atWarn().setMessage(PROTECTED_WRITE_ATTEMPT).addKeyValue("entity", entity)
                 .addKeyValue("sandbox", sandboxId).log();
+    }
+
+    /** {@code POST /admin/reset} refused its caller: the admin code was missing, wrong, or none is configured. */
+    public void adminRefused(String reason, UUID sandboxId) {
+        registry.counter(ADMIN_REFUSED, "reason", reason).increment();
+        LOG.atWarn().setMessage(ADMIN_REFUSED).addKeyValue("reason", reason).addKeyValue("sandbox", sandboxId).log();
     }
 
     /** A chat tool refused a call: its arguments were wrong, the id was not found, or the turn's caps were reached. */

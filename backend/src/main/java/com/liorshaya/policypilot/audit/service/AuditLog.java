@@ -37,10 +37,16 @@ public class AuditLog {
         return append(action, actor, rulesetVersionId, null, details);
     }
 
+    /** Appends an entry about no version, the RESET entry of the demo reset, inside the caller's transaction. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuditEntry append(AuditAction action, String actor, ObjectNode details) {
+        return append(action, actor, null, null, details);
+    }
+
     /** Appends an entry about a change request, which it names, inside the caller's transaction. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public AuditEntry append(AuditAction action, String actor, UUID rulesetVersionId, @Nullable UUID changeRequestId,
-            ObjectNode details) {
+    public AuditEntry append(AuditAction action, String actor, @Nullable UUID rulesetVersionId,
+            @Nullable UUID changeRequestId, ObjectNode details) {
         return view(entries.save(new AuditEntryEntity(UUID.randomUUID(), clock.instant(), actor, action.name(),
                 rulesetVersionId, changeRequestId, JSON.writeValueAsString(details))));
     }

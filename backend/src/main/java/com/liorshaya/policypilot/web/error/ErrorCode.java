@@ -11,6 +11,7 @@ public enum ErrorCode {
     ACCESS_CODE_INVALID(HttpStatus.UNAUTHORIZED, "The access code is not valid."),
     SESSION_INVALID(HttpStatus.UNAUTHORIZED, "A valid session is required; enter the access code."),
     CSRF_REJECTED(HttpStatus.FORBIDDEN, "The request did not come from the PolicyPilot web app."),
+    ADMIN_CODE_INVALID(HttpStatus.FORBIDDEN, "The admin code is not valid."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not found."),
     VERSION_STATUS_CONFLICT(HttpStatus.CONFLICT, "The rule set version's status does not allow this."),
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The request body is too large."),

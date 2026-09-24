@@ -23,7 +23,7 @@ import org.springframework.validation.annotation.Validated;
  * variables only, and {@code ai.daily-token-budget}, for which the documents fix no number yet (the token budget
  * guard of day 7 must refuse to start in the cloud profile while it is missing). The application refuses to start
  * without an access code of 8 lowercase letters and a cookie secret of at least 32 bytes (Document 5, Data
- * Protection, Secrets); the admin code belongs to the reset endpoint, which the two-week version does not build.
+ * Protection, Secrets). The admin code is optional: without one, {@code POST /admin/reset} refuses every request.
  */
 @Validated
 @ConfigurationProperties(prefix = "policypilot")
