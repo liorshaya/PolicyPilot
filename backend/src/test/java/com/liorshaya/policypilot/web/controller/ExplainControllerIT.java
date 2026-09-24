@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +61,7 @@ class ExplainControllerIT extends ApiIntegrationTest {
     /** Case 17 decided in this session's sandbox; the id of its stored decision. */
     private String caseSeventeen() {
         List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         ObjectNode body = JSON.createObjectNode();
         body.set("case", Fixtures.json("policies/consumer-lending/cases-200.json").required("cases").valueStream()
                 .filter(fixture -> fixture.path("id").asInt() == 17).findFirst().orElseThrow().required("input"));

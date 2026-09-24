@@ -14,6 +14,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.Seeded;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -72,7 +73,7 @@ class LiveExplainRecordingIT extends ApiIntegrationTest {
     @Test
     void caseSeventeenAndAnApprovedCaseAreExplainedAndRecorded() {
         UUID sandbox = UUID.randomUUID();
-        PublishedVersion version = rulesets.published(rulesets.protectedRulesets().getFirst().id(), 1, sandbox)
+        PublishedVersion version = rulesets.published(Seeded.lendingRuleset(rulesets).id(), 1, sandbox)
                 .orElseThrow();
         ObjectNode seventeen = decisions.decide(version, sandbox, input(17)).decision();
         ObjectNode two = decisions.decide(version, sandbox, input(2)).decision();

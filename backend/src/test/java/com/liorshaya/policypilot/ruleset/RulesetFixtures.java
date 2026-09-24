@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.RulesetView;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Seeded;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -33,7 +34,7 @@ final class RulesetFixtures {
 
     /** The seeded demo rule set, which no sandbox may write to. */
     RulesetView seeded() {
-        return rulesets.protectedRulesets().getFirst();
+        return Seeded.lendingRuleset(rulesets);
     }
 
     /** Version 1 of the seeded rule set, as any sandbox reads it. */

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Seeded;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpResponse;
 import java.util.List;
@@ -130,7 +131,7 @@ class EntityIsolationIT extends ApiIntegrationTest {
 
     private UUID seededOf(String session) {
         List<String> ids = JsonPath.read(api().get(RULESETS).cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         return UUID.fromString(ids.getFirst());
     }
 

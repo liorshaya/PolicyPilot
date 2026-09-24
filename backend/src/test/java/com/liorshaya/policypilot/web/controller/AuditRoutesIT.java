@@ -10,11 +10,13 @@ import com.liorshaya.policypilot.support.OpenApiContract;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +60,7 @@ class AuditRoutesIT extends ApiIntegrationTest {
         session = api().login();
         contract = new OpenApiContract(api().get("/api/docs").cookie(session).send().body());
         List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         seeded = ids.getFirst();
         seededVersion = jdbc.sql("select id from ruleset_version where ruleset_id = :id and version_no = 1")
                 .param("id", UUID.fromString(seeded)).query(UUID.class).single();
@@ -157,13 +159,19 @@ class AuditRoutesIT extends ApiIntegrationTest {
     }
 
     // Document 2: without a versionId, every entry the sandbox can see. Expected: after an approval, the entries
-    // GET /audit gives for the seeded version, and on the sandbox's copy its publish and the approval
+    // GET /audit gives for the seeded versions (the lending one and the second domain's), and on the sandbox's copy
+    // its publish and the approval
     @Test
     void theExportWithoutAVersionHoldsEveryVersionTheSandboxCanSee() {
         String id = propose(session);
         JsonNode result = JSON.readTree(api().post("/api/v1/changes/" + id + "/approve").web().cookie(session).send()
                 .body()).required("result");
-        List<String> seededEntries = ids(api().get(AUDIT + "?versionId=" + seededVersion).cookie(session).send());
+        List<String> seededEntries = new ArrayList<>();
+        for (UUID version : jdbc.sql("""
+                select v.id from ruleset_version v join ruleset r on r.id = v.ruleset_id where r.protected""")
+                .query(UUID.class).list()) {
+            seededEntries.addAll(ids(api().get(AUDIT + "?versionId=" + version).cookie(session).send()));
+        }
 
         HttpResponse<String> response = api().get(EXPORT).cookie(session).send();
 

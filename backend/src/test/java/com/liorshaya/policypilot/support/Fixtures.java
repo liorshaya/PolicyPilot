@@ -17,6 +17,9 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class Fixtures {
 
+    /** The second domain the seed loads (Document 2, Second domain): a labeled policy of the evaluation set. */
+    public static final String SECOND_DOMAIN = "eval/policies/arnona-discount-seniors/";
+
     private static final Path ROOT = Path.of("..", "fixtures");
     private static final RuleSetMapper MAPPER = new RuleSetMapper();
 

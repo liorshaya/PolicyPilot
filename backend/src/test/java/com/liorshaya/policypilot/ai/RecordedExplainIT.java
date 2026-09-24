@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedModel;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class RecordedExplainIT extends ApiIntegrationTest {
     @BeforeEach
     void theSeededVersion() {
         sandbox = UUID.randomUUID();
-        version = rulesets.published(rulesets.protectedRulesets().getFirst().id(), 1, sandbox).orElseThrow();
+        version = rulesets.published(Seeded.lendingRuleset(rulesets).id(), 1, sandbox).orElseThrow();
     }
 
     private Explanation explain(int caseNo, Audience audience) {

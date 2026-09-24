@@ -17,6 +17,7 @@ import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -98,13 +99,14 @@ class RecordedChangeIT {
         long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
         while (!"READY".equals(jdbc.sql("""
                 select v.embedding_status from ruleset_version v join ruleset r on r.id = v.ruleset_id
-                where r.protected and v.version_no = 1""").query(String.class).single())) {
+                where r.protected and r.domain = :domain and v.version_no = 1""").param("domain", Seeded.LENDING)
+                .query(String.class).single())) {
             if (System.nanoTime() > deadline) {
                 throw new AssertionError("the seeded version never became READY");
             }
             Thread.onSpinWait();
         }
-        lending = changes.base(rulesets.protectedRulesets().getFirst().id(), 1, sandbox).orElseThrow();
+        lending = changes.base(Seeded.lendingRuleset(rulesets).id(), 1, sandbox).orElseThrow();
     }
 
     // Work Plan day 12: "the scripted request yields the expected five candidates", on the provider's vectors: the two

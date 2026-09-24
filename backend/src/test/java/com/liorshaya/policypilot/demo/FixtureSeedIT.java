@@ -16,13 +16,16 @@ import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Loading of the lending fixtures (Document 2, Local: a seed job loads the fixtures on an empty database; Work Plan
@@ -50,7 +53,7 @@ class FixtureSeedIT extends ApiIntegrationTest {
     // Expected: Document 3, the demo policy is nine Hebrew paragraphs
     @Test
     void lendingPolicyIsSeededAsProtectedWithNineParagraphs() {
-        PolicyView seeded = policies.protectedPolicies().getFirst();
+        PolicyView seeded = Seeded.lendingPolicy(policies);
 
         assertThat(seeded.isProtected()).isTrue();
         assertThat(seeded.versions().getFirst().paragraphs()).hasSize(9);
@@ -60,7 +63,7 @@ class FixtureSeedIT extends ApiIntegrationTest {
 
     @Test
     void seededParagraphsAreTheFixturesParagraphs() {
-        List<String> paragraphs = policies.protectedPolicies().getFirst().versions().getFirst().paragraphs().stream()
+        List<String> paragraphs = Seeded.lendingPolicy(policies).versions().getFirst().paragraphs().stream()
                 .map(PolicyView.Paragraph::text).toList();
 
         assertThat(paragraphs).isEqualTo(Fixtures.lendingParagraphs());
@@ -68,23 +71,24 @@ class FixtureSeedIT extends ApiIntegrationTest {
 
     @Test
     void seededTitleAndLanguageComeFromTheFixture() {
-        PolicyView seeded = policies.protectedPolicies().getFirst();
+        PolicyView seeded = Seeded.lendingPolicy(policies);
 
         assertThat(seeded.title())
                 .isEqualTo(Fixtures.json("policies/consumer-lending/ruleset.v1.json").get("name").stringValue());
         assertThat(seeded.language().code()).isEqualTo("he");
     }
 
+    // Expected: the two seeded policies, the lending one and the second domain's, and no copy of either
     @Test
     void seedIsIdempotentAcrossRestarts() {
         loader.run(new DefaultApplicationArguments());
 
-        assertThat(policies.protectedPolicies()).hasSize(1);
+        assertThat(policies.protectedPolicies()).hasSize(2);
     }
 
     @Test
     void theProtectedPolicyIsReadableFromEverySandbox() {
-        String id = policies.protectedPolicies().getFirst().id().toString();
+        String id = Seeded.lendingPolicy(policies).id().toString();
 
         for (String session : List.of(api().login(), api().login())) {
             HttpResponse<String> response = api().get("/api/v1/policies/" + id).cookie(session).send();
@@ -96,7 +100,7 @@ class FixtureSeedIT extends ApiIntegrationTest {
     // Work Plan day 5: seeding of rule set version 1 as protected. Expected: ruleset.v1.json, status PUBLISHED
     @Test
     void lendingVersionOneIsSeededAsAProtectedPublishedVersion() {
-        RulesetView seeded = rulesets.protectedRulesets().getFirst();
+        RulesetView seeded = Seeded.lendingRuleset(rulesets);
 
         assertThat(seeded.isProtected()).isTrue();
         assertThat(seeded.domain()).isEqualTo(Fixtures.lendingV1().get("id").stringValue());
@@ -117,7 +121,7 @@ class FixtureSeedIT extends ApiIntegrationTest {
     // Document 2, ruleset_version.policy_version_id. Expected: version 1 of the seeded policy
     @Test
     void seededVersionCitesTheSeededPolicysFirstVersion() {
-        PolicyView policy = policies.protectedPolicies().getFirst();
+        PolicyView policy = Seeded.lendingPolicy(policies);
 
         assertThat(seededVersion().policyVersionId())
                 .isEqualTo(policies.version(policy.id(), 1, null).orElseThrow().id());
@@ -139,13 +143,58 @@ class FixtureSeedIT extends ApiIntegrationTest {
     void ruleSetAndPolicySeedsAreIdempotent() {
         loader.run(new DefaultApplicationArguments());
 
-        assertThat(policies.protectedPolicies()).hasSize(1);
-        assertThat(rulesets.protectedRulesets()).hasSize(1);
+        assertThat(policies.protectedPolicies()).hasSize(2);
+        assertThat(rulesets.protectedRulesets()).extracting(RulesetView::domain)
+                .containsExactlyInAnyOrder(Seeded.LENDING, Seeded.SECOND_DOMAIN);
     }
 
     /** Version 1 of the seeded rule set, as any sandbox reads it. */
+    // Document 2, Second domain: the labeled arnona-discount-seniors loaded as a second protected policy with its rule
+    // set. Expected: the fixture's title and paragraphs, and version 1 published, equal to expected.ruleset.json
+    @Test
+    void theSecondDomainIsSeededAsAProtectedPublishedVersion() {
+        JsonNode expected = Fixtures.json(Fixtures.SECOND_DOMAIN + "expected.ruleset.json");
+        RulesetView seeded = rulesets.protectedRulesets().stream()
+                .filter(ruleset -> ruleset.domain().equals(Seeded.SECOND_DOMAIN)).findFirst().orElseThrow();
+        PolicyView policy = policies.protectedPolicies().stream()
+                .filter(candidate -> candidate.title().equals(expected.required("name").stringValue()))
+                .findFirst().orElseThrow();
+
+        assertThat(seeded.versions()).containsExactly(new RulesetView.VersionSummary(1, VersionStatus.PUBLISHED));
+        assertThat(rulesets.version(seeded.id(), 1, UUID.randomUUID()).orElseThrow().document()).isEqualTo(expected);
+        assertThat(policy.versions().getFirst().paragraphs()).extracting(PolicyView.Paragraph::text)
+                .isEqualTo(Fixtures.paragraphs(Fixtures.SECOND_DOMAIN + "policy.he.md"));
+    }
+
+    // Brief, Scope: a second domain "can be added as data only, without code changes". Expected: each of the 10 labeled
+    // cases of cases.json, decided through the API on the seeded version by any sandbox, gets its labeled outcome and
+    // deciding rule
+    @Test
+    void theSecondDomainsLabeledCasesDecideAsLabeledThroughTheApi() {
+        String session = api().login();
+        List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
+                "$.rulesets[?(@.domain == '" + Seeded.SECOND_DOMAIN + "')].id");
+        List<String> mismatches = new ArrayList<>();
+        JsonNode labeled = Fixtures.json(Fixtures.SECOND_DOMAIN + "cases.json").required("cases");
+
+        for (JsonNode one : labeled) {
+            HttpResponse<String> response = api().post("/api/v1/rulesets/" + ids.getFirst() + "/versions/1/decide")
+                    .web().cookie(session).json("{\"case\":" + one.required("input") + "}").send();
+            String got = response.statusCode() + " " + JsonPath.read(response.body(), "$.outcome") + " "
+                    + JsonPath.read(response.body(), "$.decidingRuleId");
+            String expected = "200 " + one.required("expected").required("outcome").asString() + " "
+                    + one.required("expected").required("decidingRuleId").asString();
+            if (!got.equals(expected)) {
+                mismatches.add("case " + one.required("id") + ": " + got + ", expected " + expected);
+            }
+        }
+
+        assertThat(labeled).hasSize(10);
+        assertThat(mismatches).isEmpty();
+    }
+
     private VersionView seededVersion() {
-        UUID ruleset = rulesets.protectedRulesets().getFirst().id();
+        UUID ruleset = Seeded.lendingRuleset(rulesets).id();
         return rulesets.version(ruleset, 1, UUID.randomUUID()).orElseThrow();
     }
 

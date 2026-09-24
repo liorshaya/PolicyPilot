@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.audit.service.AuditLog;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ class AuditLogIT extends ApiIntegrationTest {
 
     /** The version of the seeded demo rule set, which every sandbox may read. */
     private UUID seededVersion() {
-        UUID ruleset = rulesets.protectedRulesets().getFirst().id();
+        UUID ruleset = Seeded.lendingRuleset(rulesets).id();
         return rulesets.version(ruleset, 1, UUID.randomUUID()).orElseThrow().versionId();
     }
 }

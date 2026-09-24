@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.RulesetView;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Seeded;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ final class ScriptedQuestions {
     private ScriptedQuestions(ChatService chat, RulesetService rulesets, JdbcClient jdbc) {
         this.chat = chat;
         this.jdbc = jdbc;
-        this.seeded = rulesets.protectedRulesets().getFirst();
+        this.seeded = Seeded.lendingRuleset(rulesets);
         PublishedVersion version = rulesets.published(seeded.id(), 1, sandbox).orElseThrow();
         awaitReady(version.versionId());
     }

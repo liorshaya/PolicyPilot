@@ -12,12 +12,14 @@ import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedGateway.Streamed;
 import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -74,7 +76,7 @@ class ChatStreamIT extends ApiIntegrationTest {
         model.reset();
         session = api().login();
         List<String> ids = JsonPath.read(api().get("/api/v1/rulesets").cookie(session).send().body(),
-                "$.rulesets[?(@.protected == true)].id");
+                Seeded.LENDING_RULESET_ID);
         version = ids.getFirst();
         awaitSeededVersionReady();
     }
@@ -526,20 +528,21 @@ class ChatStreamIT extends ApiIntegrationTest {
     private void awaitSeededVersionReady() {
         awaitStatus("""
                 select v.embedding_status from ruleset_version v join ruleset r on r.id = v.ruleset_id
-                where r.protected and v.version_no = 1""", null);
+                where r.protected and r.domain = :domain and v.version_no = 1""", Map.of("domain", Seeded.LENDING));
     }
 
     private void awaitReady(String rulesetId) {
         awaitStatus("""
-                select embedding_status from ruleset_version where ruleset_id = :id and version_no = 1""", rulesetId);
+                select embedding_status from ruleset_version where ruleset_id = :id and version_no = 1""",
+                Map.of("id", UUID.fromString(rulesetId)));
     }
 
-    private void awaitStatus(String sql, String rulesetId) {
+    private void awaitStatus(String sql, Map<String, Object> params) {
         long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
         while (true) {
             var query = jdbc.sql(sql);
-            if (rulesetId != null) {
-                query = query.param("id", UUID.fromString(rulesetId));
+            for (var param : params.entrySet()) {
+                query = query.param(param.getKey(), param.getValue());
             }
             if ("READY".equals(query.query(String.class).single())) {
                 return;
