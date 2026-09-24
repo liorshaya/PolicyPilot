@@ -79,7 +79,15 @@ record Recordings(List<JsonNode> calls) {
         return calls.isEmpty() ? "" : calls.getFirst().path("request").path("model").asString("");
     }
 
+    /** A response as JSON, or as the text it is when it is not JSON (a model cut off at its cap writes half a tree). */
     private static JsonNode parse(JsonNode response) {
-        return response.isString() ? JSON.readTree(response.asString()) : response;
+        if (!response.isString()) {
+            return response;
+        }
+        try {
+            return JSON.readTree(response.asString());
+        } catch (RuntimeException e) {
+            return response;
+        }
     }
 }

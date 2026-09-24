@@ -163,7 +163,8 @@ class LiveChangePassIT {
     /**
      * One request asked of the strong model on the labeled base, which the runner replays on, so its repairs are
      * recorded under the prompts the runner will send. An answer that is no JSON object even after the repairs is
-     * recorded all the same, and the pass goes on to the next request.
+     * recorded all the same, and the pass goes on to the next request; so it does after a call the provider did not
+     * answer in time, which a rerun asks again.
      */
     private static void propose(ChangeService service, String id, ChangeBase base, String text,
             Candidates candidates) {
@@ -173,6 +174,11 @@ class LiveChangePassIT {
                     proposal.refused(), proposal.answer().toPrettyString());
         } catch (LlmMalformedOutputException e) {
             System.out.println(id + ": " + e.getMessage());
+        } catch (RuntimeException e) {
+            // named by its class only: a provider's refusal of a key quotes part of the key in its message
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            System.out.println(id + ": NOT RECORDED: " + e.getClass().getSimpleName() + " ("
+                    + cause.getClass().getSimpleName() + ")");
         }
     }
 

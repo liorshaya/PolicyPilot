@@ -14,6 +14,12 @@ import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.Provenance;
 import com.liorshaya.policypilot.rules.model.Rule;
 import com.liorshaya.policypilot.rules.model.RuleSet;
+import com.liorshaya.policypilot.rules.validation.Finding;
+import com.liorshaya.policypilot.rules.validation.Layer;
+import com.liorshaya.policypilot.rules.validation.RuleSetValidator;
+import com.liorshaya.policypilot.rules.validation.ValidationCode;
+import com.liorshaya.policypilot.rules.validation.ValidationContext;
+import com.liorshaya.policypilot.rules.validation.ValidationResult;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
@@ -27,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -42,6 +49,7 @@ final class RecordedScoring {
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final RuleSetMapper MAPPER = new RuleSetMapper();
     private static final RuleEngine ENGINE = new RuleEngine();
+    private static final RuleSetValidator VALIDATOR = new RuleSetValidator();
 
     private final String provider;
 
@@ -67,6 +75,10 @@ final class RecordedScoring {
             return new Authoring(0);
         }
         report.model(provider, recorded.model());
+        // a version asked with field hints was recorded by the pass that asks every labeled policy (LiveAuthorPassIT),
+        // so a policy with no hinted answer is one the provider gave none for within the prompt's timeout
+        boolean askedOfEvery = recorded.prompts().stream().anyMatch(prompt -> prompt.contains(FieldHints.HEADER));
+        List<String> unanswered = new ArrayList<>();
         int matched = 0;
         int generated = 0;
         int expectedTotal = 0;
@@ -74,6 +86,9 @@ final class RecordedScoring {
         int agreeing = 0;
         int casesTotal = 0;
         int policies = 0;
+        int runs = 0;
+        int schemaValid = 0;
+        int valid = 0;
         List<BigDecimal> right = new ArrayList<>();
         List<BigDecimal> wrong = new ArrayList<>();
         for (String slug : Fixtures.evaluationPolicies()) {
@@ -82,16 +97,42 @@ final class RecordedScoring {
             List<ObjectNode> cases = casesOf(slug);
             Recordings forPolicy = recorded.about(paragraphsOf(slug));
             Recordings hinted = forPolicy.about(List.of(FieldHints.of(label)));
-            if (!hinted.isEmpty()) {
+            if (askedOfEvery) {
                 forPolicy = hinted;
             }
             if (forPolicy.isEmpty()) {
+                if (askedOfEvery) {
+                    // a run with no answer publishes nothing: every expected rule and labeled case counts against it
+                    unanswered.add(slug);
+                    runs++;
+                    expectedTotal += expected.rules().size();
+                    casesTotal += Fixtures.json("eval/policies/" + slug + "/cases.json").required("cases").size();
+                    report.policyRow(String.format("| %s | no answer | 0 | 0.00 | 0.00 | 0.00 | 0.00 |", slug));
+                }
                 continue;
             }
             policies++;
             for (JsonNode answer : forPolicy.responses()) {
+                runs++;
                 // the same normalization the live path applies before the canonical validator (Document 4, day 7)
-                RuleSet run = MAPPER.toRuleSet(ProviderSchemaVariant.stripNulls(answer.deepCopy()));
+                JsonNode document = answer.isObject() ? ProviderSchemaVariant.stripNulls(answer.deepCopy()) : answer;
+                Optional<Finding> schemaError = schemaErrorOf(document, slug);
+                if (schemaError.isPresent()) {
+                    // a draft the schema refuses has no rules to match and decides no case: every expected rule
+                    // and every labeled case counts against it, as the pipeline would have had nothing to publish
+                    expectedTotal += expected.rules().size();
+                    casesTotal += Fixtures.json("eval/policies/" + slug + "/cases.json").required("cases").size();
+                    report.policyRow(String.format("| %s | not schema-valid | 0 | 0.00 | 0.00 | 0.00 | 0.00 |", slug));
+                    report.mismatch(slug + ": the first answer fails the schema, " + schemaError.get().code()
+                            + " at " + schemaError.get().path());
+                    continue;
+                }
+                schemaValid++;
+                if (!VALIDATOR.validate(document, ValidationContext.AUTHORING, numberedParagraphsOf(slug), Set.of())
+                        .hasErrors()) {
+                    valid++;
+                }
+                RuleSet run = MAPPER.toRuleSet(document);
                 RuleMatcher.Result result = RuleMatcher.match(expected, run, cases);
                 matched += result.matched();
                 generated += result.generatedRules();
@@ -114,7 +155,33 @@ final class RecordedScoring {
         report.score(provider, "Provenance accuracy", Metric.Score.of(provenanceCorrect, matched));
         report.score(provider, "Case agreement", Metric.Score.of(agreeing, casesTotal));
         report.score(provider, "Confidence calibration", calibration(right, wrong));
+        report.score(provider, "Schema-valid first try", Metric.Score.of(schemaValid, runs));
+        if (!unanswered.isEmpty()) {
+            report.note("The live pass asked every labeled policy; " + unanswered.size() + " got no answer within "
+                    + "the author prompt's timeout (" + String.join(", ", unanswered) + "), and each counts as a run "
+                    + "with no valid draft, no matched rule and no agreeing case.");
+        }
+        // the live pass asks each render once and records no repair, so only a run valid on its first answer is
+        // known to end valid; when every run is, that is the whole count, and otherwise it is a floor
+        Metric.Score validAfterRepairs = Metric.Score.of(valid, runs);
+        report.score(provider, "Valid after repairs",
+                valid == runs ? validAfterRepairs : validAfterRepairs.asLowerBound());
+        if (valid < runs) {
+            report.note("Valid after repairs counts the runs valid on their first answer: the live pass records no "
+                    + "repair, so the " + (runs - valid) + " that were not might still have ended valid within two.");
+        }
         return new Authoring(policies);
+    }
+
+    /** The first schema finding of a recorded draft (Document 3, Static Validation, the schema layer), if any. */
+    private static Optional<Finding> schemaErrorOf(JsonNode document, String slug) {
+        if (!document.isObject()) {
+            return Optional.of(new Finding(ValidationCode.DSL_SCHEMA, "", "the answer is not a JSON object", List.of(),
+                    List.of()));
+        }
+        ValidationResult result = VALIDATOR.validate(document, ValidationContext.AUTHORING,
+                numberedParagraphsOf(slug), Set.of());
+        return result.findings().stream().filter(finding -> finding.code().layer() == Layer.SCHEMA).findFirst();
     }
 
     /** Reviewer recall and the lower bound of precision, over every policy whose review was recorded. */
@@ -128,14 +195,21 @@ final class RecordedScoring {
         int answering = 0;
         int findings = 0;
         int policies = 0;
+        List<String> unanswered = new ArrayList<>();
         for (String slug : Fixtures.evaluationPolicies()) {
             Recordings forPolicy = recorded.about(paragraphsOf(slug));
-            if (forPolicy.isEmpty()) {
-                continue;
-            }
-            policies++;
             JsonNode defects = Fixtures.json("eval/policies/" + slug + "/seeded.findings.json");
-            JsonNode answer = forPolicy.responses().getFirst();
+            // the review pass asks every labeled policy, so one with no recorded review got none within the prompt's
+            // timeout, and is scored as a review that found nothing
+            ObjectNode nothingFound = JSON.createObjectNode();
+            nothingFound.putArray("findings");
+            JsonNode answer = nothingFound;
+            if (forPolicy.isEmpty()) {
+                unanswered.add(slug);
+            } else {
+                policies++;
+                answer = forPolicy.responses().getFirst();
+            }
             ReviewScoring.Result result = ReviewScoring.score(defects, answer.path("findings"));
             found += result.found();
             seeded += result.caught().size();
@@ -145,6 +219,11 @@ final class RecordedScoring {
                     .forEach(caught -> report.mismatch(slug + " " + caught.seededId() + ": " + caught.note()));
         }
         report.score(provider, "Reviewer recall", Metric.Score.of(found, seeded));
+        if (!unanswered.isEmpty()) {
+            report.note("The review pass asked every labeled policy; " + unanswered.size() + " got no review within "
+                    + "the review prompt's timeout (" + String.join(", ", unanswered) + "), and each counts as a "
+                    + "review that found none of its seeded defects.");
+        }
         report.score(provider, "Reviewer precision", Metric.Score.of(answering, findings).asLowerBound());
         report.note("Reviewer precision is the floor Document 4's definition allows a runner to compute: the "
                 + "findings answering a seeded defect over all of them. The other half, \"confirmed real on "
@@ -270,6 +349,11 @@ final class RecordedScoring {
     }
 
     /** Every paragraph of a policy, which together tell one policy's recordings from another variant's. */
+    /** The paragraphs as the author prompt numbers them, which a draft's provenance cites (Document 4, Prompt 1). */
+    private static List<String> numberedParagraphsOf(String slug) {
+        return Fixtures.paragraphs(Fixtures.evaluationPolicyText(slug));
+    }
+
     private static List<String> paragraphsOf(String slug) {
         try {
             return Files.readString(Fixtures.path(Fixtures.evaluationPolicyText(slug)), StandardCharsets.UTF_8)

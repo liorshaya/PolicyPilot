@@ -18,6 +18,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveProvider;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.Requirement;
@@ -43,6 +44,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -65,14 +67,16 @@ import tools.jackson.databind.JsonNode;
  */
 @Requirement({"FR-12", "FR-15", "NFR-6"})
 @SpringBootTest(properties = "spring.ai.openai.api-key=test-key-not-real")
-@ActiveProfiles("openai")
+@ActiveProfiles(resolver = LiveProvider.class, inheritProfiles = false)
 @Import(EvalRunnerIT.Recorded.class)
 class EvalRunnerIT {
 
-    /** Document 4, Runner: {@code -Dprovider=openai} or {@code -Dprovider=ollama}, which picks the recordings. */
-    private static final String PROVIDER = System.getProperty("provider", "openai");
-    /** Whose vectors {@link RecordedEmbeddingGateway} replays; day 8 recorded one provider's and no other's. */
-    private static final String EMBEDDINGS_RECORDED_FOR = "openai";
+    /**
+     * Document 4, Runner: {@code -Dprovider=openai} or {@code -Dprovider=ollama}, which picks the profile, the
+     * recordings and the vectors: each provider's column is scored on its own embedding model's vectors, in a run of
+     * its own, since the profile sizes the vector column for its model.
+     */
+    private static final String PROVIDER = LiveProvider.name();
     private static final RuleSetMapper MAPPER = new RuleSetMapper();
 
     /** A database of its own: another context's embedding job must never meet this context's recorded gateway. */
@@ -101,6 +105,9 @@ class EvalRunnerIT {
     @Autowired
     private PolicyPilotProperties properties;
 
+    @Autowired
+    private Environment environment;
+
     // Document 4: "Questions whose expected chunk is among the 8 retrieved", at least 0.90 on the strong model
     @Test
     void everyQuestionIsAskedOfItsPolicyAndRecallAtEightIsScored() {
@@ -120,13 +127,19 @@ class EvalRunnerIT {
 
     // The runner reads each change request's candidates off its recorded prompt, which holds only while candidate
     // selection on the recorded vectors still gives those very candidates; CR-3's policy is embedded on the vectors
-    // the change pass recorded for it. Expected: for each of the six, in change/v1's recordings, kept to compare
-    // with, and in change/v2's, the candidates its recorded prompt lists, in the order it lists them
+    // the change pass recorded for it. Expected: for each of the six, in the active version's recordings of this
+    // run's provider, and in change/v1's where that provider has them (OpenAI's are kept to compare with), the
+    // candidates its recorded prompt lists, in the order it lists them
     @Test
     @Requirement("FR-17")
     void everyRecordedChangePromptShowsTheCandidatesSelectionGives() {
         Map<String, List<String>> selected = new LinkedHashMap<>();
         Map<String, List<String>> shown = new LinkedHashMap<>();
+        String active = properties.ai().promptVersions().get("change");
+        List<String> required = new ArrayList<>();
+        for (JsonNode request : ChangeRequests.labeled()) {
+            required.add(request.required("id").asString() + " " + active);
+        }
         for (JsonNode request : ChangeRequests.labeled()) {
             String id = request.required("id").asString();
             String text = request.required("text").asString();
@@ -134,13 +147,16 @@ class EvalRunnerIT {
             ChangeBase base = analysis.base(target.rulesetId(), 1, target.sandboxId()).orElseThrow();
             List<String> candidates = analysis.candidates(base, text).ruleIds();
             for (String version : List.of("v1", "v2")) {
-                selected.put(id + " " + version, candidates);
-                shown.put(id + " " + version, RecordedScoring.candidateIds(Recordings.of(EMBEDDINGS_RECORDED_FOR,
-                        "change", version).about(List.of(text + "\n</change_request>")).prompts().getFirst()));
+                Recordings recorded = Recordings.of(PROVIDER, "change", version);
+                if (!recorded.isEmpty()) {
+                    selected.put(id + " " + version, candidates);
+                    shown.put(id + " " + version, RecordedScoring.candidateIds(
+                            recorded.about(List.of(text + "\n</change_request>")).prompts().getFirst()));
+                }
             }
         }
 
-        assertThat(selected).hasSize(12).isEqualTo(shown);
+        assertThat(selected).containsKeys(required.toArray(String[]::new)).isEqualTo(shown);
     }
 
     /** One question, and what retrieval did with it: the chunks kept, or nothing when the threshold stopped it. */
@@ -205,7 +221,8 @@ class EvalRunnerIT {
 
         // the report is dated, and a run that names its date is the one that writes it; no assertion depends on it
         String date = System.getProperty("eval.date", "");
-        EvalReport report = new EvalReport(date.isEmpty() ? LocalDate.EPOCH : LocalDate.parse(date), versions);
+        EvalReport report = new EvalReport(date.isEmpty() ? LocalDate.EPOCH : LocalDate.parse(date), versions,
+                PROVIDER);
         RecordedScoring recorded = new RecordedScoring(PROVIDER);
         RecordedScoring.Authoring authoring = recorded.scoreAuthoring(report, versions.get("author"));
         RecordedScoring.Reviewing reviewing = recorded.scoreReviewing(report, versions.get("review"));
@@ -215,25 +232,12 @@ class EvalRunnerIT {
                     + "recorded change/" + versions.get("change") + " answer yet, so they count as not correct until "
                     + "the live change pass records them.");
         }
-        report.note("Retrieval and refusal are measured on the vectors of text-embedding-3-small, recorded by "
-                + "the day 8 live pass; the rest of the column is the strong model's.");
-        report.note("Two prompt versions this run argues for, both held until evaluation run 2 on day 15: "
-                + "`author/v2` gives the model the field names instead of asking it to invent them, and "
-                + "`answer/v2` tells it that a question about how many or about which rules is a tool call and "
-                + "not a refusal. Each changes a rendered prompt, which is the response cache's key, so each "
-                + "costs the demo a re-warm; neither buys a demo moment, and gate G2 is due today.");
+        report.note("Retrieval and refusal are measured on the vectors of " + LiveProvider.embeddingModel(environment)
+                + ", recorded by a live retrieval pass; the rest of the column is the " + PROVIDER + " model's.");
+        report.note("Each prompt version's changelog under backend/src/main/resources/prompts/ says why it exists "
+                + "and compares it with the version before on the metrics it was written for.");
         report.note("Author metrics cover " + authoring.policies() + " of the labeled policies, the ones whose "
                 + "authoring is recorded; reviewer metrics cover " + reviewing.policies() + ".");
-        if (!EMBEDDINGS_RECORDED_FOR.equals(PROVIDER)) {
-            // the recorded gateway replays one provider's vectors; scoring them into another's column would be a
-            // number about OpenAI printed under Ollama, so the column stays empty until that pass is recorded
-            report.note("Retrieval and refusal are not scored for " + PROVIDER + ": the embedding recordings under "
-                    + "fixtures/eval/recordings/ are " + EMBEDDINGS_RECORDED_FOR + "'s. They need a live pass of "
-                    + "their own.");
-            System.out.println(report.markdown());
-            writeIfDated(report, date);
-            return;
-        }
         scoreCitations(report, asked, versions.get("answer"));
         report.score(PROVIDER, "Retrieval recall at 8", Metric.Score.of(answered, scored.size()))
                 .score(PROVIDER, "Refusal accuracy",
@@ -377,8 +381,9 @@ class EvalRunnerIT {
 
         @Bean
         @Primary
-        RecordedEmbeddingGateway recordedEmbeddingGateway(PolicyPilotProperties properties) {
-            return RecordedEmbeddingGateway.replaying(properties.embedding().dimension());
+        RecordedEmbeddingGateway recordedEmbeddingGateway(PolicyPilotProperties properties, Environment environment) {
+            return RecordedEmbeddingGateway.replaying(LiveProvider.embeddings(environment),
+                    properties.embedding().dimension());
         }
     }
 }

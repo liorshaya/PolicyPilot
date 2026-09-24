@@ -88,8 +88,18 @@ class LiveReviewRecordingIT extends ApiIntegrationTest {
         report.add("demo draft: " + summary(demo));
 
         for (String slug : Fixtures.evaluationPolicies()) {
-            List<ReviewFinding> findings = record(SeededDrafts.policy(slug), slug, SeededDrafts.language(slug),
-                    SeededDrafts.draft(slug));
+            List<ReviewFinding> findings;
+            try {
+                findings = record(SeededDrafts.policy(slug), slug, SeededDrafts.language(slug),
+                        SeededDrafts.draft(slug));
+            } catch (RuntimeException e) {
+                // a call the provider did not answer in time: the pass goes on, and a rerun asks only what is
+                // missing. Named by its class only: a provider's refusal of a key quotes part of the key
+                Throwable cause = e.getCause() == null ? e : e.getCause();
+                report.add(slug + ": NOT RECORDED: " + e.getClass().getSimpleName() + " ("
+                        + cause.getClass().getSimpleName() + ")");
+                continue;
+            }
             List<String> found = new ArrayList<>();
             List<String> missed = new ArrayList<>();
             for (JsonNode seeded : SeededDrafts.seeded(slug)) {
