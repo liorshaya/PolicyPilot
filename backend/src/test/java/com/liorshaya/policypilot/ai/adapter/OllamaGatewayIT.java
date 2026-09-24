@@ -2,6 +2,8 @@ package com.liorshaya.policypilot.ai.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 
 import com.liorshaya.policypilot.ai.Completion;
 import com.liorshaya.policypilot.ai.LlmGateway;
@@ -18,11 +20,14 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -30,6 +35,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -51,7 +57,7 @@ class OllamaGatewayIT {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final List<JsonNode> ASKED = new CopyOnWriteArrayList<>();
-    /** A user prompt the fake answers only after three seconds. */
+    /** A user prompt the fake answers only after ten seconds. */
     private static final String SLOW = "a slow call";
     private static final HttpServer OLLAMA = fakeOllama();
 
@@ -71,6 +77,10 @@ class OllamaGatewayIT {
 
     @Autowired
     private LlmGateway gateway;
+
+    /** Spring AI's own model, only watched: how long its call ran is what the timeout test measures. */
+    @MockitoSpyBean
+    private OllamaChatModel model;
 
     @BeforeEach
     void forgetWhatWasAsked() {
@@ -118,6 +128,28 @@ class OllamaGatewayIT {
         assertThat(ASKED).hasSize(1);
     }
 
+    // Found on day 15: a timed-out call that went on waiting kept its connection open, so the local model went on
+    // writing an answer nobody would read, and the next call queued behind it. Expected: the call is interrupted at
+    // the timeout, and the model's call ends well before the fake's ten-second answer
+    @Test
+    void aTimedOutCallIsInterruptedSoItsConnectionCloses() {
+        CompletableFuture<Duration> ran = new CompletableFuture<>();
+        doAnswer(invocation -> {
+            long start = System.nanoTime();
+            try {
+                return invocation.callRealMethod();
+            } finally {
+                ran.complete(Duration.ofNanos(System.nanoTime() - start));
+            }
+        }).when(model).call(any(Prompt.class));
+        PromptSpec slow = new PromptSpec("author", "ollama-gateway-it", ModelRole.STRONG, "system", SLOW,
+                "schemas/ruleset-1.0.schema.json", null, 8000, Duration.ofSeconds(1), 1);
+
+        catchThrowable(() -> gateway.complete(slow, String.class));
+
+        assertThat(ran.join()).isLessThan(Duration.ofSeconds(5));
+    }
+
     // Document 4, Prompt 4: the answer prompt streams. Expected: Ollama's lines of JSON reach the caller as its tokens,
     // in order, and the usage of the last line is the turn's
     @Test
@@ -148,7 +180,7 @@ class OllamaGatewayIT {
                         StandardCharsets.UTF_8));
                 ASKED.add(request);
                 if (request.toString().contains(SLOW)) {
-                    sleep(Duration.ofSeconds(3));
+                    sleep(Duration.ofSeconds(10));
                 }
                 if (request.path("stream").asBoolean(false)) {
                     // Ollama streams one JSON object a line; the last one is done and carries the counts
