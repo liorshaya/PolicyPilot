@@ -19,10 +19,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -362,13 +362,14 @@ public class SpringAiLlmGateway implements LlmGateway {
     /**
      * One call within the prompt's timeout. OpenAI's client takes the timeout in its options; Ollama's takes none
      * per call, so the gateway holds it and gives up the call when it passes (Document 4, Model Configuration per
-     * Prompt).
+     * Prompt). Giving up interrupts the thread that waits for the answer, which closes its connection: a call only
+     * abandoned kept it open, and the local model went on writing an answer nobody would read (found on day 15).
      */
     private ChatResponse callOnce(Prompt prompt, Duration timeout) {
         if (chat instanceof OpenAiChatModel) {
             return chat.call(prompt);
         }
-        CompletableFuture<ChatResponse> call = CompletableFuture.supplyAsync(() -> chat.call(prompt), CALLS);
+        Future<ChatResponse> call = CALLS.submit(() -> chat.call(prompt));
         try {
             return call.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
