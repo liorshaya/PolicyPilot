@@ -103,7 +103,8 @@ class OllamaGatewayIT {
     }
 
     // Document 4, Model Configuration per Prompt: Ollama's client takes no timeout per call, so the gateway holds the
-    // prompt's. Expected: an answer slower than the prompt's second ends as TIMEOUT, not as a wait for the model
+    // prompt's. Expected: an answer slower than the prompt's second ends as TIMEOUT after one attempt, not as a wait
+    // for the model
     @Test
     void anAnswerSlowerThanThePromptsTimeoutEndsAsATimeout() {
         PromptSpec slow = new PromptSpec("author", "ollama-gateway-it", ModelRole.STRONG, "system", SLOW,
@@ -113,6 +114,8 @@ class OllamaGatewayIT {
 
         assertThat(refused).isInstanceOf(LlmUnavailableException.class);
         assertThat(((LlmUnavailableException) refused).reason()).isEqualTo(LlmUnavailableException.Reason.TIMEOUT);
+        // asked once: at temperature 0 a second attempt would run as long again
+        assertThat(ASKED).hasSize(1);
     }
 
     // Document 4, Prompt 4: the answer prompt streams. Expected: Ollama's lines of JSON reach the caller as its tokens,
