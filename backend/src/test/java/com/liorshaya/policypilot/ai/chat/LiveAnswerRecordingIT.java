@@ -40,9 +40,10 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * The live answers to the three scripted questions (Work Plan day 9: "the three scripted questions recorded"). The
  * questions go through the real chat use case, the real retrieval on the recorded vectors, the real tools and engine,
- * and the real provider; every answer is written to {@code fixtures/eval/recordings/openai/answer/v1/} with the tool
- * calls the model made, so {@link RecordedAnswerIT} replays it offline. It is tagged {@code live}, so CI never runs
- * it, and needs a real {@code OPENAI_API_KEY}; the command is in fixtures/eval/recordings/README.md.
+ * and the real provider; every answer is written to {@code fixtures/eval/recordings/openai/answer/<version>/}, the
+ * active version's folder, with the tool calls the model made, so {@link RecordedAnswerIT} replays it offline. It is
+ * tagged {@code live}, so CI never runs it, and needs a real {@code OPENAI_API_KEY}; the command is in
+ * fixtures/eval/recordings/README.md.
  */
 @Tag("live")
 @SpringBootTest(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY}",

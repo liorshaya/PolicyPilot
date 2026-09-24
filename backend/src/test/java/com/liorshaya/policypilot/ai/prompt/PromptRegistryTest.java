@@ -48,6 +48,26 @@ class PromptRegistryTest {
                 .isEqualTo(Files.readString(prompts.resolve("v1.system.st")));
     }
 
+    // Document 4, answer/v2: "Instruction 2 gains one sentence", and v1 stays as it was. Expected: v2's template is
+    // v1's with that sentence, word for word, after instruction 2's last line
+    @Test
+    void answerV2IsV1WithTheToolQuestionsSentence() throws IOException {
+        Path prompts = Path.of("src/main/resources/prompts/answer");
+        String v1 = Files.readString(prompts.resolve("v1.user.st"));
+        String sentence = "A question about how many decisions had an outcome, which outcome or deciding rule is most "
+                + "common, or a share, is answered from getDecisionStats; a question about which rules or conditions "
+                + "do something is answered from listRules when the context holds few rules; such a question is never "
+                + "not covered.";
+
+        String v2 = Files.readString(prompts.resolve("v2.user.st"));
+
+        String instructionTwoEnd = "decision are not evaluated and you cannot know what they would do.";
+        assertThat(v2.replaceAll("\\s+", " ")).isEqualTo(v1.replace(instructionTwoEnd,
+                instructionTwoEnd + " " + sentence).replaceAll("\\s+", " "));
+        assertThat(Files.readString(prompts.resolve("v2.system.st")))
+                .isEqualTo(Files.readString(prompts.resolve("v1.system.st")));
+    }
+
     // Document 2, ai.timeouts.prompt-seconds: a profile replaces a prompt's own timeout by name. Expected: the author
     // prompt at the replacing 600 s, and the review prompt at its own 180 s (Document 4, Model Configuration)
     @Test
