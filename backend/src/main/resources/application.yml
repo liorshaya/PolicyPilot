@@ -115,7 +115,7 @@ policypilot:
       author: v2
       review: v1
       explain: v1
-      answer: v1
+      answer: v2
       change: v2
     timeouts:
       # A prompt's own timeout, token cap and temperature live in its prompt.yml (Document 2);
