@@ -84,8 +84,9 @@ public class EmbeddingJob {
                     .addKeyValue("chunks", corpus.size()).log();
         } catch (RuntimeException e) {
             rulesets.finishEmbedding(versionId, false);
-            LOG.atWarn().setMessage("rag.embedding.failed").addKeyValue("version", versionId)
-                    .addKeyValue("error", e.getClass().getSimpleName()).setCause(e).log();
+            // the cause is written as ECS error.type, error.message and error.stack_trace; a key named "error"
+            // beside it collides with that object and the encoder drops the whole event
+            LOG.atWarn().setMessage("rag.embedding.failed").addKeyValue("version", versionId).setCause(e).log();
         }
     }
 
