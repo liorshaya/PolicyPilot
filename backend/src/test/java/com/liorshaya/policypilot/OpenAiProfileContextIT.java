@@ -41,6 +41,8 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
         assertThat(properties.rateLimit().perSandboxPerHour()).isEqualTo(60);
         assertThat(properties.rateLimit().concurrentStreams()).isEqualTo(3);
         assertThat(properties.ai().timeouts().chatFirstTokenSeconds()).isEqualTo(20);
+        // Document 2: ai.timeouts.prompt-seconds.* is none by default, so each prompt keeps its own timeout
+        assertThat(properties.ai().timeouts().promptSeconds()).isEmpty();
         assertThat(properties.ai().maxRepairAttempts()).isEqualTo(2);
         assertThat(properties.ai().promptVersions())
                 .containsEntry("author", "v2")

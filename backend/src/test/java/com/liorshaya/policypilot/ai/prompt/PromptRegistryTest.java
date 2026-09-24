@@ -48,6 +48,16 @@ class PromptRegistryTest {
                 .isEqualTo(Files.readString(prompts.resolve("v1.system.st")));
     }
 
+    // Document 2, ai.timeouts.prompt-seconds: a profile replaces a prompt's own timeout by name. Expected: the author
+    // prompt at the replacing 600 s, and the review prompt at its own 180 s (Document 4, Model Configuration)
+    @Test
+    void aTimeoutByNameReplacesThatPromptsOwnAndNoOther() {
+        PromptRegistry registry = new PromptRegistry(PromptRegistry.PROMPTS, Map.of(), Map.of("author", 600));
+
+        assertThat(registry.get("author").timeout()).isEqualTo(Duration.ofSeconds(600));
+        assertThat(registry.get("review").timeout()).isEqualTo(Duration.ofSeconds(180));
+    }
+
     @Test
     void readsTheSettingsDocument4GivesTheAuthorPrompt() {
         PromptDefinition author = registry().get("author");
