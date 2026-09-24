@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.web.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.liorshaya.policypilot.support.Api;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.ByteArrayInputStream;
@@ -47,9 +48,9 @@ class RequestLimitsIT extends ApiIntegrationTest {
     @Test
     void chunkedBodyOverOneMegabyteReturns413() throws IOException, InterruptedException {
         byte[] body = codeOfLength(2 * ONE_MEGABYTE).getBytes(StandardCharsets.UTF_8);
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + AUTH_CODE))
+        HttpRequest request = HttpRequest.newBuilder(URI.create(Api.base(port) + AUTH_CODE))
                 .header("Content-Type", "application/json")
-                .header("Origin", "http://localhost:5173")
+                .header("Origin", Api.WEB_ORIGIN)
                 .header("X-PolicyPilot-Client", "web")
                 .header("X-Forwarded-For", "198.51.100.90")
                 .POST(HttpRequest.BodyPublishers.ofInputStream(() -> new ByteArrayInputStream(body)))

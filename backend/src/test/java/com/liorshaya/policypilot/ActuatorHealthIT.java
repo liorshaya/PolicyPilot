@@ -3,6 +3,7 @@ package com.liorshaya.policypilot;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.liorshaya.policypilot.support.Api;
 import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
 /** The only endpoint of day 1: {@code /actuator/health}, the Railway health check (Document 2, Deployment Topology). */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.ai.openai.api-key=test-key-not-real")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
+    "spring.ai.openai.api-key=test-key-not-real", "server.address=" + Api.HOST})
 @Import(OfflineEmbeddings.class)
 @ActiveProfiles("openai")
 class ActuatorHealthIT extends PostgresContainerSupport {
@@ -25,7 +27,7 @@ class ActuatorHealthIT extends PostgresContainerSupport {
 
     @Test
     void healthEndpointReportsUp() {
-        ResponseEntity<String> response = RestClient.create("http://localhost:" + port)
+        ResponseEntity<String> response = RestClient.create(Api.base(port))
                 .get().uri("/actuator/health")
                 .retrieve()
                 .toEntity(String.class);
@@ -38,7 +40,7 @@ class ActuatorHealthIT extends PostgresContainerSupport {
     // Document 2, Observability: a trace id on every response; Micrometer Tracing with Brave writes 16 or 32 hex digits
     @Test
     void everyResponseCarriesATraceId() {
-        ResponseEntity<String> response = RestClient.create("http://localhost:" + port)
+        ResponseEntity<String> response = RestClient.create(Api.base(port))
                 .get().uri("/actuator/health")
                 .retrieve()
                 .toEntity(String.class);

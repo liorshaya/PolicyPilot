@@ -21,6 +21,12 @@ import java.util.regex.Pattern;
  */
 public final class Api {
 
+    /**
+     * The one address the test server listens on and every client calls. Not {@code localhost}: with the server on
+     * every address, another listener on this address and the same ephemeral port (a port Docker forwards) answered
+     * one run's sign-ins with 404 (day 14); bound to this address alone, the port the server gets is its own.
+     */
+    public static final String HOST = "127.0.0.1";
     /** The web app's origin in the default allowlist of {@code application.yml}. */
     public static final String WEB_ORIGIN = "http://localhost:5173";
     /** The access code of {@code src/test/resources/config/application.yml}. */
@@ -34,7 +40,12 @@ public final class Api {
     private final String base;
 
     public Api(int port) {
-        this.base = "http://localhost:" + port;
+        this.base = base(port);
+    }
+
+    /** The test server's base URL on {@link #HOST}. */
+    public static String base(int port) {
+        return "http://" + HOST + ":" + port;
     }
 
     public Call get(String path) {
