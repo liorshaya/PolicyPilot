@@ -59,6 +59,7 @@ e2e: ## Frontend Playwright (starts the dev server itself)
 check: ## The CI hygiene checks and the Python reference self-test, exactly as stage 1 and 2 run them
 	python3 scripts/ci/check_fixture_privacy.py
 	python3 scripts/ci/check_invisible_characters.py
+	python3 scripts/ci/traceability.py --self-test && python3 scripts/ci/traceability.py --check
 	scripts/ci/check_schema_copies.sh
 	scripts/ci/check_generated_client.sh
 	python3 scripts/ci/check_readme_limitations.py
