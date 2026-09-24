@@ -8,6 +8,7 @@ import { lendingParagraphs } from '../../test/fixtures/lending'
 import {
   SEEDED_RULESET_ID,
   SECOND_RULESET_ID,
+  publishedVersion,
   secondVersion,
   twoRulesets,
 } from '../../test/msw/handlers'
@@ -204,6 +205,85 @@ describe('PoliciesScreen', () => {
 
     await waitFor(() => expect(sent).not.toBeNull())
     expect(sent).toEqual({})
+  })
+
+  // Day 15, on the live site: while a new policy is being added, the Generate button still belongs to the policy
+  // that was open, so a quick click generated the wrong one. Expected: disabled until the new policy is added
+  it('does not generate while a new policy is still being added', async () => {
+    let release: () => void = () => undefined
+    const added = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.post('http://localhost:8080/api/v1/policies', async () => {
+        await added
+        return HttpResponse.json({ ...emptyPolicy, id: 'new-policy' }, { status: 201 })
+      }),
+    )
+    renderScreen()
+    await screen.findByRole('button', { name: 'Generate rules' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add policy' }))
+    await userEvent.type(screen.getByLabelText('Title'), 'Rental deposits')
+    await userEvent.type(
+      screen.getByLabelText('Policy text'),
+      'Deposits are returned within 30 days.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add policy' }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate rules' })).toBeDisabled(),
+    )
+    release()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate rules' })).toBeEnabled(),
+    )
+  })
+
+  // Document 4, Field hints: step 1's generation carries the seeded inputs. Expected: the pasted policy cannot be
+  // generated until the seeded version is read, and then goes out with the hints
+  it("step 1 waits for the seeded rule set's inputs before it can generate", async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let sent: Record<string, unknown> | null = null
+    server.use(
+      http.get('http://localhost:8080/api/v1/rulesets/:id/versions/:no', async () => {
+        await read
+        return HttpResponse.json(publishedVersion)
+      }),
+      http.post('http://localhost:8080/api/v1/policies/:id/rulesets', async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>
+        return new HttpResponse('event:parsing\ndata:{}\n\n', {
+          headers: { 'Content-Type': 'text/event-stream' },
+        })
+      }),
+    )
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <PoliciesScreen onOpenRules={() => undefined} demoAsked onDemoHandled={() => undefined} />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByLabelText('Policy text')).not.toHaveValue(''))
+    await userEvent.click(screen.getByRole('button', { name: 'Add policy' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate rules' })).toBeDisabled(),
+    )
+    release()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate rules' })).toBeEnabled(),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    // TypeScript narrows `sent` to null here, not seeing the handler assign it
+    const body = sent as Record<string, unknown> | null
+    expect(String(body?.hints)).toMatch(
+      /^The application supplies these inputs:\n- age \(integer, years\)/,
+    )
   })
 
   it('shows the error code when the list cannot be read', async () => {

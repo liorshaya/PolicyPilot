@@ -1,6 +1,6 @@
 # PolicyPilot Project Brief
 
-2026-09-19 · Lior Shaya
+2026-09-27 · Lior Shaya
 
 ## Overview
 
@@ -92,7 +92,7 @@ The demo is a scripted three-minute story with four wow moments; everything in s
 
 | Step | Time | What the audience sees | Wow moment |
 | --- | --- | --- | --- |
-| 1. Author | 0:00-0:45 | Paste the sample lending policy (Hebrew text, about one page). Click "Generate rules". A decision table of about 15 rules appears; each row links to its source paragraph. Two rows carry warnings: one ambiguity ("stable income" is undefined) and one conflict between two paragraphs. | Rules with provenance and a reviewer that catches problems a human would miss |
+| 1. Author | 0:00-0:45 | Paste the sample lending policy (Hebrew text, about one page). Click "Generate rules". A decision table of about 25 rules appears; each row links to its source paragraph. The reviewer's findings mark the rows they concern, and the presenter points to two of them: an ambiguity ("stable income" is undefined) and a conflict between two paragraphs (age 70 in one, retirees up to 75 in another). The others are real gaps a one-page policy leaves, such as how the 9% annual rate becomes a monthly one and whether 35% and 40% belong to the referral band (decided 2026-09-27, day 15). | Rules with provenance and a reviewer that catches problems a human would miss |
 | 2. Decide | 0:45-1:15 | Click "Run 200 cases". A dashboard shows approved / rejected / manual review counts and top rejection reasons. Open case 17: the trace shows the three rules that fired, with the applicant's values. | Deterministic decisions with a readable trace, under a second for 200 cases |
 | 3. Ask | 1:15-2:00 | Type in the chat: "Why was application 17 rejected?" The answer names the rule, quotes the policy paragraph, and links both. Follow-up: "Would it be approved with a guarantor?" The assistant asks the engine for a what-if simulation of the same version and cites its result: approved, with a flag that income stability is checked manually. Then: "What is the maximum loan term?" if not in the documents, the assistant says so. | Grounded answers with citations, and an honest "not in the policy" |
 | 4. Change | 2:00-3:00 | Type: "Raise the minimum monthly income to 9,000". The agent lists the two affected rules, shows a diff, reruns the 200 cases: 12 decisions flip, listed by id. Click "Approve". Version 2 is published, the audit log shows who changed what, when and why. | Agentic change with regression and a human approval gate |
