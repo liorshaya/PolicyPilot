@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Positive;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -67,10 +68,19 @@ public record PolicyPilotProperties(
         public record Models(@NotBlank String strong, @NotBlank String fast) {}
 
         /**
-         * Seconds. Only the chat stream's deadline lives here: a prompt's own timeout is in its {@code prompt.yml}
-         * (Document 2, Application properties), so one call has one place that says how long it may take.
+         * Seconds. The chat stream's deadline lives here, and a prompt's own timeout in its {@code prompt.yml}
+         * (Document 2, Application properties). {@code promptSeconds} replaces a prompt's own timeout by name: a
+         * provider profile whose model writes slower sets it (Document 4, Model Configuration per Prompt: the
+         * {@code ollama} profile, decided on day 15); the default sets none.
          */
-        public record Timeouts(@Positive int chatFirstTokenSeconds) {}
+        public record Timeouts(@Positive int chatFirstTokenSeconds,
+                @Nullable Map<String, @Positive Integer> promptSeconds) {
+
+            /** None when the profile sets none: an empty map binds as no properties at all. */
+            public Timeouts {
+                promptSeconds = promptSeconds == null ? Map.of() : Map.copyOf(promptSeconds);
+            }
+        }
     }
 
     /** 1536 for OpenAI text-embedding-3-small, 1024 for bge-m3; checked against the vector column at startup. */

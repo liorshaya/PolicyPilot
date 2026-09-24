@@ -585,6 +585,8 @@ The explain prompt sends no temperature either: its first live run was refused w
 
 The change prompt runs on the strong model and sends no temperature either (decided 2026-09-24, day 12). Its 6,000 tokens and 60 s stand until a live run shows them short: a proposal is a few rules and their reasons rather than a rule set, and the scripted one is served from the cache.
 
+Under the `ollama` profile the timeouts are longer (decided by the owner 2026-09-27, day 15): `qwen3:14b` writes about 27 tokens a second on the M1 Max that measured it, so a rule set of 6,000 tokens takes about four minutes where the strong OpenAI model takes about ninety seconds. Author and review get 600 s, change 300 s, explain 180 s, and answer 300 s with its first token within 90 s. They are `policypilot.ai.timeouts.prompt-seconds.<prompt>` and `chat-first-token-seconds` in `application-ollama.yml`; the `openai` profile sets none, so each prompt keeps its own timeout from the table above.
+
 **Role to model mapping** (as of September 2026; model names are properties `policypilot.ai.models.strong` and `policypilot.ai.models.fast`, confirmed against the provider's model list when the profile is set up, because the lists change every few months):
 
 | Role | `openai` profile | `ollama` profile |

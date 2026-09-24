@@ -121,6 +121,8 @@ policypilot:
       # A prompt's own timeout, token cap and temperature live in its prompt.yml (Document 2);
       # this one is the chat stream's deadline, which belongs to the stream and not to one call.
       chat-first-token-seconds: 20
+      # prompt-seconds.<prompt>: a profile whose model writes slower replaces a prompt's own timeout by name; the
+      # default replaces none (application-ollama.yml sets them)
     max-repair-attempts: 2
     # The owner capped OpenAI at 5 USD a day (2026-09-18). At the dearest price in the lineup on 2026-09-20,
     # the strong model's output at 12 USD per million tokens, 400,000 tokens cost 4.80 USD, so the ledger can

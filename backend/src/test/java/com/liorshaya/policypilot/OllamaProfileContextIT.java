@@ -2,9 +2,12 @@ package com.liorshaya.policypilot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
+import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,6 +40,9 @@ class OllamaProfileContextIT {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private PromptRegistry registry;
+
     @Test
     void contextLoadsWithTheOllamaProfile() {
         assertThat(properties).isNotNull();
@@ -61,5 +67,16 @@ class OllamaProfileContextIT {
     void bothModelRolesMapToTheLocalModel() {
         assertThat(properties.ai().models().strong()).isEqualTo("qwen3:14b");
         assertThat(properties.ai().models().fast()).isEqualTo("qwen3:14b");
+    }
+
+    // Document 4, Model Configuration per Prompt: "Author and review get 600 s, change 300 s, explain 180 s, and answer
+    // 300 s with its first token within 90 s" under the ollama profile. Expected: those values, bound and applied
+    @Test
+    void theSlowerModelGetsTheDocumentedTimeouts() {
+        assertThat(properties.ai().timeouts().promptSeconds()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "author", 600, "review", 600, "change", 300, "explain", 180, "answer", 300));
+        assertThat(properties.ai().timeouts().chatFirstTokenSeconds()).isEqualTo(90);
+        assertThat(registry.get("author").timeout()).isEqualTo(Duration.ofSeconds(600));
+        assertThat(registry.get("answer").timeout()).isEqualTo(Duration.ofSeconds(300));
     }
 }

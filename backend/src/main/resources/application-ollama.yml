@@ -23,5 +23,15 @@ policypilot:
     models:
       strong: qwen3:14b
       fast: qwen3:14b
+    # qwen3:14b writes about 27 tokens a second on the M1 Max that measured it, a third of the strong OpenAI model's
+    # pace, so each prompt gets longer (Document 4, Model Configuration per Prompt; decided on day 15)
+    timeouts:
+      chat-first-token-seconds: 90
+      prompt-seconds:
+        author: 600
+        review: 600
+        change: 300
+        explain: 180
+        answer: 300
   embedding:
     dimension: 1024

@@ -39,10 +39,13 @@ public final class PromptRegistry {
 
     private final Map<String, PromptDefinition> prompts;
 
-    /** The prompts of the day, with the versions {@code policypilot.ai.prompt-versions} overrides. */
+    /**
+     * The prompts of the day, with the versions {@code policypilot.ai.prompt-versions} overrides and the timeouts
+     * {@code policypilot.ai.timeouts.prompt-seconds} replaces.
+     */
     @Autowired
     public PromptRegistry(PolicyPilotProperties properties) {
-        this(PROMPTS, properties.ai().promptVersions());
+        this(PROMPTS, properties.ai().promptVersions(), properties.ai().timeouts().promptSeconds());
     }
 
     /**
@@ -50,10 +53,19 @@ public final class PromptRegistry {
      * @param activeVersions the versions that override each prompt's own {@code active} key, by prompt name
      */
     public PromptRegistry(List<String> names, Map<String, String> activeVersions) {
+        this(names, activeVersions, Map.of());
+    }
+
+    /**
+     * @param names the prompt directories to load
+     * @param activeVersions the versions that override each prompt's own {@code active} key, by prompt name
+     * @param timeoutSeconds the timeouts that replace each prompt's own {@code timeoutSeconds}, by prompt name
+     */
+    public PromptRegistry(List<String> names, Map<String, String> activeVersions, Map<String, Integer> timeoutSeconds) {
         Map<String, PromptDefinition> loaded = new LinkedHashMap<>();
         String conduct = read(CONDUCT);
         for (String name : names) {
-            loaded.put(name, load(name, activeVersions.get(name), conduct));
+            loaded.put(name, load(name, activeVersions.get(name), timeoutSeconds.get(name), conduct));
         }
         // a LinkedHashMap kept unmodifiable: Map.copyOf would lose the order the names were given in
         this.prompts = Collections.unmodifiableMap(loaded);
@@ -73,7 +85,8 @@ public final class PromptRegistry {
         return List.copyOf(prompts.keySet());
     }
 
-    private static PromptDefinition load(String name, @Nullable String override, String conductTemplate) {
+    private static PromptDefinition load(String name, @Nullable String override, @Nullable Integer timeoutSeconds,
+            String conductTemplate) {
         Map<String, Object> meta = metadata(ROOT + name + "/prompt.yml");
         String declaredName = text(meta, "name");
         if (!declaredName.equals(name)) {
@@ -98,7 +111,8 @@ public final class PromptRegistry {
                 role(text(meta, "modelRole")),
                 temperature(meta),
                 number(meta, "maxOutputTokens").intValue(),
-                Duration.ofSeconds(number(meta, "timeoutSeconds").longValue()),
+                Duration.ofSeconds(timeoutSeconds != null ? timeoutSeconds
+                        : number(meta, "timeoutSeconds").longValue()),
                 number(meta, "repairs").intValue(),
                 cachePolicy(text(meta, "cache")),
                 languages(meta));
