@@ -95,16 +95,19 @@ class LiveAnswerRecordingIT {
     /**
      * The real gateway, with every streamed answer written as the provider sent it: the tool calls in the order the
      * model made them, and the raw text before the marker resolver, which the replay runs through the resolver again.
+     * The answers go under the given provider's recordings, in {@code <prompt>/<version>/}.
      */
     static final class RecordingModel implements LlmGateway {
 
         private final LlmGateway provider;
         private final String model;
+        private final Path recordings;
         private final List<Path> written = new ArrayList<>();
 
-        RecordingModel(LlmGateway provider, String model) {
+        RecordingModel(LlmGateway provider, String model, Path recordings) {
             this.provider = provider;
             this.model = model;
+            this.recordings = recordings;
         }
 
         List<Path> written() {
@@ -149,7 +152,7 @@ class LiveAnswerRecordingIT {
             recording.putObject("usage").put("inputTokens", usage.inputTokens())
                     .put("outputTokens", usage.outputTokens());
             try {
-                Path directory = RECORDINGS.resolve(spec.promptName()).resolve(spec.promptVersion());
+                Path directory = recordings.resolve(spec.promptName()).resolve(spec.promptVersion());
                 Files.createDirectories(directory);
                 Path file = directory.resolve(hash + ".json");
                 Files.writeString(file, recording.toPrettyString() + "\n");
@@ -193,7 +196,7 @@ class LiveAnswerRecordingIT {
         @Bean
         @Primary
         RecordingModel recordingModel(SpringAiLlmGateway provider, PolicyPilotProperties properties) {
-            return new RecordingModel(provider, properties.ai().models().fast());
+            return new RecordingModel(provider, properties.ai().models().fast(), RECORDINGS);
         }
 
         @Bean

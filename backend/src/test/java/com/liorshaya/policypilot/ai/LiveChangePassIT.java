@@ -19,6 +19,7 @@ import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveProvider;
 import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
@@ -26,6 +27,7 @@ import com.liorshaya.policypilot.support.Reviews;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -54,18 +57,24 @@ import tools.jackson.databind.node.ObjectNode;
  * request of {@code fixtures/eval/changes.json} proposed through the real change use case, on its policy published
  * with its labeled rule set, with the candidates the real candidate selection finds on the provider's vectors. Every
  * answer and every repair is written under the active version of the change prompt, in
- * {@code fixtures/eval/recordings/openai/change/<version>/}, which is what {@code EvalRunnerIT} scores change
+ * {@code fixtures/eval/recordings/<provider>/change/<version>/}, which is what {@code EvalRunnerIT} scores change
  * correctness from, offline and for nothing.
  *
  * <p>Only what has no recording is paid for. A request whose first prompt is recorded is not asked again, so a re-run
  * pays only for what is missing (the scripted request's {@code change/v1} answer, recorded on day 12 by
  * {@link LiveChangeRecordingIT}, was left alone that way); and a policy whose vectors a pass recorded is embedded
  * from them, so the provider embeds only a policy no pass has published, whose vectors are then written beside the
- * others. Before a request is asked, the version the application stored must render the very prompt the runner
- * renders from the labeled files, or the recording would never be replayed.
+ * others. The requests' own texts are embedded the same way, once, when the provider has none recorded. Before a
+ * request is asked, the version the application stored must render the very prompt the runner renders from the
+ * labeled files, or the recording would never be replayed.
  *
- * <p>It is tagged {@code live}, so CI never runs it, and it needs a real {@code OPENAI_API_KEY}. {@code live.budget}
- * caps what the pass may spend, the day's budget when it is not given; a call that could cross it is not asked:
+ * <p>It is tagged {@code live}, so CI never runs it. The provider is {@code -Dprovider} (Document 4: a column each):
+ * {@code openai} needs a real {@code OPENAI_API_KEY}, {@code ollama} a local Ollama at {@code OLLAMA_BASE_URL} with the
+ * profile's models pulled. The vectors are the provider's own, in
+ * {@code fixtures/eval/recordings/<provider>/embedding/<model>/}, and the seeded lending version is embedded from them
+ * at startup, so a provider's retrieval pass ({@code LiveRetrievalRecordingIT}) runs before its first change pass.
+ * {@code live.budget} caps what the pass may spend, the day's budget when it is not given; a call that could cross it
+ * is not asked:
  *
  * <pre>{@code
  * OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveChangePassIT -Dlive.tag= -Dlive.budget=35000 \
@@ -73,13 +82,15 @@ import tools.jackson.databind.node.ObjectNode;
  * }</pre>
  */
 @Tag("live")
-@SpringBootTest(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY}",
+@SpringBootTest(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY:not-a-real-key}",
         "policypilot.ai.daily-token-budget=400000"})
-@ActiveProfiles("openai")
+@ActiveProfiles(resolver = LiveProvider.class)
 @Import(LiveChangePassIT.Recording.class)
 class LiveChangePassIT {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    /** The corpus of the requests' texts, the one {@link LiveChangeRecordingIT} recorded for OpenAI. */
+    private static final String REQUESTS = "changes";
 
     /** A database of its own: the recorded vectors answer only the texts a pass recorded. */
     @ServiceConnection
@@ -112,13 +123,19 @@ class LiveChangePassIT {
 
     @Test
     void everyLabeledRequestIsProposedLiveAndRecorded() {
-        LiveRecordingGateway model = new LiveRecordingGateway("openai", gateway, properties.ai().models().strong(),
+        String provider = LiveProvider.name();
+        LiveRecordingGateway model = new LiveRecordingGateway(provider, gateway, properties.ai().models().strong(),
                 Long.getLong("live.budget", properties.ai().dailyTokenBudget()),
                 LiveChangeRecordingIT.CHARACTERS_PER_TOKEN, LiveChangeRecordingIT.OUTPUT_ALLOWANCE);
         ChangeService service = new ChangeService(model, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
                 new DslCheatSheet());
         // the seeded version is embedded at startup, on the recorded vectors, before any corpus is recorded
         awaitEmbedded();
+        if (!vectors.recorded(REQUESTS)) {
+            vectors.record(REQUESTS);
+            vectors.embedAll(ChangeRequests.texts());
+            vectors.write();
+        }
         Map<String, Boolean> recorded = new LinkedHashMap<>();
         for (JsonNode request : ChangeRequests.labeled()) {
             String id = request.required("id").asString();
@@ -130,12 +147,12 @@ class LiveChangePassIT {
             assertThat(service.specFor(stored, text, candidates)).isEqualTo(first);
             System.out.printf("%s: seeds %s, candidates %s, the label's %s%n", id, candidates.seeds(),
                     candidates.ruleIds(), ChangeRequests.expectedCandidates(id));
-            if (Files.exists(LiveRecordingGateway.fileOf("openai", first))) {
+            if (Files.exists(LiveRecordingGateway.fileOf(provider, first))) {
                 System.out.println(id + ": recorded already, not asked again");
             } else {
                 propose(service, id, labeled, text, candidates);
             }
-            recorded.put(id, Files.exists(LiveRecordingGateway.fileOf("openai", first)));
+            recorded.put(id, Files.exists(LiveRecordingGateway.fileOf(provider, first)));
         }
 
         System.out.println("spent " + model.spent());
@@ -167,7 +184,7 @@ class LiveChangePassIT {
         String policy = request.required("policy").asString();
         String textPath = request.required("policyText").asString();
         JsonNode document = Fixtures.json(request.required("ruleset").asString());
-        boolean unrecorded = !Files.exists(RecordedEmbeddingGateway.RECORDINGS.resolve(policy + ".json"));
+        boolean unrecorded = !vectors.recorded(policy);
         if (unrecorded) {
             vectors.record(policy);
         }
@@ -202,18 +219,28 @@ class LiveChangePassIT {
     /**
      * The vectors the passes recorded, and the provider for a policy none of them has: while a corpus is recorded
      * every text goes to the provider and is kept for that corpus's file, as the day 8 pass keeps one; at any other
-     * time a text with no recording fails as it does offline, so nothing else is paid for or written.
+     * time a text with no recording fails as it does offline, so nothing else is paid for or written. The vectors are
+     * the active provider's, read from and written to its model's folder.
      */
     static final class Vectors implements EmbeddingGateway {
 
         private final EmbeddingGateway provider;
-        private final RecordedEmbeddingGateway recorded;
+        private final Path directory;
+        private final String model;
         private final Map<String, float[]> kept = new LinkedHashMap<>();
+        private RecordedEmbeddingGateway recorded;
         private @Nullable String corpus;
 
-        Vectors(EmbeddingGateway provider, RecordedEmbeddingGateway recorded) {
+        Vectors(EmbeddingGateway provider, Path directory, String model) {
             this.provider = provider;
-            this.recorded = recorded;
+            this.directory = directory;
+            this.model = model;
+            this.recorded = RecordedEmbeddingGateway.replaying(directory, provider.dimension());
+        }
+
+        /** Whether a pass has recorded this corpus for the active provider. */
+        boolean recorded(String name) {
+            return Files.exists(directory.resolve(name + ".json"));
         }
 
         synchronized void record(String name) {
@@ -243,20 +270,21 @@ class LiveChangePassIT {
             return provider.dimension();
         }
 
-        /** Writes the corpus being recorded to its file and goes back to the recordings. */
+        /** Writes the corpus being recorded to its file and goes back to the recordings, that file's among them. */
         synchronized void write() {
             ObjectNode file = JSON.createObjectNode();
-            file.put("provider", "openai").put("model", "text-embedding-3-small").put("dimension", provider.dimension())
+            file.put("provider", LiveProvider.name()).put("model", model).put("dimension", provider.dimension())
                     .put("corpus", corpus);
             ArrayNode embeddings = file.putArray("embeddings");
             kept.forEach((text, vector) -> embeddings.add(RecordedEmbeddingGateway.entry(text, vector)));
             try {
-                Files.writeString(RecordedEmbeddingGateway.RECORDINGS.resolve(corpus + ".json"),
-                        file.toPrettyString() + "\n");
+                Files.createDirectories(directory);
+                Files.writeString(directory.resolve(corpus + ".json"), file.toPrettyString() + "\n");
             } catch (IOException e) {
                 throw new UncheckedIOException("could not write the recording", e);
             }
             corpus = null;
+            recorded = RecordedEmbeddingGateway.replaying(directory, provider.dimension());
         }
     }
 
@@ -265,8 +293,9 @@ class LiveChangePassIT {
 
         @Bean
         @Primary
-        Vectors vectors(SpringAiEmbeddingGateway provider, PolicyPilotProperties properties) {
-            return new Vectors(provider, RecordedEmbeddingGateway.replaying(properties.embedding().dimension()));
+        Vectors vectors(SpringAiEmbeddingGateway provider, Environment environment) {
+            return new Vectors(provider, LiveProvider.embeddings(environment),
+                    LiveProvider.embeddingModel(environment));
         }
     }
 }

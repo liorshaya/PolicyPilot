@@ -79,9 +79,14 @@ public final class LiveRecordingGateway implements LlmGateway {
         return spentIn + " input + " + spentOut + " output = " + (spentIn + spentOut) + " tokens";
     }
 
+    /** A provider's recordings, what {@code RecordedGateway.replaying} is given to replay that provider's answers. */
+    public static Path directoryOf(String provider) {
+        return RECORDINGS.resolve(provider);
+    }
+
     /** Where a provider's answer to a prompt is written, and where the replaying gateway looks for it. */
     public static Path fileOf(String provider, PromptSpec spec) {
-        return RECORDINGS.resolve(provider).resolve(spec.promptName()).resolve(spec.promptVersion())
+        return directoryOf(provider).resolve(spec.promptName()).resolve(spec.promptVersion())
                 .resolve(hashOf(spec) + ".json");
     }
 

@@ -20,37 +20,65 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * The embedding provider as a live pass recorded it (fixtures/eval/recordings/README.md, Embeddings): every text a
  * recording holds answers with the vector the provider returned, looked up by the text's SHA-256; any other text
- * fails the test, so a change to what is embedded needs a live pass rather than a silent stand-in.
+ * fails the test, so a change to what is embedded needs a live pass rather than a silent stand-in. Each provider's
+ * vectors are replayed from their own folder, since one model's vectors mean nothing to another's.
  */
 public final class RecordedEmbeddingGateway implements EmbeddingGateway {
 
-    /** Where the live pass writes, relative to {@code backend/}. */
-    public static final Path RECORDINGS =
-            Path.of("..", "fixtures", "eval", "recordings", "openai", "embedding", "text-embedding-3-small");
+    /** Where the live passes wrote OpenAI's vectors, relative to {@code backend/}: what the offline tests replay. */
+    public static final Path RECORDINGS = directoryOf("openai", "text-embedding-3-small");
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
+    private final Path directory;
     private final Map<String, float[]> vectors;
     private final int dimension;
 
-    private RecordedEmbeddingGateway(Map<String, float[]> vectors, int dimension) {
+    private RecordedEmbeddingGateway(Path directory, Map<String, float[]> vectors, int dimension) {
+        this.directory = directory;
         this.vectors = vectors;
         this.dimension = dimension;
     }
 
+    /**
+     * Where a live pass writes the vectors of a provider's embedding model, relative to {@code backend/}:
+     * {@code fixtures/eval/recordings/<provider>/embedding/<model>/}.
+     */
+    public static Path directoryOf(String provider, String model) {
+        return Path.of("..", "fixtures", "eval", "recordings", provider, "embedding", model);
+    }
+
     /** Every recording under {@link #RECORDINGS}. */
     public static RecordedEmbeddingGateway replaying(int dimension) {
+        return replaying(RECORDINGS, dimension);
+    }
+
+    /**
+     * Every recording under a provider's folder, none when no pass has recorded there yet. A vector of another size
+     * than the profile's column fails here, before any is stored: vectors of one model replayed under a profile sized
+     * for another (1536 for text-embedding-3-small, 1024 for bge-m3) would not fit the {@code chunk} column.
+     */
+    public static RecordedEmbeddingGateway replaying(Path directory, int dimension) {
         Map<String, float[]> vectors = new HashMap<>();
-        try (Stream<Path> files = Files.list(RECORDINGS)) {
+        if (!Files.isDirectory(directory)) {
+            return new RecordedEmbeddingGateway(directory, vectors, dimension);
+        }
+        try (Stream<Path> files = Files.list(directory)) {
             for (Path file : files.filter(path -> path.toString().endsWith(".json")).sorted().toList()) {
                 JsonNode recording = JSON.readTree(Files.readString(file));
-                recording.required("embeddings").forEach(entry ->
-                        vectors.put(entry.required("sha256").asString(), decode(entry.required("vector").asString())));
+                for (JsonNode entry : recording.required("embeddings")) {
+                    float[] vector = decode(entry.required("vector").asString());
+                    if (vector.length != dimension) {
+                        throw new IllegalStateException(file + " holds vectors of " + vector.length
+                                + " dimensions, the profile has " + dimension);
+                    }
+                    vectors.put(entry.required("sha256").asString(), vector);
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException("cannot read the embedding recordings", e);
         }
-        return new RecordedEmbeddingGateway(vectors, dimension);
+        return new RecordedEmbeddingGateway(directory, vectors, dimension);
     }
 
     @Override
@@ -63,7 +91,8 @@ public final class RecordedEmbeddingGateway implements EmbeddingGateway {
         return texts.stream().map(text -> {
             float[] vector = vectors.get(Hashes.sha256Hex(text));
             if (vector == null) {
-                throw new IllegalStateException("no recorded embedding for \"" + text + "\"; run LiveRetrievalRecordingIT");
+                throw new IllegalStateException("no recorded embedding for \"" + text + "\" in " + directory
+                        + "; run LiveRetrievalRecordingIT");
             }
             return vector.clone();
         }).toList();

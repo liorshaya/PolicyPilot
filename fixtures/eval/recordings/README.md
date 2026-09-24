@@ -24,6 +24,17 @@ OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveAuthoringRecordingIT 
     -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
 ```
 
+The passes of evaluation run 2 (`LiveRetrievalRecordingIT`, `LiveAuthorPassIT`, `LiveReviewRecordingIT`,
+`LiveAnswerPassIT` and `LiveChangePassIT`) record the provider named by `-Dprovider` under its own profile and into
+its own folder, `openai` when it is not given (Document 4: a column each). For Ollama, with the profile's models
+pulled, the retrieval pass first, since the others retrieve on its vectors:
+
+```
+OLLAMA_BASE_URL=http://localhost:11434 ./mvnw verify -Dprovider=ollama -Dtest=none \
+    -Dit.test=LiveRetrievalRecordingIT -Dlive.tag= \
+    -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
+```
+
 Hand-written adversarial answers live beside the real ones with a `"synthetic": true` marker (Document 6).
 
 ## Embeddings
