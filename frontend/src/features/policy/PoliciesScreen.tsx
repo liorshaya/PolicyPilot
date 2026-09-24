@@ -68,6 +68,12 @@ export function PoliciesScreen({
   )
   // the first policy is open until the reader chooses another, so nothing has to be selected in an effect
   const selectedId = chosenId ?? list[0]?.id ?? null
+  // Generating waits while a new policy is being added, since the button still belongs to the policy that was open
+  // (day 15: a quick click generated the seeded policy instead of the pasted copy), and, for the policy step 1 pasted,
+  // until the seeded inputs are read, so its generation never goes out without its hints
+  const preparing =
+    create.isPending ||
+    (selectedId !== null && selectedId === demoPolicyId && seededFields === undefined)
   const selected = usePolicy(selectedId)
   // the rule set written from this policy, which is what "its rules" means; a policy may not have one yet
   const ownRuleset = (rulesets.data ?? []).find((one) => one.policyId === selectedId)
@@ -150,7 +156,14 @@ export function PoliciesScreen({
                     <Button
                       variant="primary"
                       loading={generation.running}
-                      disabled={generation.running}
+                      disabled={generation.running || preparing}
+                      title={
+                        create.isPending
+                          ? 'The new policy is still being added'
+                          : preparing
+                            ? "Reading the seeded rule set's inputs for the hints"
+                            : undefined
+                      }
                       onClick={() => {
                         const hints =
                           selected.data.id === demoPolicyId && seededFields !== undefined
