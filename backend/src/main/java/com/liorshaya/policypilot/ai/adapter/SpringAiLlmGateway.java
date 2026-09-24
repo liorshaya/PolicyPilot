@@ -488,12 +488,14 @@ public class SpringAiLlmGateway implements LlmGateway {
                 usage.getCompletionTokens() == null ? 0 : usage.getCompletionTokens());
     }
 
-    /** A rate limit or a server error may pass on the next attempt; anything else will not. */
+    /**
+     * Document 4, Guardrails: "retry with backoff on 429 and 5xx". A timeout is not retried: it is the model's own
+     * pace, and the same prompt runs as long again (found on day 15, when a local rule set ran away three times over).
+     */
     static boolean worthRetrying(RuntimeException e) {
         String message = String.valueOf(e.getMessage());
         return message.contains("429") || message.contains("500") || message.contains("502")
-                || message.contains("503") || message.contains("504") || message.contains("timeout")
-                || message.contains("Timeout");
+                || message.contains("503") || message.contains("504");
     }
 
     static LlmUnavailableException.Reason reasonOf(@Nullable RuntimeException e) {

@@ -218,6 +218,8 @@ class SpringAiLlmGatewayIT extends ApiIntegrationTest {
         assertThat(SpringAiLlmGateway.worthRetrying(new IllegalStateException("429 Too Many Requests"))).isTrue();
         assertThat(SpringAiLlmGateway.worthRetrying(new IllegalStateException("503 Service Unavailable"))).isTrue();
         assertThat(SpringAiLlmGateway.worthRetrying(new IllegalStateException("401 Unauthorized"))).isFalse();
+        // Document 4, Guardrails: 429 and 5xx only; a timeout runs as long again (day 15)
+        assertThat(SpringAiLlmGateway.worthRetrying(new IllegalStateException("read timeout"))).isFalse();
         assertThat(SpringAiLlmGateway.reasonOf(new IllegalStateException("read timeout")))
                 .isEqualTo(LlmUnavailableException.Reason.TIMEOUT);
         assertThat(SpringAiLlmGateway.reasonOf(null))
