@@ -137,7 +137,7 @@ class ChangeScoringTest {
     // a new field and a rule where the label has no patch. So 4 of 6, under Document 4's target of 5 of 6
     @Test
     void theRunnerScoresChangeV1AtFourOfSix() {
-        EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v1"));
+        EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v1"), "openai");
 
         RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report, "v1");
 
@@ -155,7 +155,7 @@ class ChangeScoringTest {
     // no patch; the other four propose what their labels propose. So 6 of 6, over Document 4's target of 5 of 6
     @Test
     void theRunnerScoresChangeV2AtSixOfSix() {
-        EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v2"));
+        EvalReport report = new EvalReport(LocalDate.EPOCH, Map.of("change", "v2"), "openai");
 
         RecordedScoring.Changing changing = new RecordedScoring("openai").scoreChanges(report, "v2");
 

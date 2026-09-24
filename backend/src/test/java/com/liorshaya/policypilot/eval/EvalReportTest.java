@@ -2,10 +2,14 @@ package com.liorshaya.policypilot.eval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The report Document 4 asks the runner to write: "one Markdown report with one column per provider", the metric
@@ -20,7 +24,7 @@ class EvalReportTest {
     // of every report, whether or not either was run
     @Test
     void theReportHasAColumnPerProvider() {
-        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS).markdown();
+        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai").markdown();
 
         String header = markdown.lines().filter(line -> line.startsWith("| Metric |")).findFirst().orElseThrow();
         assertThat(header).contains("openai").contains("ollama");
@@ -30,7 +34,7 @@ class EvalReportTest {
     // provider that was not run reads "not run", never 0.00, which would read as a column that failed
     @Test
     void aProviderWithNoRunIsReportedAsNotRunRatherThanZero() {
-        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS)
+        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai")
                 .score("openai", "Rule recall", Metric.Score.of(9, 10));
 
         String recall = rowOf(report.markdown(), "Rule recall");
@@ -43,7 +47,7 @@ class EvalReportTest {
     // against Document 4's own target of 0.90 for rule recall
     @Test
     void everyTargetGetsAPassOrFailFromTheStrongModelsColumn() {
-        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS)
+        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai")
                 .score("openai", "Rule recall", Metric.Score.of(9, 10))
                 .score("openai", "Rule precision", Metric.Score.of(8, 10));
 
@@ -57,7 +61,7 @@ class EvalReportTest {
     // below every target never turns the verdict of a run that has no openai column into a pass or a fail
     @Test
     void theOllamaColumnNeverDecidesAVerdict() {
-        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS)
+        EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai")
                 .score("ollama", "Rule recall", Metric.Score.of(1, 10));
 
         assertThat(rowOf(report.markdown(), "Rule recall")).contains("0.10 (1 of 10)").endsWith("not run |");
@@ -67,7 +71,7 @@ class EvalReportTest {
     // names it, so a metric cannot go missing without the table changing
     @Test
     void everyMetricOfDocumentFourHasItsRow() {
-        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS).markdown();
+        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai").markdown();
 
         List<String> named = Metric.table().stream().map(Metric::name).toList();
         assertThat(named).hasSize(13);
@@ -78,7 +82,7 @@ class EvalReportTest {
     @Test
     void theReportIsNamedByItsDateAndPromptVersions() {
         EvalReport report = new EvalReport(LocalDate.of(2026, 9, 23),
-                new java.util.LinkedHashMap<>(Map.of("author", "v1")));
+                new java.util.LinkedHashMap<>(Map.of("author", "v1")), "openai");
 
         assertThat(report.fileName().getFileName().toString()).isEqualTo("2026-09-23-authorv1.md");
         assertThat(report.fileName().getParent()).isEqualTo(EvalReport.DIRECTORY);
@@ -88,16 +92,55 @@ class EvalReportTest {
     // both sections present when there is anything to put in them, and absent when there is not
     @Test
     void perPolicyRowsAndMismatchesAppearWhenThereAreAny() {
-        assertThat(new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS).markdown())
+        assertThat(new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai").markdown())
                 .doesNotContain("## Per policy").doesNotContain("## Mismatches");
 
-        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS)
+        String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai")
                 .policyRow("| consumer-lending | 19 | 14 | 0.78 | 0.74 | 1.00 | 0.95 |")
                 .mismatch("R-010: the set value differs on 21 of 21 cases")
                 .markdown();
 
         assertThat(markdown).contains("## Per policy").contains("| consumer-lending | 19 | 14 |")
                 .contains("## Mismatches").contains("R-010: the set value differs on 21 of 21 cases");
+    }
+
+    // Document 4: "one Markdown report with one column per provider", while each provider's column is scored in a run
+    // of its own (the vector column is sized per profile). Expected: the second provider's run writes its column
+    // beside the first's, keeps the first's verdict and section, and adds its own section
+    @Test
+    void aSecondProvidersRunKeepsTheFirstProvidersColumnAndSection(@TempDir Path directory) throws Exception {
+        new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "openai").model("openai", "gpt-5.6-terra")
+                .score("openai", "Rule recall", Metric.Score.of(9, 10)).note("scored on the strong model")
+                .write(directory);
+        Path file = new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "ollama").model("ollama", "qwen3:14b")
+                .score("ollama", "Rule recall", Metric.Score.of(1, 10)).note("scored on the local model")
+                .write(directory);
+
+        String markdown = Files.readString(file, StandardCharsets.UTF_8);
+        assertThat(rowOf(markdown, "Metric")).contains("openai (gpt-5.6-terra)").contains("ollama (qwen3:14b)");
+        assertThat(rowOf(markdown, "Rule recall")).contains("0.90 (9 of 10)").contains("0.10 (1 of 10)")
+                .endsWith("PASS |");
+        assertThat(markdown.indexOf("## openai")).isPositive().isLessThan(markdown.indexOf("scored on the strong"));
+        assertThat(markdown.indexOf("## ollama")).isGreaterThan(markdown.indexOf("scored on the strong model"))
+                .isLessThan(markdown.indexOf("scored on the local model"));
+    }
+
+    // Expected: a provider run again replaces its own column and section, and the other provider's stays
+    @Test
+    void aRerunOfTheSameProviderReplacesItsOwnColumn(@TempDir Path directory) throws Exception {
+        new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "ollama")
+                .score("ollama", "Rule recall", Metric.Score.of(1, 10)).note("the local model's first run")
+                .write(directory);
+        new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "openai")
+                .score("openai", "Rule recall", Metric.Score.of(9, 10)).note("the first run").write(directory);
+        Path file = new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "openai")
+                .score("openai", "Rule recall", Metric.Score.of(8, 10)).note("the second run").write(directory);
+
+        String markdown = Files.readString(file, StandardCharsets.UTF_8);
+        assertThat(rowOf(markdown, "Rule recall")).contains("0.80 (8 of 10)").contains("0.10 (1 of 10)")
+                .doesNotContain("(9 of 10)").endsWith("FAIL |");
+        assertThat(markdown).contains("the second run").contains("the local model's first run")
+                .doesNotContain("- the first run");
     }
 
     private static String rowOf(String markdown, String metric) {
