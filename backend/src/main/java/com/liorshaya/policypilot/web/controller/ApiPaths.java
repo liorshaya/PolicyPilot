@@ -5,6 +5,7 @@ public final class ApiPaths {
 
     public static final String V1 = "/api/v1";
     public static final String AUTH_CODE = V1 + "/auth/code";
+    public static final String ADMIN_RESET = V1 + "/admin/reset";
     public static final String POLICIES = V1 + "/policies";
     public static final String POLICY = POLICIES + "/{id}";
     public static final String POLICY_RULESETS = POLICY + "/rulesets";

@@ -1077,6 +1077,43 @@
         }
       }
     },
+    "/api/v1/admin/reset" : {
+      "post" : {
+        "tags" : [ "admin-controller" ],
+        "summary" : "Delete the stale sandboxes and re-seed the protected demo data now",
+        "operationId" : "reset",
+        "parameters" : [ {
+          "name" : "X-PolicyPilot-Admin-Code",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "What the reset did",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResetResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "No admin code, a wrong one, or none configured",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rulesets" : {
       "get" : {
         "tags" : [ "ruleset-controller" ],
@@ -2074,6 +2111,19 @@
             "type" : "string"
           }
         }
+      },
+      "ResetResponse" : {
+        "type" : "object",
+        "properties" : {
+          "sandboxesDeleted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reseeded" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "reseeded", "sandboxesDeleted" ]
       },
       "Ruleset" : {
         "type" : "object",

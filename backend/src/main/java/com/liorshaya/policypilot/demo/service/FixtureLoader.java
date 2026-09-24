@@ -14,10 +14,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * Loads the demo policy, its rule set and its 200 cases on an empty database (Document 2, Local: a seed job loads the fixtures; Work
- * Plan days 4 and 5) as the protected rows every sandbox reads and none may modify. It runs at startup and does
- * nothing when the protected rows are already there. The fixture text is clean as committed (NFC, no format or
- * control characters, checked by FixtureSeedIT), so it is stored as it is.
+ * Loads the demo policy, its rule set and its 200 cases on an empty database (Document 2, Local: a seed job loads the
+ * fixtures; Work Plan days 4 and 5) as the protected rows every sandbox reads and none may modify. It runs at startup
+ * and on every reset, and does nothing when the protected rows are already there. The fixture text is clean as
+ * committed (NFC, no format or control characters, checked by FixtureSeedIT), so it is stored as it is.
  */
 @Component
 public class FixtureLoader implements ApplicationRunner {
@@ -36,15 +36,28 @@ public class FixtureLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments arguments) {
+        seed();
+    }
+
+    /**
+     * Seeds whatever of the protected rows is missing and leaves what is there: the startup seed, and the re-seed of
+     * the nightly and manual reset (Document 5, Availability, Nightly reset).
+     *
+     * @return whether anything was missing and so seeded
+     */
+    public boolean seed() {
         LendingFixture fixture = LendingFixture.load();
+        boolean seeded = policies.protectedPolicies().isEmpty();
         PolicyView policy = policies.protectedPolicies().stream().findFirst().orElseGet(() -> seedPolicy(fixture));
         if (rulesets.protectedRulesets().isEmpty()) {
             seedRuleSet(fixture, policy);
+            seeded = true;
         }
         int seededCases = decisions.seedProtectedCases(fixture.casesJson());
         if (seededCases > 0) {
             LOG.atInfo().setMessage("demo.seed.cases").addKeyValue("cases", seededCases).log();
         }
+        return seeded || seededCases > 0;
     }
 
     private void seedRuleSet(LendingFixture fixture, PolicyView policy) {

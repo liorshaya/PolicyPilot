@@ -7,8 +7,10 @@ import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ActiveProfiles;
 
 /** Work Plan day 1: the context loads with the {@code openai} profile, and the documented defaults bind. */
@@ -30,6 +32,9 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
         assertThat(properties.embedding().dimension()).isEqualTo(1536);
     }
 
+    // The nightly reset's cron is read from the application.yml that ships, not from the bound properties: the test
+    // configuration turns the job off in every test context ("-"), because a cached context keeps its scheduler, and
+    // at 03:00 UTC one on the real clock would reset the shared database under a running test
     @Test
     void documentedDefaultsBind() {
         assertThat(properties.rateLimit().perMinute()).isEqualTo(20);
@@ -45,7 +50,13 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
                 .containsEntry("change", "v2");
         assertThat(properties.rag().topK()).isEqualTo(8);
         assertThat(properties.rag().minScore()).isEqualTo(0.35);
-        assertThat(properties.demo().resetCron()).isEqualTo("0 0 3 * * *");
+        assertThat(shipped("policypilot.demo.reset-cron")).isEqualTo("0 0 3 * * *");
         assertThat(properties.demo().fixtureSet()).isEqualTo("cases-200");
+    }
+
+    private static String shipped(String key) {
+        YamlPropertiesFactoryBean yaml = new YamlPropertiesFactoryBean();
+        yaml.setResources(new ClassPathResource("application.yml"));
+        return yaml.getObject().getProperty(key);
     }
 }

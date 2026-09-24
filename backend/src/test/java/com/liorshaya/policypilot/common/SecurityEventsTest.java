@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -61,6 +62,22 @@ class SecurityEventsTest {
         assertThat(registry.counter("ai.tool.rejected", "tool", "simulate", "reason", "not_found").count())
                 .isEqualTo(1.0);
         assertThat(mine()).extracting(ILoggingEvent::getMessage).containsExactly("ai.tool.rejected");
+    }
+
+    // Document 5, Security logging: "Admin code refused | Reason (missing, wrong, none configured), sandbox id |
+    // security.admin.refused". Expected: the counter tagged with the reason, and one WARN line naming the reason and
+    // the sandbox
+    @Test
+    void aRefusedAdminCodeIsCountedByReasonAndLogsTheSandbox() {
+        events.adminRefused("wrong", SANDBOX);
+
+        assertThat(registry.counter("security.admin.refused", "reason", "wrong").count()).isEqualTo(1.0);
+        assertThat(mine()).singleElement().satisfies(line -> {
+            assertThat(line.getMessage()).isEqualTo("security.admin.refused");
+            assertThat(line.getLevel()).isEqualTo(Level.WARN);
+            assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                    .containsExactly("reason=wrong", "sandbox=" + SANDBOX);
+        });
     }
 
     // Document 5, Security logging: "Denylist hit in a stream | Prompt version, pattern class". Expected: the counter

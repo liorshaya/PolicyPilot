@@ -3,3 +3,7 @@
 policypilot:
   access-code: testcode
   cookie-secret: not-a-secret-only-for-the-tests-of-policypilot
+  admin-code: not-the-admin-code-only-for-tests
+  demo:
+    # the nightly reset never fires inside a test run; ResetIT calls the job itself
+    reset-cron: "-"
