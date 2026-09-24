@@ -14,6 +14,7 @@ import com.liorshaya.policypilot.rules.validation.ValidationContext;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveProvider;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.Reviews;
@@ -36,6 +37,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
@@ -47,21 +49,23 @@ import tools.jackson.databind.node.ObjectNode;
  * The first live retrieval pass (Work Plan day 8: "one live embedding pass over the 30 committed questions, to catch
  * Hebrew misses early"). Each of the 13 policies the questions run on is published with its expected rule set through
  * the real pipeline and embedded by the real provider; every question goes through the real retrieval. It is tagged
- * {@code live}, so CI never runs it, and needs a real {@code OPENAI_API_KEY}; the command is in
- * fixtures/eval/recordings/README.md.
+ * {@code live}, so CI never runs it; the command is in fixtures/eval/recordings/README.md. The provider is
+ * {@code -Dprovider} (Document 4: a column each): {@code openai} needs a real {@code OPENAI_API_KEY}, {@code ollama} a
+ * local Ollama at {@code OLLAMA_BASE_URL} with the profile's models pulled.
  *
- * <p>Every vector is written to the recordings so {@code RecordedRetrievalIT} replays them offline, and the pass is
- * written to {@code docs/eval/retrieval-first-pass.md}: recall at 8 against each question's {@code expectedChunks},
- * whether the Threshold stopped it, and the misses.
+ * <p>Every vector is written to {@code fixtures/eval/recordings/<provider>/embedding/<model>/}, the model being the
+ * profile's embedding model, so {@code RecordedRetrievalIT} replays them offline and the provider's answer and change
+ * passes retrieve on them. The pass is written to {@code docs/eval/retrieval-first-pass.md} for OpenAI, the day 8
+ * pass, and to {@code docs/eval/retrieval-first-pass-<provider>.md} for any other: recall at 8 against each question's
+ * {@code expectedChunks}, whether the Threshold stopped it, and the misses.
  */
 @Tag("live")
-@SpringBootTest(properties = "spring.ai.openai.api-key=${OPENAI_API_KEY}")
-@ActiveProfiles("openai")
+@SpringBootTest(properties = "spring.ai.openai.api-key=${OPENAI_API_KEY:not-a-real-key}")
+@ActiveProfiles(resolver = LiveProvider.class)
 @Import(LiveRetrievalRecordingIT.Recording.class)
 class LiveRetrievalRecordingIT extends PostgresContainerSupport {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-    private static final Path REPORT = Path.of("..", "docs", "eval", "retrieval-first-pass.md");
     private static final String QUESTIONS = "questions";
 
     @Autowired
@@ -95,9 +99,15 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
             rows.add(new Row(question, result));
         }
         recorder.write();
-        writeReport(rows);
+        writeReport(rows, recorder.model());
 
         assertThat(rows).hasSize(30);
+    }
+
+    /** The day 8 report keeps its name for OpenAI; another provider's pass is written beside it, not over it. */
+    private static Path report(String provider) {
+        return Path.of("..", "docs", "eval",
+                "openai".equals(provider) ? "retrieval-first-pass.md" : "retrieval-first-pass-" + provider + ".md");
     }
 
     /** Publishes one policy's expected rule set in a sandbox of its own and waits for the provider's vectors. */
@@ -128,19 +138,19 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
         }
     }
 
-    private static void writeReport(List<Row> rows) {
+    private static void writeReport(List<Row> rows, String model) {
         StringBuilder report = new StringBuilder("""
                 # Retrieval, first live pass
 
                 Work Plan day 8: one live embedding pass over the 30 questions of `fixtures/eval/questions.json`, each
-                asked of its own policy, published with its expected rule set and embedded by `text-embedding-3-small`.
-                Written by `LiveRetrievalRecordingIT`; the vectors are in `fixtures/eval/recordings/openai/embedding/`.
+                asked of its own policy, published with its expected rule set and embedded by `%s`.
+                Written by `LiveRetrievalRecordingIT`; the vectors are in `fixtures/eval/recordings/%s/embedding/`.
                 Recall at 8 counts the question's `expectedChunks` among the chunks kept; a refusal question is right
                 to be stopped by the Threshold, but day 9's answer prompt may also refuse it.
 
                 | Question | Language | Refusal | Stopped | Best cosine | Recall at 8 | Missed | Kept |
                 | --- | --- | --- | --- | --- | --- | --- | --- |
-                """);
+                """.formatted(model, LiveProvider.name()));
         int expected = 0;
         int found = 0;
         for (Row row : rows) {
@@ -161,9 +171,10 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
         }
         report.append("\nOverall recall at 8: ").append(found).append(" of ").append(expected)
                 .append(" expected chunks.\n");
+        Path file = report(LiveProvider.name());
         try {
-            Files.createDirectories(REPORT.getParent());
-            Files.writeString(REPORT, report.toString());
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, report.toString());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -184,16 +195,25 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
 
     /**
      * The real gateway, with every text and vector it returns kept under the corpus being embedded. The seeded demo
-     * version is embedded at startup, before the test names a corpus; its texts are the consumer-lending corpus.
+     * version is embedded at startup, before the test names a corpus; its texts are the consumer-lending corpus. The
+     * corpora are written to the folder of the active provider's embedding model.
      */
     static final class RecordingGateway implements EmbeddingGateway {
 
         private final EmbeddingGateway provider;
+        private final Path directory;
+        private final String model;
         private final Map<String, Map<String, float[]>> corpora = new LinkedHashMap<>();
         private volatile String corpus = "consumer-lending";
 
-        RecordingGateway(EmbeddingGateway provider) {
+        RecordingGateway(EmbeddingGateway provider, Path directory, String model) {
             this.provider = provider;
+            this.directory = directory;
+            this.model = model;
+        }
+
+        String model() {
+            return model;
         }
 
         void corpus(String name) {
@@ -222,15 +242,14 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
 
         synchronized void write() {
             try {
-                Files.createDirectories(RecordedEmbeddingGateway.RECORDINGS);
+                Files.createDirectories(directory);
                 for (Map.Entry<String, Map<String, float[]>> entry : corpora.entrySet()) {
                     ObjectNode file = JSON.createObjectNode();
-                    file.put("provider", "openai").put("model", "text-embedding-3-small")
+                    file.put("provider", LiveProvider.name()).put("model", model)
                             .put("dimension", provider.dimension()).put("corpus", entry.getKey());
                     ArrayNode embeddings = file.putArray("embeddings");
                     entry.getValue().forEach((text, vector) -> embeddings.add(RecordedEmbeddingGateway.entry(text, vector)));
-                    Files.writeString(RecordedEmbeddingGateway.RECORDINGS.resolve(entry.getKey() + ".json"),
-                            file.toPrettyString() + "\n");
+                    Files.writeString(directory.resolve(entry.getKey() + ".json"), file.toPrettyString() + "\n");
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException("could not write the recordings", e);
@@ -243,8 +262,9 @@ class LiveRetrievalRecordingIT extends PostgresContainerSupport {
 
         @Bean
         @Primary
-        RecordingGateway recordingGateway(SpringAiEmbeddingGateway provider) {
-            return new RecordingGateway(provider);
+        RecordingGateway recordingGateway(SpringAiEmbeddingGateway provider, Environment environment) {
+            return new RecordingGateway(provider, LiveProvider.embeddings(environment),
+                    LiveProvider.embeddingModel(environment));
         }
     }
 }

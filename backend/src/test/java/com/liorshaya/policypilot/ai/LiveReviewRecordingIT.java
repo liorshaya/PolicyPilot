@@ -10,6 +10,8 @@ import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.ruleset.service.ReviewFinding;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveProvider;
+import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.SeededDrafts;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -30,28 +33,31 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The first live run of the review prompt (Work Plan day 10: "the reviewer tried on the seeded findings of labeled
- * policies"; Document 6: every new AI path gets one live run before it is trusted). Tagged {@code live}, so CI never
- * runs it; it needs a real {@code OPENAI_API_KEY}:
+ * policies"; Document 6: every new AI path gets one live run before it is trusted), and the review pass of evaluation
+ * run 2 (Work Plan day 15). Tagged {@code live}, so CI never runs it. The provider is {@code -Dprovider} (Document 4:
+ * a column each): {@code openai} needs a real {@code OPENAI_API_KEY}, {@code ollama} a local Ollama at
+ * {@code OLLAMA_BASE_URL} with the profile's models pulled:
  *
  * <pre>{@code
  * OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveReviewRecordingIT -Dlive.tag= \
  *     -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
  * }</pre>
  *
- * <p>It reviews the demo's draft (the canonical recording of author/v1 for the lending policy) and the draft of every
- * labeled policy (SeededDrafts), writes each answer to {@code fixtures/eval/recordings/openai/review/v1/} under the
- * hash of the rendered prompt, and prints the seeded defects each review found. Recall is measured, not asserted:
- * that is the evaluation runner's report (day 11). The one assertion is the day's Done when: the demo draft's review
- * shows the ambiguity and the conflict of step 1.
+ * <p>It reviews the demo's draft (the canonical OpenAI recording of author/v1 for the lending policy, the same input
+ * whichever provider reviews it) and the draft of every labeled policy (SeededDrafts), writes each answer to
+ * {@code fixtures/eval/recordings/<provider>/review/<version>/} under the hash of the rendered prompt, and prints the
+ * seeded defects each review found. Recall is measured, not asserted: that is the evaluation runner's report (day
+ * 11). The one assertion is the day's Done when: the demo draft's review shows the ambiguity and the conflict of step
+ * 1.
  */
 @Tag("live")
-@TestPropertySource(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY}",
+@ActiveProfiles(resolver = LiveProvider.class, inheritProfiles = false)
+@TestPropertySource(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY:not-a-real-key}",
         "policypilot.ai.daily-token-budget=400000"})
 @Isolated
 class LiveReviewRecordingIT extends ApiIntegrationTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-    private static final Path RECORDINGS = Path.of("..", "fixtures", "eval", "recordings", "openai", "review");
     /** The demo policy's title, the rule set's name, as the seeded demo shows it. */
     private static final String LENDING_TITLE = "מדיניות אשראי צרכני - הלוואות אישיות";
     /** The canonical author/v1 recording of the lending policy: the draft step 1 is tested with. */
@@ -68,7 +74,8 @@ class LiveReviewRecordingIT extends ApiIntegrationTest {
     private PolicyPilotProperties properties;
 
     /** The same service over the recordings just written, so the findings are the ones the API would keep. */
-    private final ReviewService replay = new ReviewService(RecordedGateway.replaying(RECORDINGS.getParent()),
+    private final ReviewService replay = new ReviewService(
+            RecordedGateway.replaying(LiveRecordingGateway.directoryOf(LiveProvider.name())),
             new PromptRegistry(PromptRegistry.PROMPTS, Map.of()));
 
     @Test
@@ -107,16 +114,11 @@ class LiveReviewRecordingIT extends ApiIntegrationTest {
      */
     private List<ReviewFinding> record(PolicyVersionRef policy, String title, String language, JsonNode draft) {
         PromptSpec spec = reviews.specFor(policy, title, language, draft);
-        if (!Files.exists(recordingOf(spec))) {
+        if (!Files.exists(LiveRecordingGateway.fileOf(LiveProvider.name(), spec))) {
             Completion<String> answer = gateway.complete(spec, String.class);
             write(spec, answer.value());
         }
         return replay.review(policy, title, language, draft, false).review().findings();
-    }
-
-    private static Path recordingOf(PromptSpec spec) {
-        return RECORDINGS.resolve(spec.promptVersion())
-                .resolve(Hashes.sha256Hex(spec.system() + "\u001f" + spec.user()) + ".json");
     }
 
     private static String summary(List<ReviewFinding> findings) {
@@ -135,9 +137,10 @@ class LiveReviewRecordingIT extends ApiIntegrationTest {
         request.put("system", spec.system());
         request.put("user", spec.user());
         recording.put("response", response);
+        Path file = LiveRecordingGateway.fileOf(LiveProvider.name(), spec);
         try {
-            Files.createDirectories(recordingOf(spec).getParent());
-            Files.writeString(recordingOf(spec), recording.toPrettyString());
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, recording.toPrettyString());
         } catch (IOException e) {
             throw new UncheckedIOException("could not write the recording", e);
         }

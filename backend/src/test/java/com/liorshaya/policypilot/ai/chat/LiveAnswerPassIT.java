@@ -2,7 +2,10 @@ package com.liorshaya.policypilot.ai.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.adapter.SpringAiLlmGateway;
+import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
+import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.policy.service.PolicyLanguage;
@@ -13,6 +16,8 @@ import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.LiveProvider;
+import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.Reviews;
@@ -20,9 +25,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import com.liorshaya.policypilot.ai.TokenUsage;
-import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
-import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,29 +40,37 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The live answer pass of evaluation run 1 (Work Plan day 11): every question of
+ * The live answer pass of evaluation runs 1 and 2 (Work Plan days 11 and 15): every question of
  * {@code fixtures/eval/questions.json} asked of its own policy, through the real chat use case, the real retrieval
- * on the recorded vectors, the real tools and engine, and the real provider. Every answer is written to
- * {@code fixtures/eval/recordings/openai/answer/v1/}, which is what {@code EvalRunnerIT} then scores citation
- * accuracy from, offline and for nothing.
+ * on the recorded vectors, the real tools and engine, and the real provider. Every answer is written under the active
+ * version of the answer prompt, in {@code fixtures/eval/recordings/<provider>/answer/<version>/}, which is what
+ * {@code EvalRunnerIT} then scores citation accuracy from, offline and for nothing.
  *
- * <p>Only the answers are paid for. Retrieval runs on the vectors day 8 recorded, so the embedding pass is not
- * repeated, and a question the Threshold stops costs nothing at all because it never reaches the model. It is
- * tagged {@code live}, so CI never runs it, and it needs a real {@code OPENAI_API_KEY}.
+ * <p>Only the answers are paid for. Retrieval runs on the vectors the provider's retrieval pass recorded
+ * ({@code LiveRetrievalRecordingIT}, in {@code fixtures/eval/recordings/<provider>/embedding/<model>/}), so the
+ * embedding pass is not repeated but must have run first, and a question the Threshold stops costs nothing at all
+ * because it never reaches the model.
  *
- * <p>Run it with:
- * {@code ./mvnw verify -Dit.test=LiveAnswerPassIT -Dgroups=live -DskipUTs=true}
+ * <p>It is tagged {@code live}, so CI never runs it. The provider is {@code -Dprovider} (Document 4: a column each):
+ * {@code openai} needs a real {@code OPENAI_API_KEY}, {@code ollama} a local Ollama at {@code OLLAMA_BASE_URL} with the
+ * profile's models pulled:
+ *
+ * <pre>{@code
+ * OPENAI_API_KEY=... ./mvnw verify -Dtest=none -Dit.test=LiveAnswerPassIT -Dlive.tag= \
+ *     -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true
+ * }</pre>
  */
 @Tag("live")
-@SpringBootTest(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY}",
+@SpringBootTest(properties = {"spring.ai.openai.api-key=${OPENAI_API_KEY:not-a-real-key}",
         "policypilot.ai.daily-token-budget=400000"})
-@ActiveProfiles("openai")
+@ActiveProfiles(resolver = LiveProvider.class)
 @Import(LiveAnswerPassIT.Recording.class)
 class LiveAnswerPassIT {
 
@@ -90,6 +100,9 @@ class LiveAnswerPassIT {
     @Autowired
     private LiveAnswerRecordingIT.RecordingModel model;
 
+    @Autowired
+    private PolicyPilotProperties properties;
+
     /** What the pass spent, printed at the end: the number the day's token budget is read against. */
     private int spentIn;
     private int spentOut;
@@ -118,8 +131,8 @@ class LiveAnswerPassIT {
 
         System.out.printf("%d questions in %d s; %d answered with the fixed sentence; %d recordings written%n",
                 asked, (System.nanoTime() - started) / 1_000_000_000L, stopped, model.written().size());
-        System.out.printf("spent %d input + %d output = %d tokens of the day's 400,000%n",
-                spentIn, spentOut, spentIn + spentOut);
+        System.out.printf("spent %d input + %d output = %d tokens of the day's %d%n",
+                spentIn, spentOut, spentIn + spentOut, properties.ai().dailyTokenBudget());
         assertThat(asked).isEqualTo(questions.size());
         assertThat(model.written()).isNotEmpty();
     }
@@ -219,13 +232,15 @@ class LiveAnswerPassIT {
         @Primary
         LiveAnswerRecordingIT.RecordingModel recordingModel(SpringAiLlmGateway provider,
                 PolicyPilotProperties properties) {
-            return new LiveAnswerRecordingIT.RecordingModel(provider, properties.ai().models().fast());
+            return new LiveAnswerRecordingIT.RecordingModel(provider, properties.ai().models().fast(),
+                    LiveRecordingGateway.directoryOf(LiveProvider.name()));
         }
 
         @Bean
         @Primary
-        RecordedEmbeddingGateway recordedEmbeddingGateway(PolicyPilotProperties properties) {
-            return RecordedEmbeddingGateway.replaying(properties.embedding().dimension());
+        RecordedEmbeddingGateway recordedEmbeddingGateway(PolicyPilotProperties properties, Environment environment) {
+            return RecordedEmbeddingGateway.replaying(LiveProvider.embeddings(environment),
+                    properties.embedding().dimension());
         }
     }
 }
