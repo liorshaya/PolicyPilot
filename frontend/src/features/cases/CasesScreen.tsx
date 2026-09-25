@@ -124,7 +124,7 @@ export function CasesScreen({
               title="This version's decisions"
               subtitle={
                 run.data
-                  ? `${String(run.data.results.length)} cases decided in this run, each with its own trace`
+                  ? `${String(run.data.results.length)} ${run.data.results.length === 1 ? 'case' : 'cases'} decided in this run, each with its own trace`
                   : 'Every case the engine has decided with this version'
               }
             >

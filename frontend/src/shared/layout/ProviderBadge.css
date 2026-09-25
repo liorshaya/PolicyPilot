@@ -13,9 +13,14 @@
   line-height: var(--leading-normal);
 }
 
+/* Each term over its value, so a model name has the sidebar's whole width; the provider's own row stays one line. */
 .provider__row {
   display: grid;
-  grid-template-columns: 6.5em minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.provider__row:first-child {
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -25,8 +30,17 @@
 
 .provider__row dd {
   margin: 0;
-  overflow-wrap: anywhere;
   color: rgba(255, 255, 255, 0.86);
+}
+
+/* a model's name never breaks at its hyphens; the embedding model and its dimension may part at the comma */
+.provider__row dd.mono,
+.provider__piece {
+  white-space: nowrap;
+}
+
+.provider__row:last-child dd.mono {
+  white-space: normal;
 }
 
 .provider__name {
