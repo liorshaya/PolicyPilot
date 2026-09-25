@@ -320,9 +320,9 @@ The plan ran first in two weeks instead of four: Document 7's scope ladder was c
 with a few pieces outside the ladder, and the `v1.0.0` tag of 2026-09-22 is that version. The full plan was restored
 the same day, and each cut leaves this list in the pull request that ships it. What is still open:
 
-- **The guided demo panel's box** (rung 7) and **the change flow's Definition of Done** (rung 10) close with day 16's
-  walk: the Playwright run of all four steps through the panel passes in CI stage 7 since #138, and the change flow
-  passed gate G3 on the live site on 2026-09-24.
+- **The change flow's Definition of Done** (rung 10): lines 7 and 11 were met on the live site on 2026-09-24, at
+  gate G3, and are walked again on the current deployment, with steps 1 and 3, once the owner approves that paid
+  walk (about 16,000 tokens).
 - **The chat step on the local model** (rung 3, and the provider badge's box, which asks for it): the `ollama` profile
   loads with no code change, answers every prompt, and the header names its models, but qwen3:14b calls no tool and
   wraps its answers in JSON, and bge-m3's similarities pass a threshold tuned for OpenAI's embeddings, so a question
