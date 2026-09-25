@@ -1,6 +1,6 @@
 # PolicyPilot Test Strategy
 
-2026-09-27 · Lior Shaya
+2026-09-28 · Lior Shaya
 
 Document 6 of the PolicyPilot set. It turns the test plans scattered across the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md), the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md) and the [Security Specification](05-security-specification.md) into one discipline: what gets tested at which level, what coverage is required where, what a task must include before it counts as done, and how the tests are written alongside the code rather than after it. The work plan (Document 7) schedules every test named here next to its feature.
 
@@ -33,7 +33,7 @@ Nine levels, each owning one question; a test lives at the lowest level that can
 | Contract | Does the API match its OpenAPI document and its error envelope? | MockMvc tests generated from the OpenAPI paths: status codes, envelope shape, authentication on every route | Every push | one per route |
 | Recorded AI | Do the use cases handle every model output shape, including bad ones? | Fake `LlmGateway` replaying `fixtures/eval/recordings`, including malformed, adversarial and red-team outputs | Every push | one per use case per shape |
 | Security | Is every control from Document 5 present? | Named tests across unit, integration and Playwright, inventoried in Document 5's test plan | Every push | inventory |
-| End to end | Do the four demo steps work in a browser through the real stack? | Playwright against Docker Compose with the recorded gateway; RTL snapshots | Pull requests and before the rehearsal | four flows plus the gate |
+| End to end | Do the four demo steps work in a browser, and do the gate and sandbox isolation hold against the real stack? | Playwright in two projects: the demo flows through the guided panel, every API call answered from the committed fixtures; the access gate and sandbox isolation against the real stack on Docker Compose, which calls no model (decided 2026-09-28, day 16) | Pull requests and before the rehearsal | the four steps, alone and in one run, the gate, isolation |
 | Live evaluation | Are the prompts good enough, on both providers? | `EvalRunner` on the labeled set, the red-team set and the demo questions; produces the report | On demand and before every prompt change | report |
 
 **What each level must not do**: unit tests do not start Spring or touch a database; integration tests do not call a real model; contract tests do not assert business results; end-to-end tests do not test edge cases (those belong to unit and integration); the live evaluation is never a required CI check, because it needs a key and is non-deterministic by nature.
@@ -76,7 +76,7 @@ Coverage is enforced by the build, per package, with mutation testing where line
 
 **Mutation testing (PIT, `pitest-maven`)** on `engine` and `rules` only, with the default mutators plus boundary and negate-conditional mutators: a mutation score of at least 90%, run in CI on every push (the two packages are small enough for PIT to finish in under three minutes). The mutation report is committed to `docs/quality/` with each tag; a surviving mutant that is judged equivalent is listed with a reason.
 
-**Web app (Vitest `coverage.thresholds`)**: 80% statements and branches on `src/features/**`; 100% on `src/api/sse.ts`, `src/features/chat/markers.ts` and `src/features/rules/cellGrammar.ts`; no threshold on `src/shared/ui` primitives. Playwright covers the four demo steps and the access gate and is not counted in coverage.
+**Web app (Vitest `coverage.thresholds`)**: 80% statements and branches on `src/features/**`; 100% on `src/api/sse.ts`, `src/features/chat/markers.ts` and `src/features/rules/cellGrammar.ts`; no threshold on `src/shared/ui` primitives. Playwright covers the four demo steps, the access gate and sandbox isolation and is not counted in coverage.
 
 **Gates in CI** (order in the CI section): the JaCoCo check goal fails the build below any per-package threshold, each package measured where its row above says: the unit-measured packages (engine, rules, web.security, web.validation, ai without its adapter, common) on unit tests alone in stage 2, and every package, the orchestrating and adapting ones included, on unit and integration tests together in stage 5; PIT fails below 90% on the two core packages; Vitest fails below its thresholds; a pull request cannot merge without these and the security gates. A threshold is lowered only by a pull request that changes this document, with the reason in the changelog.
 
@@ -129,13 +129,13 @@ The web app is tested as the user sees it: components render from mocked API res
 | Component | Vitest, Testing Library, MSW for the API | Each feature's screens with realistic responses: decision table renders 20 rules with the right cells; trace view pins the deciding rule and greys not-fired steps; findings chips open the right rule; diff view shows field-level changes; audit list orders newest first | Queries by role and text, never by class names; RTL assertions check `dir` on Hebrew content blocks |
 | Hook | Vitest with a fake `ReadableStream` | `useSse`: token accumulation, event ordering, `Last-Event-ID` resume, abort on unmount, error states, marker parsing while streaming | 100% coverage required |
 | Pure logic | Vitest | Cell grammar render and parse round-trip for every operator; marker renderer; number and unit formatting; language direction detection | Property-style tests over generated conditions |
-| Visual and RTL | Vitest snapshot of rendered DOM for the decision table and the chat with Hebrew content | A change in direction handling or fonts shows up as a snapshot diff | Snapshots are reviewed, not blindly updated |
+| Visual and RTL | Vitest RTL snapshot of every screen, with the Hebrew lending policy and with an English policy: each text of a region, one line each, with its direction, language and edit (the convention of day 14) | A change in direction or language handling shows up as a snapshot diff | Snapshots are reviewed, not blindly updated |
 | Accessibility | `axe-core` in component tests for the main screens | No serious or critical violations | Keeps the demo usable on any machine and screen |
-| End to end | Playwright against Docker Compose with the recorded gateway | The access gate; the four scripted demo steps through the guided panel; a second browser context cannot see the first's sandbox; the cached scripted answers arrive within 3 seconds | Runs on pull requests and before the rehearsal; screenshots on failure attached to CI |
+| End to end | Playwright, two projects: the demo flows on the web app with every API call answered from the committed fixtures; the gate and isolation against Docker Compose with no model call | The access gate, also against the real API; the four scripted demo steps through the guided panel, each on its own and all four in one run; a second browser context cannot see the first's sandbox; the cached scripted answers within 3 seconds are timed on the cloud site (Performance and Determinism Tests) | Runs on pull requests and before the rehearsal; screenshots on failure attached to CI |
 
 **API client**: the TypeScript client is generated from the OpenAPI document at build time, so a backend contract change breaks the web build before it breaks a test; MSW handlers are typed by the same generated types, which keeps mocks honest.
 
-**What is not tested in the browser**: business rules (the engine's job), model behavior (the evaluation's job), and layout pixels (no visual regression service in v1); the snapshot tests cover the two screens where direction handling can silently break.
+**What is not tested in the browser**: business rules (the engine's job), model behavior (the evaluation's job), and layout pixels (no visual regression service in v1); the RTL snapshots cover every screen in both directions, since direction handling can break silently on any of them.
 
 ## Traceability Matrix
 
@@ -163,14 +163,14 @@ Every requirement in the Brief maps to the tests that prove it; a requirement wi
 | FR-18 Diff and regression before publish | Structural diff | Regression run flips exactly 12 fixture cases |  | Step 4 |
 | FR-19 Approval creates version and audit entry; pending becomes analyst | Provenance context validator | Approve transaction; audit entry fields; version 1 decisions unchanged | RT-04 | Step 4 approve |
 | FR-20 Side-by-side diff of two versions | Diff rendering | `GET .../diff` |  |  |
-| FR-21 Provider switch by configuration | Role-to-model mapping | Context loads with `openai` and with `ollama` profiles; dimension check at startup | Evaluation report has both columns |  |
+| FR-21 Provider switch by configuration | Role-to-model mapping; the provider badge | Context loads with `openai` and with `ollama` profiles; dimension check at startup; `GET /system/provider` names the active profile's models | Evaluation report has both columns | The provider in the header |
 | FR-22 Evaluation harness with per-rule precision and recall | Rule matching and normalization | Runner on two labeled policies with recordings | The live report |  |
 | FR-23 Guided demo panel | Panel actions dispatch the same API calls |  |  | All four steps through the panel |
 | NFR-1 Determinism | C-26, property tests, no clock in `engine` (ArchUnit) | 200 cases twice, byte-identical |  |  |
 | NFR-2 Explainability | Trace content tests |  | Explanation contract | Trace view |
 | NFR-3 Auditability |  | Immutable versions, append-only audit grants, audit entries on publish and approval |  | Audit log screen |
 | NFR-4 Provider independence | ArchUnit: Spring AI only in `ai.adapter` | Both profiles load | Both columns in the report |  |
-| NFR-5 Hebrew support | Quote normalization with niqqud and punctuation; bidi stripping; cell grammar with Hebrew labels | Hebrew fixtures through every endpoint | Hebrew questions in the evaluation | RTL snapshots |
+| NFR-5 Hebrew support | Quote normalization with niqqud and punctuation; bidi stripping; cell grammar with Hebrew labels; RTL snapshots of every screen in both directions | Hebrew fixtures through every endpoint | Hebrew questions in the evaluation | Step 3 in Hebrew, right to left |
 | NFR-6 Performance | Engine micro-benchmark | Batch under 1 s; single decision under 50 ms with persistence |  | Cached demo answers under 3 s |
 | NFR-7 Robustness to model failure | Circuit breaker and retry policy | Provider timeout and 429 recordings degrade to defined errors; nothing stored | Malformed recordings for every prompt |  |
 | Security controls (Document 5) | Named tests per control | Authentication walk, authorization across sandboxes, injection payloads, limits | RT-01 to RT-10 | Access gate, sandbox isolation |
@@ -210,7 +210,7 @@ The two non-functional requirements an interviewer can check with a stopwatch ha
 | Reference agreement | The Python reference implementation and the Java engine on every conformance and labeled-policy case | Identical outcomes, deciding rules, derived values and trace statuses |
 | Regex safety | The ReDoS pattern `(a+)+$` with a 2,000-character input through RE2J | Under 10 ms |
 
-Performance numbers are recorded in the CI job summary with the runner's specification, so a regression is visible as a trend rather than as a failed threshold on a slow runner; only the byte-identical, reference-agreement and regex-safety tests are hard gates, the timing tests fail only above three times their target.
+Performance numbers are recorded in the CI job summary with the runner's specification, so a regression is visible as a trend rather than as a failed threshold on a slow runner: each timing test prints what it measured, and stage 8 copies those lines from the reports of stage 5, beside the runner's processor and memory (decided 2026-09-28, day 16). Only the byte-identical, reference-agreement and regex-safety tests are hard gates; the timing tests fail only above three times their target.
 
 ## Fixtures and Test Data
 
@@ -249,7 +249,7 @@ One GitHub Actions workflow on every push, ordered so the cheapest and most info
 | 4 Static and supply chain | Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report | 2 min | hard |
 | 5 Integration and contract | Testcontainers PostgreSQL; `*IT` tests; contract walk; recorded AI tests; red-team fixtures; security integration tests | 5 min | hard, including every package's coverage threshold on unit and integration tests together |
 | 6 Build and scan | Docker image build, Trivy scan, image digest recorded | 2 min | hard |
-| 7 End to end (pull requests) | Compose up with the built image and the recorded gateway; Playwright demo flows; RTL snapshots | 4 min | hard on pull requests |
+| 7 End to end (pull requests) | Playwright demo flows on the web app, every API call answered from the committed fixtures; then Compose up with the backend built from its Dockerfile, and the gate and sandbox isolation flows against it, with no model call | 4 min | hard on pull requests |
 | 8 Reports | JaCoCo and PIT reports, the regenerated traceability matrix, performance numbers in the job summary, SBOM on tags | 1 min | informational |
 
 The live evaluation and the live red-team run are a separate manual workflow (`eval.yml`) that needs the provider key and writes `docs/eval/<date>.md`; it is required before a prompt version is activated, not on every push.
