@@ -78,13 +78,16 @@ class AuditRoutesIT extends ApiIntegrationTest {
     // name no change request are everyone's to read. Its entries carry whatever clock wrote them: the seed's
     // publish the clock of whichever context started first on this database, the test clock or the real one, and
     // AuditLogIT's appends the test clock. So the proposal is made a minute after the latest of them (a fixed time
-    // failed once the real clock passed it: day 15). Expected: this sandbox's proposal first, the seeded publish by
-    // demo-analyst among them, and every entry no newer than the one before it
+    // failed once the real clock passed it: day 15), in a session opened at that minute: a session lives 24 hours
+    // (SessionCookies.MAX_AGE), and the one opened at START had expired once the real clock was a day past START
+    // (day 16). Expected: this sandbox's proposal first, the seeded publish by demo-analyst among them, and every
+    // entry no newer than the one before it
     @Test
     void theEntriesOfAVersionAreNewestFirst() {
         Instant latest = jdbc.sql("select max(at) from audit_entry where ruleset_version_id = :v")
                 .param("v", seededVersion).query(Instant.class).single();
         clock.set(latest.plusSeconds(60));
+        session = api().login();
         String id = propose(session);
 
         HttpResponse<String> response = api().get(AUDIT + "?versionId=" + seededVersion).cookie(session).send();
