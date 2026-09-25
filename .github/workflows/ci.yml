@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/ci/check_invisible_characters.py
       - name: The traceability matrix is the regeneration, with no empty row outside those still open
         run: python3 scripts/ci/traceability.py --self-test && python3 scripts/ci/traceability.py --check
+      - name: The job summary reads the performance numbers the timing tests print
+        run: python3 scripts/ci/ci_summary.py --self-test
       - name: Schema and demo fixture copies match the backend resources
         run: scripts/ci/check_schema_copies.sh
       - name: The README's known limitations name every cut of the checklist
@@ -212,6 +214,15 @@ jobs:
       - name: Integration tests on Testcontainers pgvector, then the merged coverage gates
         working-directory: backend
         run: ./mvnw -B -ntp verify
+      - name: The runner the timing tests ran on, for the job summary (Document 6, Performance and Determinism Tests)
+        if: always()
+        run: |
+          mkdir -p backend/target
+          {
+            echo "cpu: $(lscpu | sed -n 's/^Model name:[[:space:]]*//p' | head -n 1)"
+            echo "cores: $(nproc)"
+            echo "memory: $(free -g | awk '/^Mem:/ {print $2}') GiB"
+          } > backend/target/runner.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -221,6 +232,7 @@ jobs:
             backend/target/site/jacoco/jacoco.xml
             backend/target/failsafe-reports/*.xml
             backend/target/failsafe-reports-quarantine/*.xml
+            backend/target/runner.txt
 
   build-and-scan:
     name: 6-build-and-scan

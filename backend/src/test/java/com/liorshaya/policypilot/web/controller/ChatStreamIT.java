@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,6 +117,32 @@ class ChatStreamIT extends ApiIntegrationTest {
         String messageId = dataOf(stream, "done").required("messageId").asString();
         assertThat(jdbc.sql("select content from chat_message where id = :id").param("id", UUID.fromString(messageId))
                 .query(String.class).single()).isEqualTo("The maximum term is 84 months.[[p:2]]");
+    }
+
+    // Document 6, Performance and Determinism Tests, chat first token: "Recorded gateway with an artificial 100 ms
+    // delay, SSE consumed by the test; first token event within 500 ms of the request", failing only above three times
+    // that. Expected: the first token event after the model's 100 ms and within the tolerance; the time goes to the
+    // job summary
+    @Test
+    @Requirement("NFR-6")
+    void theFirstTokenArrivesWithin500MillisecondsOfTheRequest() {
+        model.willStream(Streamed.delayed(Duration.ofMillis(100), "The maximum term is 84 months.[[p:2]]"));
+        String chat = openSession();
+
+        long sent = System.nanoTime();
+        HttpResponse<Stream<String>> stream = api().post("/api/v1/chat/sessions/" + chat + "/messages").web()
+                .cookie(session).json(JSON.createObjectNode().put("question", TERM_QUESTION).toString()).lines();
+        Duration firstToken;
+        try (Stream<String> lines = stream.body()) {
+            lines.filter(line -> line.startsWith("event:") && "token".equals(line.substring(6).trim())).findFirst()
+                    .orElseThrow();
+            firstToken = Duration.ofNanos(System.nanoTime() - sent);
+        }
+        System.out.println("performance: chat first token " + firstToken.toMillis() + " ms");
+
+        assertThat(stream.statusCode()).isEqualTo(200);
+        assertThat(firstToken).isGreaterThanOrEqualTo(Duration.ofMillis(100))
+                .isLessThan(Duration.ofMillis(500).multipliedBy(3));
     }
 
     // Document 4: only the scripted questions are cached. Expected: an unscripted question answered twice by the model,
