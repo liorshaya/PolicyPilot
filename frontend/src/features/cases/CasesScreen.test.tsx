@@ -7,6 +7,7 @@ import {
   aggregates,
   batch,
   decision,
+  publishedVersion,
   rulesets,
   SECOND_RULESET_ID,
   secondRuleset,
@@ -15,6 +16,10 @@ import {
 } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { CasesScreen } from './CasesScreen'
+import { ENGLISH_RULESET_ID, englishDecision, englishRuleSet } from '../../test/fixtures/english'
+import { rtlSnapshot } from '../../test/rtlSnapshot'
+
+// @requirement NFR-5
 
 /**
  * The case runner against realistic responses (Document 6, Frontend Test Design). The aggregates are those of the
@@ -360,5 +365,56 @@ describe('CasesScreen', () => {
 
     await waitFor(() => expect(decided).toEqual([`${SEEDED_RULESET_ID}/1`]))
     expect(screen.queryByText(/has no published version yet/)).not.toBeInTheDocument()
+  })
+})
+
+describe('CasesScreen in both directions (NFR-5)', () => {
+  async function openCase17() {
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await user.click(await screen.findByRole('button', { name: '17' }))
+    return screen.findByRole('complementary')
+  }
+
+  it('RTL: the trace of case 17 reads its Hebrew reasons right to left beside Latin fields and values (snapshot)', async () => {
+    renderScreen()
+
+    const trace = await openCase17()
+    expect(await within(trace).findByText(decision.reason!)).toHaveAttribute('dir', 'rtl')
+    expect(rtlSnapshot(trace)).toMatchSnapshot()
+  })
+
+  it('LTR: an English trace stays left to right (snapshot)', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            {
+              id: ENGLISH_RULESET_ID,
+              name: englishRuleSet.name,
+              domain: englishRuleSet.id,
+              protected: false,
+              versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+            },
+          ],
+        }),
+      ),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () =>
+        HttpResponse.json({
+          ...publishedVersion,
+          rulesetId: ENGLISH_RULESET_ID,
+          name: englishRuleSet.name,
+          domain: englishRuleSet.id,
+          protected: false,
+          ruleSet: englishRuleSet,
+        }),
+      ),
+      http.get(`${BASE}/decisions/:id`, () => HttpResponse.json(englishDecision)),
+    )
+    renderScreen()
+
+    const trace = await openCase17()
+    expect(await within(trace).findByText(englishDecision.reason!)).toHaveAttribute('dir', 'ltr')
+    expect(rtlSnapshot(trace)).toMatchSnapshot()
   })
 })

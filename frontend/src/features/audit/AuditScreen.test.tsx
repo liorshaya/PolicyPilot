@@ -28,6 +28,7 @@ import { AuditScreen } from './AuditScreen'
 
 // @requirement FR-19
 // @requirement FR-20
+// @requirement NFR-5
 
 /**
  * The audit log (Brief, demo step 4: "Version 2 is published, the audit log shows who changed what, when and why";
@@ -187,6 +188,22 @@ describe('AuditScreen', () => {
 
     await entries()
     await waitFor(() => expect(screen.getByText('לא בתקופת הבחירות')).toHaveAttribute('lang', 'he'))
+    expect(rtlSnapshot(screen.getByRole('list', { name: 'Entries' }))).toMatchSnapshot()
+  })
+})
+
+describe('AuditScreen in both directions (NFR-5)', () => {
+  it('LTR: an English note and request stay left to right in the log (snapshot)', async () => {
+    const english = {
+      ...rejectedEntry,
+      details: { requestText: scriptedRequest.text.en, note: 'Not during the election period' },
+    }
+    serveTheSeededLog([english])
+    renderScreen(SEEDED_RULESET_ID)
+
+    const note = await screen.findByText('Not during the election period')
+    expect(note).toHaveAttribute('dir', 'ltr')
+    expect(screen.getByText(scriptedRequest.text.en)).toHaveAttribute('dir', 'ltr')
     expect(rtlSnapshot(screen.getByRole('list', { name: 'Entries' }))).toMatchSnapshot()
   })
 })

@@ -1,0 +1,115 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CasesScreen in both directions (NFR-5) > LTR: an English trace stays left to right (snapshot) 1`] = `
+"
+page -           Case
+page -           17
+page -           Decided in 412 µs by the engine
+page -           Close
+page -           Explain for an officer
+page -           Explain for the applicant
+page -           Manual review
+ltr  en          One adverse credit event requires a guarantor
+page -           Derived by the engine
+page -           monthly_installment
+page -           1,493.1
+page -           debt_to_income
+page -           0.2835
+page -           Steps, in the order the engine walked them
+page -           1
+page -           R-170
+auto -           Reject: net income below 7,000
+page -           Did not match
+page -           What step
+page -           1
+page -           compared
+page -           Field
+page -           Expected
+page -           In the case
+page -           Result
+page -           monthly_income
+page -           < 7,000
+page -           9,500
+page -           not met
+page -           2
+page -           R-330
+auto -           Referral: one credit event without a guarantor
+page -           Matched
+page -           What step
+page -           2
+page -           compared
+page -           Field
+page -           Expected
+page -           In the case
+page -           Result
+page -           credit_events_24m
+page -           = 1
+page -           1
+page -           met
+page -           has_guarantor
+page -           = false
+page -           false
+page -           met
+page -           3
+page -           R-900
+auto -           Approve: every condition is met
+page -           Not reached
+"
+`;
+
+exports[`CasesScreen in both directions (NFR-5) > RTL: the trace of case 17 reads its Hebrew reasons right to left beside Latin fields and values (snapshot) 1`] = `
+"
+page -           Case
+page -           17
+page -           Decided in 412 µs by the engine
+page -           Close
+page -           Explain for an officer
+page -           Explain for the applicant
+page -           Manual review
+rtl  he          נדרש ערב בשל אירוע אשראי אחד ב-24 החודשים האחרונים
+page -           Derived by the engine
+page -           monthly_installment
+page -           1,493.1
+page -           debt_to_income
+page -           0.2835
+page -           Steps, in the order the engine walked them
+page -           1
+page -           R-170
+auto -           דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+page -           Did not match
+page -           What step
+page -           1
+page -           compared
+page -           Field
+page -           Expected
+page -           In the case
+page -           Result
+page -           monthly_income
+page -           < 8,000
+page -           9,500
+page -           not met
+page -           2
+page -           R-330
+auto -           בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           Matched
+page -           What step
+page -           2
+page -           compared
+page -           Field
+page -           Expected
+page -           In the case
+page -           Result
+page -           credit_events_24m
+page -           = 1
+page -           1
+page -           met
+page -           has_guarantor
+page -           = false
+page -           false
+page -           met
+page -           3
+page -           R-900
+auto -           אישור כשכל התנאים מתקיימים
+page -           Not reached
+"
+`;
