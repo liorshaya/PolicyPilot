@@ -209,12 +209,12 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 16, Mon Sep 28: polish**
 
-- [ ] `GET /system/provider` in the UI header; the `ollama` profile run locally with the chat step working, logged in the worklog (restored: the provider badge and rung 3)
-- [ ] Hebrew and RTL pass: every screen in RTL and LTR, bidi isolation, Hebrew fixtures through every endpoint, the not-covered sentence in both languages; the last RTL snapshots (restored as a pass; RTL shipped with days 6 and 9 and was checked at the v1.0.0 freeze)
-- [ ] README draft: setup, architecture diagram, design principle, demo script with inputs, outputs and timings, known limitations, security and testing sections, talking points, performance numbers (restored from the v1.0.0 freeze)
-- [ ] README setup run on a clean clone under 5 minutes (restored from the v1.0.0 freeze)
-- [ ] Definition of Done walk on the cloud site with evidence links; fix list for days 17 to 18; traceability matrix regenerated with no empty row (restored from the v1.0.0 freeze)
-- [ ] Playwright: all four steps through the guided panel in one run (restored: rungs 7 and 10)
+- [ ] `GET /system/provider` in the UI header; the `ollama` profile run locally with the chat step working, logged in the worklog (restored: the provider badge and rung 3; the header since #135; the chat step on Ollama fails, see the worklog's day 16 Ollama run)
+- [x] Hebrew and RTL pass: every screen in RTL and LTR, bidi isolation, Hebrew fixtures through every endpoint, the not-covered sentence in both languages; the last RTL snapshots (restored as a pass; RTL shipped with days 6 and 9 and was checked at the v1.0.0 freeze; #139, #140, #141)
+- [x] README draft: setup, architecture diagram, design principle, demo script with inputs, outputs and timings, known limitations, security and testing sections, talking points, performance numbers (restored from the v1.0.0 freeze; #144, the performance numbers from #142)
+- [x] README setup run on a clean clone under 5 minutes (restored from the v1.0.0 freeze; #144: the README's block from `git clone` on a fresh runner in 85 and 98 s, compose-smoke on every change to the README)
+- [ ] Definition of Done walk on the cloud site with evidence links; fix list for days 17 to 18; traceability matrix regenerated with no empty row (restored from the v1.0.0 freeze; walked on 2026-09-25 where no model is called, the fix list and the matrix done, see the worklog; steps 1, 3 and 4 on the live site wait for the owner's approval of the paid walk)
+- [x] Playwright: all four steps through the guided panel in one run (restored: rungs 7 and 10; #138, in CI stage 7 of every pull request since)
 
 **Day 17, Wed Sep 30: rehearsal 1**
 
@@ -261,8 +261,8 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [x] Every one of the 200 decisions has a trace naming each fired rule and the compared values
 - [x] The three scripted chat questions return cited answers; the out-of-scope question returns "not covered by the documents"
 - [ ] The scripted change request produces a diff, a regression report and version 2 with an audit entry; version 1 decisions unchanged (restored: rung 10)
-- [ ] Switching the profile from `openai` to `ollama` needs no code change and the chat step still works (both profiles load in tests; the chat step on Ollama runs on day 16) (restored: rung 3)
-- [ ] Unit tests cover the engine and the DSL validator at 100% line coverage with a mutation score of at least 90%; integration tests cover every use case with a recorded model; the traceability matrix has no empty row
+- [ ] Switching the profile from `openai` to `ollama` needs no code change and the chat step still works (the switch needs no code change; on day 16 the chat step on Ollama answered one question of four as labeled, see the worklog) (restored: rung 3)
+- [x] Unit tests cover the engine and the DSL validator at 100% line coverage with a mutation score of at least 90%; integration tests cover every use case with a recorded model; the traceability matrix has no empty row (CI on `main` after #142: 100% line on `engine` and every `rules` package, PIT 1,463 of 1,463; no empty row since #137)
 - [ ] The README has the architecture diagram, the design principle, the demo script, known limitations and the 2-minute recorded run
 - [ ] The live demo on Railway and Vercel runs the four steps with the access code, and a request without the code is rejected (three steps and the access code met at the v1.0.0 freeze; step 4 comes with the change flow) (restored: rung 10)
 
