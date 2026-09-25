@@ -1,7 +1,9 @@
+/* A light card in the dark sidebar: it takes the workspace's text colour, not the sidebar's white it sits in. */
 .guided {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  color: var(--color-text);
   overflow: hidden;
 }
 
@@ -27,6 +29,7 @@
 .guided__title {
   font-size: var(--text-sm);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .guided__hint {
@@ -46,11 +49,22 @@
   list-style: none;
 }
 
+/* the display above would otherwise outweigh the browser's own rule for the hidden attribute, and Hide hid nothing */
+.guided__steps[hidden] {
+  display: none;
+}
+
+/* The number, the title and Run on one row, the description under them across the whole step: in a sidebar this
+   narrow, a description beside the button had a word a line. */
 .guided__step {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'number title run'
+    'what what what';
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-3);
 }
 
 .guided__step + .guided__step {
@@ -79,20 +93,28 @@
   color: #fff;
 }
 
+/* the title and the description take their places in the step's grid */
 .guided__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
+  display: contents;
+}
+
+.guided__number {
+  grid-area: number;
 }
 
 .guided__step-title {
+  grid-area: title;
   font-size: var(--text-sm);
   font-weight: 600;
 }
 
+.guided__run {
+  grid-area: run;
+}
+
 .guided__what {
+  grid-area: what;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
+  line-height: var(--leading-normal);
 }

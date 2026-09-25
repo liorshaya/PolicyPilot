@@ -96,11 +96,17 @@
   font-style: italic;
 }
 
-/* What the later version no longer has: struck out on the sunken surface, in the secondary text colour. */
+/* A changed value is marked as one box: a mark that broke with its lines drew its bar at the start of each line,
+   which read as a stray parenthesis beside Hebrew, and one around an action list began with an empty line. */
 .diff__mark {
+  display: inline-block;
+  max-width: 100%;
   padding: 0 var(--space-1);
   border-radius: var(--radius-sm);
+  vertical-align: top;
 }
+
+/* What the later version no longer has: struck out on the sunken surface, in the secondary text colour. */
 
 del.diff__mark {
   background: var(--color-surface-sunken);
@@ -138,4 +144,21 @@ ins.diff__mark {
 
 .diff__pointer {
   font-family: var(--font-mono);
+}
+
+/* Narrow: the two sides keep a readable width and the table scrolls sideways inside its panel, and an attribute's
+   name sits over its value; at a phone's width the sides had no room left, and a label ran a letter a line. */
+@media (max-width: 700px) {
+  .diff__table {
+    min-width: 34rem;
+  }
+
+  .diff__key-head {
+    width: 5rem;
+  }
+
+  .diff__attribute {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
 }

@@ -68,6 +68,19 @@ describe('CasesScreen', () => {
     ).toBeInTheDocument()
   })
 
+  it('counts a run of one case as one case', async () => {
+    const user = userEvent.setup()
+    const one = { ...batch, results: batch.results.slice(0, 1) }
+    server.use(http.post(`${BASE}/rulesets/:id/versions/:no/decide`, () => HttpResponse.json(one)))
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+
+    expect(
+      await screen.findByText(/^1 case decided in this run, each with its own trace$/),
+    ).toBeInTheDocument()
+  })
+
   it('lists every case of the run with what the engine decided and what it flagged', async () => {
     const user = userEvent.setup()
     renderScreen()

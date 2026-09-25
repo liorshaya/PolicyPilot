@@ -73,7 +73,6 @@
 /* the guided demo panel, under the navigation: a remote control beside the workspace, not part of it */
 .shell__aside {
   margin-top: auto;
-  padding: var(--space-3);
 }
 
 .shell__principle {

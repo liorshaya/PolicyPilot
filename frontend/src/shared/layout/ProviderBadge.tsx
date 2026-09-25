@@ -41,7 +41,11 @@ export function ProviderBadge() {
             </div>
             <div className="provider__row" title="Embeds the policy and the rules for retrieval">
               <dt>Embeddings</dt>
-              <dd className="mono">{`${provider.data.embeddingModel}, ${provider.data.embeddingDimension} dimensions`}</dd>
+              <dd className="mono">
+                <span className="provider__piece">{provider.data.embeddingModel}</span>
+                {', '}
+                <span className="provider__piece">{`${provider.data.embeddingDimension} dimensions`}</span>
+              </dd>
             </div>
           </>
         )}

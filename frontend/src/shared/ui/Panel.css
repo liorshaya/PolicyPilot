@@ -39,9 +39,17 @@
   overflow: auto;
 }
 
-/* A filling panel keeps its header and its table head in place and scrolls only its body. */
+/* A panel that does not fill keeps its natural height: the column it stands in scrolls rather than squeezing it,
+   which on the change screen left the request a header with nothing under it once the proposal came. */
+.panel:not(.panel--fill) {
+  flex-shrink: 0;
+}
+
+/* A filling panel keeps its header and its table head in place and scrolls only its body; beside panels that do not
+   shrink it keeps room for a few rows. */
 .panel--fill {
   flex: 1;
+  min-height: 16rem;
 }
 
 .panel--fill .panel__header {
@@ -71,5 +79,10 @@
 
   .panel__body--flush {
     padding: 0;
+  }
+
+  /* two pickers side by side are wider than a phone: they wrap rather than run off the screen */
+  .panel__actions {
+    flex-wrap: wrap;
   }
 }
