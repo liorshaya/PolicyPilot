@@ -47,7 +47,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [x] `fixtures/conformance/invalid-*.json`, one per validator code and warning of the Document 3 static validation table (32 files), run by the reference, which now implements every code of the table with the three-layer stop
 - [x] `fixtures/README.md` with the file shapes for the Java loaders
 - [x] Evaluation set, `fixtures/eval/`: 18 labeled policies (12 Hebrew, 6 English) with expected rule sets, 10 to 30 labeled cases and 4 to 6 seeded defects each; 30 questions (6 refusals, 4 tool questions); 6 change requests with expected patch sets and flip counts; all admitted by the reference's `run_eval`
-- [ ] Second-domain fixture for the encore, municipal tax discount (day 15): load `eval/policies/arnona-discount-seniors/` as the second protected policy (restored: rung 2)
+- [x] Second-domain fixture for the encore, municipal tax discount (day 15): load `eval/policies/arnona-discount-seniors/` as the second protected policy (restored: rung 2; #119, #125; on the cloud site its 10 labeled cases decide as labeled)
 
 ## Day 0 (optional, Sunday Sep 20, one hour)
 
@@ -55,7 +55,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [x] Railway account and project; the pgvector template database (a `pgvector/pgvector:pg16` image service instead: the Railway templates run PostgreSQL 18)
 - [x] Vercel account and project; DNS for `policypilot.liorshaya.com`
 - [x] OpenAI API key with a monthly spending limit set to the demo budget (a 5 USD daily limit)
-- [ ] `qwen3:14b` and `bge-m3` pulled into the local Ollama, before day 16 (restored: rung 3)
+- [x] `qwen3:14b` and `bge-m3` pulled into the local Ollama, before day 16 (restored: rung 3; installed by the owner on 2026-09-24, and both answered evaluation run 2)
 - [x] Interview date known, calendar re-mapped if it lands before day 20 (Monday Oct 5, 2026: the two-week version)
 
 ## Phase 0, Foundations (day 1, Tue Sep 22)
@@ -158,7 +158,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 - [x] Runner: rule matching and normalization, author metrics, reviewer recall and precision, retrieval recall at 8, citation accuracy, refusal accuracy, confidence calibration; report in `docs/eval/` with a column per provider (restored: the evaluation runner)
 - [x] Evaluation run 1: the live answer pass over all 30 questions, 58,714 tokens; the author and review passes scored from the recordings, so the 9-policy author run is what day 15 pays for with `author/v2` (restored: the evaluation runner)
-- [ ] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3) — **slipped to day 15 as the row allows: Ollama is not installed on this machine. The report carries the column, empty, and says why**
+- [x] The local Ollama column of evaluation run 1, or with evaluation run 2 on day 15 if Ollama is not installed by day 11 (restored: rung 3) — **slipped to day 15 as the row allows: Ollama is not installed on this machine. The report carries the column, empty, and says why** Done on day 15: the Ollama column of evaluation run 2, qwen3:14b and bge-m3
 - [x] Guided panel steps 1 to 3 (steps 1 and 2 moved here from day 7) (restored: rung 7); step 4 is listed in the panel and marked Day 14
 - [x] The `stats` and `rules` tools of day 9's row (restored: rung 6)
 - [x] Scripted outputs warmed into `model_response_cache` again after any prompt change; Hebrew and RTL check of the chat (both first done at the v1.0.0 freeze) — no prompt changed, so nothing needed re-warming, and the three scripted questions still answer from the cache on the cloud site in 0.47 to 0.49 s; RTL is checked in the browser and in `panel.spec.ts`
@@ -190,18 +190,20 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 **Day 15, Sun Sep 27: buffer and G3**
 
-- [ ] Fix list of days 12 to 14, with the two found on day 14: the log event of a failed embedding lost to a duplicate `error` key, and `GenerationStreamIT`'s sign-in answered 404 once under load (restored: rung 10)
-- [ ] `demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion (restored: the reset)
-- [ ] Second-domain fixture (municipal tax discount) loaded as a second protected policy (restored: rung 2)
-- [ ] `author/v2` and `answer/v2` with evaluation run 2, in that one live run (decided on day 11 from
+- [x] Fix list of days 12 to 14, with the two found on day 14: the log event of a failed embedding lost to a duplicate `error` key, and `GenerationStreamIT`'s sign-in answered 404 once under load (restored: rung 10; #116: one ECS line per failed embedding, the test server bound to 127.0.0.1)
+- [x] `demo`: nightly reset and re-seed, `POST /admin/reset` with the admin code header, RESET audit entry, stale sandbox deletion (restored: the reset; #117; on the cloud site 403 without the header, and one reset with the admin code deleted 52 stale sandboxes)
+- [x] Second-domain fixture (municipal tax discount) loaded as a second protected policy (restored: rung 2; #119)
+- [x] `author/v2` and `answer/v2` with evaluation run 2, in that one live run (decided on day 11 from
   `docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md`): `author/v2` gives the model the field names the labeled
   cases use instead of asking it to invent them, which is the whole of the 0.12 rule recall; `answer/v2` says that
   a question about how many or about which rules is a tool call, which is why Q-08 and Q-14 were refused. Each
   changes a rendered prompt and so the response cache's key, so both re-warm the scripted outputs on the cloud
-  site in the demo order, and step 1 and step 3 are walked again afterwards
-- [ ] Evaluation run 2: 18 policies, 30 questions, 6 changes, both providers; report committed to `docs/eval/` (restored: rung 4 and the evaluation runner)
-- [ ] Tests: reset tests; second-domain fixture through the reference and one recorded generation; traceability matrix has no empty row for FR-17 to FR-20 (restored: rungs 2 and 10, the reset)
-- [ ] Gate G3 (restored: rung 10)
+  site in the demo order, and step 1 and step 3 are walked again afterwards (#120, #128; step 1 served from the cache in
+  0.8 s; step 3's Q-01 and Q-03 cached, Q-02 answered live on every run because its wording misses the label, see
+  the worklog)
+- [x] Evaluation run 2: 18 policies, 30 questions, 6 changes, both providers; report committed to `docs/eval/` (restored: rung 4 and the evaluation runner; #127, #129, #130, #131: `docs/eval/2026-09-24-authorv2-reviewv1-answerv2-changev2.md`)
+- [x] Tests: reset tests; second-domain fixture through the reference and one recorded generation; traceability matrix has no empty row for FR-17 to FR-20 (restored: rungs 2 and 10, the reset; #117, #119, #125, #118)
+- [x] Gate G3 (restored: rung 10; the proof in the worklog)
 
 ## Phase 4 and rehearsals (days 16 to 19)
 
@@ -244,7 +246,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [x] G0, day 1: compose plus one command under 5 minutes; CI stages 1, 2, 4 and 6 green; health check on Railway; gate page on Vercel; fixtures committed with the reference self-test in stage 2
 - [x] G1, day 7: C-01 to C-31 pass in Java and Python; `engine` and `rules` at 100% line and PIT at least 90%; 200 cases under 1 s and twice byte-identical; decisions persisted; author schema-valid in at least 9 of 10 recorded runs; steps 1 (without flags) and 2 through the panel on the cloud site
 - [x] G2, day 11: step 1 complete and step 3 on the cloud site; retrieval recall at 8, citation and refusal accuracy at target; RT-01 to RT-03 and RT-05 to RT-10 pass; first token under 3 s for cached questions (restored: gate G2)
-- [ ] G3, day 15: step 4 end to end with exactly 12 flips and version 1 unchanged; RT-04; change correctness 5 of 6; second-domain fixture loaded; report with both provider columns (restored: rung 10)
+- [x] G3, day 15: step 4 end to end with exactly 12 flips and version 1 unchanged; RT-04; change correctness 5 of 6; second-domain fixture loaded; report with both provider columns (restored: rung 10; passed, the proof in the worklog)
 - [ ] ~~G4, two-week version: the Brief's Definition of Done lines 1 to 6 true; the pre-demo checklist complete, the reset items excepted; the video plays; `main` frozen at a tagged build with its SBOM~~ (moved to day 19)
 - [ ] G4, day 19: every line of the Brief's Definition of Done true; the pre-demo checklist complete; the traceability matrix has no empty row; the video plays; `main` frozen at a tagged build with its SBOM
 
