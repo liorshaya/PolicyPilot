@@ -174,34 +174,30 @@ waits for the recorded run. The [known limitations](#known-limitations) give eac
 
 ## Known limitations
 
-The plan ran in two weeks instead of four. Document 7's scope ladder was cut from rung 2 to rung 10 on entry, together
-with the evaluation runner. Each cut below names its rung. On 2026-09-22, after the `v1.0.0` tag, the full plan was
-restored: each cut leaves this list in the pull request that ships it.
+The plan ran in two weeks instead of four. Document 7's scope ladder was cut from rung 2 to rung 10 on entry, and a
+few pieces outside the ladder with it. Each cut below names its rung or its piece. On 2026-09-22, after the `v1.0.0`
+tag, the full plan was restored: each cut leaves this list in the pull request that ships it.
 
-- **The change flow is not through gate G3 yet** (rung 10): since day 14 demo step 4 runs on the cloud site through
-  the panel, from the request to version 2 and its audit entry, but gate G3 is day 15's and the traceability matrix
-  does not name the change flow's tests yet, so Brief line 7 is not ticked.
+- **The change flow's Definition of Done is not walked yet** (rung 10): gate G3 passed on day 15, with demo step 4
+  end to end on the cloud site (the two rules, the 12 flips, version 2 and its audit entry, case 17 unchanged under
+  version 1), but the Definition of Done walk with its evidence links is day 16's, so Brief line 7 is not ticked.
 - **The guided demo panel is not yet proven in one run** (rung 7): since day 14 it drives all four steps with one click
   each, and each step has a Playwright test of its own; the run of all four steps in one go is day 16's.
-- **The full-set evaluation run** (rung 4) and **the evaluation runner**: the runner exists and its report is
-  committed ([the run of 2026-09-23](docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md)); what is still missing is
-  the full set --- all 18 labeled policies, the six change requests, and the local Ollama column --- which day 15
-  runs. Gate G2 passed on the recorded evaluation.
-- **Rule match below 90%** (Brief line 3, not met): the runner scores rule recall at 0.12 and case agreement at 0.00
-  ([the run of 2026-09-23](docs/eval/2026-09-23-authorv1-reviewv1-answerv1.md)). Every mismatch it lists is one
-  thing: the model names the fields differently --- `employment_status` for `employment_type`, `loan_amount` for
-  `requested_amount` --- and Document 4's matching evaluates the generated expression on the labeled cases, which
-  only works if the names agree. Provenance is correct on 1.00 of the rules that did match, and not one mismatch is
-  a wrong threshold or a wrong outcome. Scored by hand with a field mapping written for it, the same runs match 78%
-  on the canonical run and 67% at the median ([the earlier report](docs/eval/rule-match-lending.md)). The fix is
-  `author/v2`, which gives the model the field names the cases use instead of asking it to invent them; it is
-  scheduled for day 15 with evaluation run 2, because it changes the rendered prompt and so costs the demo its
-  warmed step 1.
-- **The Ollama column** (rung 3): the `ollama` profile starts (its context test passes) but the chat step was not
-  run on a local model, so Brief line 8 is not verified.
-- **The second domain and the encore** (rung 2): only the lending policy is seeded.
-- **No reset**: neither the nightly reset of the sandboxes nor the manual reset endpoint was built. The seeded rule
-  set cannot change, because a published version is immutable and an edit forks the visitor's own copy.
+- **Rule match below 90%** (Brief line 3, not met): evaluation run 2 scores rule recall at 0.43, precision at 0.34 and
+  case agreement at 0.67 over the 18 labeled policies
+  ([the run of 2026-09-24](docs/eval/2026-09-24-authorv2-reviewv1-answerv2-changev2.md)), up from 0.12, 0.10 and 0.00
+  once `author/v2` gave the model the field names the cases use. What still misses is listed per policy: rules that
+  name a derived value differently (`debt_to_income_ratio` for `debt_to_income`), terms the policy leaves undefined
+  ("stable income" as a field the cases do not have), and set values rounded otherwise. Provenance is correct on 0.97
+  of the rules that matched, and every draft passed the schema on its first answer.
+- **The Ollama column** (rung 3): the `ollama` profile answers every prompt on qwen3:14b and bge-m3, and its column
+  of evaluation run 2 shows the gap (3 of 18 drafts pass the schema, change correctness 0 of 6), but the chat step
+  in the interface on a local model is day 16's, so Brief line 8 is not verified.
+- **The encore on the second domain** (rung 2): the municipal tax discount policy is seeded as a second protected
+  policy since day 15 and its 10 labeled cases decide as labeled; the encore itself is rehearsed on day 19.
+- **The reset's admin code is not rotated yet**: the nightly reset and `POST /api/v1/admin/reset` exist since day 15
+  and both ran on the cloud site; rotating the admin code after its test is part of the secrets rotation of days
+  17 to 19.
 - **No provider badge** in the interface: the provider is set by configuration and shown nowhere.
 - **Retrieval**: recall at 8 is 38 of 48 expected chunks on the 30 labeled questions
   ([report](docs/eval/retrieval-first-pass.md)). A paragraph reached only through a rule's quote can be missed, and an
