@@ -1,0 +1,331 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RulesScreen in both directions (NFR-5) > LTR: an English rule set stays left to right (snapshot) 1`] = `
+"
+page -           The rules of this version in evaluation order, with the fields each one compares
+page -           Rule
+page -           Priority
+page -           age
+page -           employment_type
+page -           employment_months
+page -           monthly_income
+page -           credit_events_24m
+page -           has_guarantor
+page -           monthly_installment
+page -           derived
+page -           debt_to_income
+page -           derived
+page -           Source
+page -           Action
+page -           Derivations
+page -           R-010
+auto -           Monthly installment at 10.8% annual interest
+page -           10
+page -           ¶
+page -           5
+ltr  en          The monthly installment is computed with an annuity schedule at an annual interest rate of 10.8%
+page -           set monthly_installment
+page -           R-020
+auto -           Debt-to-income ratio
+page -           20
+page -           > 0 ILS
+page -           ¶
+page -           6
+ltr  en          existing monthly repayments plus the new installment divided by net monthly income
+page -           set debt_to_income
+page -           Hard eligibility gates
+page -           R-100
+auto -           Reject: younger than 21
+page -           100
+page -           < 21 years
+page -           ¶
+page -           1
+ltr  en          aged 21 to 65 at the time of application
+page -           Declined
+page -           R-110
+auto -           Reject: older than 65
+page -           110
+page -           > 65 years
+page -           ¶
+page -           1
+ltr  en          aged 21 to 65 at the time of application
+page -           Declined
+page -           R-120
+auto -           Reject: amount outside 5,000 to 120,000
+page -           120
+page -           ¶
+page -           2
+ltr  en          The loan amount is between 5,000 and 120,000 ILS
+page -           Declined
+page -           R-130
+auto -           Reject: term outside 6 to 72 months
+page -           130
+page -           ¶
+page -           2
+ltr  en          the repayment term is between 6 and 72 months
+page -           Declined
+page -           R-140
+auto -           Reject: unemployed
+page -           140
+page -           = unemployed
+page -           ¶
+page -           3
+ltr  en          Unemployed applicants are not eligible
+page -           Declined
+page -           R-150
+auto -           Reject: employed for less than 6 months
+page -           150
+page -           = salaried
+page -           < 6 months
+page -           ¶
+page -           3
+ltr  en          employed for at least 6 months with the current employer
+page -           Declined
+page -           R-160
+auto -           Reject: self-employed for less than 18 months
+page -           160
+page -           = self_employed
+page -           < 18 months
+page -           ¶
+page -           3
+ltr  en          self-employed for at least 18 months
+page -           Declined
+page -           R-170
+auto -           Reject: net income below 7,000
+page -           170
+page -           < 7,000 ILS
+page -           ¶
+page -           4
+ltr  en          Net monthly income must be at least 7,000 ILS
+page -           Declined
+page -           Affordability and risk limits
+page -           R-200
+auto -           Reject: debt-to-income above 45%
+page -           200
+page -           > 0.45
+page -           ¶
+page -           6
+ltr  en          must not exceed 45%
+page -           Declined
+page -           R-220
+auto -           Reject: two or more adverse credit events
+page -           220
+page -           ≥ 2
+page -           ¶
+page -           7
+ltr  en          An applicant with two or more adverse credit events in the last 24 months is rejected
+page -           Declined
+page -           Referral conditions
+page -           R-320
+auto -           Underwriter: ratio between 40% and 45%
+page -           320
+page -           [0.4 .. 0.45]
+page -           ¶
+page -           6
+ltr  en          Applications with a ratio between 40% and 45% are referred to an underwriter
+page -           Manual review
+page -           R-330
+auto -           Referral: one credit event without a guarantor
+page -           330
+page -           = 1
+page -           = false
+page -           ¶
+page -           7
+ltr  en          without a guarantor the application is referred
+page -           Manual review
+page -           Positive outcome
+page -           R-900
+auto -           Approve: every condition is met
+page -           900
+page -           ¶
+page -           8
+ltr  en          Applications that meet every condition above are approved
+page -           Approved
+"
+`;
+
+exports[`RulesScreen in both directions (NFR-5) > RTL: Hebrew labels turn right to left beside Latin ids, fields and numbers (snapshot) 1`] = `
+"
+page -           The rules of this version in evaluation order, with the fields each one compares
+page -           Rule
+page -           Priority
+page -           age
+page -           employment_type
+page -           employment_months
+page -           monthly_income
+page -           credit_events_24m
+page -           has_guarantor
+page -           monthly_installment
+page -           derived
+page -           debt_to_income
+page -           derived
+page -           Source
+page -           Action
+page -           Derivations
+page -           R-010
+auto -           חישוב ההחזר החודשי לפי לוח שפיצר בריבית שנתית של 9%
+page -           10
+page -           ¶
+page -           5
+rtl  he          ההחזר החודשי של ההלוואה יחושב לפי לוח שפיצר בריבית שנתית של 9%
+page -           set monthly_installment
+page -           R-020
+auto -           חישוב יחס החוב להכנסה
+page -           20
+page -           > 0 ILS
+page -           ¶
+page -           6
+rtl  he          סך ההחזרים החודשיים הקיימים בתוספת ההחזר החודשי של ההלוואה המבוקשת, חלקי ההכנסה החודשית נטו
+page -           set debt_to_income
+page -           Hard eligibility gates
+page -           R-100
+auto -           דחייה: גיל נמוך מ-21
+page -           100
+page -           < 21 years
+page -           ¶
+page -           1
+rtl  he          גילו 21 עד 70 בעת הגשת הבקשה
+page -           Declined
+page -           R-110
+auto -           דחייה: גיל מעל 70 (למעט גמלאים)
+page -           110
+page -           > 70 years
+page -           ≠ retired
+page -           ¶
+page -           1
+rtl  he          גילו 21 עד 70 בעת הגשת הבקשה
+page -           Declined
+page -           R-115
+auto -           דחייה: גמלאי מעל גיל 75
+page -           115
+page -           > 75 years
+page -           = retired
+page -           ¶
+page -           8
+rtl  he          גמלאים עד גיל 75 רשאים לקבל הלוואה
+page -           Declined
+page -           R-116
+auto -           דחייה: תקופת ההחזר של גמלאי מסתיימת בגיל 78 או אחריו
+page -           116
+page -           ≥ (78 − (term_months / 12))
+page -           = retired
+page -           ¶
+page -           8
+rtl  he          תקופת ההחזר תסתיים לפני הגיעם לגיל 78
+page -           Declined
+page -           R-120
+auto -           דחייה: סכום ההלוואה מחוץ לטווח 10,000 עד 150,000
+page -           120
+page -           ¶
+page -           2
+rtl  he          סכום ההלוואה יהיה בין 10,000 ל-150,000 ש"ח
+page -           Declined
+page -           R-130
+auto -           דחייה: תקופת ההחזר מחוץ לטווח 12 עד 84 חודשים
+page -           130
+page -           ¶
+page -           2
+rtl  he          תקופת ההחזר בין 12 ל-84 חודשים
+page -           Declined
+page -           R-140
+auto -           דחייה: מבקש מובטל
+page -           140
+page -           = unemployed
+page -           ¶
+page -           3
+rtl  he          מובטל אינו זכאי להלוואה
+page -           Declined
+page -           R-150
+auto -           דחייה: שכיר עם ותק נמוך מ-6 חודשים
+page -           150
+page -           = salaried
+page -           < 6 months
+page -           ¶
+page -           3
+rtl  he          שכיר בעל ותק של 6 חודשים לפחות במקום עבודתו הנוכחי
+page -           Declined
+page -           R-160
+auto -           דחייה: עצמאי הפועל פחות מ-24 חודשים
+page -           160
+page -           = self_employed
+page -           < 24 months
+page -           ¶
+page -           3
+rtl  he          עצמאי הפועל 24 חודשים לפחות
+page -           Declined
+page -           R-170
+auto -           דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+page -           170
+page -           < 8,000 ILS
+page -           ¶
+page -           4
+rtl  he          ההכנסה החודשית נטו של המבקש לא תפחת מ-8,000 ש"ח
+page -           Declined
+page -           Affordability and risk limits
+page -           R-200
+auto -           דחייה: יחס חוב להכנסה מעל 40%
+page -           200
+page -           > 0.4
+page -           ¶
+page -           6
+rtl  he          לא יעלה על 40%
+page -           Declined
+page -           R-220
+auto -           דחייה: שני אירועי אשראי שליליים או יותר
+page -           220
+page -           ≥ 2
+page -           ¶
+page -           7
+rtl  he          שני אירועי אשראי שליליים או יותר ב-24 החודשים האחרונים, בקשתו תידחה
+page -           Declined
+page -           Referral conditions
+page -           R-310
+auto -           בדיקה ידנית: ותק לא דווח
+page -           310
+page -           ∈ {salaried, self_employed}
+page -           absent
+page -           Analyst
+auto -           ותק חסר אינו ניתן לאימות אוטומטי; הופנה לבדיקה ידנית בהחלטת האנליסט
+page -           Manual review
+page -           R-320
+auto -           בדיקת חתם: יחס חוב להכנסה בין 35% ל-40%
+page -           320
+page -           [0.35 .. 0.4]
+page -           ¶
+page -           6
+rtl  he          בקשה שיחס החוב שלה בין 35% ל-40% תועבר לבדיקת חתם
+page -           Manual review
+page -           R-330
+auto -           בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           330
+page -           = 1
+page -           = false
+page -           ¶
+page -           7
+rtl  he          מבקש עם אירוע אחד יידרש להעמיד ערב
+page -           Manual review
+page -           Advisory
+page -           R-410
+auto -           סימון: הכנסה קרובה למינימום
+page -           410
+page -           [8,000 ILS .. 9,000 ILS]
+page -           Analyst
+auto -           סימון לתשומת לב החתם, ללא השפעה על ההחלטה
+page -           flag INCOME_NEAR_MINIMUM
+page -           R-420
+auto -           סימון: יציבות ההכנסה נבדקת ידנית
+page -           420
+page -           ¶
+page -           4
+rtl  he          המבקש יציג הכנסה יציבה
+page -           flag STABLE_INCOME_MANUAL_CHECK
+page -           Positive outcome
+page -           R-900
+auto -           אישור: כל התנאים מתקיימים
+page -           900
+page -           ¶
+page -           9
+rtl  he          בקשה העומדת בכל התנאים לעיל תאושר
+page -           Approved
+"
+`;

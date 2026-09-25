@@ -13,6 +13,10 @@ import {
   twoRulesets,
 } from '../../test/msw/handlers'
 import { PoliciesScreen } from './PoliciesScreen'
+import { englishParagraphs, englishPolicy } from '../../test/fixtures/english'
+import { rtlSnapshot } from '../../test/rtlSnapshot'
+
+// @requirement NFR-5
 
 /**
  * The policy screen against realistic responses (Document 6, Frontend Test Design). The policy is the committed
@@ -320,3 +324,43 @@ const emptyPolicy = {
     },
   ],
 }
+
+describe('PoliciesScreen in both directions (NFR-5)', () => {
+  const BASE = 'http://localhost:8080/api/v1'
+
+  it('RTL: the Hebrew policy reads right to left inside the English screen (snapshot)', async () => {
+    renderScreen()
+
+    const first = await screen.findByText(lendingParagraphs[0]!.text)
+    expect(first.closest('[dir]')).toHaveAttribute('dir', 'rtl')
+    expect(rtlSnapshot(first.closest('section')!)).toMatchSnapshot()
+  })
+
+  it('LTR: an English policy reads left to right in the same screen (snapshot)', async () => {
+    server.use(
+      http.get(`${BASE}/policies`, () =>
+        HttpResponse.json({
+          policies: [
+            {
+              id: englishPolicy.id,
+              title: englishPolicy.title,
+              language: 'en',
+              protected: false,
+              versionNo: 1,
+              paragraphs: englishParagraphs.length,
+              createdAt: englishPolicy.createdAt,
+            },
+          ],
+        }),
+      ),
+      http.get(`${BASE}/policies/:id`, () => HttpResponse.json(englishPolicy)),
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json({ rulesets: [] })),
+    )
+    renderScreen()
+
+    const first = await screen.findByText(englishParagraphs[0]!.text)
+    expect(first.closest('[dir]')).toHaveAttribute('dir', 'ltr')
+    expect(first.closest('[lang]')).toHaveAttribute('lang', 'en')
+    expect(rtlSnapshot(first.closest('section')!)).toMatchSnapshot()
+  })
+})

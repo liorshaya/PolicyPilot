@@ -34,6 +34,6 @@ never edited by hand. Each cell names the test classes, methods or files that pr
 | NFR-2 Explainability | RuleEngineTest, TraceTest |  |  |  |
 | NFR-3 Auditability |  | AdminResetRoutesIT, AdminResetUnconfiguredIT, AuditLogIT, PublishTransactionIT, PublishedVersionImmutabilityIT, ResetIT |  |  |
 | NFR-4 Provider independence | EvalReportTest.aSecondProvidersRunKeepsTheFirstProvidersColumnAndSection, EvalReportTest.theReportHasAColumnPerProvider, PackageRulesTest.onlyTheAdapterImportsSpringAi, ProviderDescriptionsTest | OllamaProfileContextIT, OpenAiProfileContextIT |  |  |
-| NFR-5 Hebrew support | InputNormalizerTest, ParagraphSplitterTest, QuoteNormalizerTest | PolicyServiceIT |  | demo.spec.ts |
+| NFR-5 Hebrew support | AuditScreen.test.tsx, CasesScreen.test.tsx, ChatScreen.test.tsx, InputNormalizerTest, ParagraphSplitterTest, PoliciesScreen.test.tsx, QuoteNormalizerTest, RulesScreen.test.tsx | PolicyServiceIT |  | demo.spec.ts |
 | NFR-6 Performance | ScriptedAnswersTest | CachedScriptedAnswerIT, DecisionPerformanceIT, ScriptedAnswerCacheIT | EvalRunnerIT |  |
 | NFR-7 Robustness to model failure | RuleSetMapperTest, SchemaValidatorTest |  |  |  |

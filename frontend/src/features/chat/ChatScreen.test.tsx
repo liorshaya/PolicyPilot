@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,10 @@ import { lendingParagraphs } from '../../test/fixtures/lending'
 import { SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { ChatScreen } from './ChatScreen'
+import { notCovered } from '../../test/fixtures/english'
+import { rtlSnapshot } from '../../test/rtlSnapshot'
+
+// @requirement NFR-5
 
 /**
  * The assistant against the chat stream as the API sends it (Document 2: POST /chat/sessions, then token events,
@@ -273,5 +277,85 @@ describe('ChatScreen', () => {
     ).toBeInTheDocument()
     expect(await screen.findByLabelText('Question')).toBeInTheDocument()
     await waitFor(() => expect(opened).toEqual([{ rulesetId: SEEDED_RULESET_ID, versionNo: 1 }]))
+  })
+})
+
+describe('ChatScreen in both directions (NFR-5)', () => {
+  // two of the labeled set's English questions (fixtures/eval/questions.json, Q-13 and Q-15), asked here of an English
+  // version, whose answers and not-covered sentence are English
+  const MINIMUM_AGE = 'What is the minimum age for a personal loan?'
+  const APPROVAL_DAYS = 'How many days does the bank take to approve a loan?'
+
+  it('RTL: a Hebrew answer reads right to left with its citation chips left to right (snapshot)', async () => {
+    serveSession()
+    server.use(
+      http.post(`${BASE}/chat/sessions/${SESSION}/messages`, () =>
+        streamOf(
+          answered('בקשה 17 הופנתה לבדיקת חתם.[[d:17]][[p:7]]', [
+            {
+              id: 'd:17',
+              kind: 'DECISION',
+              applicationNumber: 17,
+              outcome: 'refer',
+              ruleId: 'R-330',
+            },
+            { id: 'p:7', kind: 'PARAGRAPH', paragraph: 7 },
+          ]),
+        ),
+      ),
+    )
+    renderScreen()
+
+    await ask(TERM_QUESTION)
+
+    const conversation = screen.getByRole('region', { name: 'Conversation' })
+    expect(await within(conversation).findByRole('button', { name: '¶ 7' })).toHaveAttribute(
+      'dir',
+      'ltr',
+    )
+    expect(rtlSnapshot(conversation)).toMatchSnapshot()
+  })
+
+  it('LTR: an English answer stays left to right (snapshot)', async () => {
+    serveSession('en')
+    server.use(
+      http.post(`${BASE}/chat/sessions/${SESSION}/messages`, () =>
+        streamOf(
+          answered('The minimum age is 21.[[p:1]]', [
+            { id: 'p:1', kind: 'PARAGRAPH', paragraph: 1 },
+          ]),
+        ),
+      ),
+    )
+    renderScreen()
+
+    await ask(MINIMUM_AGE)
+
+    const answer = await screen.findByText('The minimum age is 21.')
+    expect(answer.closest('p')).toHaveAttribute('dir', 'ltr')
+    expect(rtlSnapshot(screen.getByRole('region', { name: 'Conversation' }))).toMatchSnapshot()
+  })
+
+  it("shows the not-covered sentence in the version's language, Hebrew right to left and English left to right", async () => {
+    for (const [language, question] of [
+      ['he', TERM_QUESTION],
+      ['en', APPROVAL_DAYS],
+    ] as const) {
+      serveSession(language)
+      server.use(
+        http.post(`${BASE}/chat/sessions/${SESSION}/messages`, () =>
+          streamOf(answered(notCovered(language), [])),
+        ),
+      )
+      renderScreen()
+
+      await ask(question)
+
+      const sentence = await screen.findByText(notCovered(language))
+      expect(sentence.closest('p')).toHaveAttribute('dir', language === 'he' ? 'rtl' : 'ltr')
+      expect(sentence.closest('p')).toHaveAttribute('lang', language)
+      expect(within(sentence.closest('p')!).queryByRole('button')).not.toBeInTheDocument()
+      cleanup()
+    }
   })
 })

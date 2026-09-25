@@ -15,6 +15,10 @@ import {
 } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { RulesScreen } from './RulesScreen'
+import { ENGLISH_RULESET_ID, englishRuleSet } from '../../test/fixtures/english'
+import { rtlSnapshot } from '../../test/rtlSnapshot'
+
+// @requirement NFR-5
 
 /**
  * The rule set screen (Document 6, Frontend Test Design: the decision table, the 422 pointers and the Hebrew
@@ -616,5 +620,49 @@ describe('RulesScreen, the review of a draft', () => {
     renderScreen()
 
     expect(await screen.findByText('הכנסה יציבה אינה מוגדרת')).toHaveAttribute('dir', 'rtl')
+  })
+})
+
+describe('RulesScreen in both directions (NFR-5)', () => {
+  it('RTL: Hebrew labels turn right to left beside Latin ids, fields and numbers (snapshot)', async () => {
+    renderScreen()
+
+    const table = await screen.findByRole('table')
+    const label = await within(table).findByText(lendingRuleSet.rules[0]!.label)
+    expect(label).toHaveAttribute('dir', 'auto')
+    expect(rtlSnapshot(table)).toMatchSnapshot()
+  })
+
+  it('LTR: an English rule set stays left to right (snapshot)', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            {
+              id: ENGLISH_RULESET_ID,
+              name: englishRuleSet.name,
+              domain: englishRuleSet.id,
+              protected: false,
+              versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+            },
+          ],
+        }),
+      ),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () =>
+        HttpResponse.json({
+          ...publishedVersion,
+          rulesetId: ENGLISH_RULESET_ID,
+          name: englishRuleSet.name,
+          domain: englishRuleSet.id,
+          protected: false,
+          ruleSet: englishRuleSet,
+        }),
+      ),
+    )
+    renderScreen()
+
+    const table = await screen.findByRole('table')
+    await within(table).findByText(englishRuleSet.rules[0]!.label)
+    expect(rtlSnapshot(table)).toMatchSnapshot()
   })
 })

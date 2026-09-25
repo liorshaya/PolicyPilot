@@ -22,3 +22,16 @@ page -           demo-analyst
 page -           20 rules published, 1 warning left open
 "
 `;
+
+exports[`AuditScreen in both directions (NFR-5) > LTR: an English note and request stay left to right in the log (snapshot) 1`] = `
+"
+page -           Change rejected
+page -           2026-09-27 09:20 UTC
+page -           By
+page -           5f0c1c9e-0000-4000-8000-00000000a0a0
+page -           Request
+ltr  -           Raise the minimum monthly income to 9,000
+page -           Note
+ltr  -           Not during the election period
+"
+`;

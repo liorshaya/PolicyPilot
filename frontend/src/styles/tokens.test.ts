@@ -94,3 +94,15 @@ describe('the palette', () => {
     })
   })
 })
+
+describe('the typefaces', () => {
+  // Document 2, Frontend Architecture, key decision 5: "the fonts are Inter and Heebo". Inter draws no Hebrew, so the
+  // interface's stack names Heebo right after it: Hebrew in a block whose direction the browser works out (dir="auto":
+  // a rule's label, a question, a title) is drawn in Heebo like the right-to-left blocks, not in a system face
+  it('draws Latin in Inter and Hebrew in Heebo wherever it appears', () => {
+    const stack = token('font-ui')
+      .split(',')
+      .map((face) => face.trim())
+    expect(stack.slice(0, 2)).toEqual(["'Inter'", "'Heebo'"])
+  })
+})

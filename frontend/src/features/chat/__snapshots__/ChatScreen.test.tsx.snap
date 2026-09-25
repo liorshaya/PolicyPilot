@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ChatScreen in both directions (NFR-5) > LTR: an English answer stays left to right (snapshot) 1`] = `
+"
+auto -           What is the minimum age for a personal loan?
+ltr  en          The minimum age is 21.
+ltr  en          ¶ 1
+page -           Question
+page -           Ask
+"
+`;
+
+exports[`ChatScreen in both directions (NFR-5) > RTL: a Hebrew answer reads right to left with its citation chips left to right (snapshot) 1`] = `
+"
+auto -           מהי תקופת ההחזר המקסימלית להלוואה?
+rtl  he          בקשה 17 הופנתה לבדיקת חתם.
+ltr  he          Application 17
+ltr  he          ¶ 7
+page -           Question
+page -           Ask
+"
+`;
