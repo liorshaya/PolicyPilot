@@ -173,6 +173,40 @@ class SchemaValidatorTest {
                 "/rules/6/condition/not/field", "/rules/6/condition/not/value");
     }
 
+    // Found by evaluation run 2 on day 15: a draft whose set action held a wrong expression threw instead of being
+    // reported, because a failed anyOf (the expression) has no summary error of its own. Expected, from the schema:
+    // the set alternative and, inside it, the function node are the closest shapes, so the one finding is the empty
+    // args of the nested mul, where minItems is 1
+    @Test
+    void aWrongExpressionInsideAnAnyOfIsReportedWhereItIs() {
+        ObjectNode document = RuleSetBuilder.lendingV1()
+                .rule("R-100", r -> r.putArray("actions").addObject().put("type", "set").put("field", "amount")
+                        .putObject("value").put("fn", "add").putArray("args").add(1)
+                        .addObject().put("fn", "mul").putArray("args"))
+                .build();
+
+        assertThat(validator.validate(document)).singleElement().satisfies(finding -> {
+            assertThat(finding.code()).isEqualTo(ValidationCode.DSL_SCHEMA);
+            assertThat(finding.path()).isEqualTo("/rules/2/actions/0/value/args/1/args");
+            assertThat(finding.message()).startsWith("minItems at /rules/2/actions/0/value/args/1/args: ");
+        });
+    }
+
+    // A string where an expression goes is as far from a number as from a field reference and a function node, and
+    // a failed anyOf has no summary to fall back on. Expected: the first alternative in the schema's order, the
+    // number, reports its one error where the string is
+    @Test
+    void equallyCloseAlternativesOfAnAnyOfReportTheFirst() {
+        ObjectNode document = RuleSetBuilder.lendingV1()
+                .rule("R-100", r -> r.putArray("actions").addObject().put("type", "set").put("field", "amount")
+                        .putObject("value").put("fn", "add").putArray("args").add(1).add("one"))
+                .build();
+
+        assertThat(validator.validate(document)).extracting(Finding::path, Finding::message).containsExactly(
+                tuple("/rules/2/actions/0/value/args/1",
+                        "type at /rules/2/actions/0/value/args/1: string found, number expected"));
+    }
+
     @Test
     void alternativeNamedByItsTypeOrKindReportsWhatItLacks() {
         ObjectNode bareSet = RuleSetBuilder.lendingV1()

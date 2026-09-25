@@ -113,6 +113,9 @@ class LiveChangePassIT {
     private LlmGateway gateway;
 
     @Autowired
+    private PromptRegistry prompts;
+
+    @Autowired
     private PolicyPilotProperties properties;
 
     @Autowired
@@ -127,8 +130,9 @@ class LiveChangePassIT {
         LiveRecordingGateway model = new LiveRecordingGateway(provider, gateway, properties.ai().models().strong(),
                 Long.getLong("live.budget", properties.ai().dailyTokenBudget()),
                 LiveChangeRecordingIT.CHARACTERS_PER_TOKEN, LiveChangeRecordingIT.OUTPUT_ALLOWANCE);
-        ChangeService service = new ChangeService(model, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
-                new DslCheatSheet());
+        // the application's registry, so the profile's timeouts hold: one built here would keep prompt.yml's 60 s,
+        // which cut two of the Ollama column's requests on day 15
+        ChangeService service = new ChangeService(model, prompts, new DslCheatSheet());
         // the seeded version is embedded at startup, on the recorded vectors, before any corpus is recorded
         awaitEmbedded();
         if (!vectors.recorded(REQUESTS)) {
