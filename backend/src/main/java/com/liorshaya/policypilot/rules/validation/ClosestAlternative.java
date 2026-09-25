@@ -3,11 +3,12 @@ package com.liorshaya.policypilot.rules.validation;
 import com.networknt.schema.Error;
 import com.networknt.schema.path.NodePath;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -18,6 +19,11 @@ import org.jspecify.annotations.Nullable;
  * node itself or at the node's {@code kind} or {@code type} discriminator; errors deeper in the node do not count,
  * because they mean the alternative was the right shape. The single closest alternative keeps its errors; on a tie
  * only the group's own summary error is kept.
+ *
+ * <p>A failed {@code anyOf} has no summary error: the schema library reports only its alternatives' errors (found by
+ * evaluation run 2 on day 15, where it threw). A group's node is the shallowest place its errors point at, which
+ * is the summary's own location when there is one, and on a tie without a summary the first of the equally close
+ * alternatives, in the schema's order, keeps its errors.
  */
 final class ClosestAlternative {
 
@@ -59,8 +65,8 @@ final class ClosestAlternative {
     }
 
     private static List<Error> resolve(int depth, Group group) {
-        Error summary = Objects.requireNonNull(group.summary, "a failed combinator reports a summary error");
-        String node = summary.getInstanceLocation().toString();
+        Error summary = group.summary;
+        String node = nodeOf(group);
         List<List<Error>> closest = new ArrayList<>();
         long best = Long.MAX_VALUE;
         for (List<Error> branch : group.branches.values()) {
@@ -74,7 +80,20 @@ final class ClosestAlternative {
                 closest.add(selected);
             }
         }
-        return closest.size() == 1 ? closest.getFirst() : List.of(summary);
+        if (closest.size() == 1 || summary == null) {
+            return closest.getFirst();
+        }
+        return List.of(summary);
+    }
+
+    /**
+     * Where a group sits: the least deep location its errors point at. A summary is at the node itself, and every
+     * alternative's error is at the node or below it, so with a summary this is the summary's location.
+     */
+    private static String nodeOf(Group group) {
+        return Stream.concat(Stream.ofNullable(group.summary), group.branches.values().stream().flatMap(List::stream))
+                .map(Error::getInstanceLocation).min(Comparator.comparingInt(NodePath::getNameCount)).orElseThrow()
+                .toString();
     }
 
     private static boolean atNode(Error error, String node) {
