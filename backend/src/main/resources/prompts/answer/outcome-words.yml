@@ -1,0 +1,18 @@
+# The words that name a decision's outcome (Document 4, Prompt 4: Words that name an outcome). A label's word that is
+# one of an outcome's forms is met by any form of that outcome an answer says: a word that is the form, in Hebrew also
+# after up to three of the prefix letters ו ה ש ב ל כ מ, in English in any letter case, with no negation among the three
+# words before it. Any other word of a label is matched as written. Copied from the tables of Document 4.
+outcomes:
+  approve:
+    he: [אושר, אושרה, אושרו, מאושר, מאושרת, מאושרים, מאושרות, יאושר, תאושר, יאושרו, אישור]
+    en: ["approve", "approves", "approved", "approval"]
+  reject:
+    he: [נדחה, נדחתה, נדחו, נדחית, נדחים, יידחה, תידחה, יידחו, דחייה, דחיה]
+    en: ["reject", "rejects", "rejected", "rejection", "decline", "declines", "declined"]
+  refer:
+    he: [הופנה, הופנתה, הופנו, מופנה, מופנית, מופנים, יופנה, תופנה, יופנו, הפניה, הפנייה]
+    en: ["refer", "refers", "referred", "referral"]
+# An English word that ends in n't is a negation too. The English words are quoted: YAML reads a bare no as false.
+negations:
+  he: [לא, אין, אינו, אינה, איננו, איננה, אינם, אינן, ללא, בלי]
+  en: ["not", "no", "never", "without", "cannot"]

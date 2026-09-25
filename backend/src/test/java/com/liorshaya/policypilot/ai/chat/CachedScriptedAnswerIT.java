@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
 import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedGateway.Streamed;
+import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
 import com.liorshaya.policypilot.support.Requirement;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -115,6 +116,30 @@ class CachedScriptedAnswerIT {
         questions.ask(term);
 
         assertThat(model.asked()).hasSize(2);
+    }
+
+    // Document 4, Words that name an outcome: Q-02's live answers said "אושרה" where its label says "מאושר", and the
+    // cache kept none. Q-02 comes after Q-07, a labeled question the cache never keeps, so the entry is this test's
+    // alone. Expected: the answer that says "אושרה" is kept, and the same conversation in another sandbox gets it
+    // without the model
+    @Test
+    void anAnswerThatSaysAnotherFormOfItsOutcomeIsKept() {
+        String opening = question("Q-07");
+        Streamed rule = Streamed.text("הכלל R-320 מפנה לבדיקת חתם כשיחס החוב להכנסה בין 35% ל-40%.[[r:R-320]]");
+        Streamed approved = Streamed.after("כן. בסימולציה עם ערב, בקשה 17 אושרה לפי R-900."
+                + "[[sim:d17:has_guarantor=true]] [[r:R-900]] [[p:9]]",
+                new ToolCall("getDecision", "{\"applicationNumber\":17}"),
+                new ToolCall("simulate", "{\"applicationNumber\":17,\"overrides\":{\"has_guarantor\":true}}"));
+        // the fourth is there for a cache that does not keep the answer: the second Q-02 then reaches the model
+        model.willStream(rule, approved, rule, approved);
+
+        ScriptedQuestions.Asked first = decided().askInOrder(opening, question("Q-02"));
+        ScriptedQuestions.Asked second = decided().askInOrder(opening, question("Q-02"));
+
+        assertThat(model.asked()).hasSize(3);
+        assertThat(first.text()).contains("אושרה");
+        assertThat(second.text()).isEqualTo(first.text());
+        assertThat(second.cited()).isEqualTo(first.cited()).contains("sim:d17:has_guarantor=true", "r:R-900");
     }
 
     // Document 6, Performance and Load: "The gateway is not called for the second, and its first token event arrives

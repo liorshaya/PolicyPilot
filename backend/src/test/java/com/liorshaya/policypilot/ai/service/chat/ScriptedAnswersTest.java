@@ -58,10 +58,23 @@ class ScriptedAnswersTest {
     void aLabelIsMetOnlyWithEveryMarkerCitedAndEveryWordSaid() {
         ScriptedAnswers.Label guarantor = scripted.labels().get(1);
         String approved = "כן. בסימולציה של בקשה 17 עם ערב, הבקשה הייתה מאושרת לפי כלל R-900.";
+        List<String> cited = List.of("sim:d17:has_guarantor=true", "r:R-900", "p:9");
 
-        assertThat(guarantor.metBy(approved, List.of("sim:d17:has_guarantor=true", "r:R-900", "p:9"))).isTrue();
-        assertThat(guarantor.metBy(approved, List.of("sim:d17:has_guarantor=true", "p:9"))).isFalse();
-        assertThat(guarantor.metBy("כן, לפי כלל R-900.", List.of("sim:d17:has_guarantor=true", "r:R-900"))).isFalse();
-        assertThat(guarantor.metBy(approved, List.of("d:17", "r:R-900"))).isFalse();
+        assertThat(scripted.accepts(guarantor, approved, cited)).isTrue();
+        assertThat(scripted.accepts(guarantor, approved, List.of("sim:d17:has_guarantor=true", "p:9"))).isFalse();
+        assertThat(scripted.accepts(guarantor, "כן, לפי כלל R-900.", cited)).isFalse();
+        assertThat(scripted.accepts(guarantor, approved, List.of("d:17", "r:R-900"))).isFalse();
+    }
+
+    // Document 4, Words that name an outcome: Q-02's live answers of 2026-09-24 cited the simulation, R-900 and
+    // paragraph 9 but said "אושרה", and none was kept. Expected: such an answer meets the label; the same answer
+    // denying the approval does not
+    @Test
+    void anAnswerThatSaysAnotherFormOfItsOutcomeMeetsTheLabel() {
+        ScriptedAnswers.Label guarantor = scripted.labels().get(1);
+        List<String> cited = List.of("sim:d17:has_guarantor=true", "r:R-900", "p:9");
+
+        assertThat(scripted.accepts(guarantor, "כן. בסימולציה עם ערב, בקשה 17 אושרה לפי R-900.", cited)).isTrue();
+        assertThat(scripted.accepts(guarantor, "לא. גם בסימולציה עם ערב, בקשה 17 לא אושרה.", cited)).isFalse();
     }
 }

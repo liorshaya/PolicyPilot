@@ -163,7 +163,7 @@ public class ChatService {
         AnswerComposer.Answer answer = composer.compose(spec,
                 tools.forTurn(turn, prepared.version(), corpus.ruleSet(), session.sandboxId()), turn, language,
                 notCovered.of(language), sink);
-        if (label.isPresent() && !answer.overrun() && label.get().metBy(answer.text(), answer.cited())) {
+        if (label.isPresent() && !answer.overrun() && scripted.accepts(label.get(), answer.text(), answer.cited())) {
             cache.keep(spec, new CachedAnswer(answer.text(), answer.steps()));
         }
         return finish(session, turnNo, question, answer, turn, corpus, sink);
