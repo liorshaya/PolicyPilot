@@ -97,6 +97,11 @@ public final class Fixtures {
         return ruleSet.isString() ? json(ruleSet.stringValue()) : ruleSet;
     }
 
+    /** The files of a fixture directory, by path relative to the fixtures root, in the order of their names. */
+    public static List<Path> files(String directory) {
+        return list(directory, "");
+    }
+
     /** The JSON of a fixture file given by its path. */
     public static JsonNode json(Path path) {
         return MAPPER.readTree(read(path));

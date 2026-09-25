@@ -97,9 +97,9 @@ class OllamaGatewayIT {
         assertThat(completion.usage().outputTokens()).isEqualTo(30);
     }
 
-    // Document 2: thinking disabled for every prompt; Document 4: the prompt's output cap and its schema as the
-    // response format. Expected: think false, num_predict the spec's 8,000, and format the provider variant of the
-    // rule set schema the spec names
+    // Document 4, Thinking on the local model: off for a prompt that returns JSON; the prompt's output cap and its
+    // schema as the response format. Expected: think false, num_predict the spec's 8,000, and format the provider
+    // variant of the rule set schema the spec names
     @Test
     void theRequestCarriesTheSchemaTheCapAndNoThinking() {
         gateway.complete(spec("the request's shape"), String.class);
@@ -150,10 +150,11 @@ class OllamaGatewayIT {
         assertThat(ran.join()).isLessThan(Duration.ofSeconds(5));
     }
 
-    // Document 4, Prompt 4: the answer prompt streams. Expected: Ollama's lines of JSON reach the caller as its tokens,
-    // in order, and the usage of the last line is the turn's
+    // Document 4, Prompt 4: the answer prompt streams; Thinking on the local model: it thinks, and its thinking is
+    // never shown. Expected: the request asks for thinking, Ollama's lines of JSON reach the caller as its tokens, in
+    // order and without the thinking line before them, and the usage of the last line is the turn's
     @Test
-    void aStreamedAnswerArrivesAsItsTokens() {
+    void aStreamedAnswerThinksAndArrivesAsItsTokensAlone() {
         StringBuilder tokens = new StringBuilder();
         PromptSpec answer = new PromptSpec("answer", "ollama-gateway-it", ModelRole.FAST, "system", "a streamed turn",
                 null, 0.3, 1200, Duration.ofSeconds(60), 1);
@@ -163,7 +164,7 @@ class OllamaGatewayIT {
         assertThat(tokens.toString()).isEqualTo("שלום עולם");
         assertThat(usage.inputTokens()).isEqualTo(80);
         assertThat(usage.outputTokens()).isEqualTo(4);
-        assertThat(ASKED.getFirst().path("think").asBoolean(true)).isFalse();
+        assertThat(ASKED.getFirst().path("think").asBoolean(false)).isTrue();
     }
 
     private static PromptSpec spec(String user) {
@@ -183,10 +184,12 @@ class OllamaGatewayIT {
                     sleep(Duration.ofSeconds(10));
                 }
                 if (request.path("stream").asBoolean(false)) {
-                    // Ollama streams one JSON object a line; the last one is done and carries the counts
+                    // Ollama streams one JSON object a line, a thinking model's thinking apart from its content; the
+                    // last one is done and carries the counts
                     String head = "{\"model\":\"qwen3:14b\",\"created_at\":\"2026-09-24T00:00:00Z\","
                             + "\"message\":{\"role\":\"assistant\",\"content\":";
-                    byte[] lines = (head + "\"שלום \"},\"done\":false}\n"
+                    byte[] lines = (head + "\"\",\"thinking\":\"הסימולציה עונה על השאלה\"},\"done\":false}\n"
+                            + head + "\"שלום \"},\"done\":false}\n"
                             + head + "\"עולם\"},\"done\":true,\"done_reason\":\"stop\","
                             + "\"prompt_eval_count\":80,\"eval_count\":4}\n").getBytes(StandardCharsets.UTF_8);
                     exchange.getResponseHeaders().add("Content-Type", "application/x-ndjson");
