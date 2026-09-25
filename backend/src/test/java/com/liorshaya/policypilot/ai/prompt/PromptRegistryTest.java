@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.liorshaya.policypilot.ai.ModelRole;
+import com.liorshaya.policypilot.support.Fixtures;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +12,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import tools.jackson.databind.JsonNode;
 
 /**
  * The prompt registry against the committed prompt directories (Document 4, Prompt Registry and Versioning, and
@@ -176,8 +180,39 @@ class PromptRegistryTest {
         assertThat(answer.timeout()).hasSeconds(60);
         assertThat(answer.repairs()).isZero();
         assertThat(answer.cache()).isEqualTo(PromptDefinition.CachePolicy.SCRIPTED_ONLY);
+        // Document 4, answer/v3: the output rule of a prompt that streams text, and no JSON object asked for
         assertThat(answer.system().text()).contains("You are PolicyPilot's policy assistant.")
-                .contains("For the chat assistant: respond in plain text following the citation protocol.");
+                .contains("Conduct:\n1. Respond in plain text following the citation protocol.\n2. ")
+                .doesNotContain("JSON object");
+    }
+
+    // Document 4, answer/v3: "the user prompt and every setting are answer/v2's". Expected: v3's user template is v2's
+    // word for word, and only its system template differs
+    @Test
+    void answerV3IsAnswerV2WithTheTextOutputRule() throws IOException {
+        Path prompts = Path.of("src/main/resources/prompts/answer");
+
+        assertThat(Files.readString(prompts.resolve("v3.user.st")))
+                .isEqualTo(Files.readString(prompts.resolve("v2.user.st")));
+        assertThat(Files.readString(prompts.resolve("v3.system.st"))).isNotEqualTo(
+                Files.readString(prompts.resolve("v2.system.st")));
+    }
+
+    // Document 4, The output rule: every version already written "renders byte for byte the prompt its cached and
+    // recorded calls were made from". Expected: each version the recordings hold, its system prompt rendered in the
+    // language of its first recording, is the system text that recording was sent with
+    @ParameterizedTest
+    @CsvSource({"author, v1", "author, v2", "review, v1", "explain, v1", "change, v1", "change, v2", "answer, v1",
+            "answer, v2"})
+    void everyVersionAlreadyWrittenRendersTheSystemPromptItsRecordingsWereSentWith(String prompt, String version) {
+        JsonNode recorded = Fixtures.json(Fixtures.files("eval/recordings/openai/" + prompt + "/" + version).getFirst())
+                .required("request");
+        String sent = recorded.required("system").asString();
+        String language = sent.contains(" in Hebrew.") ? "Hebrew" : "English";
+
+        PromptDefinition definition = new PromptRegistry(List.of(prompt), Map.of(prompt, version)).get(prompt);
+
+        assertThat(definition.system().render(Map.of("language", language))).isEqualTo(sent);
     }
 
     @Test

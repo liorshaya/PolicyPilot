@@ -50,7 +50,7 @@ class OpenAiProfileContextIT extends PostgresContainerSupport {
                 .containsEntry("author", "v2")
                 .containsEntry("review", "v1")
                 .containsEntry("explain", "v1")
-                .containsEntry("answer", "v2")
+                .containsEntry("answer", "v3")
                 .containsEntry("change", "v2");
         assertThat(properties.rag().topK()).isEqualTo(8);
         assertThat(properties.rag().minScore()).isEqualTo(0.35);

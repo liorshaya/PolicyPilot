@@ -12,7 +12,8 @@ spring:
         pull-model-strategy: never
       chat:
         model: qwen3:14b
-        # Thinking disabled for every prompt (Document 2); qwen3:8b is the small-machine alternative
+        # Thinking off by default and for every prompt that returns JSON; the adapter turns it on for the answer, which
+        # streams text (Document 4, Thinking on the local model). qwen3:8b is the small-machine alternative
         think: false
         temperature: 0
       embedding:
@@ -35,3 +36,7 @@ policypilot:
         answer: 300
   embedding:
     dimension: 1024
+  rag:
+    # bge-m3's cosines run higher than text-embedding-3-small's: 0.58 is the lowest value that stops the demo's rate
+    # question, Q-04 at 0.572 (Document 4, Retrieval Pipeline: The threshold per embedding model; day 16)
+    min-score: 0.58

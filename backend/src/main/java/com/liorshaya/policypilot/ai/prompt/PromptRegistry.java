@@ -34,8 +34,15 @@ public final class PromptRegistry {
 
     private static final String ROOT = "prompts/";
     private static final String CONDUCT = ROOT + "_shared/conduct.st";
-    /** What the conduct skeleton expects; the registry fills role and task, the caller fills the language. */
+    /** The skeleton's first rule for a prompt that returns JSON, and for one that streams text (Document 4). */
+    private static final String JSON_OUTPUT = ROOT + "_shared/output-json.st";
+    private static final String TEXT_OUTPUT = ROOT + "_shared/output-text.st";
+    /**
+     * What a version's system template may take: the conduct skeleton with the JSON output rule, or with the text
+     * output rule (Document 4, The output rule). The registry fills role, task and output; the caller the language.
+     */
     private static final String CONDUCT_PLACEHOLDER = "conduct";
+    private static final String TEXT_CONDUCT_PLACEHOLDER = "textConduct";
 
     private final Map<String, PromptDefinition> prompts;
 
@@ -63,7 +70,8 @@ public final class PromptRegistry {
      */
     public PromptRegistry(List<String> names, Map<String, String> activeVersions, Map<String, Integer> timeoutSeconds) {
         Map<String, PromptDefinition> loaded = new LinkedHashMap<>();
-        String conduct = read(CONDUCT);
+        Conduct conduct = new Conduct(new PromptTemplate(read(CONDUCT)), read(JSON_OUTPUT).stripTrailing(),
+                read(TEXT_OUTPUT).stripTrailing());
         for (String name : names) {
             loaded.put(name, load(name, activeVersions.get(name), timeoutSeconds.get(name), conduct));
         }
@@ -86,7 +94,7 @@ public final class PromptRegistry {
     }
 
     private static PromptDefinition load(String name, @Nullable String override, @Nullable Integer timeoutSeconds,
-            String conductTemplate) {
+            Conduct conduct) {
         Map<String, Object> meta = metadata(ROOT + name + "/prompt.yml");
         String declaredName = text(meta, "name");
         if (!declaredName.equals(name)) {
@@ -94,13 +102,19 @@ public final class PromptRegistry {
                     "prompts/" + name + "/prompt.yml says name: " + declaredName);
         }
         String version = override == null ? text(meta, "active") : override;
-        PromptTemplate conduct = new PromptTemplate(conductTemplate);
-        String filledConduct = conduct.render(Map.of(
-                "role", text(meta, "role"),
-                "task", text(meta, "task"),
-                "language", "{language}"));
-        String systemText = new PromptTemplate(read(ROOT + name + "/" + version + ".system.st"))
-                .render(Map.of(CONDUCT_PLACEHOLDER, filledConduct));
+        String systemFile = ROOT + name + "/" + version + ".system.st";
+        PromptTemplate system = new PromptTemplate(read(systemFile));
+        Map<String, String> conducts = new LinkedHashMap<>();
+        for (String placeholder : system.placeholders()) {
+            conducts.put(placeholder, switch (placeholder) {
+                case CONDUCT_PLACEHOLDER -> conduct.filled(meta, conduct.jsonOutput());
+                case TEXT_CONDUCT_PLACEHOLDER -> conduct.filled(meta, conduct.textOutput());
+                default -> throw new IllegalStateException(systemFile + " takes {" + placeholder
+                        + "}, and a system template takes {" + CONDUCT_PLACEHOLDER + "} or {"
+                        + TEXT_CONDUCT_PLACEHOLDER + "}");
+            });
+        }
+        String systemText = system.render(conducts);
         return new PromptDefinition(
                 name,
                 version,
@@ -211,5 +225,18 @@ public final class PromptRegistry {
             case "en" -> "English";
             default -> throw new IllegalArgumentException("unsupported policy language " + code);
         };
+    }
+
+    /** The conduct skeleton and the two first rules it may be filled with (Document 4, The output rule). */
+    private record Conduct(PromptTemplate skeleton, String jsonOutput, String textOutput) {
+
+        /** The skeleton with the prompt's role and task and this first rule; the language stays the caller's. */
+        String filled(Map<String, Object> meta, String output) {
+            return skeleton.render(Map.of(
+                    "role", text(meta, "role"),
+                    "task", text(meta, "task"),
+                    "output", output,
+                    "language", "{language}"));
+        }
     }
 }

@@ -386,16 +386,20 @@ public class SpringAiLlmGateway implements LlmGateway {
 
     /**
      * Ollama's options: Spring AI's Ollama model reads only its own options type, and a generic one fails inside it
-     * (found on day 15, on the profile's first call). Thinking stays off for every prompt (Document 2); the cap is
-     * Ollama's num_predict, and a structured prompt sends its schema as the response format.
+     * (found on day 15, on the profile's first call). The cap is Ollama's num_predict. A structured prompt sends its
+     * schema as the response format and does not think, so its output is the JSON object and nothing else; a prompt
+     * that streams text thinks, which is what makes the local model call a tool for a what-if rather than work it out
+     * of the rules, and Spring AI keeps the thinking in the response's metadata (Document 4, Thinking on the local
+     * model).
      */
     private static OllamaChatOptions.Builder ollamaOptions(PromptSpec spec, String model) {
         OllamaChatOptions.Builder options = OllamaChatOptions.builder()
                 .model(model)
-                .numPredict(spec.maxOutputTokens())
-                .disableThinking();
+                .numPredict(spec.maxOutputTokens());
         if (spec.outputSchema() != null) {
-            options.format(JSON.readValue(variantOf(spec.outputSchema()), Map.class));
+            options.disableThinking().format(JSON.readValue(variantOf(spec.outputSchema()), Map.class));
+        } else {
+            options.enableThinking();
         }
         if (spec.temperature() != null) {
             options.temperature(spec.temperature());
