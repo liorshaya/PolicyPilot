@@ -1,6 +1,6 @@
 # PolicyPilot AI Pipeline and Prompt Specification
 
-2026-09-27 · Lior Shaya
+2026-09-28 · Lior Shaya
 
 Document 4 of the PolicyPilot set. It specifies every place a language model is used: the prompts, their inputs and output contracts, the retrieval pipeline behind the chat, the validation loop, model configuration and the evaluation that keeps prompt quality measurable. It follows the scope in the [Project Brief](01-project-brief.md), the AI layer design in the [Architecture](02-architecture.md) and the rule format in the [Rules DSL Specification](03-rules-dsl-specification.md).
 
@@ -430,6 +430,16 @@ Answer the question in {language}, in at most 6 sentences, following the citatio
 **Scripted demo questions** and their expected behavior: "why was application 17 referred?" fetches decision 17 and cites `[[d:17]]` and `[[p:7]]`; "would it be approved with a guarantor?" calls `simulate(17, {has_guarantor: true})` and cites `[[sim:...]]` and `[[r:R-900]]`; "what is the maximum loan term?" answers 84 months citing `[[p:2]]`; "what is the maximum interest rate?" returns the not-covered sentence, because the policy only states the rate used for the installment, not a maximum.
 
 **Serving the scripted questions from the cache** (`cache: scripted-only`): only the three scripted questions that call the model are cached, listed in `prompts/answer/scripted.yml` with the label each must meet, copied from Q-01 to Q-03 of the evaluation set: the question as asked, the markers it must cite and the words it must contain. The key is that of every cached call, the hash of the prompt name and version, the model and the rendered prompts, so the retrieved chunks and the history are part of it: the same question after a different conversation is a different entry. A live answer is kept only when it ended normally (not withheld, not failed, not past the tool caps) and meets its label; the first such answer is kept and never overwritten. The entry holds the text shown and every tool call with its arguments and the exact result the tool returned.
+
+**Words that name an outcome** (decided 2026-09-28, day 16): a label's word that is one of an outcome's forms below is met by any form of that outcome, because Hebrew inflects one outcome by gender, number, tense and part of speech, and a label means the outcome, not one spelling of it. Q-02's six live answers of 2026-09-24 were right, each citing the simulation, R-900 and paragraph 9, yet none was kept: they said "אושרה" or "אישור" where the label says "מאושר", so the question was asked live on every demo run. An answer's word says a form when it is the form, in Hebrew also after up to three of the prefix letters ו, ה, ש, ב, ל, כ and מ, and in English in any letter case. It counts only when none of the three words before it is a negation, since "לא הייתה מאושרת" states the opposite outcome. Any other word of a label is matched as written, as before. The rule changes no prompt, so no cached answer is invalidated and no recording is retaken. The forms and the negations are in `prompts/answer/outcome-words.yml`:
+
+| Outcome | Hebrew forms | English forms |
+| --- | --- | --- |
+| approve | אושר, אושרה, אושרו, מאושר, מאושרת, מאושרים, מאושרות, יאושר, תאושר, יאושרו, אישור | approve, approves, approved, approval |
+| reject | נדחה, נדחתה, נדחו, נדחית, נדחים, יידחה, תידחה, יידחו, דחייה, דחיה | reject, rejects, rejected, rejection, decline, declines, declined |
+| refer | הופנה, הופנתה, הופנו, מופנה, מופנית, מופנים, יופנה, תופנה, יופנו, הפניה, הפנייה | refer, refers, referred, referral |
+
+The negations: לא, אין, אינו, אינה, איננו, איננה, אינם, אינן, ללא and בלי in Hebrew; not, no, never, without, cannot and any word ending in n't in English.
 
 A hit is served only after the stored calls run again through the turn's own tools, in the caller's sandbox and on the session's version, and every result equals the stored one. The engine is deterministic, so equal results mean the engine decides the case now exactly as it did when the answer was written; any difference (a sandbox that has not decided application 17, or decided a different application 17) discards the replay, and the question is answered live with a fresh turn. A served answer goes through the marker resolver and the denylist scan like a live one, streams as `token` events, spends no tokens and writes a ledger row marked as a cache hit. The cache is warmed by asking the scripted questions once on the cloud site after any deploy that changes the answer prompt, retrieval or the rule set: the demo order in one session, then each question in a session of its own.
 

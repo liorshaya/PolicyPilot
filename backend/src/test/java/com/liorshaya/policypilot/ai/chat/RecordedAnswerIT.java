@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.ai.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.service.chat.OutcomeWords;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
@@ -31,14 +32,17 @@ import tools.jackson.databind.JsonNode;
  * Work Plan day 9: "recorded answers"). The seeded lending version is retrieved on the recorded vectors and every
  * answer is the one {@link LiveAnswerRecordingIT} recorded, replayed with its tool calls through the real tools and
  * engine. The expectations are the labeled set's: each question's {@code expectedMarkers} cited, its
- * {@code expectedTool} called and its {@code answerContains} in the text; the rate question gets the fixed sentence
- * without the model.
+ * {@code expectedTool} called and its {@code answerContains} said, a word that names an outcome in any of its forms;
+ * the rate question gets the fixed sentence without the model.
  */
 @Requirement({"FR-13", "FR-14", "FR-15"})
 @SpringBootTest(properties = "spring.ai.openai.api-key=test-key-not-real")
 @ActiveProfiles("openai")
 @Import(RecordedAnswerIT.Recorded.class)
 class RecordedAnswerIT {
+
+    /** A labeled word that names an outcome is said by any form of it (Document 4, Words that name an outcome). */
+    private static final OutcomeWords WORDS = OutcomeWords.load();
 
     private static final String NOT_COVERED_HE =
             "המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.";
@@ -134,7 +138,7 @@ class RecordedAnswerIT {
             missed.add("tool " + tool + " but called " + asked.toolCalls());
         }
         for (JsonNode word : labeled.required("answerContains")) {
-            if (!asked.text().contains(word.asString())) {
+            if (!WORDS.says(asked.text(), word.asString())) {
                 missed.add("word " + word.asString() + " not in " + asked.text());
             }
         }

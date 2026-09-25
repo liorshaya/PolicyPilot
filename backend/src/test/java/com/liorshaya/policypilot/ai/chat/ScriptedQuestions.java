@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.support.Seeded;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.JsonNode;
@@ -62,13 +63,24 @@ final class ScriptedQuestions {
 
     /** Asks one question in a new session and returns what the client was sent. */
     Asked ask(String question) {
+        return askInOrder(question);
+    }
+
+    /**
+     * Asks the questions one after another in one new session, each with the ones before as its history, and returns
+     * what the client was sent for the last.
+     */
+    Asked askInOrder(String... questions) {
         ChatSessionView session = chat.open(seeded.id(), 1, sandbox).orElseThrow();
-        ChatService.Prepared prepared = chat.prepare(session.id(), sandbox).orElseThrow();
-        Asked asked = new Asked(System.nanoTime());
-        UUID messageId = chat.answer(prepared, question, asked);
-        asked.toolCalls = jdbc.sql("select tool_calls_json::text from chat_message where id = :id")
-                .param("id", messageId).query(String.class).single();
-        return asked;
+        Asked asked = null;
+        for (String question : questions) {
+            ChatService.Prepared prepared = chat.prepare(session.id(), sandbox).orElseThrow();
+            asked = new Asked(System.nanoTime());
+            UUID messageId = chat.answer(prepared, question, asked);
+            asked.toolCalls = jdbc.sql("select tool_calls_json::text from chat_message where id = :id")
+                    .param("id", messageId).query(String.class).single();
+        }
+        return Objects.requireNonNull(asked, "no question asked");
     }
 
     private void awaitReady(UUID version) {
