@@ -7,6 +7,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
+import com.liorshaya.policypilot.support.Requirement;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -98,11 +99,16 @@ class PackageRulesTest {
             .should().dependOnClassesThat().resideInAPackage(pkg("web"))
             .because("Document 2, Backend Module Structure: web depends on every package, nothing depends on web");
 
+    /** A method rather than a rule field, so it can carry its requirement into the traceability matrix. */
     @ArchTest
-    static final ArchRule onlyTheAdapterImportsSpringAi = noClasses()
-            .that().resideOutsideOfPackage(pkg("ai.adapter"))
-            .should().dependOnClassesThat().resideInAPackage("org.springframework.ai..")
-            .because("NFR-4 provider independence: only ai.adapter may import org.springframework.ai");
+    @Requirement("NFR-4")
+    static void onlyTheAdapterImportsSpringAi(JavaClasses appClasses) {
+        noClasses()
+                .that().resideOutsideOfPackage(pkg("ai.adapter"))
+                .should().dependOnClassesThat().resideInAPackage("org.springframework.ai..")
+                .because("NFR-4 provider independence: only ai.adapter may import org.springframework.ai")
+                .check(appClasses);
+    }
 
     @ArchTest
     static final ArchRule crossCuttingPackagesDependOnNothingInTheApplication = classes()

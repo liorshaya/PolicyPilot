@@ -294,6 +294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The active model provider, its models and the embedding dimension */
+        get: operations["provider"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rulesets": {
         parameters: {
             query?: never;
@@ -676,6 +693,17 @@ export interface components {
             /** Format: int32 */
             sandboxesDeleted: number;
             reseeded: boolean;
+        };
+        ChatModels: {
+            strong: string;
+            fast: string;
+        };
+        ProviderResponse: {
+            provider: string;
+            chatModels: components["schemas"]["ChatModels"];
+            embeddingModel: string;
+            /** Format: int32 */
+            embeddingDimension: number;
         };
         Ruleset: {
             /** Format: uuid */
@@ -1619,6 +1647,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The names the active profile sets, never a key or an address */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderResponse"];
                 };
             };
         };

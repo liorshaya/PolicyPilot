@@ -1,0 +1,48 @@
+/* The model provider under the logo: small, quiet, in the sidebar's own light-on-midnight text. */
+.provider {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-2) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.provider__names {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.provider__row {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.provider__row dt {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.provider__row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.provider__name {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Small screens: the sidebar is a strip of links, so the header keeps the provider's name alone. */
+@media (max-width: 900px) {
+  .provider {
+    margin-top: 0;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .provider__row:not(:first-child) {
+    display: none;
+  }
+}

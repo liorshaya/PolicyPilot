@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
+import com.liorshaya.policypilot.support.Requirement;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
@@ -17,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(properties = "spring.ai.openai.api-key=test-key-not-real")
 @Import(OfflineEmbeddings.class)
 @ActiveProfiles("openai")
+@Requirement({"FR-21", "NFR-4"})
 class OpenAiProfileContextIT extends PostgresContainerSupport {
 
     @Autowired

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { Page } from '@playwright/test'
 import type { RuleSetDocument } from '../src/api/types'
+import { openAiProvider } from '../src/test/fixtures/provider'
 
 /** The rule set is read from the committed fixture, so the test and the demo show the same rules. */
 export const ruleSet = JSON.parse(
@@ -57,6 +58,7 @@ export const seededRuleset = {
 
 export async function serveTheSeededRuleSet(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/code', (route) => route.fulfill({ status: 204 }))
+  await page.route('**/api/v1/system/provider', (route) => route.fulfill({ json: openAiProvider }))
   await page.route('**/api/v1/policies', (route) =>
     route.fulfill({
       json: {

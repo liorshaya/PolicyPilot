@@ -30,7 +30,7 @@ FRONTEND = (Path("frontend/src"), Path("frontend/e2e"))
 
 # Requirements whose row may still be empty: the Work Plan closes them by day 16 ("the traceability matrix has no
 # empty row", Definition of Done). The list only shrinks; day 15 (gate G3) requires FR-17 to FR-20, which have tests.
-OPEN = {"FR-2", "FR-16", "FR-21", "NFR-4"}
+OPEN = {"FR-2", "FR-16"}
 
 COLUMNS = ("Unit and conformance", "Integration and contract", "Recorded AI, evaluation, red team", "End to end")
 RECORDED = re.compile(r"^(Recorded|Eval|RedTeam)\w*IT$")

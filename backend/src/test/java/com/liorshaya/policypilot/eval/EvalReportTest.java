@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.eval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.support.Requirement;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +24,7 @@ class EvalReportTest {
     // Document 4: "one Markdown report with one column per provider". Expected: both providers named in the header
     // of every report, whether or not either was run
     @Test
+    @Requirement({"FR-21", "NFR-4"})
     void theReportHasAColumnPerProvider() {
         String markdown = new EvalReport(LocalDate.of(2026, 9, 23), VERSIONS, "openai").markdown();
 
@@ -108,6 +110,7 @@ class EvalReportTest {
     // of its own (the vector column is sized per profile). Expected: the second provider's run writes its column
     // beside the first's, keeps the first's verdict and section, and adds its own section
     @Test
+    @Requirement({"FR-21", "NFR-4"})
     void aSecondProvidersRunKeepsTheFirstProvidersColumnAndSection(@TempDir Path directory) throws Exception {
         new EvalReport(LocalDate.of(2026, 9, 24), VERSIONS, "openai").model("openai", "gpt-5.6-terra")
                 .score("openai", "Rule recall", Metric.Score.of(9, 10)).note("scored on the strong model")

@@ -18,6 +18,7 @@ import {
   scriptedProposalEvent,
 } from '../fixtures/change'
 import { eventStream } from '../fixtures/changeRequest'
+import { openAiProvider } from '../fixtures/provider'
 import {
   approvalEntry,
   COPY_FIRST_VERSION_ID,
@@ -253,6 +254,7 @@ export function twoRulesets(): RequestHandler[] {
 }
 
 export const handlers: RequestHandler[] = [
+  http.get(`${BASE}/system/provider`, () => HttpResponse.json(openAiProvider)),
   http.get(`${BASE}/policies`, () => HttpResponse.json(policies)),
   http.get(`${BASE}/policies/:id`, () => HttpResponse.json(seededPolicy)),
   http.post(`${BASE}/policies`, () => HttpResponse.json(seededPolicy, { status: 201 })),

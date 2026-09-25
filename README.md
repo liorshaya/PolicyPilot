@@ -198,7 +198,9 @@ tag, the full plan was restored: each cut leaves this list in the pull request t
 - **The reset's admin code is not rotated yet**: the nightly reset and `POST /api/v1/admin/reset` exist since day 15
   and both ran on the cloud site; rotating the admin code after its test is part of the secrets rotation of days
   17 to 19.
-- **No provider badge** in the interface: the provider is set by configuration and shown nowhere.
+- **The provider badge's box is still open**: since day 16 the header names the provider, the model of each role
+  and the embedding model with its dimension (`GET /api/v1/system/provider`), but the box also asks for the chat
+  step run on the `ollama` profile, which is Brief line 8.
 - **Retrieval**: recall at 8 is 38 of 48 expected chunks on the 30 labeled questions
   ([report](docs/eval/retrieval-first-pass.md)). A paragraph reached only through a rule's quote can be missed, and an
   English question about the Hebrew policy can be refused as not covered.

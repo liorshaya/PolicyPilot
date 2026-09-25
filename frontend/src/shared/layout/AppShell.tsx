@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Logo } from '../ui/Logo'
+import { ProviderBadge } from './ProviderBadge'
 import { SCREENS, type ScreenId } from './screens'
 import './AppShell.css'
 
@@ -13,7 +14,8 @@ interface AppShellProps {
 
 /**
  * The frame every screen sits in (the brief, Layout and navigation): a compact sidebar on the left, the workspace
- * on the right. The chrome is English and left-to-right; only content blocks turn around.
+ * on the right, with the model provider under the logo (Document 2: GET /system/provider, shown in the UI header).
+ * The chrome is English and left-to-right; only content blocks turn around.
  */
 export function AppShell({ current, onNavigate, aside, children }: AppShellProps) {
   return (
@@ -24,6 +26,7 @@ export function AppShell({ current, onNavigate, aside, children }: AppShellProps
       <nav className="shell__sidebar" aria-label="Workspace">
         <div className="shell__brand">
           <Logo tone="white" width={140} />
+          <ProviderBadge />
         </div>
         <ul className="shell__nav">
           {SCREENS.map((screen) => (
