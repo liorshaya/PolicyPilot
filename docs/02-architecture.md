@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-27 · Lior Shaya
+2026-09-28 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -354,7 +354,7 @@ A versioned REST API under `/api/v1`, JSON everywhere, Server-Sent Events for th
 | `POST /changes/{id}/approve`, `POST /changes/{id}/reject` | Decide on a proposal | Body `{note}`, optional, at most 2 KB like a chat message (Document 5); 404 for a request of another sandbox; 409 unless the request is PROPOSED, or when its base is no longer the latest published version of its rule set. Approve, in one transaction: every `pending` provenance becomes `analyst` (Document 3), the patched document is published as the next version with the base as its parent, the request becomes APPROVED with that version as its result, and a CHANGE\_APPROVED audit entry on the new version holds the actor, the request text, the note, the diff and the regression report; the base stays PUBLISHED. On a protected base the sandbox gets its own copy of the rule set, whose version 1 is the base as published and version 2 the change, and the protected version never changes; 409 when the sandbox already has a copy. Reject publishes nothing: the request becomes REJECTED and a CHANGE\_REJECTED entry on the base version holds the note. Both return the decided request |
 | `GET /rulesets/{id}/versions/{a}/diff/{b}` | Structural diff between two versions | Both versions of one rule set the sandbox can see (404 otherwise); fields by name, rules by id and the defaults as a whole, each added, removed or modified, a modified rule with its changed attributes and its changed condition leaves by JSON pointer, and the whole of every rule and field on either side (Document 3, Structural diff); the same diff the approval stores in its audit entry |
 | `GET /audit?versionId=` | Audit entries, newest first | A version the sandbox can see (404 otherwise); an entry about another sandbox's change request is never shown, on a protected version either (Document 5) |
-| `GET /system/provider` | Active provider, model names, embedding dimension | Shown in the UI header |
+| `GET /system/provider` | Active provider, model names, embedding dimension | Shown in the UI header. The names the active profile sets (Configuration and Model Providers), under `openai`: `{"provider": "openai", "chatModels": {"strong": "gpt-5.6-terra", "fast": "gpt-5.6-luna"}, "embeddingModel": "text-embedding-3-small", "embeddingDimension": 1536}`; under `ollama`, the local models and 1024. Names only, never the key or the provider's address; `ai.adapter` describes the profile, as the one package that reads Spring AI's properties; no model call (decided 2026-09-28, day 16) |
 | POST /rulesets/{id}/versions/{no}/simulate | What-if evaluation: a stored decision id or a case, plus field overrides, against this version | Returns a full decision object with simulation: true and basedOnDecisionId; overrides must name declared fields; nothing is stored; also exposed as the simulate tool to the chat |
 | POST /auth/code | Exchange the access code for the signed session cookie; the only route besides the health check that needs no cookie | Rate limited and locked out per IP; constant-time compare; every /api/\*\* request afterwards carries the cookie and the X-PolicyPilot-Client: web header (Document 5) |
 | GET /decisions/{id}/export, GET /audit/export | Export a decision with its trace, or the audit log, as JSON or CSV (Accept header) | CSV cells are formula-prefixed and served as an attachment (Document 5); a decision's CSV has one row per trace step and the audit log's one row per entry, and both start with a UTF-8 byte order mark so spreadsheets read Hebrew; the audit export takes the `versionId` of `GET /audit` and, without it, holds every entry the sandbox can see; scoped to the caller's sandbox |
@@ -416,7 +416,7 @@ A single-page React 19 + TypeScript app built with Vite, organized by feature, w
 6. Access-code gate: a single screen on first load stores the code in a cookie the API checks; the app never holds API keys.
 7. Guided demo panel: a collapsible panel that lists the four scripted steps as one-click actions which pre-fill the inputs and call the same API the regular screens use; it exists so the demo can be driven from any machine and adds no logic of its own.
 
-**Tooling**: ESLint and Prettier, Vitest with Testing Library for components, Playwright for the four scripted demo steps against a local Docker Compose stack, and the Vercel preview deployment on every pull request.
+**Tooling**: ESLint and Prettier, Vitest with Testing Library for components, Playwright for the four scripted demo steps through the guided panel, every API call answered from the committed fixtures, and for the access gate and sandbox isolation against the real stack on Docker Compose (Document 6), and the Vercel preview deployment on every pull request.
 
 ## Configuration and Model Providers
 
@@ -492,9 +492,9 @@ Every model call is logged with its prompt version, model, token usage, latency 
 | Architecture | Package dependency rules (`engine` and `rules` import nothing from `ai`; only `ai.adapter` imports Spring AI) | ArchUnit |
 | Integration | Repositories and migrations against real PostgreSQL with pgvector; publish transaction and audit entry; hybrid retrieval ranking on a fixed corpus | Testcontainers (`pgvector/pgvector:pg16`) |
 | Contract | Every endpoint against the OpenAPI document; SSE event sequences | Spring MockMvc plus springdoc validation |
-| AI pipeline (stubbed) | Authoring, review and change use cases with a fake `LlmGateway` that returns recorded outputs, including malformed ones, to exercise the validation loop and retries | Recorded fixtures in `src/test/resources/model-recordings` |
+| AI pipeline (stubbed) | Authoring, review and change use cases with a fake `LlmGateway` that returns recorded outputs, including malformed ones, to exercise the validation loop and retries | Recordings in `fixtures/eval/recordings`, replayed by `RecordedGateway` |
 | Evaluation (live) | The `author` prompt on the 18 labeled policies: precision and recall of rules against expected rules, provenance accuracy, schema-valid-first-try rate; the `answer` prompt on 30 questions with expected citations; run on demand for both providers (OpenAI, and Ollama on a local machine), results committed as a Markdown report with one column per provider | `EvalRunner` (a Spring Boot test profile), `OPENAI_API_KEY` required |
-| End to end | The four scripted demo steps against Docker Compose | Playwright |
+| End to end | The four scripted demo steps through the guided panel, on the committed fixtures; the access gate and sandbox isolation against Docker Compose | Playwright |
 
 **Rule labeling for the evaluation set**: each labeled policy is a Markdown file with a sibling `expected.rules.json`; a generated rule counts as a match when its condition tree is logically equivalent after normalization (sorted combinators, canonical operators) and its action is identical; provenance counts as correct when the paragraph index matches. The metric definitions live in Document 4.
 
