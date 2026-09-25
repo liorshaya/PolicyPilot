@@ -71,6 +71,19 @@ const refused: [string, unknown][] = [
   ['error', rt04Failure(ruleSet, changeRequest)],
 ]
 
+/** The sandbox's own copy of the seeded rule set as GET /rulesets lists it after the approval (Document 3). */
+export const sandboxCopy = {
+  ...seededRuleset,
+  id: COPY_ID,
+  protected: false,
+  forkedFromId: RULESET_ID,
+  policyId: POLICY_ID,
+  versions: [
+    { versionNo: 1, status: 'PUBLISHED' },
+    { versionNo: 2, status: 'PUBLISHED' },
+  ],
+}
+
 /** The copy's versions: version 1 the seeded one as published, version 2 with the approved patches. */
 function copyVersion(versionNo: 1 | 2) {
   const patched = new Map(
@@ -127,25 +140,7 @@ export async function serveTheChange(page: Page): Promise<void> {
   // registered after the seeded routes, so these answer first (Playwright tries the last route that matches)
   await page.route('**/api/v1/rulesets', (route) =>
     route.fulfill({
-      json: {
-        rulesets:
-          note === null
-            ? [seededRuleset]
-            : [
-                seededRuleset,
-                {
-                  ...seededRuleset,
-                  id: COPY_ID,
-                  protected: false,
-                  forkedFromId: RULESET_ID,
-                  policyId: POLICY_ID,
-                  versions: [
-                    { versionNo: 1, status: 'PUBLISHED' },
-                    { versionNo: 2, status: 'PUBLISHED' },
-                  ],
-                },
-              ],
-      },
+      json: { rulesets: note === null ? [seededRuleset] : [seededRuleset, sandboxCopy] },
     }),
   )
   await page.route(`**/api/v1/rulesets/${COPY_ID}/versions/*`, (route) =>
