@@ -1,7 +1,10 @@
-# Compose smoke run on a clean machine (Document 1, Definition of Done line 1; Document 7, day 1 Docker Compose task):
-# `docker compose up` plus one command, `make up`, brings the whole system up in under 5 minutes. A fresh GitHub runner
-# starts with no images, no build layers and no Maven or npm caches, which makes it the clean-machine measurement.
-# It runs when a file that shapes the local stack changes, and on demand. It is not a required check.
+# The README's setup on a clean machine (Document 1, Definition of Done line 1; Document 7, day 1 Docker Compose task
+# and day 16: "The README's setup commands run on a clean clone in a fresh container, timed against the 5-minute
+# line"). A fresh GitHub runner starts with no images, no build layers and no Maven or npm caches, which makes it the
+# clean-machine measurement. The job clones the repository with git, as the README's first command does, at the commit
+# under test, and runs the rest of the README's setup block as written (scripts/ci/readme_setup.py); the clock runs
+# from the clone until the web app serves the gate page. It runs when a file that shapes the local stack or the README
+# changes, and on demand. It is not a required check.
 name: Compose smoke (clean machine)
 
 on:
@@ -9,6 +12,9 @@ on:
   pull_request:
     paths:
       - .github/workflows/compose-smoke.yml
+      - README.md
+      - .env.example
+      - scripts/ci/readme_setup.py
       - docker-compose.yml
       - docker-compose.ollama.yml
       - Makefile
@@ -27,28 +33,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # The openai profile refuses to start without a key; the smoke run never calls the provider.
-      OPENAI_API_KEY: compose-smoke-placeholder
       BUDGET_SECONDS: '300'
+      COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Throwaway demo secrets for this run
-        # The backend refuses to start without them (Document 5); fresh values per run, never stored anywhere
+      - name: Throwaway values for the lines of .env the README asks a person to fill in
+        # The backend refuses to start without the two demo secrets (Document 5), and the openai profile without a
+        # key; the run never calls the provider. Fresh values per run, written to a file outside the clone and never
+        # to the job's environment, so compose can read them only from .env, as on a visitor's machine
         run: |
           code=$(LC_ALL=C tr -dc 'a-z' </dev/urandom | head -c 8 || true)
           echo "::add-mask::$code"
           secret=$(openssl rand -hex 32)
           echo "::add-mask::$secret"
-          echo "POLICYPILOT_ACCESS_CODE=$code" >> "$GITHUB_ENV"
-          echo "POLICYPILOT_COOKIE_SECRET=$secret" >> "$GITHUB_ENV"
+          {
+            echo "OPENAI_API_KEY=placeholder"
+            echo "POLICYPILOT_ACCESS_CODE=$code"
+            echo "POLICYPILOT_COOKIE_SECRET=$secret"
+          } > "$RUNNER_TEMP/values.env"
       - name: The runner starts clean
         run: |
           echo "images before the run: $(docker images -q | wc -l)"
           docker images --format '{{.Repository}}:{{.Tag}}'
-      - name: make up, then wait until the web app serves the gate page
+      - name: The README's setup block from a fresh clone, until the web app serves the gate page
         run: |
+          clone="$RUNNER_TEMP/PolicyPilot"
           start=$(date +%s)
-          make up
+          git clone --quiet "https://github.com/${GITHUB_REPOSITORY}.git" "$clone"
+          git -C "$clone" checkout --quiet --detach "$COMMIT"
+          cloned=$(( $(date +%s) - start ))
+          python3 "$clone/scripts/ci/readme_setup.py" --values "$RUNNER_TEMP/values.env"
           backend_ready=$(( $(date +%s) - start ))
           until curl -fsS http://localhost:5173 | grep -q '<title>PolicyPilot</title>'; do
             if [ $(( $(date +%s) - start )) -ge "$BUDGET_SECONDS" ]; then
@@ -59,15 +72,18 @@ jobs:
           done
           total=$(( $(date +%s) - start ))
           {
-            echo "### Compose smoke on a clean runner"
+            echo "### The README's setup on a clean runner"
+            echo ""
+            echo "Commit \`${COMMIT}\`, from \`git clone\` on a runner with no images or caches."
             echo ""
             echo "| Measure | Seconds |"
             echo "| --- | --- |"
-            echo "| \`make up\` until the backend health check answers UP | ${backend_ready} |"
+            echo "| \`git clone\` | ${cloned} |"
+            echo "| Until \`make up\` returns, the backend's health check UP | ${backend_ready} |"
             echo "| Until the web app also serves the gate page | ${total} |"
             echo "| Budget (Definition of Done) | ${BUDGET_SECONDS} |"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "total ${total}s (backend ${backend_ready}s), budget ${BUDGET_SECONDS}s"
+          echo "total ${total}s (clone ${cloned}s, backend ${backend_ready}s), budget ${BUDGET_SECONDS}s"
           if [ "$total" -gt "$BUDGET_SECONDS" ]; then
             echo "::error::the system took ${total}s to come up, over the ${BUDGET_SECONDS}s budget"
             exit 1
@@ -79,7 +95,13 @@ jobs:
           curl -fsS http://localhost:5173 | grep -o '<title>[^<]*</title>'
       - name: Compose logs on failure
         if: failure()
-        run: docker compose logs --no-color --tail=200
+        run: |
+          if [ -f "$RUNNER_TEMP/PolicyPilot/docker-compose.yml" ]; then
+            cd "$RUNNER_TEMP/PolicyPilot" && docker compose logs --no-color --tail=200
+          fi
       - name: Stop the stack
         if: always()
-        run: make down
+        run: |
+          if [ -f "$RUNNER_TEMP/PolicyPilot/Makefile" ]; then
+            make -C "$RUNNER_TEMP/PolicyPilot" down
+          fi

@@ -67,6 +67,7 @@ check: ## The CI hygiene checks and the Python reference self-test, exactly as s
 	scripts/ci/check_schema_copies.sh
 	scripts/ci/check_generated_client.sh
 	python3 scripts/ci/check_readme_limitations.py
+	python3 scripts/ci/readme_setup.py --self-test
 	python3 fixtures/reference/reference_check.py | tail -n 1 | grep -qx 'ALL OK' && echo "reference self-test: ALL OK"
 	python3 fixtures/tools/generate_cases.py >/dev/null && git diff --exit-code --stat -- fixtures/ && echo "generator: no diff"
 
