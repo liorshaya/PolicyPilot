@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
  * The conversation memory (Document 4, Streaming and memory: the last 10 turns; Document 2, RAG pipeline, Memory),
  * rendered into the answer prompt's {@code <history>} section as data.
  */
-@Requirement("FR-13")
+@Requirement({"FR-13", "FR-16"})
 class ChatHistoryTest {
 
     // Work Plan day 9: "a session with 12 turns keeps the last 10". Expected: turns 3 to 12, in order, and not 1 or 2

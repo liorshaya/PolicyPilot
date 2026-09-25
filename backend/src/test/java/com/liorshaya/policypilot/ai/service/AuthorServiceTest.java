@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.rules.validation.Finding;
 import com.liorshaya.policypilot.rules.validation.ValidationCode;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.Requirement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import tools.jackson.databind.node.ObjectNode;
  * level). The valid answer is the committed lending rule set, so "valid" means the document the engine already
  * runs; the failing answers are the adversarial shapes Document 6 asks each use case to be tested against.
  */
+@Requirement({"FR-2", "FR-3"})
 class AuthorServiceTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

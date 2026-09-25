@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.eval.FieldHints;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.Requirement;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ import tools.jackson.databind.JsonNode;
  * the prompt, the cheat sheet and the pipeline work together on the lending policy without a provider, and on the
  * second domain (Work Plan day 15: "the second-domain fixture ... through one recorded generation").
  */
+@Requirement("FR-2")
 class AuthorRecordedIT {
 
     private static final Path RECORDINGS = Path.of("..", "fixtures", "eval", "recordings", "openai");
