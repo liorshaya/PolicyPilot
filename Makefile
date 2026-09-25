@@ -5,10 +5,10 @@ SHELL := /bin/bash
 COMPOSE := docker compose
 COMPOSE_OLLAMA := docker compose --profile ollama -f docker-compose.yml -f docker-compose.ollama.yml
 
-.PHONY: help up up-ollama down clean-data logs ps build test test-backend test-frontend lint e2e check hooks
+.PHONY: help up up-ollama down clean-data logs ps build test test-backend test-frontend lint e2e e2e-stack check hooks
 
 help: ## List the targets
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 up: ## Start the database, the backend and the frontend, then wait for the health check
 	$(COMPOSE) up --build --detach
@@ -55,6 +55,9 @@ lint: ## Frontend ESLint and Prettier
 
 e2e: ## Frontend Playwright (starts the dev server itself)
 	cd frontend && npm run e2e
+
+e2e-stack: ## Frontend Playwright against the stack of make up (E2E_ACCESS_CODE: its access code)
+	cd frontend && npm run e2e:stack
 
 check: ## The CI hygiene checks and the Python reference self-test, exactly as stage 1 and 2 run them
 	python3 scripts/ci/check_fixture_privacy.py

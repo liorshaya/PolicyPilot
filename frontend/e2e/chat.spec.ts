@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { expect, test, type Page } from '@playwright/test'
-import { RULESET_ID, serveTheSeededRuleSet } from './seeded'
+import { expect, test } from '@playwright/test'
+import { ask, notCovered, question, serveTheChat } from './chat'
+import { serveTheSeededRuleSet } from './seeded'
 
 /**
  * Demo step 3 in a real browser (Document 1, Demo script; Document 6, End to end): the three scripted questions are
@@ -9,93 +8,6 @@ import { RULESET_ID, serveTheSeededRuleSet } from './seeded'
  * not-covered sentence. The questions and their markers are the labeled set's (fixtures/eval/questions.json, Q-01 to
  * Q-04); the streams are what the API sends for them (Document 2, POST /chat/sessions/{id}/messages).
  */
-
-interface LabeledQuestion {
-  id: string
-  question: string
-  expectedMarkers: string[]
-}
-
-const labeled = (
-  JSON.parse(
-    readFileSync(
-      fileURLToPath(new URL('../../fixtures/eval/questions.json', import.meta.url)),
-      'utf8',
-    ),
-  ) as { questions: LabeledQuestion[] }
-).questions
-
-function question(id: string): LabeledQuestion {
-  return labeled.find((entry) => entry.id === id)!
-}
-
-const SESSION = '0f4c1c9e-0000-4000-8000-0000000000d1'
-const NOT_COVERED_HE = 'המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.'
-const SIMULATION = '[[sim:d17:has_guarantor=true]]'
-
-/** One answer per scripted question, with the citations the API resolved for its markers. */
-const answers: Record<string, { text: string; citations: unknown[] }> = {
-  'Q-01': {
-    text: 'בקשה 17 הופנתה לבדיקת חתם: נרשם לה אירוע אשראי שלילי אחד ולא הועמד ערב.[[d:17]][[p:7]]',
-    citations: [
-      { id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer', ruleId: 'R-330' },
-      { id: 'p:7', kind: 'PARAGRAPH', paragraph: 7 },
-    ],
-  },
-  'Q-02': {
-    text: `כן, עם ערב הבקשה הייתה מאושרת.${SIMULATION} האישור ניתן לפי הכלל R-900.[[r:R-900]]`,
-    citations: [
-      {
-        id: SIMULATION.slice(2, -2),
-        kind: 'SIMULATION',
-        applicationNumber: 17,
-        outcome: 'approve',
-        detail: 'has_guarantor=true',
-      },
-      { id: 'r:R-900', kind: 'RULE', ruleId: 'R-900', paragraph: 9, label: 'אישור' },
-    ],
-  },
-  'Q-03': {
-    text: 'תקופת ההחזר המקסימלית היא 84 חודשים.[[p:2]]',
-    citations: [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }],
-  },
-  'Q-04': { text: NOT_COVERED_HE, citations: [] },
-}
-
-function streamOf(text: string, citations: unknown[]): string {
-  const pieces = text.match(/.{1,9}/gsu) ?? []
-  const events: [string, unknown][] = [
-    ...pieces.map((piece): [string, unknown] => ['token', { text: piece }]),
-    ['citations', { citations }],
-    ['usage', { inputTokens: 900, outputTokens: 40, toolCalls: 0 }],
-    ['done', { messageId: '0f4c1c9e-0000-4000-8000-0000000000e1' }],
-  ]
-  return events.map(([name, data]) => `event:${name}\ndata:${JSON.stringify(data)}\n\n`).join('')
-}
-
-async function serveTheChat(page: Page): Promise<void> {
-  await page.route('**/api/v1/chat/sessions', (route) =>
-    route.fulfill({
-      status: 201,
-      json: { id: SESSION, rulesetId: RULESET_ID, versionNo: 1, language: 'he' },
-    }),
-  )
-  await page.route(`**/api/v1/chat/sessions/${SESSION}/messages`, (route) => {
-    const asked = (route.request().postDataJSON() as { question: string }).question
-    const entry = labeled.find((candidate) => candidate.question === asked)!
-    const answer = answers[entry.id]
-    return route.fulfill({
-      status: 200,
-      headers: { 'Content-Type': 'text/event-stream' },
-      body: streamOf(answer.text, answer.citations),
-    })
-  })
-}
-
-async function ask(page: Page, text: string): Promise<void> {
-  await page.getByLabel('Question').fill(text)
-  await page.getByRole('button', { name: 'Ask' }).click()
-}
 
 test.describe('the assistant', () => {
   test.beforeEach(async ({ page }) => {
@@ -167,7 +79,7 @@ test.describe('the assistant', () => {
     expect(question('Q-04').expectedMarkers).toEqual([])
     await ask(page, question('Q-04').question)
 
-    const refusal = page.getByText(NOT_COVERED_HE)
+    const refusal = page.getByText(notCovered('he'))
     await expect(refusal).toBeVisible()
     await expect(refusal.locator('xpath=ancestor::p[1]').getByRole('button')).toHaveCount(0)
   })

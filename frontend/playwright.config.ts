@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * End-to-end tests (Document 6, Frontend Test Design): the access gate today, the four scripted demo steps as
- * they arrive. The dev server is started for the run; CI stage 7 runs this on pull requests.
+ * End-to-end tests of the web app (Document 6, Frontend Test Design): the access gate and the four scripted demo steps,
+ * alone and in one run, with every API call answered from the committed fixtures. The dev server is started for the
+ * run; CI stage 7 runs this on pull requests. The tests against the real stack are playwright.stack.config.ts's.
  */
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: 'stack/**',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
