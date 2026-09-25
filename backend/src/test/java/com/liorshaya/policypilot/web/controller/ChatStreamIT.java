@@ -4,6 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
+import com.liorshaya.policypilot.policy.service.PolicyLanguage;
+import com.liorshaya.policypilot.policy.service.PolicyService;
+import com.liorshaya.policypilot.policy.service.PolicyView;
+import com.liorshaya.policypilot.rules.validation.ValidationContext;
+import com.liorshaya.policypilot.ruleset.service.RulesetService;
+import com.liorshaya.policypilot.ruleset.service.VersionView;
 import com.liorshaya.policypilot.support.Api;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.FakeEmbeddingGateway;
@@ -12,6 +18,7 @@ import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedGateway.Streamed;
 import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Reviews;
 import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
@@ -20,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -56,6 +64,8 @@ class ChatStreamIT extends ApiIntegrationTest {
     private static final String TERM_QUESTION = "What is the longest term a loan may have?";
     private static final String NOT_COVERED_HE =
             "המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.";
+    private static final String NOT_COVERED_EN =
+            "The documents do not cover this question; try asking about a rule, a paragraph or a decision number.";
     private static final String TOOL_LIMIT_HE =
             "השאלה דורשת יותר בדיקות ממה שתשובה אחת רשאית לבצע; אפשר לשאול על בקשה אחת או על שינוי אחד בכל פעם.";
 
@@ -67,6 +77,12 @@ class ChatStreamIT extends ApiIntegrationTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    @Autowired
+    private PolicyService policies;
+
+    @Autowired
+    private RulesetService rulesets;
 
     private String session;
     private String version;
@@ -309,6 +325,23 @@ class ChatStreamIT extends ApiIntegrationTest {
         assertThat(model.asked()).isEmpty();
     }
 
+    // Document 4, Threshold: the fixed sentence is in the version's language, English as well as Hebrew. The labeled
+    // set's English lending policy, published in this visitor's sandbox, answers a question it does not cover.
+    // Expected: Document 4's English sentence as the only token, nothing cited, and the model never asked
+    @Test
+    @Requirement("NFR-5")
+    void anOffCorpusQuestionOnAnEnglishVersionGetsDocument4sEnglishSentence() {
+        String english = publishedEnglishLending();
+        String question = "Is there a discount for discharged soldiers? " + UUID.randomUUID();
+        embeddings.register(question, embeddings.axis(9));
+
+        String stream = ask(openSessionOn(english), question);
+
+        assertThat(tokens(stream)).isEqualTo(NOT_COVERED_EN);
+        assertThat(citationIds(stream)).isEmpty();
+        assertThat(model.asked()).isEmpty();
+    }
+
     // Work Plan day 9: "a session with 12 turns keeps the last 10". Expected: the thirteenth prompt's history holds
     // turns 3 to 12 and says so
     @Test
@@ -504,6 +537,21 @@ class ChatStreamIT extends ApiIntegrationTest {
         model.willAnswer("{\"findings\": [], \"coverage\": {}}");
         api().post("/api/v1/rulesets/" + rulesetId + "/versions/1/review").web().cookie(session).send();
         api().post("/api/v1/rulesets/" + rulesetId + "/versions/1/publish").web().cookie(session).send();
+        awaitReady(rulesetId);
+        return rulesetId;
+    }
+
+    /** The labeled set's English lending policy and its expected rule set, published in this session's sandbox. */
+    private String publishedEnglishLending() {
+        UUID sandbox = sandboxOf();
+        PolicyView policy = policies.create(sandbox, "Personal Loan Policy", PolicyLanguage.EN,
+                Fixtures.text(Fixtures.evaluationPolicyText("consumer-lending-en")));
+        UUID policyVersion = policies.version(policy.id(), 1, sandbox).orElseThrow().id();
+        VersionView draft = rulesets.createDraft(sandbox, policyVersion,
+                Fixtures.json("eval/policies/consumer-lending-en/expected.ruleset.json"),
+                ValidationContext.ANALYST_EDIT, Set.of());
+        String rulesetId = Reviews.reviewed(rulesets, draft, sandbox).rulesetId().toString();
+        rulesets.publish(UUID.fromString(rulesetId), 1, sandbox).orElseThrow();
         awaitReady(rulesetId);
         return rulesetId;
     }
