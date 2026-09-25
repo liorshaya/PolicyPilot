@@ -10,6 +10,7 @@ import type {
   GapResolution,
   PolicyResponse,
   PolicySummary,
+  ProviderResponse,
   RulesetSummary,
   VersionResponse,
   RuleSetDocument,
@@ -21,6 +22,7 @@ import type {
  */
 
 export const keys = {
+  provider: ['provider'] as const,
   policies: ['policies'] as const,
   policy: (policyId: string) => ['policy', policyId] as const,
   rulesets: ['rulesets'] as const,
@@ -29,6 +31,11 @@ export const keys = {
   decision: (decisionId: string) => ['decision', decisionId] as const,
   audit: (versionId: string) => ['audit', versionId] as const,
   diff: (rulesetId: string, from: number, to: number) => ['diff', rulesetId, from, to] as const,
+}
+
+/** The provider the API runs on (Document 2, GET /system/provider); it changes only with a deployment. */
+export function useProvider(): UseQueryResult<ProviderResponse> {
+  return useQuery({ queryKey: keys.provider, queryFn: () => api.provider(), staleTime: Infinity })
 }
 
 export function usePolicies(): UseQueryResult<PolicySummary[]> {

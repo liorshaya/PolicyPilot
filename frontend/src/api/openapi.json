@@ -1114,6 +1114,25 @@
         }
       }
     },
+    "/api/v1/system/provider" : {
+      "get" : {
+        "tags" : [ "system-controller" ],
+        "summary" : "The active model provider, its models and the embedding dimension",
+        "operationId" : "provider",
+        "responses" : {
+          "200" : {
+            "description" : "The names the active profile sets, never a key or an address",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProviderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rulesets" : {
       "get" : {
         "tags" : [ "ruleset-controller" ],
@@ -2124,6 +2143,37 @@
           }
         },
         "required" : [ "reseeded", "sandboxesDeleted" ]
+      },
+      "ChatModels" : {
+        "type" : "object",
+        "properties" : {
+          "strong" : {
+            "type" : "string"
+          },
+          "fast" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fast", "strong" ]
+      },
+      "ProviderResponse" : {
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "type" : "string"
+          },
+          "chatModels" : {
+            "$ref" : "#/components/schemas/ChatModels"
+          },
+          "embeddingModel" : {
+            "type" : "string"
+          },
+          "embeddingDimension" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "chatModels", "embeddingDimension", "embeddingModel", "provider" ]
       },
       "Ruleset" : {
         "type" : "object",

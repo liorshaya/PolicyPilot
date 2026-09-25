@@ -2,10 +2,12 @@ package com.liorshaya.policypilot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.ProviderDescription;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.support.OfflineEmbeddings;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
+import com.liorshaya.policypilot.support.Requirement;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 @Import(OfflineEmbeddings.class)
 @ActiveProfiles("ollama")
+@Requirement({"FR-21", "NFR-4"})
 class OllamaProfileContextIT {
 
     @ServiceConnection
@@ -42,6 +45,9 @@ class OllamaProfileContextIT {
 
     @Autowired
     private PromptRegistry registry;
+
+    @Autowired
+    private ProviderDescription provider;
 
     @Test
     void contextLoadsWithTheOllamaProfile() {
@@ -61,6 +67,14 @@ class OllamaProfileContextIT {
                 where attrelid = 'chunk'::regclass and attname = 'embedding'""").query(String.class).single();
 
         assertThat(type).isEqualTo("vector(1024)");
+    }
+
+    // Document 2, API Surface: GET /system/provider names what the active profile runs on, here the ollama column of
+    // the profiles table, read from the real Ollama models of this context. Expected: ollama, qwen3:14b for both roles,
+    // bge-m3 and 1024
+    @Test
+    void theLocalProfileNamesQwenAndBgeM3() {
+        assertThat(provider).isEqualTo(new ProviderDescription("ollama", "qwen3:14b", "qwen3:14b", "bge-m3", 1024));
     }
 
     @Test

@@ -36,6 +36,8 @@ export type AuditEntry = components['schemas']['Entry']
 export type AuditEntriesResponse = components['schemas']['AuditEntriesResponse']
 /** A person's decision on a proposed change, with the version an approval published. */
 export type ChangeDecision = components['schemas']['ChangeDecisionResponse']
+/** The model provider the API runs on, as the active profile names it (Document 2, GET /system/provider). */
+export type ProviderResponse = components['schemas']['ProviderResponse']
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'

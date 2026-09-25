@@ -41,6 +41,22 @@ describe('App', () => {
     expect(screen.queryByLabelText('Access code')).not.toBeInTheDocument()
   })
 
+  // Document 2, API Surface: GET /system/provider is "shown in the UI header". Expected: the provider the API
+  // answers, named at the top of the sidebar beside the logo, on the workspace's first screen
+  it('shows the active provider in the header once the code is accepted', async () => {
+    server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+
+    const nav = await screen.findByRole('navigation', { name: 'Workspace' })
+    const badge = await within(nav).findByRole('region', { name: 'Model provider' })
+    expect(await within(badge).findByText('OpenAI')).toBeVisible()
+    expect(within(badge).getByText('gpt-5.6-terra')).toBeVisible()
+  })
+
   it('lists the screens of the workspace, every one of them built', async () => {
     server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
     const user = userEvent.setup()

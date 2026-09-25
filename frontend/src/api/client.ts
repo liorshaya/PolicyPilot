@@ -13,6 +13,7 @@ import type {
   GapResolution,
   PoliciesResponse,
   PolicyResponse,
+  ProviderResponse,
   RulesetsResponse,
   RuleSetDocument,
   VersionResponse,
@@ -112,6 +113,9 @@ export const api = {
     form.append('language', language)
     return request<PolicyResponse>('POST', '/api/v1/policies', { formData: form })
   },
+
+  /** The provider the API runs on: its name, the model of each role and the embeddings (Document 2). */
+  provider: () => request<ProviderResponse>('GET', '/api/v1/system/provider'),
 
   policies: () => request<PoliciesResponse>('GET', '/api/v1/policies'),
 
