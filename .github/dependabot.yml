@@ -22,6 +22,9 @@ updates:
       # springdoc 3.1 is built for Spring Boot 4.1, so springdoc stays on 3.0.x with Spring Boot 4.0.x
       - dependency-name: "org.springdoc:*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # swagger-annotations is pinned in backend/pom.xml to the swagger-core that springdoc brings: the two must be one
+      # version, or reading a @Schema annotation fails at runtime, so it moves by hand together with springdoc
+      - dependency-name: "io.swagger.core.v3:*"
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
