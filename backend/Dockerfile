@@ -18,7 +18,7 @@ RUN mvn -B -ntp -q -DskipTests package \
 
 # ---- runtime stage -----------------------------------------------------------------------------
 # eclipse-temurin:21-jre-noble, digest checked on 2026-09-18
-FROM eclipse-temurin:21-jre-noble@sha256:b5ded0266ce893266854c6fe5726cc7627c68b1f0cc7cb06f6546122dc5e1777 AS runtime
+FROM eclipse-temurin:21-jre-noble@sha256:7739f0ffce786528961eea6bf46d9610ee968ac6127c9b2e93494757bdecce9f AS runtime
 
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app
