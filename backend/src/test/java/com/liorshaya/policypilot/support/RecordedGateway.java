@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -100,10 +101,10 @@ public final class RecordedGateway implements LlmGateway {
     }
 
     /**
-     * One streamed answer: the tool calls the model makes, in order, then its text; or a provider that fails after
-     * the calls.
+     * One streamed answer: the tool calls the model makes, in order, then its text, whose first token comes after the
+     * delay given; or a provider that fails after the calls.
      */
-    public record Streamed(List<ToolCall> calls, String text, @Nullable RuntimeException failure) {
+    public record Streamed(List<ToolCall> calls, String text, @Nullable RuntimeException failure, Duration delay) {
 
         public Streamed {
             calls = List.copyOf(calls);
@@ -111,17 +112,22 @@ public final class RecordedGateway implements LlmGateway {
 
         /** An answer that calls no tool. */
         public static Streamed text(String text) {
-            return new Streamed(List.of(), text, null);
+            return new Streamed(List.of(), text, null, Duration.ZERO);
+        }
+
+        /** An answer whose first token comes after the delay given, as a provider's does (Document 6, first token). */
+        public static Streamed delayed(Duration delay, String text) {
+            return new Streamed(List.of(), text, null, delay);
         }
 
         /** An answer written after the tool calls given. */
         public static Streamed after(String text, ToolCall... calls) {
-            return new Streamed(List.of(calls), text, null);
+            return new Streamed(List.of(calls), text, null, Duration.ZERO);
         }
 
         /** A provider that fails as this one does. */
         public static Streamed failing(RuntimeException failure) {
-            return new Streamed(List.of(), "", failure);
+            return new Streamed(List.of(), "", failure, Duration.ZERO);
         }
     }
 
@@ -154,6 +160,7 @@ public final class RecordedGateway implements LlmGateway {
         if (answer.failure() != null) {
             throw answer.failure();
         }
+        pause(answer.delay());
         int[] codePoints = answer.text().codePoints().toArray();
         for (int from = 0; from < codePoints.length; from += PIECE) {
             tokens.accept(new String(codePoints, from, Math.min(PIECE, codePoints.length - from)));
@@ -210,7 +217,7 @@ public final class RecordedGateway implements LlmGateway {
         List<ToolCall> calls = new ArrayList<>();
         recording.path("steps").forEach(step -> calls.add(
                 new ToolCall(step.required("tool").asString(), step.required("arguments").asString())));
-        return new Streamed(calls, recording.required("response").asString(), null);
+        return new Streamed(calls, recording.required("response").asString(), null, Duration.ZERO);
     }
 
     private String replay(PromptSpec spec) {
@@ -234,6 +241,18 @@ public final class RecordedGateway implements LlmGateway {
             return JSON.readTree(Files.readString(file));
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + file, e);
+        }
+    }
+
+    private static void pause(Duration delay) {
+        if (delay.isZero()) {
+            return;
+        }
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
         }
     }
 }

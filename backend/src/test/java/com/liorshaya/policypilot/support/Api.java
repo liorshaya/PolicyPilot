@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * A plain HTTP client for the running API in integration tests: every header is explicit, so a test shows exactly
@@ -144,6 +145,20 @@ public final class Api {
             header("Content-Type", contentType);
             body = HttpRequest.BodyPublishers.ofByteArray(bytes);
             return this;
+        }
+
+        /** The response as its lines arrive, for a test that times a stream rather than reading it whole. */
+        public HttpResponse<Stream<String>> lines() {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + path)).method(method, body);
+            headers.forEach(request::header);
+            try {
+                return http.send(request.build(), HttpResponse.BodyHandlers.ofLines());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
         }
 
         public HttpResponse<String> send() {

@@ -128,6 +128,7 @@ class CachedScriptedAnswerIT {
 
         ScriptedQuestions.Asked served = questions.ask(guarantor);
 
+        System.out.println("performance: cached chat first token " + served.firstToken().toMillis() + " ms");
         assertThat(model.asked()).hasSize(asked);
         assertThat(served.firstToken()).isLessThan(Duration.ofMillis(500));
     }
