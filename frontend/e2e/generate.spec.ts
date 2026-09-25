@@ -9,6 +9,9 @@ import {
   serveTheSeededRuleSet,
 } from './seeded'
 
+// @requirement FR-2
+// @requirement FR-5
+
 /**
  * Demo step 1 in a real browser, complete with the reviewer's two warnings (Document 1, Demo script; Work Plan days 7
  * and 10). The generation stream is answered by the test: the point here is that the analyst sees the stages in order,

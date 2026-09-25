@@ -312,6 +312,7 @@ class ChatStreamIT extends ApiIntegrationTest {
     // Work Plan day 9: "a session with 12 turns keeps the last 10". Expected: the thirteenth prompt's history holds
     // turns 3 to 12 and says so
     @Test
+    @Requirement("FR-16")
     void theThirteenthQuestionSeesTheLastTenTurns() {
         String chat = openSession();
         for (int i = 1; i <= 12; i++) {

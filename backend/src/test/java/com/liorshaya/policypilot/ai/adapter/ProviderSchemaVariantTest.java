@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.ai.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.liorshaya.policypilot.support.Requirement;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -18,6 +19,7 @@ import tools.jackson.databind.node.ObjectNode;
  * canonical schema is the committed {@code schemas/ruleset-1.0.schema.json}, so the test is about the real
  * document the author prompt must answer, not a toy.
  */
+@Requirement("FR-2")
 class ProviderSchemaVariantTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

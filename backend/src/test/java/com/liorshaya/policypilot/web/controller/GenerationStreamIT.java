@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Fixtures;
+import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.util.ArrayDeque;
@@ -102,6 +103,7 @@ class GenerationStreamIT extends ApiIntegrationTest {
     }
 
     @Test
+    @Requirement("FR-2")
     void streamsTheStagesAndThenTheDraftWithItsReview() {
         model.willAnswer(modelShaped());
         model.willAnswer(reviewOfTheLendingDraft());
@@ -220,6 +222,7 @@ class GenerationStreamIT extends ApiIntegrationTest {
     }
 
     @Test
+    @Requirement("FR-2")
     void theDraftIsThereAfterwardsAndBelongsToThisSandbox() {
         model.willAnswer(modelShaped());
         String policyId = policyFromTheLendingText();
