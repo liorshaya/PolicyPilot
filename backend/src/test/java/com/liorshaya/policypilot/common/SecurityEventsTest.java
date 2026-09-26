@@ -106,6 +106,70 @@ class SecurityEventsTest {
                 .containsExactly("ruleset=" + ruleset, "paragraph=8", "kind=injection");
     }
 
+    // Document 5, Security logging: "Hallucinated citation stripped | Prompt version, marker kind |
+    // ai.citation.invalid". Expected: the counter tagged with both, and one WARN line naming them
+    @Test
+    void aStrippedCitationIsCountedByPromptAndMarkerKind() {
+        events.citationInvalid("answer/v3", "p");
+
+        assertThat(registry.counter("ai.citation.invalid", "prompt", "answer/v3", "kind", "p").count())
+                .isEqualTo(1.0);
+        assertThat(mine()).singleElement().satisfies(line -> {
+            assertThat(line.getMessage()).isEqualTo("ai.citation.invalid");
+            assertThat(line.getLevel()).isEqualTo(Level.WARN);
+            assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                    .containsExactly("prompt=answer/v3", "kind=p");
+        });
+    }
+
+    // Document 5, Security logging: "Validation failure of model output | Prompt, version, attempt, codes |
+    // ai.validation.failed". Expected: the counter tagged with the prompt and its version, and one WARN line with the
+    // four keys, the codes sorted and each once
+    @Test
+    void aValidationFailureIsCountedByPromptAndLogsTheAttemptAndItsCodes() {
+        events.validationFailed("author", "v2", 2, List.of("DSL_SCHEMA", "CITATION_NOT_FOUND", "DSL_SCHEMA"));
+
+        assertThat(registry.counter("ai.validation.failed", "prompt", "author", "version", "v2").count())
+                .isEqualTo(1.0);
+        assertThat(mine()).singleElement().satisfies(line -> {
+            assertThat(line.getMessage()).isEqualTo("ai.validation.failed");
+            assertThat(line.getLevel()).isEqualTo(Level.WARN);
+            assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                    .containsExactly("prompt=author", "version=v2", "attempt=2",
+                            "codes=CITATION_NOT_FOUND,DSL_SCHEMA");
+        });
+    }
+
+    // Document 5, Security logging: "Budget stop | Ledger value, mode switched | ai.budget.stopped". Expected: the
+    // counter, and one WARN line with the day's tokens and the mode the API switched to
+    @Test
+    void aBudgetStopIsCountedAndLogsTheLedgerAndTheMode() {
+        events.budgetStopped(400_120, "cache-only");
+
+        assertThat(registry.counter("ai.budget.stopped").count()).isEqualTo(1.0);
+        assertThat(mine()).singleElement().satisfies(line -> {
+            assertThat(line.getMessage()).isEqualTo("ai.budget.stopped");
+            assertThat(line.getLevel()).isEqualTo(Level.WARN);
+            assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                    .containsExactly("ledger=400120", "mode=cache-only");
+        });
+    }
+
+    // Document 5, Security logging: "Circuit breaker opened | Provider, failure count | ai.provider.open".
+    // Expected: the counter tagged with the provider, and one WARN line with both
+    @Test
+    void anOpenedCircuitIsCountedByProviderAndLogsTheFailureCount() {
+        events.providerOpened("openai", 5);
+
+        assertThat(registry.counter("ai.provider.open", "provider", "openai").count()).isEqualTo(1.0);
+        assertThat(mine()).singleElement().satisfies(line -> {
+            assertThat(line.getMessage()).isEqualTo("ai.provider.open");
+            assertThat(line.getLevel()).isEqualTo(Level.WARN);
+            assertThat(line.getKeyValuePairs()).extracting(pair -> pair.key + "=" + pair.value)
+                    .containsExactly("provider=openai", "failures=5");
+        });
+    }
+
     @Test
     void everyEventWritesOneLogLineNamedAfterItsCounter() {
         raiseEveryEventOnce();

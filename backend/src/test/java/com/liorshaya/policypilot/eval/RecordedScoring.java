@@ -23,6 +23,7 @@ import com.liorshaya.policypilot.rules.validation.ValidationResult;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
@@ -271,7 +272,8 @@ final class RecordedScoring {
         }
         List<String> candidates = candidateIds(asked.prompts().getFirst());
         ChangeService replay = new ChangeService(RecordedGateway.replaying(Recordings.ROOT.resolve(provider)),
-                new PromptRegistry(PromptRegistry.PROMPTS, Map.of("change", version)), new DslCheatSheet());
+                new PromptRegistry(PromptRegistry.PROMPTS, Map.of("change", version)), new DslCheatSheet(),
+                new RecordedSecurityEvents());
         return Optional.of(replay.propose(ChangeRequests.base(request), text,
                 new Candidates(candidates, candidates, List.of()), stage -> { }));
     }

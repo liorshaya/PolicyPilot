@@ -7,11 +7,13 @@ import com.liorshaya.policypilot.ai.LlmMalformedOutputException;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.rules.validation.Finding;
 import com.liorshaya.policypilot.rules.validation.ValidationCode;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Requirement;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +64,12 @@ class AuthorServiceTest {
     }
 
     private static AuthorService serviceOf(RecordedGateway gateway) {
-        return new AuthorService(gateway, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+        return serviceOf(gateway, new RecordedSecurityEvents());
+    }
+
+    private static AuthorService serviceOf(RecordedGateway gateway, SecurityEvents events) {
+        return new AuthorService(gateway, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet(),
+                events);
     }
 
     private static AuthorService.Authored write(RecordedGateway gateway, List<AuthorService.Stage> stages) {
@@ -174,6 +181,22 @@ class AuthorServiceTest {
         assertThat(authored.valid()).isTrue();
         assertThat(authored.repairs()).isEqualTo(2);
         assertThat(gateway.asked()).extracting(spec -> spec.attempt()).containsExactly(1, 2, 3);
+    }
+
+    // Document 5, Security logging: "Validation failure of model output | Prompt, version, attempt, codes |
+    // ai.validation.failed". Expected: one event for each answer the validator refused, with its attempt and its
+    // codes (Document 4: an answer that is not JSON is DSL_SCHEMA; Document 3: a quote in no paragraph is
+    // PROVENANCE_QUOTE_MISMATCH), and none for the valid third answer
+    @Test
+    void eachAnswerTheValidatorRefusesRaisesAValidationFailure() {
+        RecordedGateway gateway = RecordedGateway.answering("not json", withAMismatchedQuote(), VALID);
+        RecordedSecurityEvents events = new RecordedSecurityEvents();
+
+        serviceOf(gateway, events).write(lendingPolicy(), "מדיניות אשראי צרכני", "he", null, stage -> { });
+
+        assertThat(events.raised()).containsExactly(
+                "ai.validation.failed author/v2 attempt=1 codes=DSL_SCHEMA",
+                "ai.validation.failed author/v2 attempt=2 codes=PROVENANCE_QUOTE_MISMATCH");
     }
 
     @Test

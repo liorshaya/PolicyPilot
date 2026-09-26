@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ai.service.Proposal;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Requirement;
 import java.time.LocalDate;
 import java.util.List;
@@ -122,8 +123,9 @@ class ChangeScoringTest {
         JsonNode labeled = ChangeRequests.labeled("CR-1");
         String invalid = "{\"summary\": \"x\", \"patches\": [], \"untouched\": [], \"notes\": \"\"}";
         Proposal proposal = new ChangeService(RecordedGateway.answering(invalid, invalid, invalid), PROMPTS,
-                new DslCheatSheet()).propose(ChangeRequests.base(labeled), labeled.required("text").asString(),
-                candidates(labeled), stage -> { });
+                new DslCheatSheet(), new RecordedSecurityEvents())
+                .propose(ChangeRequests.base(labeled), labeled.required("text").asString(),
+                        candidates(labeled), stage -> { });
 
         assertThat(ChangeScoring.score(labeled, proposal))
                 .isEqualTo(ChangeScoring.Verdict.wrong("not valid after 2 repairs"));
@@ -190,7 +192,8 @@ class ChangeScoringTest {
 
     /** The request proposed on its base with the labeled candidates, the model answering with the given object. */
     private static Proposal propose(JsonNode labeled, ObjectNode answer) {
-        return new ChangeService(RecordedGateway.answering(answer.toString()), PROMPTS, new DslCheatSheet())
+        return new ChangeService(RecordedGateway.answering(answer.toString()), PROMPTS, new DslCheatSheet(),
+                new RecordedSecurityEvents())
                 .propose(ChangeRequests.base(labeled), labeled.required("text").asString(), candidates(labeled),
                         stage -> { });
     }

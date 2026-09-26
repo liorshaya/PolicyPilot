@@ -2,7 +2,9 @@ package com.liorshaya.policypilot.common;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HexFormat;
+import java.util.TreeSet;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,10 @@ public class SecurityEvents {
     public static final String TOOL_REJECTED = "ai.tool.rejected";
     public static final String OUTPUT_DENYLIST = "security.output.denylist";
     public static final String INJECTION_FINDING = "ai.finding.injection";
+    public static final String CITATION_INVALID = "ai.citation.invalid";
+    public static final String VALIDATION_FAILED = "ai.validation.failed";
+    public static final String BUDGET_STOPPED = "ai.budget.stopped";
+    public static final String PROVIDER_OPEN = "ai.provider.open";
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityEvents.class);
     /** 16 hex characters: enough to tell clients apart in a log, too short to be a useful digest. */
@@ -106,6 +112,39 @@ public class SecurityEvents {
         registry.counter(INJECTION_FINDING).increment();
         LOG.atWarn().setMessage(INJECTION_FINDING).addKeyValue("ruleset", rulesetId).addKeyValue("paragraph", paragraph)
                 .addKeyValue("kind", "injection").log();
+    }
+
+    /**
+     * The marker resolver removed a citation from an answer: its id was not supplied this turn, or it broke the
+     * grammar (Document 4, Marker resolution). The kind is the marker's, or {@code malformed}.
+     */
+    public void citationInvalid(String promptVersion, String markerKind) {
+        registry.counter(CITATION_INVALID, "prompt", promptVersion, "kind", markerKind).increment();
+        LOG.atWarn().setMessage(CITATION_INVALID).addKeyValue("prompt", promptVersion)
+                .addKeyValue("kind", markerKind).log();
+    }
+
+    /**
+     * The validator refused a model's answer in a repair loop (Document 4, Repair Loop); the codes are the validator's,
+     * sorted and each once, and the answer itself is never logged.
+     */
+    public void validationFailed(String prompt, String version, int attempt, Collection<String> codes) {
+        registry.counter(VALIDATION_FAILED, "prompt", prompt, "version", version).increment();
+        LOG.atWarn().setMessage(VALIDATION_FAILED).addKeyValue("prompt", prompt).addKeyValue("version", version)
+                .addKeyValue("attempt", attempt).addKeyValue("codes", String.join(",", new TreeSet<>(codes))).log();
+    }
+
+    /** A call took the day's tokens to the budget: from here only the cache answers until the next day (UTC). */
+    public void budgetStopped(long ledgerValue, String mode) {
+        registry.counter(BUDGET_STOPPED).increment();
+        LOG.atWarn().setMessage(BUDGET_STOPPED).addKeyValue("ledger", ledgerValue).addKeyValue("mode", mode).log();
+    }
+
+    /** The gateway's circuit breaker opened, or opened again, after this many failures in a row. */
+    public void providerOpened(String provider, int failures) {
+        registry.counter(PROVIDER_OPEN, "provider", provider).increment();
+        LOG.atWarn().setMessage(PROVIDER_OPEN).addKeyValue("provider", provider).addKeyValue("failures", failures)
+                .log();
     }
 
     /** The keyed hash under which a client or an id is logged. */

@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.ruleset.service.EmbeddingSource;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Requirement;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,7 +40,7 @@ class ChangePromptTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final PromptRegistry PROMPTS = new PromptRegistry(PromptRegistry.PROMPTS, Map.of());
     private static final ChangeService CHANGES =
-            new ChangeService(RecordedGateway.answering(), PROMPTS, new DslCheatSheet());
+            new ChangeService(RecordedGateway.answering(), PROMPTS, new DslCheatSheet(), new RecordedSecurityEvents());
 
     // Document 4, Prompt 5: the data sections in the template's order, with the attributes the API computes, then
     // change/v2's seven instructions, requirements before the impossible request

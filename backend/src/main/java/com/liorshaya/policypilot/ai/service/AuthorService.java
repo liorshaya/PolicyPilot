@@ -9,6 +9,7 @@ import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.ai.prompt.Sections;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.rules.validation.Finding;
 import com.liorshaya.policypilot.rules.validation.ValidationCode;
@@ -42,13 +43,15 @@ public class AuthorService {
     private final LlmGateway gateway;
     private final PromptRegistry prompts;
     private final DslCheatSheet cheatSheet;
+    private final SecurityEvents events;
     /** The same validator an analyst's edit passes; it holds the compiled schema and is safe to share. */
     private final RuleSetValidator validator = new RuleSetValidator();
 
-    public AuthorService(LlmGateway gateway, PromptRegistry prompts, DslCheatSheet cheatSheet) {
+    public AuthorService(LlmGateway gateway, PromptRegistry prompts, DslCheatSheet cheatSheet, SecurityEvents events) {
         this.gateway = gateway;
         this.prompts = prompts;
         this.cheatSheet = cheatSheet;
+        this.events = events;
     }
 
     /**
@@ -69,12 +72,14 @@ public class AuthorService {
 
         progress.accept(Stage.VALIDATING);
         ValidationResult result = answer.validate(validator, policy);
+        reportFailure(spec, result);
         int repairs = 0;
         while (result.hasErrors() && repairs < author.repairs()) {
             repairs++;
             spec = spec.repairedWith(repairPrompt(answer, result.findings(), policy));
             answer = ask(spec);
             result = answer.validate(validator, policy);
+            reportFailure(spec, result);
         }
         if (answer.document() == null) {
             // three answers that were not JSON at all: there is no document to show, so the failure is the answer
@@ -82,6 +87,15 @@ public class AuthorService {
                     "the model did not answer with JSON after " + (repairs + 1) + " attempts", answer.raw(), null);
         }
         return new Authored(answer.document(), result.findings(), repairs, !result.hasErrors());
+    }
+
+    /** An answer the validator refused raises {@code ai.validation.failed} with its error codes (Document 5). */
+    private void reportFailure(PromptSpec spec, ValidationResult result) {
+        if (result.hasErrors()) {
+            events.validationFailed(spec.promptName(), spec.promptVersion(), spec.attempt(), result.findings().stream()
+                    .filter(finding -> finding.severity() == Severity.ERROR).map(finding -> finding.code().name())
+                    .toList());
+        }
     }
 
     /** One answer from the model: the parsed document, or the raw text when it was not JSON at all. */

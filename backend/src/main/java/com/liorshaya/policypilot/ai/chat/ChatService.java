@@ -31,7 +31,6 @@ import com.liorshaya.policypilot.ruleset.service.EmbeddingSource;
 import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
 import com.liorshaya.policypilot.ruleset.service.VersionStatusException;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +74,7 @@ public class ChatService {
 
     public ChatService(ChatSessionRepository sessions, ChatMessageRepository messages, RulesetService rulesets,
             RetrievalService retrieval, DecisionTools tools, LlmGateway gateway, AnswerCache cache,
-            PromptRegistry prompts, SecurityEvents events, MeterRegistry meters, Clock clock,
+            PromptRegistry prompts, SecurityEvents events, Clock clock,
             PolicyPilotProperties properties, @Value("${spring.ai.openai.api-key:}") String providerKey) {
         this.sessions = sessions;
         this.messages = messages;
@@ -87,7 +86,7 @@ public class ChatService {
         this.cache = cache;
         OutputDenylist denylist = new OutputDenylist(List.of(orEmpty(properties.accessCode()),
                 orEmpty(properties.adminCode()), orEmpty(properties.cookieSecret()), providerKey));
-        this.composer = new AnswerComposer(gateway, denylist, events, meters, FixedSentences.toolLimit());
+        this.composer = new AnswerComposer(gateway, denylist, events, FixedSentences.toolLimit());
     }
 
     /**

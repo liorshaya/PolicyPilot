@@ -4,6 +4,7 @@ import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.entity.TokenLedgerDayEntity;
 import com.liorshaya.policypilot.ai.repository.TokenLedgerRepository;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -18,19 +19,26 @@ import org.springframework.transaction.annotation.Transactional;
  * reach the budget the guard refuses, and only the cache and everything that needs no model keep working.
  *
  * <p>The ledger is written in its own transaction, so tokens already spent are counted even when the request
- * that spent them fails afterwards.
+ * that spent them fails afterwards. The call that takes the day to its budget raises {@code ai.budget.stopped}, once
+ * a day: the row is locked while it is counted, so two calls cannot both be the one (Document 5, Security logging).
  */
 @Component
 public class TokenBudgetGuard {
 
+    /** What the API does once the budget is spent: only the cache and what needs no model keep answering. */
+    private static final String STOPPED_MODE = "cache-only";
+
     private final TokenLedgerRepository ledger;
     private final PolicyPilotProperties properties;
     private final Clock clock;
+    private final SecurityEvents events;
 
-    public TokenBudgetGuard(TokenLedgerRepository ledger, PolicyPilotProperties properties, Clock clock) {
+    public TokenBudgetGuard(TokenLedgerRepository ledger, PolicyPilotProperties properties, Clock clock,
+            SecurityEvents events) {
         this.ledger = ledger;
         this.properties = properties;
         this.clock = clock;
+        this.events = events;
     }
 
     /**
@@ -62,8 +70,12 @@ public class TokenBudgetGuard {
         LocalDate today = today();
         TokenLedgerDayEntity day = ledger.findForUpdate(today)
                 .orElseGet(() -> ledger.save(new TokenLedgerDayEntity(today, 0L, false)));
+        boolean stoppedBefore = day.hardStop();
         day.add(usage.total(), budget == null ? Long.MAX_VALUE : budget);
         ledger.save(day);
+        if (!stoppedBefore && day.hardStop()) {
+            events.budgetStopped(day.tokensUsed(), STOPPED_MODE);
+        }
     }
 
     /** What today has spent so far, for the cost view and the tests. */

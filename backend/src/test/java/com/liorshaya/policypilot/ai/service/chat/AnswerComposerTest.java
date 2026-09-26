@@ -45,7 +45,7 @@ class AnswerComposerTest {
     private final ChatEvents sink = new Collecting(shown);
 
     // Document 4, Marker resolution. Expected: the text without [[p:9]], which no chunk supplied, p:2 cited, and one
-    // hallucinated citation counted
+    // stripped citation counted under Document 5's ai.citation.invalid, by prompt and marker kind
     @Test
     void showsWhatTheResolverKeepsAndCitesTheSuppliedMarkers() {
         ChatTurn turn = new ChatTurn(Set.of("p:2"));
@@ -57,7 +57,7 @@ class AnswerComposerTest {
         assertThat(String.join("", shown)).isEqualTo(answer.text());
         assertThat(answer.cited()).containsExactly("p:2");
         assertThat(answer.usage()).isEqualTo(new TokenUsage(1_000, 200));
-        assertThat(meters.counter("ai.citation.hallucinated", "prompt", "v1").count()).isEqualTo(1.0);
+        assertThat(meters.counter("ai.citation.invalid", "prompt", "answer/v1", "kind", "p").count()).isEqualTo(1.0);
     }
 
     // Document 5: more than four calls ends the turn with the fixed sentence. Expected: the Hebrew sentence of
@@ -208,8 +208,7 @@ class AnswerComposerTest {
     }
 
     private AnswerComposer composer(RecordedGateway model) {
-        return new AnswerComposer(model, new OutputDenylist(List.of("testcode")), events, meters,
-                FixedSentences.toolLimit());
+        return new AnswerComposer(model, new OutputDenylist(List.of("testcode")), events, FixedSentences.toolLimit());
     }
 
     private ChatTool decisionTool(ChatTurn turn) {

@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ai.cache.ProposalCache;
 import com.liorshaya.policypilot.ai.entity.ModelCallEntity;
 import com.liorshaya.policypilot.ai.repository.ModelCallRepository;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,6 +48,9 @@ class AiBookkeepingIT extends ApiIntegrationTest {
 
     @Autowired
     private ProposalCache cache;
+
+    @Autowired
+    private MeterRegistry meters;
 
     @BeforeEach
     void startOnADayOfItsOwn() {
@@ -86,6 +90,21 @@ class AiBookkeepingIT extends ApiIntegrationTest {
                 .hasMessageContaining("token budget")
                 .extracting(thrown -> ((LlmUnavailableException) thrown).reason())
                 .isEqualTo(LlmUnavailableException.Reason.BUDGET_EXHAUSTED);
+    }
+
+    // Document 5, Security logging: "Budget stop | Ledger value, mode switched | ai.budget.stopped". Expected: one
+    // event when a call takes the day past its budget, and none for the calls under it or the tokens counted after
+    @Test
+    void theCallThatReachesTheBudgetRaisesOneBudgetStop() {
+        double before = meters.counter("ai.budget.stopped").count();
+
+        budget.record(new TokenUsage(40, 20));
+        assertThat(meters.counter("ai.budget.stopped").count()).isEqualTo(before);
+        budget.record(new TokenUsage(30, 20));
+        budget.record(new TokenUsage(5, 5));
+
+        assertThat(budget.spentToday()).isEqualTo(120);
+        assertThat(meters.counter("ai.budget.stopped").count()).isEqualTo(before + 1);
     }
 
     @Test
