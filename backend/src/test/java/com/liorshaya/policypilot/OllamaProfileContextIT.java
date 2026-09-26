@@ -30,6 +30,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Requirement({"FR-21", "NFR-4"})
 class OllamaProfileContextIT {
 
+    /** Document 2, the ollama column's chat model for every prompt (Document 4, The local chat model; day 16). */
+    private static final String CHAT_MODEL = "qwen3:30b-a3b-instruct-2507-q4_K_M";
+
     @ServiceConnection
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(PostgresContainerSupport.PGVECTOR_IMAGE);
 
@@ -70,17 +73,17 @@ class OllamaProfileContextIT {
     }
 
     // Document 2, API Surface: GET /system/provider names what the active profile runs on, here the ollama column of
-    // the profiles table, read from the real Ollama models of this context. Expected: ollama, qwen3:14b for both roles,
-    // bge-m3 and 1024
+    // the profiles table, read from the real Ollama models of this context. Expected: ollama, the local chat model for
+    // both roles, bge-m3 and 1024
     @Test
     void theLocalProfileNamesQwenAndBgeM3() {
-        assertThat(provider).isEqualTo(new ProviderDescription("ollama", "qwen3:14b", "qwen3:14b", "bge-m3", 1024));
+        assertThat(provider).isEqualTo(new ProviderDescription("ollama", CHAT_MODEL, CHAT_MODEL, "bge-m3", 1024));
     }
 
     @Test
     void bothModelRolesMapToTheLocalModel() {
-        assertThat(properties.ai().models().strong()).isEqualTo("qwen3:14b");
-        assertThat(properties.ai().models().fast()).isEqualTo("qwen3:14b");
+        assertThat(properties.ai().models().strong()).isEqualTo(CHAT_MODEL);
+        assertThat(properties.ai().models().fast()).isEqualTo(CHAT_MODEL);
     }
 
     // Document 4, Model Configuration per Prompt: "Author and review get 600 s, change 300 s, explain 180 s, and answer

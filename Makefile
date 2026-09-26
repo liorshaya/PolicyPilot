@@ -18,7 +18,7 @@ up: ## Start the database, the backend and the frontend, then wait for the healt
 	@echo "  frontend  http://localhost:5173"
 	@echo "  database  localhost:5432  policypilot / policypilot"
 
-up-ollama: ## The same with a local model: Ollama plus qwen3:14b and bge-m3, backend on the ollama profile
+up-ollama: ## The same with a local model: Ollama plus its two models (about 20 GB), backend on the ollama profile
 	$(COMPOSE_OLLAMA) up --build --detach
 	scripts/wait-for-health.sh
 	@echo ""

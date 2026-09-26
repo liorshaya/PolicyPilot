@@ -52,8 +52,8 @@ describe('ProviderBadge', () => {
     const badge = await screen.findByRole('region', { name: 'Model provider' })
     expect(namesIn(badge)).toEqual([
       ['Provider', 'Ollama'],
-      ['Strong model', 'qwen3:14b'],
-      ['Fast model', 'qwen3:14b'],
+      ['Strong model', 'qwen3:30b-a3b-instruct-2507-q4_K_M'],
+      ['Fast model', 'qwen3:30b-a3b-instruct-2507-q4_K_M'],
       ['Embeddings', 'bge-m3, 1024 dimensions'],
     ])
   })

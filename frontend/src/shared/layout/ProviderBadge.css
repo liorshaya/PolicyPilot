@@ -33,14 +33,10 @@
   color: rgba(255, 255, 255, 0.86);
 }
 
-/* a model's name never breaks at its hyphens; the embedding model and its dimension may part at the comma */
-.provider__row dd.mono,
+/* A model's name stays whole where the sidebar holds it, and one wider than the sidebar breaks at its hyphens rather
+   than running past the edge; the embedding model and its dimension part at the comma. */
 .provider__piece {
   white-space: nowrap;
-}
-
-.provider__row:last-child dd.mono {
-  white-space: normal;
 }
 
 .provider__name {

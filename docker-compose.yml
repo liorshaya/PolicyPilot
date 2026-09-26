@@ -39,7 +39,8 @@ services:
       # would refuse to boot. Values come from .env; RUNBOOK.md section 4 shows how to generate them.
       POLICYPILOT_ACCESS_CODE: ${POLICYPILOT_ACCESS_CODE:?set POLICYPILOT_ACCESS_CODE in .env (8 lowercase letters, RUNBOOK.md section 4)}
       POLICYPILOT_COOKIE_SECRET: ${POLICYPILOT_COOKIE_SECRET:?set POLICYPILOT_COOKIE_SECRET in .env (at least 32 bytes, RUNBOOK.md section 4)}
-      OLLAMA_BASE_URL: http://ollama:11434
+      # The ollama service by default; on a Mac, Ollama on the host, http://host.docker.internal:11434 (Document 2)
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     ports:
       - "8080:8080"
     healthcheck:
