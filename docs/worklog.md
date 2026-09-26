@@ -542,3 +542,19 @@ scripts and never printed; every output was scanned for both afterwards: clean. 
    railway ssh -s pgvector 'PGOPTIONS="-c default_transaction_read_only=on" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select day, tokens_used, hard_stop from token_ledger where day >= current_date - 8 order by day"'
    ```
 4. Rehearsal 1 itself, with the README's demo script and a stopwatch per step; its notes become the next fix list.
+
+**A timed preview of rehearsal 1** (2026-09-27, the owner's approval of about 16,000 tokens): the day-16 walk script
+through the guided panel on the live site, `main` at d99d8fd, in a fresh sandbox, from this laptop, so it is not the
+rehearsal Document 7 asks for (a second machine and network). No log carried a code.
+
+| Step | Brief | Preview | What it showed |
+| --- | --- | --- | --- |
+| 1. Author | 0:45 | 2.0 s to the draft and its review | 26 rules; the review's 9 findings, F-1 the age conflict of ¶ 1 and ¶ 8, F-4 "stable income" |
+| 2. Decide | 0:30 | 1.3 s to the 200 cases, 0.2 s to the explanation | 113, 60, 27, no error; case 17 decided in 224 µs, referred by R-330 |
+| 3. Ask | 0:45 | Q-01 4.2 s, Q-02 1.4 s, Q-03 0.4 s, Q-04 0.5 s | each as labeled (Q-02's "אישור" for the label's "מאושר", Document 4); Q-04 the fixed sentence |
+| 4. Change | 1:00 | 0.8 s to the proposal | R-170 and R-410; "12 of the 200 decisions made on version 1 flip.", the fixture's ids; approved with a note; case 17 referred by R-330 on both versions |
+
+Q-01's 4.2 s was the first chat call after the deploy of 21:48 UTC, on a cold JVM: asked again in the demo's order
+through the chat's routes, Q-01 to Q-04 came from the cache in 0.3 to 0.4 s with 0 chat tokens, Q-01 in the walk's
+exact words. What the preview spent was embeddings alone, about 3,000 tokens. For the demo: after any deploy, one pass
+of step 3 before the interviewers arrive, as the day-10 note says.
