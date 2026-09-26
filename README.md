@@ -120,7 +120,7 @@ recorded two-minute run are added on day 18.
 **Closing line**: "The model wrote and explained every rule you saw. It never made a single decision. That split is
 the whole design."
 
-**Encore** (30 seconds): the [evaluation report](docs/eval/2026-09-24-authorv2-reviewv1-answerv2-changev2.md) scores
+**Encore** (30 seconds): the [evaluation report](docs/eval/2026-09-26-authorv2-reviewv1-answerv3-changev2.md) scores
 18 labeled policies with OpenAI and with the local Ollama model side by side, which shows the on-premises path without
 running it live; and the municipal tax discount policy, seeded as a second protected policy, shows that a new domain is
 only data.
@@ -147,7 +147,8 @@ What the project has to prove ([Brief](docs/01-project-brief.md#background-and-m
    model of each role (`GET /api/v1/system/provider`). The evaluation report's second column quantifies the local
    model's gap instead of hiding it, and closing part of it improved both columns: the local model read the chat's
    first rule as asking for JSON, and `answer/v3`, which says only "plain text", lifted citation accuracy to 0.96 on
-   both providers.
+   both providers (qwen3:14b, 2026-09-25). A larger local model then made the chat step work on a laptop: it calls its
+   tools on every run.
 
 The questions the interviewers are likely to ask, one sentence each
 ([Document 2, Architecture Decision Records](docs/02-architecture.md#architecture-decision-records)):
@@ -254,12 +255,12 @@ the thing under test.
 
 | Level | What | Tests on `main` |
 | --- | --- | --- |
-| Unit | Engine, DSL validator, conformance, prompts, the citation resolver, security units, architecture rules | 1,365 |
+| Unit | Engine, DSL validator, conformance, prompts, the citation resolver, security units, architecture rules | 1,338 |
 | Integration | Testcontainers PostgreSQL: every route, sandbox isolation, the recorded AI flows, the red-team fixtures, the contract walk, the Hebrew fixtures through every route | 413 |
 | Frontend | Vitest: every screen in both directions, the decision table, the SSE client, the chat markers | 363 |
-| End to end | Playwright: the four demo steps in one run through the guided panel, the layout at a laptop's and a phone's width, and against the real stack the access gate and sandbox isolation | 35 |
+| End to end | Playwright: the four demo steps in one run through the guided panel, the layout at a laptop's and a phone's width, and against the real stack the access gate and sandbox isolation | 36 |
 
-The five numbers Document 6 publishes, from CI on `main` ([run of 2026-09-25](https://github.com/liorshaya/PolicyPilot/actions/runs/36135690341)):
+The five numbers Document 6 publishes, from CI on `main` ([run of 2026-09-26](https://github.com/liorshaya/PolicyPilot/actions/runs/36267199909)):
 
 - **Coverage**: 97.2% of the backend's lines and 94.0% of its branches, unit and integration tests merged; the
   frontend's statements 94.3%, branches 87.3%. Each package's numbers are in the CI job summary.
@@ -290,16 +291,16 @@ shows that the local path works and how far behind it is.
 | Refusal accuracy | 0.90 | 0.97 | 0.93 | PASS |
 | Change correctness | 0.83 | 1.00 | 0.50 | PASS |
 
-Performance, from the CI job summary of the same run, measured on its runner (AMD EPYC 9V74, 4 cores, 15 GiB) and
+Performance, from the CI job summary of the same run, measured on its runner (AMD EPYC 7763, 4 cores, 15 GiB) and
 shown beside Document 6's targets; a timing test fails only above three times its target, so a slow runner shows as a
 trend, not a red build:
 
 | Metric | Target | Measured on a CI runner |
 | --- | --- | --- |
-| 200 cases decided and stored, through the API (median of 3) | under 1 s | 258 ms |
-| One decision through the API (median of 20) | under 50 ms | 24 ms |
-| Chat first token, the recorded model answering after 100 ms | under 500 ms | 127 ms |
-| Chat first token, a scripted answer from the cache | under 500 ms | 100 ms |
+| 200 cases decided and stored, through the API (median of 3) | under 1 s | 243 ms |
+| One decision through the API (median of 20) | under 50 ms | 22 ms |
+| Chat first token, the recorded model answering after 100 ms | under 500 ms | 125 ms |
+| Chat first token, a scripted answer from the cache | under 500 ms | 83 ms |
 
 CI runs eight stages on every push, cheapest first, and `main` deploys only when stages 1 to 6 pass:
 [`ci.yml`](.github/workflows/ci.yml), stage by stage in [Document 6](docs/06-test-strategy.md). The requirements
@@ -309,18 +310,19 @@ no empty row.
 ## Definition of Done
 
 The Brief's eleven lines, walked on 2026-09-25 on the live site, in CI and on a fresh runner; the four steps in one
-fresh sandbox after `answer/v3`'s deploy, the access code read from Railway inside the script and never shown.
+fresh sandbox after `answer/v3`'s deploy, the access code read from Railway inside the script and never shown. Line 8
+was walked on 2026-09-26 on the owner's Mac, on the local model.
 
 | # | Line | Result | Evidence |
 | --- | --- | --- | --- |
 | 1 | `docker compose up` and one command start the system on a clean machine in under 5 minutes | Met | the README's setup block on a fresh GitHub runner, from `git clone` to the gate page: 85 s of 300 ([compose-smoke](https://github.com/liorshaya/PolicyPilot/actions/runs/36118010530)) |
 | 2 | The sample policy converts into a schema-valid rule set on the first or second attempt in at least 9 of 10 runs | Met | 10 of 10 valid on the first attempt on `gpt-5.6-terra`, 2026-09-20 ([gate G1](docs/worklog.md#gate-g1-proof-collected-2026-09-20-day-7-passed), [recordings](fixtures/eval/recordings/openai/author/v1/)); 18 of 18 on the first try in evaluation run 2 |
 | 3 | At least 90% of the generated rules match the labeled rules | Not met | the evaluation runner matches 10 of the lending policy's 18 labeled rules (recall 0.56, [run 2](docs/eval/2026-09-24-authorv2-reviewv1-answerv2-changev2.md)); the manual checklist of 2026-09-22 counted 14 of 18 ([report](docs/eval/rule-match-lending.md)) |
-| 4 | 200 cases decide in under 1 second, and a rerun is byte-identical | Met in the test environment | 258 ms median on a CI runner through the API with persistence ([`DecisionPerformanceIT`](backend/src/test/java/com/liorshaya/policypilot/decision/DecisionPerformanceIT.java)); two runs byte-identical in the engine and through the API ([`EngineConformanceTest`](backend/src/test/java/com/liorshaya/policypilot/engine/EngineConformanceTest.java), [`BatchDecisionIT`](backend/src/test/java/com/liorshaya/policypilot/decision/BatchDecisionIT.java)). On the live site the 200 cases take 0.8 to 1.8 s from the panel's click, network included, and give 113, 60 and 27 as `cases-expected.json` |
+| 4 | 200 cases decide in under 1 second, and a rerun is byte-identical | Met in the test environment | 243 ms median on a CI runner through the API with persistence ([`DecisionPerformanceIT`](backend/src/test/java/com/liorshaya/policypilot/decision/DecisionPerformanceIT.java)); two runs byte-identical in the engine and through the API ([`EngineConformanceTest`](backend/src/test/java/com/liorshaya/policypilot/engine/EngineConformanceTest.java), [`BatchDecisionIT`](backend/src/test/java/com/liorshaya/policypilot/decision/BatchDecisionIT.java)). On the live site the 200 cases take 0.8 to 1.8 s from the panel's click, network included, and give 113, 60 and 27 as `cases-expected.json` |
 | 5 | Every decision has a trace naming each fired rule and the compared values | Met | [`TraceTest`](backend/src/test/java/com/liorshaya/policypilot/engine/TraceTest.java); case 17 on the live site: decided in 174 to 298 µs, manual review with R-330's reason, every step listed with the values it compared |
 | 6 | The three scripted questions return cited answers, and the out-of-scope question returns "not covered by the documents" | Met | on the live site, 2026-09-25: Q-01 cites application 17, R-330 and ¶ 7; Q-02 the simulation with a guarantor, R-900 and ¶ 9; Q-03 ¶ 2 and R-130; the rate question gets the fixed sentence with no model call; all four served from the cache afterwards, in the demo's order and each on its own |
 | 7 | The scripted change request produces a diff, a regression report and a version 2 with an audit entry, and version 1 decisions stay unchanged | Met | on the live site, 2026-09-25: R-170 and R-410, the 12 flips by id, version 2 approved with its note, the audit entry "Change approved" with "2 rules modified", and case 17 decided again on version 1 and on version 2, referred by R-330 on both |
-| 8 | Switching the profile from `openai` to `ollama` needs no code change and the chat step still works | Not met | the profile switches with no code change, and the header names qwen3:14b and bge-m3; since `answer/v3`, bge-m3's threshold and the answer's thinking, the local model calls its tools on some runs but not on every one (see [Known limitations](#known-limitations)) |
+| 8 | Switching the profile from `openai` to `ollama` needs no code change and the chat step still works | Met, with a caveat | 2026-09-26 on the owner's Mac: the compose stack of `main` started on the `ollama` profile by two environment variables, and the header named qwen3:30b-a3b-instruct-2507-q4_K_M and bge-m3. Through the guided panel, in three walks of three, Q-01 cited application 17, R-330 and ¶ 7 after `getDecision`, Q-02 the simulation with a guarantor and R-900, and the rate question got the fixed sentence. Q-03 answered 84 months with ¶ 2 and R-130, but asked after the first two it appends the not-covered sentence on 8 of 20 live runs, which withholds its citations, until one answer that meets its label is kept and served from the cache ([Known limitations](#known-limitations), [worklog](docs/worklog.md#day-16-local-chat-model-collected-2026-09-26-line-8-met-with-q-03s-caveat)) |
 | 9 | 100% line coverage and a mutation score of at least 90% on the engine and the validator; integration tests cover every use case with a recorded model; the traceability matrix has no empty row | Met | 100% and 1,463 of 1,463 mutants; [the matrix](docs/quality/traceability.md) |
 | 10 | The README has the architecture diagram, the design principle, the demo script, known limitations and a 2-minute recorded run | Not yet | all but the recorded run, which is day 18's |
 | 11 | The live demo runs the four scripted steps with the access code, and a request without the code is rejected | Met | 2026-09-25: the four steps through the guided panel in one fresh sandbox, as the demo script lists them; without the cookie, `GET /api/v1/rulesets` answers 401 `SESSION_INVALID` |
@@ -331,13 +333,12 @@ The plan ran first in two weeks instead of four: Document 7's scope ladder was c
 on entry, with a few pieces outside the ladder, and the `v1.0.0` tag of 2026-09-22 is that version. The full plan was restored
 the same day, and each cut leaves this list in the pull request that ships it. What is still open:
 
-- **The chat step on the local model** (rung 3, and the provider badge's box, which asks for it): the `ollama` profile
-  loads with no code change and the header names its models. Since 2026-09-25 the answer no longer comes back
-  wrapped in JSON, bge-m3 has a threshold of its own that refuses the rate question, and the answer thinks; but
-  qwen3:14b begins with a tool call on about half of the runs of Q-01 and Q-02, so the what-if is sometimes worked out
-  of the rules instead of simulated, and a word in another script sometimes slips into a Hebrew answer. The
-  evaluation report's Ollama column measures the rest of the gap: 3 of 18 drafts pass the schema on the first try,
-  change correctness is 0 of 6.
+- **The local model**: on the `ollama` profile the chat step works, with one weak spot. Asked after Q-01 and Q-02,
+  Q-03 comes back on 8 of 20 live runs with its right answer followed by the not-covered sentence, so it cites
+  nothing until an answer that meets its label is kept (asked first, on 1 of 10). Elsewhere the local model trails
+  the strong one: its column in the evaluation report has 11 of 18 drafts schema-valid on the first try, rule recall
+  0.22, change correctness 3 of 6 and citation accuracy 0.87, and a word in another language slips into 3 of its 25
+  recorded answers.
 - **Rule match below 90%** (Brief line 3): rule recall 0.43, precision 0.34 and case agreement 0.67 over the 18
   labeled policies, up from 0.12, 0.10 and 0.00 once `author/v2` gave the model the field names the cases use. What
   still misses is listed per policy in the report: derived values named differently (`debt_to_income_ratio` for
