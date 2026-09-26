@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/ci/check_invisible_characters.py
       - name: The traceability matrix is the regeneration, with no empty row outside those still open
         run: python3 scripts/ci/traceability.py --self-test && python3 scripts/ci/traceability.py --check
+      - name: The list of claims is the regeneration of the test names of engine, rules and web.security
+        run: python3 scripts/ci/claims.py --self-test && python3 scripts/ci/claims.py --check
       - name: The job summary reads the performance numbers the timing tests print
         run: python3 scripts/ci/ci_summary.py --self-test
       - name: Schema and demo fixture copies match the backend resources
