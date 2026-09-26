@@ -1,6 +1,6 @@
 # PolicyPilot Test Strategy
 
-2026-09-28 · Lior Shaya
+2026-09-30 · Lior Shaya
 
 Document 6 of the PolicyPilot set. It turns the test plans scattered across the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md), the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md) and the [Security Specification](05-security-specification.md) into one discipline: what gets tested at which level, what coverage is required where, what a task must include before it counts as done, and how the tests are written alongside the code rather than after it. The work plan (Document 7) schedules every test named here next to its feature.
 
@@ -243,7 +243,7 @@ One GitHub Actions workflow on every push, ordered so the cheapest and most info
 
 | Stage | Contents | Budget | Gate |
 | --- | --- | --- | --- |
-| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date; the README's known limitations name every cut the progress checklist strikes through; no tracked file carries an invisible or bidi control character (Unicode Cc or Cf, newline and tab aside); the committed traceability matrix is the regeneration of the tests' tags, and no row outside the script's list of rows still open is empty (decided 2026-09-27, day 15) | 1 min | hard |
+| 1 Hygiene | gitleaks; fixture privacy check; schema copies match API resources; generated OpenAPI client is up to date; the README's known limitations name every cut the progress checklist strikes through; no tracked file carries an invisible or bidi control character (Unicode Cc or Cf, newline and tab aside); the committed traceability matrix is the regeneration of the tests' tags, and no row outside the script's list of rows still open is empty (decided 2026-09-27, day 15); the committed list of claims is the regeneration of the test names of engine, rules and web.security (decided 2026-09-30, day 17) | 1 min | hard |
 | 2 Fast tests | API unit, architecture and conformance tests with JaCoCo; web Vitest with coverage; Python reference self-test | 3 min | hard, including the coverage thresholds of the unit-measured packages |
 | 3 Mutation | PIT on `engine` and `rules` | 3 min | hard, 90% |
 | 4 Static and supply chain | Semgrep, ESLint, Dependency-Check, `npm audit`, ArchUnit report | 2 min | hard |
@@ -270,7 +270,7 @@ For one developer with AI coding tools, the discipline is simple: the tests for 
 4. **Expected values come from outside the code.** Engine and validator expectations come from the Python reference implementation and the fixtures; API expectations come from the OpenAPI document; AI expectations come from recordings and the labeled set; a test that copies its expected value from the implementation's output is rejected in review.
 5. **One behavior per test, one reason to fail.** Long tests with many assertions are split; parameterized tests carry named cases; a failing test's name should say what broke without reading its body.
 6. **The reference implementation is a second opinion.** When the Java engine and the Python reference disagree on a case, the specification decides which is wrong, and the fix lands in code, reference and fixture together.
-7. **Tests are part of the review of the demo.** Before each rehearsal, the presenter reads the test names of `engine`, `rules` and `web.security` as a checklist of what can be claimed with a straight face in the interview.
+7. **Tests are part of the review of the demo.** Before each rehearsal, the presenter reads the test names of `engine`, `rules` and `web.security` as a checklist of what can be claimed with a straight face in the interview. The list is `docs/quality/claims.md`, one sentence per test, generated from the test sources by `scripts/ci/claims.py` (decided 2026-09-30, day 17); stage 1 fails when the committed list is not the regeneration, so it never falls behind the tests.
 
 The work plan reserves roughly 40% of each task's time for its tests and fixtures, which is what makes the coverage targets achievable without a testing phase at the end, and the last three days before the interview are for rehearsal and fixing, never for new tests of new features.
 

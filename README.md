@@ -305,7 +305,8 @@ trend, not a red build:
 CI runs eight stages on every push, cheapest first, and `main` deploys only when stages 1 to 6 pass:
 [`ci.yml`](.github/workflows/ci.yml), stage by stage in [Document 6](docs/06-test-strategy.md). The requirements
 map to their tests in the [traceability matrix](docs/quality/traceability.md), generated from the tests' tags, with
-no empty row.
+no empty row. What the engine, the validator and the security layer may be said to do is the
+[list of claims](docs/quality/claims.md): their 397 test names, one sentence each, generated from the test sources.
 
 ## Definition of Done
 
