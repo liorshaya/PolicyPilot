@@ -525,7 +525,8 @@ public class SpringAiLlmGateway implements LlmGateway {
 
     /**
      * Fails fast for 30 seconds after 5 consecutive failures (Document 4, Guardrails), so a provider outage
-     * becomes an immediate honest error instead of a queue of timeouts.
+     * becomes an immediate honest error instead of a queue of timeouts; then one call goes through, and if it fails
+     * too the circuit opens for another 30 seconds (Document 2, Failure handling).
      */
     static final class CircuitBreaker {
 
@@ -551,9 +552,10 @@ public class SpringAiLlmGateway implements LlmGateway {
             consecutiveFailures = 0;
         }
 
+        /** A failure at or past the fifth in a row opens the circuit again, the call let through included. */
         synchronized void failed() {
             consecutiveFailures++;
-            if (consecutiveFailures == FAILURES_TO_OPEN) {
+            if (consecutiveFailures >= FAILURES_TO_OPEN) {
                 openedAt = clock.millis();
             }
         }

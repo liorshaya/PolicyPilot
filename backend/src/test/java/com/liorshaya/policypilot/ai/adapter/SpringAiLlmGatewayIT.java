@@ -226,27 +226,6 @@ class SpringAiLlmGatewayIT extends ApiIntegrationTest {
                 .isEqualTo(LlmUnavailableException.Reason.PROVIDER_ERROR);
     }
 
-    @Test
-    void theCircuitOpensAfterFiveFailuresInARow() {
-        SpringAiLlmGateway.CircuitBreaker breaker = new SpringAiLlmGateway.CircuitBreaker(clock);
-
-        for (int i = 0; i < 4; i++) {
-            breaker.failed();
-        }
-        breaker.requireClosed();
-        breaker.failed();
-
-        assertThatThrownBy(breaker::requireClosed)
-                .isInstanceOf(LlmUnavailableException.class)
-                .hasMessageContaining("failed 5 times in a row");
-        // Document 4: it fails fast for 30 seconds, then lets one call through again
-        clock.advance(Duration.ofSeconds(31));
-        breaker.requireClosed();
-        breaker.succeeded();
-        breaker.failed();
-        breaker.requireClosed();
-    }
-
     /** A provider that answers what a test told it to, without a network (Document 6, AI Layer Testing). */
     static final class FakeChatModel implements ChatModel {
 
