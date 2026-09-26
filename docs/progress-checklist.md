@@ -220,7 +220,7 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 - [ ] Rehearsal 1 from a second machine, timed per step (0:45, 0:30, 0:45, 1:00); fix list ranked by demo impact (restored from the v1.0.0 freeze)
 - [ ] Fixes, each with its test (restored from the v1.0.0 freeze)
-- [ ] Pre-demo checklist, first half: security counters, protected checksum, nightly reset ran, Railway and Vercel variables, `SPRING_PROFILES_ACTIVE=openai,cloud` (restored from the v1.0.0 freeze; all verified on 2026-09-27 but the budget stop over the 7 days, which no log held before #152 and whose ledger only the owner can read; see the worklog)
+- [x] Pre-demo checklist, first half: security counters, protected checksum, nightly reset ran, Railway and Vercel variables, `SPRING_PROFILES_ACTIVE=openai,cloud` (restored from the v1.0.0 freeze; verified on 2026-09-27, the budget stop from the ledger the owner read; see the worklog)
 - [x] Test names of `engine`, `rules` and `web.security` read as the list of claims (restored from the v1.0.0 freeze; `docs/quality/claims.md`, 397 tests, generated and checked in stage 1 since #153)
 - [ ] README corrections (restored from the v1.0.0 freeze)
 
