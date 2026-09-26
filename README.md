@@ -196,10 +196,17 @@ echo "POLICYPILOT_COOKIE_SECRET=$(openssl rand -hex 32)"
 | `POLICYPILOT_ADMIN_CODE` | no | Opens the manual reset, `POST /api/v1/admin/reset` with the header `X-PolicyPilot-Admin-Code`; without it, the reset refuses every call |
 | `SPRING_PROFILES_ACTIVE` | no | `openai` by default; `ollama` for a local model; Railway runs `openai,cloud` |
 | `DATABASE_URL` | no | Only when not using the Compose database |
-| `OLLAMA_BASE_URL` | no | Only when Ollama runs outside Compose |
+| `OLLAMA_BASE_URL` | no | Only when Ollama runs outside Compose, as it does on a Mac (below) |
 
-`make up-ollama` runs the same stack on a local model: Ollama with qwen3:14b and bge-m3, which it downloads on the
-first start (about 10.5 GB), and the backend on the `ollama` profile with no provider key.
+`make up-ollama` runs the same stack on a local model: Ollama with qwen3:30b-a3b-instruct-2507-q4_K_M and bge-m3,
+which it downloads on the first start (about 20 GB), and the backend on the `ollama` profile with no provider key.
+The chat model needs about 20 GB of memory; below 32 GB, `application-ollama.yml` can name qwen3:14b instead. On a
+Mac, Docker gives Ollama neither the GPU nor that much memory, so Ollama runs natively with the two models pulled,
+and the stack starts on it with:
+
+```sh
+SPRING_PROFILES_ACTIVE=ollama OLLAMA_BASE_URL=http://host.docker.internal:11434 make up
+```
 
 A fresh GitHub runner runs the block above as written, from `git clone` to the gate page, on every change to the
 README or the stack (`compose-smoke`): 85 s of the 300 s budget on 2026-09-25 ([run](https://github.com/liorshaya/PolicyPilot/actions/runs/36118010530)).
@@ -262,24 +269,26 @@ The five numbers Document 6 publishes, from CI on `main` ([run of 2026-09-25](ht
 - **Evaluation**: the table below.
 - **Red team**: RT-01 to RT-10 pass ([Security](#security)).
 
-The latest evaluation ([report](docs/eval/2026-09-25-authorv2-reviewv1-answerv3-changev2.md), 2026-09-25, `answer/v3`; run 2 of 2026-09-24 scored `answer/v2`): 18
-labeled policies, 30 questions and 6 change requests, scored for both providers. The targets are the strong model's;
-the Ollama column shows that the local path works and how far behind it is.
+The latest evaluation ([report](docs/eval/2026-09-26-authorv2-reviewv1-answerv3-changev2.md), 2026-09-26, the Ollama
+column on the local chat model chosen that day; qwen3:14b's is in the
+[report of 2026-09-25](docs/eval/2026-09-25-authorv2-reviewv1-answerv3-changev2.md)): 18 labeled policies, 30
+questions and 6 change requests, scored for both providers. The targets are the strong model's; the Ollama column
+shows that the local path works and how far behind it is.
 
-| Metric | Target | openai (gpt-5.6-terra) | ollama (qwen3:14b) | Verdict |
+| Metric | Target | openai (gpt-5.6-terra) | ollama (qwen3:30b-a3b-instruct-2507-q4_K_M) | Verdict |
 | --- | --- | --- | --- | --- |
-| Rule precision | 0.90 | 0.34 | 0.32 | FAIL |
-| Rule recall | 0.90 | 0.43 | 0.05 | FAIL |
+| Rule precision | 0.90 | 0.34 | 0.31 | FAIL |
+| Rule recall | 0.90 | 0.43 | 0.22 | FAIL |
 | Provenance accuracy | 0.95 | 0.97 | 1.00 | PASS |
-| Schema-valid first try | 0.90 | 1.00 | 0.17 | PASS |
+| Schema-valid first try | 0.90 | 1.00 | 0.61 | PASS |
 | Valid after repairs | 1.00 | 1.00 | at least 0.06 | PASS |
-| Case agreement | 0.95 | 0.67 | 0.02 | FAIL |
-| Reviewer recall | 0.80 | 0.87 | 0.38 | PASS |
-| Reviewer precision | 0.70 | at least 0.46 | at least 0.44 | needs an analyst pass |
+| Case agreement | 0.95 | 0.67 | 0.08 | FAIL |
+| Reviewer recall | 0.80 | 0.87 | 0.56 | PASS |
+| Reviewer precision | 0.70 | at least 0.46 | at least 0.53 | needs an analyst pass |
 | Retrieval recall at 8 | 0.90 | 0.91 | 0.96 | PASS |
-| Citation accuracy | 0.90 | 0.96 | 0.96 | PASS |
-| Refusal accuracy | 0.90 | 0.97 | 0.87 | PASS |
-| Change correctness | 0.83 | 1.00 | 0.00 | PASS |
+| Citation accuracy | 0.90 | 0.96 | 0.87 | PASS |
+| Refusal accuracy | 0.90 | 0.97 | 0.93 | PASS |
+| Change correctness | 0.83 | 1.00 | 0.50 | PASS |
 
 Performance, from the CI job summary of the same run, measured on its runner (AMD EPYC 9V74, 4 cores, 15 GiB) and
 shown beside Document 6's targets; a timing test fails only above three times its target, so a slow runner shows as a

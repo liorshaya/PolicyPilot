@@ -27,6 +27,9 @@ import org.springframework.mock.env.MockEnvironment;
 @Requirement({"FR-21", "NFR-4"})
 class ProviderDescriptionsTest {
 
+    /** Document 2, the ollama column's chat model for every prompt (Document 4, The local chat model; day 16). */
+    private static final String CHAT_MODEL = "qwen3:30b-a3b-instruct-2507-q4_K_M";
+
     // Document 2, the openai column: gpt-5.6-terra (strong) and gpt-5.6-luna (fast), text-embedding-3-small with
     // 1536 dimensions. Expected: exactly those names
     @Test
@@ -39,7 +42,8 @@ class ProviderDescriptionsTest {
                 new ProviderDescription("openai", "gpt-5.6-terra", "gpt-5.6-luna", "text-embedding-3-small", 1536));
     }
 
-    // Document 2, the ollama column: qwen3:14b for both roles, bge-m3 with 1024 dimensions. Expected: those names
+    // Document 2, the ollama column: the local chat model for both roles, bge-m3 with 1024 dimensions. Expected:
+    // those names
     @Test
     void theOllamaProfileIsDescribedAsDocument2sOllamaColumn() {
         ConfigurableEnvironment ollama = shipped("ollama");
@@ -47,11 +51,12 @@ class ProviderDescriptionsTest {
         ProviderDescription described = ProviderDescriptions.describe("ollama", "ollama", ollama, bind(ollama));
 
         assertThat(described)
-                .isEqualTo(new ProviderDescription("ollama", "qwen3:14b", "qwen3:14b", "bge-m3", 1024));
+                .isEqualTo(new ProviderDescription("ollama", CHAT_MODEL, CHAT_MODEL, "bge-m3", 1024));
     }
 
     // Document 4, Role to model mapping: the strong role authors, reviews and changes, the fast role explains and
-    // answers. Expected: under openai strong asks gpt-5.6-terra and fast gpt-5.6-luna; under ollama both qwen3:14b
+    // answers. Expected: under openai strong asks gpt-5.6-terra and fast gpt-5.6-luna; under ollama both ask the
+    // local chat model
     @Test
     void theStrongRoleAsksTheStrongModelAndTheFastRoleTheFastModel() {
         PolicyPilotProperties openai = bind(shipped("openai"));
@@ -59,8 +64,8 @@ class ProviderDescriptionsTest {
 
         assertThat(SpringAiLlmGateway.modelFor(ModelRole.STRONG, openai)).isEqualTo("gpt-5.6-terra");
         assertThat(SpringAiLlmGateway.modelFor(ModelRole.FAST, openai)).isEqualTo("gpt-5.6-luna");
-        assertThat(SpringAiLlmGateway.modelFor(ModelRole.STRONG, ollama)).isEqualTo("qwen3:14b");
-        assertThat(SpringAiLlmGateway.modelFor(ModelRole.FAST, ollama)).isEqualTo("qwen3:14b");
+        assertThat(SpringAiLlmGateway.modelFor(ModelRole.STRONG, ollama)).isEqualTo(CHAT_MODEL);
+        assertThat(SpringAiLlmGateway.modelFor(ModelRole.FAST, ollama)).isEqualTo(CHAT_MODEL);
     }
 
     // A profile that names no embedding model would leave the header to guess one. Expected: the application refuses to

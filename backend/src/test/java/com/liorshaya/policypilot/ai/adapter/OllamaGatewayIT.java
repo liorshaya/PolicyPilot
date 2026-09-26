@@ -57,6 +57,8 @@ class OllamaGatewayIT {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final List<JsonNode> ASKED = new CopyOnWriteArrayList<>();
+    /** Document 2, the ollama column's chat model for every prompt (Document 4, The local chat model; day 16). */
+    private static final String CHAT_MODEL = "qwen3:30b-a3b-instruct-2507-q4_K_M";
     /** A user prompt the fake answers only after ten seconds. */
     private static final String SLOW = "a slow call";
     private static final HttpServer OLLAMA = fakeOllama();
@@ -107,7 +109,7 @@ class OllamaGatewayIT {
         JsonNode request = ASKED.getFirst();
         assertThat(request.path("think").asBoolean(true)).isFalse();
         assertThat(request.path("options").path("num_predict").asInt()).isEqualTo(8000);
-        assertThat(request.path("model").asString()).isEqualTo("qwen3:14b");
+        assertThat(request.path("model").asString()).isEqualTo(CHAT_MODEL);
         assertThat(request.path("format")).isEqualTo(JSON.readTree(SpringAiLlmGateway.variantOf(
                 "schemas/ruleset-1.0.schema.json")));
     }
@@ -186,7 +188,7 @@ class OllamaGatewayIT {
                 if (request.path("stream").asBoolean(false)) {
                     // Ollama streams one JSON object a line, a thinking model's thinking apart from its content; the
                     // last one is done and carries the counts
-                    String head = "{\"model\":\"qwen3:14b\",\"created_at\":\"2026-09-24T00:00:00Z\","
+                    String head = "{\"model\":\"" + CHAT_MODEL + "\",\"created_at\":\"2026-09-24T00:00:00Z\","
                             + "\"message\":{\"role\":\"assistant\",\"content\":";
                     byte[] lines = (head + "\"\",\"thinking\":\"הסימולציה עונה על השאלה\"},\"done\":false}\n"
                             + head + "\"שלום \"},\"done\":false}\n"
@@ -199,11 +201,11 @@ class OllamaGatewayIT {
                     return;
                 }
                 byte[] body = """
-                        {"model":"qwen3:14b","created_at":"2026-09-24T00:00:00Z",
+                        {"model":"%s","created_at":"2026-09-24T00:00:00Z",
                          "message":{"role":"assistant","content":"{\\"id\\":\\"from-ollama\\"}"},
                          "done":true,"done_reason":"stop","total_duration":1,"load_duration":1,
                          "prompt_eval_count":120,"prompt_eval_duration":1,"eval_count":30,"eval_duration":1}"""
-                        .getBytes(StandardCharsets.UTF_8);
+                        .formatted(CHAT_MODEL).getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, body.length);
                 exchange.getResponseBody().write(body);

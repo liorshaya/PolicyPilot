@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { ollamaProvider } from '../src/test/fixtures/provider'
 import { changeRequest, serveTheChange } from './change'
 import { openThePanel } from './panel'
 import { serveTheSeededRuleSet } from './seeded'
@@ -13,6 +14,8 @@ import { serveTheSeededRuleSet } from './seeded'
  * screen squeezing its request out of sight once the proposal came, the side-by-side diff a letter a line on a phone,
  * the version pickers of the audit log cut off there, and the model names in the header broken at their hyphens. Each
  * test pins one of them where only a browser can see it, in the layout; the words themselves are the component tests'.
+ * The local chat model chosen afterwards has a name wider than the sidebar, which wraps inside it instead of running
+ * past the edge.
  */
 
 const LAPTOP = { width: 1440, height: 900 }
@@ -112,6 +115,32 @@ test.describe('on a laptop', () => {
       expect(model.height, name).toBeLessThan(line * 1.5)
       // and the name fits inside the badge rather than running past its edge
       expect(model.x + model.width, name).toBeLessThanOrEqual(edge.x + edge.width)
+    }
+  })
+
+  test('a model name wider than the sidebar wraps inside it rather than running past its edge', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    // the ollama column of Document 2's profiles table, served over the seeded openai names
+    await page.route('**/api/v1/system/provider', (route) =>
+      route.fulfill({ json: ollamaProvider }),
+    )
+    await enter(page)
+
+    const badge = page.getByRole('region', { name: 'Model provider' })
+    const line = (await badge.getByText('Provider', { exact: true }).boundingBox())!.height
+    const names = badge.getByText(ollamaProvider.chatModels.strong, { exact: true })
+    await expect(names).toHaveCount(2)
+    for (const name of await names.all()) {
+      // nothing of the name reaches past its own box, which is as wide as the sidebar allows
+      const overflow = await name.evaluate(
+        (value: { scrollWidth: number; clientWidth: number }) =>
+          value.scrollWidth - value.clientWidth,
+      )
+      expect(overflow).toBe(0)
+      // so the name takes a second line
+      expect((await name.boundingBox())!.height).toBeGreaterThan(line * 1.5)
     }
   })
 })

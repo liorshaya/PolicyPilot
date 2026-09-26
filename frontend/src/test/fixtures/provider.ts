@@ -14,7 +14,10 @@ export const openAiProvider: ProviderResponse = {
 
 export const ollamaProvider: ProviderResponse = {
   provider: 'ollama',
-  chatModels: { strong: 'qwen3:14b', fast: 'qwen3:14b' },
+  chatModels: {
+    strong: 'qwen3:30b-a3b-instruct-2507-q4_K_M',
+    fast: 'qwen3:30b-a3b-instruct-2507-q4_K_M',
+  },
   embeddingModel: 'bge-m3',
   embeddingDimension: 1024,
 }

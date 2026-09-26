@@ -438,7 +438,7 @@ The stack is pinned to Spring AI 2.0.x on Spring Boot 4.0.x and Java 21, and the
 | Property | `openai` profile | `ollama` profile |
 | --- | --- | --- |
 | `spring.ai.openai.api-key` / `spring.ai.ollama.base-url` | `${OPENAI_API_KEY}` | `http://ollama:11434` |
-| Chat model | `gpt-5.6-terra` (role `strong`) for author, review and change; `gpt-5.6-luna` (role `fast`) for answer and explain; both are properties confirmed against the current model list (Document 4) | `qwen3:14b` (or `qwen3:8b` on small machines) for all prompts, thinking off for those that return JSON and on for the answer (Document 4) |
+| Chat model | `gpt-5.6-terra` (role `strong`) for author, review and change; `gpt-5.6-luna` (role `fast`) for answer and explain; both are properties confirmed against the current model list (Document 4) | `qwen3:30b-a3b-instruct-2507-q4_K_M` for all prompts (or `qwen3:14b` on a machine with less than 32 GB of memory); thinking off for the prompts that return JSON and on for the answer, which this model, having no thinking mode, ignores (Document 4) |
 | Embedding model | `text-embedding-3-small`, 1536 dimensions | `bge-m3`, 1024 dimensions |
 | Structured output | Provider-native JSON schema, strict mode off (strict makes every declared property mandatory, which the DSL forbids in context; the answer is normalized and the canonical validator holds, Document 4) | `format` JSON schema; the validator does the rest |
 | `policypilot.embedding.dimension` | 1536 | 1024 |
@@ -516,7 +516,7 @@ One repository, one Docker image for the API, one static bundle for the web app;
 | `docker-compose.yml` | `db` (`pgvector/pgvector:pg16`), `ollama` (optional profile), `backend` (built from `backend/`), `frontend` (Vite dev server or nginx) |
 | `.github/workflows/` | `ci.yml` (tests, image build and scan, Playwright, the Railway deploy by digest), `eval.yml` (manual, live evaluation) |
 
-**Local**: `docker compose up` starts the database with pgvector, the API with the `openai` profile (reading `OPENAI_API_KEY` from `.env`), and the web app; `docker compose --profile ollama up` adds Ollama, pulls `qwen3:14b` and `bge-m3` on first start, and switches the API to the `ollama` profile. Flyway runs migrations and a seed job loads the fixtures on an empty database.
+**Local**: `docker compose up` starts the database with pgvector, the API with the `openai` profile (reading `OPENAI_API_KEY` from `.env`), and the web app; `docker compose --profile ollama up` adds Ollama, pulls `qwen3:30b-a3b-instruct-2507-q4_K_M` and `bge-m3` on first start, and switches the API to the `ollama` profile. Flyway runs migrations and a seed job loads the fixtures on an empty database. On a Mac, Docker runs Ollama without the GPU and in a VM too small for the chat model's 20 GB, so there Ollama runs natively and the API reaches it through OLLAMA\_BASE\_URL, http://host.docker.internal:11434 from the compose API (decided by the owner 2026-09-28, day 16).
 
 **Cloud**
 

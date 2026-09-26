@@ -1,7 +1,8 @@
 #!/bin/sh
 # Pulls the two local models the ollama profile needs (Document 2, Configuration and Model Providers):
-# qwen3:14b for every prompt and bge-m3 for embeddings. Runs inside the ollama image as the compose service
-# ollama-pull, against the ollama service; also usable on a machine with Ollama installed.
+# qwen3:30b-a3b-instruct-2507-q4_K_M for every prompt and bge-m3 for embeddings. Runs inside the ollama image
+# as the compose service ollama-pull, against the ollama service; also usable on a machine with Ollama installed,
+# with OLLAMA_HOST set to it.
 set -eu
 : "${OLLAMA_HOST:=http://ollama:11434}"
 export OLLAMA_HOST
@@ -17,7 +18,7 @@ until ollama list >/dev/null 2>&1; do
   sleep 2
 done
 
-for model in qwen3:14b bge-m3; do
+for model in qwen3:30b-a3b-instruct-2507-q4_K_M bge-m3; do
   echo "pulling $model"
   ollama pull "$model"
 done
