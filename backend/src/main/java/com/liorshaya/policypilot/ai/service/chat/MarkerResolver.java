@@ -24,11 +24,13 @@ public final class MarkerResolver {
     private static final Pattern OPENED = Pattern.compile("\\[\\[[a-z]+(?::[^\\]\\n]*)?]?");
     /** A marker longer than this is not one, and what was held is shown as text. */
     private static final int LONGEST = 120;
+    private static final String MALFORMED = "malformed";
 
     private final Predicate<String> supplied;
     private final Set<String> cited = new LinkedHashSet<>();
     private final StringBuilder held = new StringBuilder();
-    private int dropped;
+    /** The kind of each marker removed, in the order they came: p, r, d, sim, or malformed. */
+    private final List<String> droppedKinds = new ArrayList<>();
 
     /** @param supplied whether an id ({@code p:7}, {@code d:17}) was supplied this turn; asked as each marker closes */
     public MarkerResolver(Predicate<String> supplied) {
@@ -62,7 +64,7 @@ public final class MarkerResolver {
         String rest = held.toString();
         held.setLength(0);
         if (rest.length() > 2 && OPENED.matcher(rest).matches()) {
-            dropped++;
+            droppedKinds.add(MALFORMED);
             return "";
         }
         return rest;
@@ -75,7 +77,15 @@ public final class MarkerResolver {
 
     /** How many markers were removed, unknown or malformed. */
     public int dropped() {
-        return dropped;
+        return droppedKinds.size();
+    }
+
+    /**
+     * The kind of each marker removed, in the order they came: {@code p}, {@code r}, {@code d}, {@code sim}, or
+     * {@code malformed} for one that broke the grammar or never closed (Document 5, Security logging).
+     */
+    public List<String> droppedKinds() {
+        return List.copyOf(droppedKinds);
     }
 
     /**
@@ -112,11 +122,13 @@ public final class MarkerResolver {
             return open + 2;
         }
         String id = candidate.substring(2, candidate.length() - 2);
-        if (MARKER.matcher(candidate).matches() && supplied.test(id)) {
+        if (!MARKER.matcher(candidate).matches()) {
+            droppedKinds.add(MALFORMED);
+        } else if (supplied.test(id)) {
             shown.append(candidate);
             cited.add(id);
         } else {
-            dropped++;
+            droppedKinds.add(id.substring(0, id.indexOf(':')));
         }
         return close + 2;
     }

@@ -8,11 +8,13 @@ import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.rules.patch.PatchCode;
 import com.liorshaya.policypilot.rules.patch.PatchProblem;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Requirement;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,13 @@ class ChangeServiceTest {
     private static final String VALID = ChangeRequests.scriptedPatches().toString();
 
     private static Proposal propose(RecordedGateway gateway, String request, List<ChangeService.Stage> stages) {
-        return new ChangeService(gateway, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet())
+        return propose(gateway, request, stages, new RecordedSecurityEvents());
+    }
+
+    private static Proposal propose(RecordedGateway gateway, String request, List<ChangeService.Stage> stages,
+            SecurityEvents events) {
+        return new ChangeService(gateway, new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet(),
+                events)
                 .propose(ChangeRequests.lendingBase(), request, ChangeRequests.scriptedCandidates(), stages::add);
     }
 
@@ -142,6 +150,33 @@ class ChangeServiceTest {
         assertThat(proposal.repairs()).isEqualTo(2);
         assertThat(gateway.asked()).extracting(PromptSpec::attempt).containsExactly(1, 2, 3);
         assertThat(gateway.forgotten()).containsExactlyElementsOf(gateway.asked());
+    }
+
+    // Document 5, Security logging: "Validation failure of model output | Prompt, version, attempt, codes".
+    // Expected: the first answer's failure with Document 3's PROVENANCE_ANALYST_FROM_MODEL, and nothing for the valid
+    // repair
+    @Test
+    void anAnswerThePatchValidatorRefusesRaisesAValidationFailure() {
+        RecordedSecurityEvents events = new RecordedSecurityEvents();
+
+        propose(RecordedGateway.answering(keepingR410Analyst(), VALID), ChangeRequests.scripted(), new ArrayList<>(),
+                events);
+
+        assertThat(events.raised())
+                .containsExactly("ai.validation.failed change/v2 attempt=1 codes=PROVENANCE_ANALYST_FROM_MODEL");
+    }
+
+    // Document 5: RT-04's refused answer is model output that failed validation too. Expected: one event with the two
+    // patch codes the RT-04 test above names
+    @Test
+    void rt04RaisesOneValidationFailureWithItsPatchCodes() {
+        RecordedSecurityEvents events = new RecordedSecurityEvents();
+
+        propose(RecordedGateway.answering(ChangeRequests.rt04Answer().toString()), ChangeRequests.rt04(),
+                new ArrayList<>(), events);
+
+        assertThat(events.raised()).containsExactly(
+                "ai.validation.failed change/v2 attempt=1 codes=PATCH_REMOVES_UNMENTIONED,PATCH_SETS_DEFAULTS");
     }
 
     // Document 5, RT-04: the answer that obeyed the planted text is refused on the first answer, never repaired, and

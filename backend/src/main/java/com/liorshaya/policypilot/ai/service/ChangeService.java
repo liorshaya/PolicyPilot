@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
 import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.ai.prompt.Sections;
 import com.liorshaya.policypilot.common.Hashes;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.patch.PatchValidation;
@@ -51,13 +52,15 @@ public class ChangeService {
     private final LlmGateway gateway;
     private final PromptRegistry prompts;
     private final DslCheatSheet cheatSheet;
+    private final SecurityEvents events;
     /** Patch validation; it holds the compiled schemas and is safe to share. */
     private final PatchValidator validator = new PatchValidator();
 
-    public ChangeService(LlmGateway gateway, PromptRegistry prompts, DslCheatSheet cheatSheet) {
+    public ChangeService(LlmGateway gateway, PromptRegistry prompts, DslCheatSheet cheatSheet, SecurityEvents events) {
         this.gateway = gateway;
         this.prompts = prompts;
         this.cheatSheet = cheatSheet;
+        this.events = events;
     }
 
     /**
@@ -80,6 +83,7 @@ public class ChangeService {
         PatchValidator.Scope scope = new PatchValidator.Scope(request, Set.copyOf(candidates.ruleIds()),
                 base.retiredIds());
         PatchValidation validation = answer.validate(validator, base, scope);
+        reportFailure(spec, validation);
         int repairs = 0;
         while (!validation.valid() && !validation.refused() && repairs < change.repairs()) {
             repairs++;
@@ -87,6 +91,7 @@ public class ChangeService {
             asked.add(spec);
             answer = ask(spec);
             validation = answer.validate(validator, base, scope);
+            reportFailure(spec, validation);
         }
         if (!validation.valid()) {
             asked.forEach(gateway::forget);
@@ -105,6 +110,20 @@ public class ChangeService {
      */
     public PromptSpec specFor(ChangeBase base, String request, Candidates candidates) {
         return specOf(prompts.get(PROMPT), base, request, candidates);
+    }
+
+    /**
+     * An answer the validators refused, RT-04's refusal included, raises {@code ai.validation.failed} with its schema,
+     * copy and patch codes (Document 5).
+     */
+    private void reportFailure(PromptSpec spec, PatchValidation validation) {
+        if (!validation.valid()) {
+            List<String> codes = new ArrayList<>();
+            validation.findings().stream().filter(finding -> finding.severity() == Severity.ERROR)
+                    .map(finding -> finding.code().name()).forEach(codes::add);
+            validation.problems().stream().map(problem -> problem.code().name()).forEach(codes::add);
+            events.validationFailed(spec.promptName(), spec.promptVersion(), spec.attempt(), codes);
+        }
     }
 
     /** One answer from the model: the parsed Patches object, or the raw text when it was not a JSON object. */

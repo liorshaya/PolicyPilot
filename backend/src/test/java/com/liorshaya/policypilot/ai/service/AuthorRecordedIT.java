@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.eval.FieldHints;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.RecordedGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Requirement;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,7 +44,8 @@ class AuthorRecordedIT {
     @Test
     void theRecordedAnswerForTheLendingPolicyIsAValidDraft() {
         AuthorService author = new AuthorService(RecordedGateway.replaying(RECORDINGS),
-                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet(),
+                new RecordedSecurityEvents());
 
         AuthorService.Authored authored = author.write(lendingPolicy(),
                 "מדיניות אשראי צרכני - הלוואות אישיות", "he", null, stage -> { });
@@ -60,7 +62,8 @@ class AuthorRecordedIT {
     @Test
     void theRecordedAnswerForTheSecondDomainIsAValidDraft() {
         AuthorService author = new AuthorService(RecordedGateway.replaying(RECORDINGS),
-                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet());
+                new PromptRegistry(PromptRegistry.PROMPTS, Map.of()), new DslCheatSheet(),
+                new RecordedSecurityEvents());
         JsonNode label = Fixtures.json(Fixtures.SECOND_DOMAIN + "expected.ruleset.json");
         PolicyVersionRef policy =
                 policyOf(Fixtures.paragraphs(Fixtures.evaluationPolicyText("arnona-discount-seniors")));

@@ -8,6 +8,7 @@ import com.liorshaya.policypilot.ai.ModelRole;
 import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.cache.ProposalCache;
+import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -83,7 +85,8 @@ public class SpringAiLlmGateway implements LlmGateway {
     private final MeterRegistry meters;
 
     public SpringAiLlmGateway(ChatModel chat, ToolCallingManager toolCalls, PolicyPilotProperties properties,
-            ProposalCache cache, TokenBudgetGuard budget, ModelCallLedger ledger, Clock clock, MeterRegistry meters) {
+            ProposalCache cache, TokenBudgetGuard budget, ModelCallLedger ledger, Clock clock, MeterRegistry meters,
+            SecurityEvents events) {
         this.chat = chat;
         this.toolCalls = toolCalls;
         this.properties = properties;
@@ -92,7 +95,7 @@ public class SpringAiLlmGateway implements LlmGateway {
         this.ledger = ledger;
         this.clock = clock;
         this.meters = meters;
-        this.breaker = new CircuitBreaker(clock);
+        this.breaker = new CircuitBreaker(clock, failures -> events.providerOpened(provider(), failures));
     }
 
     @Override
@@ -534,11 +537,14 @@ public class SpringAiLlmGateway implements LlmGateway {
         private static final Duration OPEN_FOR = Duration.ofSeconds(30);
 
         private final Clock clock;
+        /** Told each time the circuit opens, with the failures in a row, for {@code ai.provider.open}. */
+        private final IntConsumer opened;
         private int consecutiveFailures;
         private long openedAt;
 
-        CircuitBreaker(Clock clock) {
+        CircuitBreaker(Clock clock, IntConsumer opened) {
             this.clock = clock;
+            this.opened = opened;
         }
 
         synchronized void requireClosed() {
@@ -557,6 +563,7 @@ public class SpringAiLlmGateway implements LlmGateway {
             consecutiveFailures++;
             if (consecutiveFailures >= FAILURES_TO_OPEN) {
                 openedAt = clock.millis();
+                opened.accept(consecutiveFailures);
             }
         }
     }

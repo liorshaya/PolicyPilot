@@ -13,6 +13,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.ChangeRequests;
 import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -106,7 +107,7 @@ class LiveChangeRecordingIT extends ApiIntegrationTest {
         ChangeService service = new ChangeService(new LiveRecordingGateway("openai", gateway,
                 properties.ai().models().strong(), properties.ai().dailyTokenBudget(), CHARACTERS_PER_TOKEN,
                 OUTPUT_ALLOWANCE), new PromptRegistry(PromptRegistry.PROMPTS, Map.of()),
-                new DslCheatSheet());
+                new DslCheatSheet(), new RecordedSecurityEvents());
 
         Proposal proposal = service.propose(ChangeRequests.lendingBase(), ChangeRequests.scripted(),
                 ChangeRequests.scriptedCandidates(), stage -> { });

@@ -1,6 +1,6 @@
 # PolicyPilot Security Specification
 
-2026-09-27 · Lior Shaya
+2026-09-30 · Lior Shaya
 
 Document 5 of the PolicyPilot set. It defines the threat model and every security control of the system, with injection in all its forms as the center of gravity, because a rules engine driven by a language model has two attack surfaces a normal web application does not: the text it reads and the text it produces. It builds on the [Project Brief](01-project-brief.md), the [Architecture](02-architecture.md), the [Rules DSL Specification](03-rules-dsl-specification.md) and the [AI Pipeline and Prompt Specification](04-ai-pipeline-and-prompts.md), the Test Strategy (Document 6) carries its tests in the traceability matrix, and the work plan (Document 7) schedules the controls it lists.
 
@@ -275,7 +275,7 @@ Every security-relevant event is a structured log line with a trace id and a Mic
 
 **Redaction**: the Logback encoder masks any value matching the provider key prefix, the cookie name, the access code and the admin code, and hashes IPs with a per-deployment salt (an HMAC key derived from POLICYPILOT\_COOKIE\_SECRET, so no further variable exists); request bodies and prompts are never logged in the cloud profile.
 
-**Pre-demo check** (two days before and the morning of): the counters for the last 7 days in the admin panel; any non-zero `security.protected.write_attempt`, `ai.budget.stopped` or `security.output.denylist` is investigated; the protected rule set's checksum matches the fixture; the ledger is well below its cap; the circuit breaker is closed.
+**Pre-demo check** (two days before and the morning of): the events of the last 7 days, counted in the log of every deployment in that window (a counter starts again at zero with each deployment, so its log lines are the record; there is no admin panel); any non-zero `security.protected.write_attempt`, `ai.budget.stopped` or `security.output.denylist` is investigated; each protected rule set's checksum, the SHA-256 of its published version's canonical JSON (keys sorted, no whitespace), matches the same checksum of its fixture; the ledger is well below its cap; the circuit breaker is closed, which is no circuit-open event since the running deployment started.
 
 **Incident basics for the demo**: if the budget is exhausted or the key is suspected leaked, the presenter rotates the key in the OpenAI dashboard and the Railway variable (two minutes), and the cached scripted steps keep the demo running meanwhile; if the demo state is vandalized, the manual reset endpoint restores the seed in seconds; both procedures are in the README's runbook and are rehearsed once.
 

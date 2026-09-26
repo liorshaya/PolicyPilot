@@ -23,6 +23,7 @@ import com.liorshaya.policypilot.support.LiveProvider;
 import com.liorshaya.policypilot.support.LiveRecordingGateway;
 import com.liorshaya.policypilot.support.PostgresContainerSupport;
 import com.liorshaya.policypilot.support.RecordedEmbeddingGateway;
+import com.liorshaya.policypilot.support.RecordedSecurityEvents;
 import com.liorshaya.policypilot.support.Reviews;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -132,7 +133,7 @@ class LiveChangePassIT {
                 LiveChangeRecordingIT.CHARACTERS_PER_TOKEN, LiveChangeRecordingIT.OUTPUT_ALLOWANCE);
         // the application's registry, so the profile's timeouts hold: one built here would keep prompt.yml's 60 s,
         // which cut two of the Ollama column's requests on day 15
-        ChangeService service = new ChangeService(model, prompts, new DslCheatSheet());
+        ChangeService service = new ChangeService(model, prompts, new DslCheatSheet(), new RecordedSecurityEvents());
         // the seeded version is embedded at startup, on the recorded vectors, before any corpus is recorded
         awaitEmbedded();
         if (!vectors.recorded(REQUESTS)) {

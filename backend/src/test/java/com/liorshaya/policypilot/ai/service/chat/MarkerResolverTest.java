@@ -80,6 +80,18 @@ class MarkerResolverTest {
         assertThat(acceptingAll.cited()).containsExactly("r:R-320");
     }
 
+    // Document 5, Security logging: a stripped citation is logged with its marker kind. Expected: an unsupplied
+    // marker by its kind (p, r, d or sim), one that breaks the grammar or never closes as malformed, in the order
+    // they came
+    @Test
+    void eachDroppedMarkerIsReportedByItsKind() {
+        resolver.accept("A[[p:5]] B[[r:R-999]] C[[d:18]] D[[sim:d18:age=30]] E[[x:1]] F[[p:7");
+        resolver.finish();
+
+        assertThat(resolver.droppedKinds()).containsExactly("p", "r", "d", "sim", "malformed", "malformed");
+        assertThat(resolver.dropped()).isEqualTo(6);
+    }
+
     // Expected: a marker still open when the answer ends is never shown
     @Test
     void aMarkerLeftOpenAtTheEndIsDropped() {

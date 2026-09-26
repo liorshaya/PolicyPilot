@@ -7,7 +7,6 @@ import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.rules.model.Language;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,15 +28,13 @@ public final class AnswerComposer {
     private final LlmGateway gateway;
     private final OutputDenylist denylist;
     private final SecurityEvents events;
-    private final MeterRegistry meters;
     private final Map<Language, String> toolLimit;
 
-    public AnswerComposer(LlmGateway gateway, OutputDenylist denylist, SecurityEvents events, MeterRegistry meters,
+    public AnswerComposer(LlmGateway gateway, OutputDenylist denylist, SecurityEvents events,
             Map<Language, String> toolLimit) {
         this.gateway = gateway;
         this.denylist = denylist;
         this.events = events;
-        this.meters = meters;
         this.toolLimit = Map.copyOf(toolLimit);
     }
 
@@ -102,9 +99,8 @@ public final class AnswerComposer {
 
     private Answer ended(MarkerResolver resolver, String text, TokenUsage usage, List<CachedAnswer.ToolStep> steps,
             ChatTurn turn, Language language, String notCoveredSentence, PromptSpec spec, ChatEvents sink) {
-        if (resolver.dropped() > 0) {
-            meters.counter("ai.citation.hallucinated", "prompt", spec.promptVersion()).increment(resolver.dropped());
-        }
+        resolver.droppedKinds().forEach(kind -> events.citationInvalid(spec.promptName() + "/" + spec.promptVersion(),
+                kind));
         if (turn.overrun()) {
             String sentence = (text.isEmpty() ? "" : " ") + toolLimit.get(language);
             sink.token(sentence);
