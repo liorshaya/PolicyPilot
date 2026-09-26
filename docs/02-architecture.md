@@ -1,6 +1,6 @@
 # PolicyPilot Architecture
 
-2026-09-28 · Lior Shaya
+2026-09-30 · Lior Shaya
 
 Document 2 of the PolicyPilot set. It builds on the scope, demo and requirements fixed in the [Project Brief](01-project-brief.md) and is the input to the Rules DSL Specification (Document 3) and the AI Pipeline and Prompt Specification (Document 4).
 
@@ -282,7 +282,7 @@ Reading the diagram: the model never writes to the database; it produces a `Prop
 
 **Change impact analysis**: the `change` use case embeds the request text, takes the two rules of the version most similar to it and every rule the request names by id, and adds every rule that reads a field those rules test or a field derived from one (Document 4, Prompt 5); the model sees only those candidates and answers patches (add, replace, remove by rule id) with a rationale per patch; patches are applied to a copy and the copy goes through the Patches schema, the proposal validator, the same validation loop and the regression run described in Flow 4.
 
-**Failure handling**: the gateway wraps provider calls with a timeout (60 s for authoring, 20 s for chat first token), a retry with backoff on 429 and 5xx, and a circuit breaker (Resilience4j) that fails fast for 30 s after 5 consecutive failures, so a provider outage becomes an immediate, honest error in the UI.
+**Failure handling**: the gateway wraps provider calls with a timeout (60 s for authoring, 20 s for chat first token), a retry with backoff on 429 and 5xx, and a circuit breaker of its own that fails fast for 30 s after 5 consecutive failures, and for another 30 s each time the call it then lets through fails too, so a provider outage becomes an immediate, honest error in the UI.
 
 ## Data Model
 
