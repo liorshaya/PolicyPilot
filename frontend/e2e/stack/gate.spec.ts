@@ -34,13 +34,22 @@ test.describe('the access gate of the real API', () => {
 
     const workspace = page.getByRole('navigation', { name: 'Workspace' })
     await expect(workspace).toBeVisible()
-    // the header shows what the stack's own GET /system/provider answers, read with the session the gate opened
+    // the rail names the provider the stack's own GET /system/provider answers, read with the session the gate opened,
+    // and the legend behind Help names its models (the Register, section 08)
     const provider = (await (await page.request.get(`${API}/api/v1/system/provider`)).json()) as {
+      provider: string
       chatModels: { strong: string }
       embeddingModel: string
     }
-    const badge = workspace.getByRole('region', { name: 'Model provider' })
-    await expect(badge).toContainText(provider.chatModels.strong)
-    await expect(badge).toContainText(provider.embeddingModel)
+    const line = { openai: 'Provider OpenAI · cloud', ollama: 'Provider Ollama · local' }[
+      provider.provider
+    ]
+    await expect(
+      workspace.getByText(line ?? `Provider ${provider.provider}`, { exact: true }),
+    ).toBeVisible()
+    await workspace.getByRole('button', { name: 'Help' }).click()
+    const legend = page.getByRole('dialog', { name: 'Help' })
+    await expect(legend).toContainText(provider.chatModels.strong)
+    await expect(legend).toContainText(provider.embeddingModel)
   })
 })
