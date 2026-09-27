@@ -6,6 +6,18 @@
     <meta name="color-scheme" content="light" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#142C43" />
+    <!--
+      The theme before the first paint and ahead of the stylesheet, so the page never flashes (the Register spec,
+      section 12: light by default, dark remembered per browser); src/styles/theme.ts reads the same key.
+    -->
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('pp-theme') === 'dark' ? 'dark' : 'light'
+      } catch {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
     <!-- The brand kit's own files (brand/kit/06-Setup/head-snippet.html), copied into public/ -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

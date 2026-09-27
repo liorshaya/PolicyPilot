@@ -1,0 +1,199 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+/**
+ * The Register's "don't" list as a build check (Document 9, phase 0; the spec's section 12). Component CSS writes no
+ * literal colour, no px font size, no gradient, no Inter or Heebo, no uppercase or letter-spacing outside the seal and
+ * the band, and none of the old --color-* aliases, which live in tokens.css only; no component sets a colour or a font
+ * size in a style attribute. The two spec layers, tokens.css (every value) and index.css (the base), are copied
+ * verbatim and left out: the owner's answer of 2026-09-28 to the board's question 2.
+ */
+
+/** Vitest runs from the project root, where its configuration lives. */
+const ROOT = process.cwd()
+const SPEC_LAYERS = new Set(['src/styles/tokens.css', 'src/index.css'])
+
+/** The files under src/ with the given extension, as paths from the project root, in a stable order. */
+function sources(extension: string): string[] {
+  return readdirSync(resolve(ROOT, 'src'), { recursive: true, encoding: 'utf8' })
+    .filter((path) => path.endsWith(extension))
+    .map((path) => `src/${path}`)
+    .sort()
+}
+
+function read(path: string): string {
+  return readFileSync(resolve(ROOT, path), 'utf8')
+}
+
+const count = (text: string, pattern: RegExp) => [...text.matchAll(pattern)].length
+
+/** A selector of the seal or of a band, with their BEM elements and modifiers, keeps its capitals and its spacing. */
+const SEAL = /\.seal(?:__|--|\b)/
+const BAND = /\.t-band(?:__|--|\b)/
+
+/** Each rule of the list, and how many times one CSS rule (its selector and declarations) breaks it. */
+const RULES: [name: string, hits: (selector: string, declarations: string) => number][] = [
+  ['hex colour', (_selector, body) => count(body, /#[0-9a-f]{3,8}\b/gi)],
+  ['rgb( colour', (_selector, body) => count(body, /\brgba?\(/g)],
+  ['px font size', (_selector, body) => count(body, /font(?:-size)?\s*:[^;]*\d(?:\.\d+)?px/g)],
+  [
+    'uppercase outside .seal',
+    (selector, body) => (SEAL.test(selector) ? 0 : count(body, /text-transform\s*:\s*uppercase/g)),
+  ],
+  ['gradient', (_selector, body) => count(body, /gradient\(/g)],
+  ['Inter or Heebo', (_selector, body) => count(body, /\b(?:Inter|Heebo)\b/g)],
+  [
+    'letter-spacing outside .seal and .t-band',
+    (selector, body) =>
+      SEAL.test(selector) || BAND.test(selector) ? 0 : count(body, /letter-spacing\s*:/g),
+  ],
+  ['old --color-* alias', (_selector, body) => count(body, /--color-[a-z0-9-]+\s*:/g)],
+]
+
+/**
+ * The hits of the components that are not ported yet, frozen on 2026-09-28 (the owner's answer to the board's
+ * question 1): each file with the phase of Document 9 that ports it, and its hits by rule. The list only shrinks: a
+ * new hit fails, and so does a hit that is gone while its count is still here. Phase 5 leaves it empty.
+ */
+const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> = {
+  'src/features/cases/Dashboard.css': {
+    phase: 3,
+    hits: { 'uppercase outside .seal': 2, 'letter-spacing outside .seal and .t-band': 2 },
+  },
+  'src/features/cases/ExplainPanel.css': {
+    phase: 3,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/features/cases/TraceView.css': {
+    phase: 3,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/features/change/DiffView.css': {
+    phase: 4,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/features/change/RegressionReport.css': {
+    phase: 4,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/features/demo/GuidedPanel.css': { phase: 1, hits: { 'hex colour': 1 } },
+  'src/features/policy/PoliciesScreen.css': {
+    phase: 5,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/features/rules/DecisionTable.css': {
+    phase: 2,
+    hits: {
+      'rgb( colour': 4,
+      'uppercase outside .seal': 2,
+      gradient: 1,
+      'letter-spacing outside .seal and .t-band': 3,
+    },
+  },
+  'src/features/rules/RuleDrawer.css': {
+    phase: 3,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+  'src/shared/gate/AccessGate.css': {
+    phase: 1,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 2 },
+  },
+  'src/shared/layout/AppShell.css': { phase: 1, hits: { 'hex colour': 2, 'rgb( colour': 5 } },
+  'src/shared/layout/ProviderBadge.css': { phase: 1, hits: { 'hex colour': 1, 'rgb( colour': 3 } },
+  'src/shared/ui/States.css': { phase: 1, hits: { gradient: 1 } },
+  'src/shared/ui/StatusTag.css': {
+    phase: 1,
+    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+  },
+}
+
+/** Every CSS rule of a stylesheet as [selector, declarations], comments removed and at-rules opened. */
+function cssRules(css: string): [string, string][] {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  return [...text.matchAll(/([^{}]*)\{([^{}]*)\}/g)].map(([, selector, body]) => [
+    selector!.trim(),
+    body!,
+  ])
+}
+
+/** The component CSS files that break a rule of the list, each with its number of hits. */
+function breaking(name: string): Record<string, number> {
+  const [, hits] = RULES.find(([rule]) => rule === name)!
+  const found: Record<string, number> = {}
+  for (const file of sources('.css').filter((path) => !SPEC_LAYERS.has(path))) {
+    const total = cssRules(read(file)).reduce(
+      (sum, [selector, body]) => sum + hits(selector, body),
+      0,
+    )
+    if (total > 0) {
+      found[file] = total
+    }
+  }
+  return found
+}
+
+/** The files the frozen list allows to break a rule, with their counts. */
+function allowed(name: string): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(NOT_YET_PORTED).flatMap(([file, { hits }]) =>
+      hits[name] === undefined ? [] : [[file, hits[name]]],
+    ),
+  )
+}
+
+/** A style attribute's property that sets a colour or a font size. */
+const COLOUR_OR_FONT_SIZE =
+  /\b(?:color|background(?:Color)?|border(?:[A-Z][a-z]+)*Color|outlineColor|fill|stroke|caretColor|accentColor|textDecorationColor|fontSize|font)\s*:/
+
+/** The Register's five faces at the weights the spec draws (Document 9, "The map", section 03). */
+const FACES: Record<string, number[]> = {
+  'ibm-plex-sans': [400, 500, 600],
+  'ibm-plex-sans-hebrew': [400, 500, 600],
+  'ibm-plex-mono': [400, 500],
+  'ibm-plex-serif': [400, 500],
+  'frank-ruhl-libre': [400, 500],
+}
+
+describe('component CSS', () => {
+  it.each(RULES.map(([name]) => name))(
+    'adds no %s beyond the frozen list of files not yet ported',
+    (name) => {
+      expect(breaking(name)).toEqual(allowed(name))
+    },
+  )
+})
+
+describe('components', () => {
+  it('set no colour and no font size in a style attribute', () => {
+    const setting = sources('.tsx').filter((file) =>
+      [...read(file).matchAll(/style=\{\{([\s\S]*?)\}\}/g)].some(([, body]) =>
+        COLOUR_OR_FONT_SIZE.test(body!),
+      ),
+    )
+
+    expect(setting).toEqual([])
+  })
+})
+
+describe('the typefaces', () => {
+  it("load the five Register faces at the spec's weights, pinned, and neither Inter nor Heebo", () => {
+    const { dependencies } = JSON.parse(read('package.json')) as {
+      dependencies: Record<string, string>
+    }
+    const faces = Object.entries(dependencies).filter(([name]) => name.startsWith('@fontsource/'))
+    const imports = [...read('src/main.tsx').matchAll(/^import '(@fontsource\/[^']+)'$/gm)]
+
+    expect(faces.map(([name]) => name).sort()).toEqual(
+      Object.keys(FACES)
+        .map((face) => `@fontsource/${face}`)
+        .sort(),
+    )
+    expect(faces.filter(([, version]) => !/^\d+\.\d+\.\d+$/.test(version))).toEqual([])
+    expect(imports.map(([, path]) => path)).toEqual(
+      Object.entries(FACES).flatMap(([face, weights]) =>
+        weights.map((weight) => `@fontsource/${face}/${weight}.css`),
+      ),
+    )
+  })
+})

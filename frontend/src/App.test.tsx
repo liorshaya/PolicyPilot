@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { AUTH_CODE_URL } from './api/auth'
 import { server } from './test/msw/server'
 import { App } from './App'
@@ -19,6 +19,25 @@ function renderApp() {
 }
 
 describe('App', () => {
+  // the theme lives on <html> and in the browser's storage, outside what cleanup() resets
+  afterEach(() => {
+    localStorage.removeItem('pp-theme')
+    document.documentElement.removeAttribute('data-theme')
+  })
+
+  // The Register spec, section 12: "Light by default ...; dark is a toggle remembered per browser". Expected: the
+  // data-theme attribute on <html> reads light when nothing is stored, and dark once pp-theme holds a dark choice
+  it('starts in the light theme and remembers a dark choice per browser', () => {
+    const first = renderApp()
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    first.unmount()
+
+    localStorage.setItem('pp-theme', 'dark')
+    renderApp()
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+  })
+
   it('shows the access gate on first load', () => {
     renderApp()
 
