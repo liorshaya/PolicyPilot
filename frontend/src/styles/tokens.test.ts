@@ -3,25 +3,48 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /** Vitest runs from the project root, where its configuration lives. */
-const css = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8')
+const tokensCss = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8')
+/** The Register's own CSS, whose layer 1 tokens.css carries verbatim (Document 9, phase 0, build item 2). */
+const specCss = readFileSync(resolve(process.cwd(), '../docs/design/register.css'), 'utf8')
+
+type Theme = 'light' | 'dark'
+const THEMES: Theme[] = ['light', 'dark']
 
 /**
- * The contrast of every pair the interface actually puts on the screen (the brief: real contrast checks). The
- * values are read from the token file itself, so a colour cannot be changed without this test reading the new one,
- * and the ratios are WCAG 2.1's own formula. 4.5:1 is the threshold for text, 3:1 for a border or a bar.
+ * The custom properties a stylesheet declares for each theme: `:root` is the light theme (the aliases included), and
+ * `:root[data-theme='dark']` is the dark one, which overrides the light value wherever it declares a name.
  */
+function declarations(css: string): Record<Theme, Map<string, string>> {
+  const found = { light: new Map<string, string>(), dark: new Map<string, string>() }
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  for (const [, selector, body] of text.matchAll(
+    /(:root(?:\[data-theme='dark'\])?)\s*\{([^{}]*)\}/g,
+  )) {
+    const theme: Theme = selector === ':root' ? 'light' : 'dark'
+    for (const [, name, value] of body!.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+      found[theme].set(name!, value!.trim())
+    }
+  }
+  return found
+}
 
-/** The value of a custom property, following one level of var() indirection as the file writes it. */
-function token(name: string): string {
-  const declared = new RegExp(`--${name}:\\s*([^;]+);`).exec(css)?.[1]?.trim()
-  if (declared === undefined) {
+const tokens = declarations(tokensCss)
+const spec = declarations(specCss.split('/* ---------- Layer 2')[0]!)
+
+/** The value a theme gives a token, following var() as the browser does on the one element both themes set. */
+function token(name: string, theme: Theme): string {
+  const value = tokens[theme].get(name) ?? tokens.light.get(name)
+  if (value === undefined) {
     throw new Error(`tokens.css declares no --${name}`)
   }
-  const indirect = /^var\(--([a-z0-9-]+)\)$/.exec(declared)?.[1]
-  return indirect === undefined ? declared : token(indirect)
+  const indirect = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1]
+  return indirect === undefined ? value : token(indirect, theme)
 }
 
 function luminance(hex: string): number {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) {
+    throw new Error(`${hex} is not a colour this test can measure`)
+  }
   const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
   const linear = channels.map((value) =>
     value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4),
@@ -29,80 +52,72 @@ function luminance(hex: string): number {
   return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!
 }
 
+/** WCAG 2.1's contrast ratio. */
 function ratio(foreground: string, background: string): number {
   const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a)
   return (light! + 0.05) / (dark! + 0.05)
 }
 
-/** Text that a person reads, on the surface it is drawn on. */
-const TEXT: [string, string, string][] = [
-  ['the main text on a working surface', 'color-text', 'color-surface'],
-  ['the main text on the page', 'color-text', 'color-bg'],
-  ['secondary text on a working surface', 'color-text-muted', 'color-surface'],
-  ['secondary text on the page', 'color-text-muted', 'color-bg'],
-  ['secondary text on a sunken surface', 'color-text-muted', 'color-surface-sunken'],
-  ['secondary text on a selected row', 'color-text-muted', 'color-accent-wash'],
-  ['a link or a primary action on a working surface', 'color-accent', 'color-surface'],
-  ['a link on the wash it is selected in', 'color-accent', 'color-accent-wash'],
-  ['a value a diff inserts, on the accent wash', 'color-text', 'color-accent-wash'],
-  ['approved, on its own wash', 'color-approved-text', 'color-approved-bg'],
-  ['approved, in a table cell', 'color-approved-text', 'color-surface'],
-  ['declined, on its own wash', 'color-declined-text', 'color-declined-bg'],
-  ['declined, in a table cell', 'color-declined-text', 'color-surface'],
-  ['manual review, on its own wash', 'color-review-text', 'color-review-bg'],
-  ['manual review, in a table cell', 'color-review-text', 'color-surface'],
-  ['an evaluation error, on its own wash', 'color-error-text', 'color-error-bg'],
+/** The spec's thresholds (section 12): "4.5:1 text, 3:1 marks, in both themes, tested". */
+const TEXT = 4.5
+const MARK = 3
+
+/**
+ * Every pair of the spec's section 02 that the product draws, as Document 9 names them for phase 0, one row each:
+ * [foreground, background, the least ratio]. Every row runs in the light theme and in the dark theme.
+ */
+const PAIRS: [string, string, number][] = [
+  // the ink, on the surfaces it is read on
+  ['ink', 'paper', TEXT],
+  ['ink', 'sheet', TEXT],
+  ['ink-2', 'paper', TEXT],
+  ['ink-2', 'sheet', TEXT],
+  ['ink-2', 'well', TEXT],
+  ['ink-2', 'accent-wash', TEXT],
+  ['ink-3', 'paper', TEXT],
+  ['ink-3', 'sheet', TEXT],
+  ['ink-3', 'well', TEXT],
+  ['ink-3', 'accent-wash', TEXT],
+  // the accent: selection and links
+  ['accent', 'sheet', TEXT],
+  ['accent', 'accent-wash', TEXT],
+  ['accent-text', 'sheet', TEXT],
+  ['accent-text', 'accent-wash', TEXT],
+  // the decisions: each text on its own tint and on the sheet, each mark against the sheet
+  ['approve-text', 'approve-bg', TEXT],
+  ['approve-text', 'sheet', TEXT],
+  ['decline-text', 'decline-bg', TEXT],
+  ['decline-text', 'sheet', TEXT],
+  ['refer-text', 'refer-bg', TEXT],
+  ['refer-text', 'sheet', TEXT],
+  ['approve-mark', 'sheet', MARK],
+  ['decline-mark', 'sheet', MARK],
+  ['refer-mark', 'sheet', MARK],
+  // the error toast; the primary button, ink on paper (paper on ink in the dark theme); the quiet marks
+  ['toast-error-text', 'toast-error-bg', TEXT],
+  ['ink-on-ink', 'ink', TEXT],
+  ['mark-quiet', 'paper', MARK],
 ]
 
-describe('the palette', () => {
-  it.each(TEXT)('reads %s at 4.5:1 or better', (_what, foreground, background) => {
-    expect(ratio(token(foreground), token(background))).toBeGreaterThanOrEqual(4.5)
+describe('the Register tokens', () => {
+  it("carry layer 1 of the spec's register.css verbatim, in both themes", () => {
+    const carried = (theme: Theme) =>
+      Object.fromEntries([...spec[theme].keys()].map((name) => [name, tokens[theme].get(name)]))
+
+    expect(carried('light')).toEqual(Object.fromEntries(spec.light))
+    expect(carried('dark')).toEqual(Object.fromEntries(spec.dark))
+    expect([...tokens.dark.keys()]).toEqual([...spec.dark.keys()])
   })
 
-  // WCAG 2.1 asks 3:1 of a focus indicator and of anything non-textual that carries meaning
-  it('draws the focus ring and the selection bar against their surfaces at 3:1 or better', () => {
-    expect(ratio(token('color-focus'), token('color-surface'))).toBeGreaterThanOrEqual(3)
-    expect(ratio(token('color-focus'), token('color-bg'))).toBeGreaterThanOrEqual(3)
-    expect(ratio(token('color-selected-bar'), token('color-accent-wash'))).toBeGreaterThanOrEqual(3)
-    expect(ratio(token('color-selected-bar'), token('color-surface'))).toBeGreaterThanOrEqual(3)
+  it('hold at least 40 pairs across the two themes', () => {
+    expect(PAIRS.length * THEMES.length).toBeGreaterThanOrEqual(40)
   })
 
-  it('keeps the sidebar readable on the ink it is drawn on', () => {
-    expect(ratio(token('color-text-inverse'), token('pp-midnight'))).toBeGreaterThanOrEqual(4.5)
-  })
-
-  it('writes white on the primary action, and on the ink behind it', () => {
-    expect(ratio(token('color-text-inverse'), token('color-accent'))).toBeGreaterThanOrEqual(4.5)
-    expect(ratio(token('color-text-inverse'), token('pp-blue-strong'))).toBeGreaterThanOrEqual(4.5)
-  })
-
-  it('keeps the six brand colours of the palette exactly as they were given', () => {
-    expect({
-      ink: token('pp-midnight'),
-      blue: token('pp-blue'),
-      cloud: token('pp-cloud'),
-      steel: token('pp-steel'),
-      surface: token('pp-surface'),
-      border: token('pp-border'),
-    }).toEqual({
-      ink: '#142c43',
-      blue: '#285a80',
-      cloud: '#f7f9fb',
-      steel: '#66788a',
-      surface: '#ffffff',
-      border: '#e5edf3',
+  describe.each(THEMES)('in the %s theme', (theme) => {
+    it.each(PAIRS)('draw --%s on --%s at %s:1 or better', (foreground, background, least) => {
+      expect(ratio(token(foreground, theme), token(background, theme))).toBeGreaterThanOrEqual(
+        least,
+      )
     })
-  })
-})
-
-describe('the typefaces', () => {
-  // Document 2, Frontend Architecture, key decision 5: "the fonts are Inter and Heebo". Inter draws no Hebrew, so the
-  // interface's stack names Heebo right after it: Hebrew in a block whose direction the browser works out (dir="auto":
-  // a rule's label, a question, a title) is drawn in Heebo like the right-to-left blocks, not in a system face
-  it('draws Latin in Inter and Hebrew in Heebo wherever it appears', () => {
-    const stack = token('font-ui')
-      .split(',')
-      .map((face) => face.trim())
-    expect(stack.slice(0, 2)).toEqual(["'Inter'", "'Heebo'"])
   })
 })

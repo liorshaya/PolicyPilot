@@ -10,6 +10,7 @@ import { ChangeScreen } from './features/change/ChangeScreen'
 import { AuditScreen } from './features/audit/AuditScreen'
 import { GuidedPanel } from './features/demo/GuidedPanel'
 import type { DemoStep } from './features/demo/steps'
+import { applyTheme, storedTheme } from './styles/theme'
 
 /** The screen the address bar names, so a screen can be linked to and the back button works. */
 function screenFromHash(): ScreenId {
@@ -35,6 +36,11 @@ export function App() {
     const onHashChange = () => setScreen(screenFromHash())
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  // the theme this browser chose, which index.html already applied before the first paint
+  useEffect(() => {
+    applyTheme(storedTheme())
   }, [])
 
   function navigate(next: ScreenId) {

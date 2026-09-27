@@ -47,18 +47,29 @@ Questions, 2026-09-27, answered by the owner on 2026-09-28: all four as recommen
 3. **`[lang="he"]` and the focus ring.** Document 9 says `[lang="he"]` takes the Hebrew face and `--leading-he`, and that focus is "the two-ring outline of section 05"; layer 2 keys the face on `[dir='rtl']` and draws one 2px outline (the `--focus-ring` shadow is the fields' focus, in layer 3). The spec's markup puts `lang="he"` without `dir` on table labels and `dir="auto"` on the rail's workspace name, so the two selectors reach different elements. Recommended: layer 2 verbatim (`[dir='rtl']`, one outline), with the fields' ring in phase 1 as part of layer 3. Alternative: `[lang='he']` as Document 9 says.
 4. **Old tokens that are not colours.** Only the `--color-*` names stay as aliases, but the components this phase may not touch also use `--space-*` (278 uses), `--radius-*` (51), `--leading-normal` (7), `--control-height` and `--control-height-lg` (6), `--header-height`, `--sidebar-width` and three `--pp-*` names; with `tokens.css` replaced by layer 1 they resolve to nothing and the screens lose their spacing. Recommended: keep them in the alias block, as `var()` of the layer 1 token where the value is equal (`--space-N` to `--s-N`, `--radius-sm` to `--r-3`, `--header-height` to `--header-h`) and at their old value where layer 1 has none (`--radius-md`, `--radius-lg`, `--sidebar-width`, `--control-height`, `--control-height-lg`, `--leading-normal`, the `--pp-*`), all removed in phase 5 with the colour aliases. Alternative: map each to its nearest new token now, which changes the screens' spacing and shape before their phase.
 
-- [ ] The five `@fontsource` packages installed at the spec's weights; `inter` and `heebo` removed; `main.tsx` imports only the new ones
-- [ ] `tokens.css` is layer 1 of `register.css`, both themes, with the `--color-*` aliases at the bottom
-- [ ] `tokens.test.ts` reads both themes and holds at least 40 pairs, every one green
-- [ ] `register.lint.test.ts` exists, passes, and turns red on a planted `color: #123456` in a component CSS file
-- [ ] `index.css` is layer 2: paper, ink, Plex, `[lang="he"]`, `.doc`, `bdi`, `.mono`, focus
-- [ ] `index.html` applies the stored theme before the first paint; the default is light
-- [ ] `numberToken` in `direction.ts` with its tests (non-breaking space, U+2212, the English order, never a bare `bdi`)
-- [ ] `App.test.tsx`: light by default, dark remembered per browser
-- [ ] `npm test`, `npm run lint`, `npm run typecheck` green; no Google Fonts request in the browser
+- [x] The five `@fontsource` packages installed at the spec's weights; `inter` and `heebo` removed; `main.tsx` imports only the new ones
+- [x] `tokens.css` is layer 1 of `register.css`, both themes, with the `--color-*` aliases at the bottom
+- [x] `tokens.test.ts` reads both themes and holds at least 40 pairs, every one green
+- [x] `register.lint.test.ts` exists, passes, and turns red on a planted `color: #123456` in a component CSS file
+- [x] `index.css` is layer 2: paper, ink, Plex, `[lang="he"]`, `.doc`, `bdi`, `.mono`, focus
+- [x] `index.html` applies the stored theme before the first paint; the default is light
+- [x] `numberToken` in `direction.ts` with its tests (non-breaking space, U+2212, the English order, never a bare `bdi`)
+- [x] `App.test.tsx`: light by default, dark remembered per browser
+- [x] `npm test`, `npm run lint`, `npm run typecheck` green; no Google Fonts request in the browser
 - [ ] Worklog line; pull request "Register phase 0: fonts, tokens, base, the lint" merged
 
 Evidence:
+
+- Tests first: the four files of "Tests first" ran red before any code, 59 of 80 failing; the list is in the pull request. `theme.test.ts` came with `theme.ts`, for the one path no screen shows (a browser that refuses its storage); without the fallback it fails.
+- Fonts: the five packages at 5.3.0, pinned; `@fontsource/inter` and `@fontsource/heebo` removed (the lockfile changes those seven entries only); `main.tsx` imports the twelve weight files. `register.lint.test.ts` holds `package.json` and `main.tsx` to that list.
+- `tokens.css`: the spec's two blocks as written (122 declarations, which `tokens.test.ts` compares with `register.css` one by one; `/* prettier-ignore */` because Prettier would write 0.10 as 0.1), then the aliases: 25 old colours by role, 9 old sizes by the token of equal value, 9 old values the Register has no token for (the owner's answer to question 4).
+- `tokens.test.ts`: 26 pairs in each theme, 52 in all, every one green; the least is the light theme's `--refer-mark` on `--sheet` at 3.004:1. Planted `#6b7280` for the dark `--ink-3`: the verbatim test and the four dark `--ink-3` pairs turned red.
+- `register.lint.test.ts`: the eight rules pass on the repository as the phase leaves it, with the frozen list of 44 hits in 14 files not yet ported, each named with its phase (phase 1: 6 files, 2: 1, 3: 4, 4: 2, 5: 1). Planted `color: #123456` in `AuditScreen.css` (not on the list) and in `AppShell.css` (on it, 2 allowed): "adds no hex colour" turned red, the only failure each time; both files restored byte for byte.
+- `index.css`: layer 2 as the spec wrote it, so the Hebrew face and leading hang on `[dir='rtl']` and focus is one 2px outline (the owner's answer to question 3); at the bottom, marked for deletion, the two things the old shell relies on: a full-height root and the old heading sizes.
+- `index.html`: the inline script comes before the stylesheet (the built `index.html`: the script on line 13, the stylesheet on line 34). In Chromium on the production build with the app's script blocked, a fresh visit is light (`--paper`, `--ink` on the body) and a stored `dark` is dark, so the theme is on `<html>` before the app runs.
+- `numberToken`: `150,000` + U+00A0 + `₪` in Hebrew, `₪150,000` in English, U+2212 for a minus, always one `<bdi dir="ltr">`; `direction.test.ts` now carries `@requirement NFR-5`, and the traceability matrix is regenerated.
+- Local run on 2026-09-28: `npm run typecheck`, `npm run lint`, `npm test` (412 tests in 42 files), `npx prettier --check .` and `npm run build` green; the e2e suite on a local dev server, 33 passed. In Chromium: IBM Plex Sans 400 and 600 loaded from the bundle, no request outside the origin.
+- Transitional, until phase 1 ports the gate: in the dark theme, reachable only by a stored choice until phase 1 adds the Theme control, the old logo stays navy on the dark paper.
 
 ## 1 · The shell
 
