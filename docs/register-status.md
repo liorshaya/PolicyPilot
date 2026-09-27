@@ -8,7 +8,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
-| 1 | The shell | In progress | `register/phase-1` |  | 2026-09-28 |  |
+| 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
@@ -74,7 +74,7 @@ Evidence:
 
 ## 1 · The shell
 
-Status: In progress
+Status: Done
 
 Questions, 2026-09-28, answered by the owner the same day: all three as recommended (the table at the end of this file):
 
@@ -95,7 +95,7 @@ Not a question, for the record: the toast's hover in layer 4 is the one literal 
 - [x] `rtlSnapshot` of the gate and of the shell with a Hebrew policy name, reviewed
 - [x] Every existing test green; every wording change listed in the pull request description
 - [x] The selector diff of layers 3 and 4 against the product's CSS listed in the pull request; nothing missing
-- [ ] Worklog line; pull request "Register phase 1: the shell" merged
+- [x] Worklog line; pull request "Register phase 1: the shell" merged
 
 Evidence:
 
@@ -108,7 +108,8 @@ Evidence:
 - The gate: `docs/demo/register/gate-light.png` and `docs/demo/register/gate-dark.png`, in `screen-gate.png`'s own frame (1361×642 at 2×) and refused as its picture is; beside it, the same sheet, words, field, refusal, primary, honesty line and marks, the lockup centred as the picture shows it; in the dark theme the lockup takes the accent and the ink, which ends phase 0's navy logo on the dark paper.
 - RTL snapshots: the gate's and the rail's are new and reviewed, every chrome text in the page's direction and the policy's name right to left and in Hebrew inside the English rail. The Cases and Policies screens' four snapshots each gained one line, the "·" between a section's title and its quiet note; no text changed direction or language.
 - Planted, each file restored byte for byte: a hex colour in `AppShell.css`, off the frozen list now, turns the lint's hex rule red; a count beside Change turns three of `AppShell.test.tsx` red; a busy button that answers a click turns the Button test red.
-- Local run on 2026-09-28: typecheck, lint with no warning, 477 Vitest tests in 57 files, Prettier and the build green; the e2e suite, 33 passed; `make check` ALL OK; Semgrep 1.177.0, 0 findings.
+- Local run on 2026-09-28: typecheck, lint with no warning, 477 Vitest tests in 57 files, Prettier and the build green; the e2e suite, 33 passed, and the stack's 3 against Docker Compose; `make check` ALL OK; Semgrep 1.177.0, 0 findings.
+- Pull request [#160](https://github.com/liorshaya/PolicyPilot/pull/160): CI stages 1 to 7 green on run [36358763222](https://github.com/liorshaya/PolicyPilot/actions/runs/36358763222), with 477 Vitest and 36 Playwright tests and the web app at 94.4% of statements and 87.4% of branches. The first run's stage 7 found the stack's gate test still reading the removed badge; it now reads the rail's provider line, matched exactly, and the models in the legend behind Help, and against the local stack a provider line of "clouds" and a legend without the embedding model turn it red. The worklog line of 2026-09-28 names the phase. The last commit, which ticks this box and sets Done, is merged only once its own run is green too.
 
 ## 2 · The tables
 
