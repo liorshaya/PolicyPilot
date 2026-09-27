@@ -7,7 +7,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | # | Phase | Status | Branch | Pull request | Started | Finished |
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
-| 0 | Foundation: fonts, tokens, base, the lint | Not started |  |  |  |  |
+| 0 | Foundation: fonts, tokens, base, the lint | Blocked | `register/phase-0` |  | 2026-09-27 |  |
 | 1 | The shell | Not started |  |  |  |  |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
@@ -38,7 +38,14 @@ Evidence:
 
 ## 0 · Foundation
 
-Status: Not started
+Status: Blocked
+
+Questions, 2026-09-27 (the answers go in the table at the end of this file):
+
+1. **The lint against the components this phase may not touch.** As worded, `register.lint.test.ts` finds 46 hits in 15 files today (letter-spacing 16, uppercase 12, `rgb(` 12, hex 4, gradient 2): 9 files under `src/features/`, 5 under `src/shared/`, and `src/index.css`. The phase forbids touching `src/features/` and `src/shared/`, yet the lint must pass on the repository as the phase leaves it. Recommended: the lint holds a frozen list of today's hits (file, rule, count), each owned by the phase that ports the file; any new hit fails, the planted `color: #123456` included, and a stale entry fails too, so the list only shrinks and is empty when phase 5 removes the aliases ("green without the allowance"). Alternatives: phase 0 fixes the 46 lines in the 14 files; or the lint reads only files marked as ported.
+2. **The base layer's own letter-spacing.** Layer 2 gives h1 to h4 `letter-spacing: -0.005em`; the lint forbids letter-spacing outside `.seal` and `.t-band` in every CSS file but `tokens.css`. Recommended: the lint reads component CSS only and leaves out the two spec layers, `tokens.css` and `index.css`, as the phase's goal words it ("a literal value in component CSS"). Alternatives: allow h1 to h4 in `index.css`; or drop the headings' letter-spacing from the port.
+3. **`[lang="he"]` and the focus ring.** Document 9 says `[lang="he"]` takes the Hebrew face and `--leading-he`, and that focus is "the two-ring outline of section 05"; layer 2 keys the face on `[dir='rtl']` and draws one 2px outline (the `--focus-ring` shadow is the fields' focus, in layer 3). The spec's markup puts `lang="he"` without `dir` on table labels and `dir="auto"` on the rail's workspace name, so the two selectors reach different elements. Recommended: layer 2 verbatim (`[dir='rtl']`, one outline), with the fields' ring in phase 1 as part of layer 3. Alternative: `[lang='he']` as Document 9 says.
+4. **Old tokens that are not colours.** Only the `--color-*` names stay as aliases, but the components this phase may not touch also use `--space-*` (278 uses), `--radius-*` (51), `--leading-normal` (7), `--control-height` and `--control-height-lg` (6), `--header-height`, `--sidebar-width` and three `--pp-*` names; with `tokens.css` replaced by layer 1 they resolve to nothing and the screens lose their spacing. Recommended: keep them in the alias block, as `var()` of the layer 1 token where the value is equal (`--space-N` to `--s-N`, `--radius-sm` to `--r-3`, `--header-height` to `--header-h`) and at their old value where layer 1 has none (`--radius-md`, `--radius-lg`, `--sidebar-width`, `--control-height`, `--control-height-lg`, `--leading-normal`, the `--pp-*`), all removed in phase 5 with the colour aliases. Alternative: map each to its nearest new token now, which changes the screens' spacing and shape before their phase.
 
 - [ ] The five `@fontsource` packages installed at the spec's weights; `inter` and `heebo` removed; `main.tsx` imports only the new ones
 - [ ] `tokens.css` is layer 1 of `register.css`, both themes, with the `--color-*` aliases at the bottom
@@ -168,4 +175,7 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 
 | Date | Phase | Question | Answer |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| 2026-09-27 | 0 | 1. The lint against the components phase 0 may not touch (recommended: a frozen list of today's 46 hits that only shrinks) |  |
+| 2026-09-27 | 0 | 2. Layer 2's heading letter-spacing against the lint (recommended: the lint reads component CSS only) |  |
+| 2026-09-27 | 0 | 3. `[lang="he"]` and the two-ring focus against layer 2 (recommended: layer 2 verbatim) |  |
+| 2026-09-27 | 0 | 4. The old tokens that are not colours (recommended: aliased or kept at their value until phase 5) |  |
