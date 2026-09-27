@@ -7,7 +7,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | # | Phase | Status | Branch | Pull request | Started | Finished |
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
-| 0 | Foundation: fonts, tokens, base, the lint | In progress | `register/phase-0` |  | 2026-09-27 |  |
+| 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
 | 1 | The shell | Not started |  |  |  |  |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
@@ -38,7 +38,7 @@ Evidence:
 
 ## 0 · Foundation
 
-Status: In progress
+Status: Done
 
 Questions, 2026-09-27, answered by the owner on 2026-09-28: all four as recommended (the table at the end of this file):
 
@@ -56,7 +56,7 @@ Questions, 2026-09-27, answered by the owner on 2026-09-28: all four as recommen
 - [x] `numberToken` in `direction.ts` with its tests (non-breaking space, U+2212, the English order, never a bare `bdi`)
 - [x] `App.test.tsx`: light by default, dark remembered per browser
 - [x] `npm test`, `npm run lint`, `npm run typecheck` green; no Google Fonts request in the browser
-- [ ] Worklog line; pull request "Register phase 0: fonts, tokens, base, the lint" merged
+- [x] Worklog line; pull request "Register phase 0: fonts, tokens, base, the lint" merged
 
 Evidence:
 
@@ -70,6 +70,7 @@ Evidence:
 - `numberToken`: `150,000` + U+00A0 + `₪` in Hebrew, `₪150,000` in English, U+2212 for a minus, always one `<bdi dir="ltr">`; `direction.test.ts` now carries `@requirement NFR-5`, and the traceability matrix is regenerated.
 - Local run on 2026-09-28: `npm run typecheck`, `npm run lint`, `npm test` (412 tests in 42 files), `npx prettier --check .` and `npm run build` green; the e2e suite on a local dev server, 33 passed. In Chromium: IBM Plex Sans 400 and 600 loaded from the bundle, no request outside the origin.
 - Transitional, until phase 1 ports the gate: in the dark theme, reachable only by a stored choice until phase 1 adds the Theme control, the old logo stays navy on the dark paper.
+- Pull request [#159](https://github.com/liorshaya/PolicyPilot/pull/159): CI stages 1 to 7 green on run [36353510776](https://github.com/liorshaya/PolicyPilot/actions/runs/36353510776), with 412 Vitest and 36 Playwright tests and the web app at 94.4% of statements and 87.3% of branches; the worklog line of 2026-09-28 names the phase. The last commit, which ticks this box and sets Done, is merged only once its own run is green too.
 
 ## 1 · The shell
 
