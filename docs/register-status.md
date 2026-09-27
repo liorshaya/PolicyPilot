@@ -6,7 +6,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 
 | # | Phase | Status | Branch | Pull request | Started | Finished |
 | --- | --- | --- | --- | --- | --- | --- |
-| P | Preparation: the design files committed | In progress | `register/preparation` |  | 2026-09-27 |  |
+| P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
 | 0 | Foundation: fonts, tokens, base, the lint | Not started |  |  |  |  |
 | 1 | The shell | Not started |  |  |  |  |
 | 2 | The tables | Not started |  |  |  |  |
@@ -21,19 +21,20 @@ A phase starts only when the one above it is Done. Cuts follow the order at the 
 
 ## P · Preparation
 
-Status: In progress
+Status: Done
 
 - [x] `docs/design/register.html`, `docs/design/register.css`, `docs/design/screens/` (eight PNGs) committed unchanged
 - [x] `docs/09-register-implementation.md` and this file committed
 - [x] The Register section appended to `CLAUDE.md` (from `docs/design/CLAUDE-register-section.md`)
 - [x] `docs/README.md` lists Document 9 and the board
-- [ ] Pull request "Document 9: the Register design language" merged, CI green
+- [x] Pull request "Document 9: the Register design language" merged, CI green
 
 Evidence:
 
 - The bundle's 13 files, byte for byte (the sha256 of each against the zip); nothing in `docs/` overwritten or deleted, nothing outside it.
 - `CLAUDE.md` ends with the section after one blank line; its last 33 lines are `docs/design/CLAUDE-register-section.md` unchanged. `docs/README.md` has row 9: Document 9, linking the spec and the board.
 - Opened on 2026-09-27: the eight PNGs decode in full (every chunk's CRC, the pixels inflated to their exact size) and in Chromium, 2722 px wide, each the screen its name says. `docs/design/register.html` in Chromium (Playwright 1.63.0, from the file, 1376×900): the twelve sections render with no page error; the toggle goes light → dark → light, `--paper` `#f5f4ef` ↔ `#111417` and `--ink` `#142c43` ↔ `#e7e9ec` as the spec's two token blocks set them, `aria-pressed` and the label following, and the choice survives a reload.
+- Pull request [#158](https://github.com/liorshaya/PolicyPilot/pull/158): CI stages 1 to 7 green on run [36347254361](https://github.com/liorshaya/PolicyPilot/actions/runs/36347254361). The last commit, which ticks the fifth box and sets Done, is merged only once its own run is green too.
 
 ## 0 · Foundation
 
