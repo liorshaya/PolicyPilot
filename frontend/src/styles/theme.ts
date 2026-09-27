@@ -1,6 +1,7 @@
 /**
  * The theme a browser chose (the Register spec, section 12): light by default, dark remembered per browser under the
- * key pp-theme. index.html applies it before the first paint with the same key; the app applies it again on mount.
+ * key pp-theme. index.html applies it before the first paint with the same key; the app applies it again on mount,
+ * and the rail's Theme control changes it.
  */
 export type Theme = 'light' | 'dark'
 
@@ -18,4 +19,14 @@ export function storedTheme(): Theme {
 /** Puts the theme on <html>, where the dark block of tokens.css reads it. */
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme
+}
+
+/** The rail's Theme control: the choice is remembered in this browser and put on <html> at once. */
+export function chooseTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // a browser that refuses its storage still switches, for this visit
+  }
+  applyTheme(theme)
 }

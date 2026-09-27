@@ -1,0 +1,52 @@
+/*
+ * Actor marks (the Register spec, section 04): layer 3 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Actor marks: model (dotted circle), engine (solid square), person (silhouette), system (outlined square). */
+.actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.actor__mark {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  display: inline-block;
+}
+.actor--model .actor__mark {
+  border: 1.5px dashed var(--ink-2);
+  border-radius: 50%;
+}
+.actor--engine .actor__mark {
+  background: var(--ink);
+  width: 10px;
+  height: 10px;
+  margin: 1px;
+  border-radius: 1px;
+}
+.actor--person .actor__mark {
+  background: var(--ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='3.6' r='2.6'/%3E%3Cpath d='M1 12c0-3 2.2-4.8 5-4.8s5 1.8 5 4.8z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='3.6' r='2.6'/%3E%3Cpath d='M1 12c0-3 2.2-4.8 5-4.8s5 1.8 5 4.8z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.actor--system .actor__mark {
+  border: 1.5px solid var(--border-strong);
+  border-radius: 1px;
+  width: 10px;
+  height: 10px;
+  margin: 1px;
+}
+.actor strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.actor--lg .actor__mark {
+  width: 14px;
+  height: 14px;
+}

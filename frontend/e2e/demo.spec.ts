@@ -121,7 +121,7 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   const session = await serveTheSession(page)
   await serveTheGate(page)
 
-  // The gate: a wrong code is refused on the gate, the code opens the workspace, and the header names the provider
+  // The gate: a wrong code is refused on the gate, the code opens the workspace, and the rail names the provider
   await page.goto('/')
   await page.getByLabel('Access code').fill('wrongone')
   await page.getByRole('button', { name: 'Enter' }).click()
@@ -130,7 +130,7 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   await page.getByRole('button', { name: 'Enter' }).click()
   const workspace = page.getByRole('navigation', { name: 'Workspace' })
   await expect(workspace).toBeVisible()
-  await expect(workspace.getByRole('region', { name: 'Model provider' })).toContainText('OpenAI')
+  await expect(workspace.getByText('Provider OpenAI · cloud')).toBeVisible()
   await page.getByRole('button', { name: /guided demo/i }).click()
 
   // Step 1, Author: the sample policy pasted and added, its rules written, the reviewer's findings on their rows

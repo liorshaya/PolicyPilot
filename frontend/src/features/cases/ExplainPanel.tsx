@@ -34,7 +34,7 @@ export function ExplainPanel({ decisionId, language, onOpenRule }: ExplainPanelP
           <Button
             key={audience}
             variant={explanation?.audience === audience ? 'primary' : 'secondary'}
-            loading={explain.isPending && explain.variables === audience}
+            busy={explain.isPending && explain.variables === audience}
             onClick={() => explain.mutate(audience)}
           >
             {label}

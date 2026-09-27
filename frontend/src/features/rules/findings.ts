@@ -1,4 +1,5 @@
-import type { FindingKind, Review, ReviewFinding } from '../../api/types'
+import type { Review, ReviewFinding } from '../../api/types'
+import { KIND_LABELS } from '../../shared/ui/findingKinds'
 
 /**
  * The reviewer's findings as the screens show them (Document 4, Prompt 2: Review; Document 2, Flow 1). The kinds are
@@ -6,15 +7,8 @@ import type { FindingKind, Review, ReviewFinding } from '../../api/types'
  * screen never decides it on its own.
  */
 
-/** What each kind means to the analyst (Document 4, the kind table). */
-export const KIND_LABELS: Record<FindingKind, string> = {
-  ambiguity: 'Ambiguity',
-  conflict: 'Conflict',
-  unsupported: 'Unsupported',
-  gap: 'Gap',
-  duplicate: 'Duplicate',
-  injection: 'Instruction in the text',
-}
+/** What each kind is called: the words the severity mark writes beside itself (Document 4, the kind table). */
+export { KIND_LABELS }
 
 /** How a gap can be resolved (Document 3, Publishing gate), in the words of the dialog. */
 export const RESOLUTION_LABELS = {

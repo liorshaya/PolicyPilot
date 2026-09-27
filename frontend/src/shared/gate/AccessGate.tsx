@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { exchangeAccessCode } from '../../api/auth'
+import { Actor } from '../ui/Actor'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { Logo } from '../ui/Logo'
@@ -15,8 +16,10 @@ interface AccessGateProps {
 }
 
 /**
- * The access gate: the single screen a visitor sees before the demo (Document 2, Frontend Architecture, key
- * decision 6). The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5).
+ * The access gate: the single screen a visitor sees before the demo (Document 2, Frontend Architecture, key decision 6),
+ * as the Register composes it (the spec, section 10): one sheet on paper with the two-tone lockup, the title, the one
+ * place the sentence is written out, the field in mono, the primary at 36px, the refusal in place, the honesty line and
+ * the three marks as a foot. The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5).
  */
 export function AccessGate({ onEntered }: AccessGateProps) {
   const [code, setCode] = useState('')
@@ -25,6 +28,9 @@ export function AccessGate({ onEntered }: AccessGateProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting) {
+      return
+    }
     setSubmitting(true)
     setMessage(null)
     const result = await exchangeAccessCode(code.trim())
@@ -38,24 +44,25 @@ export function AccessGate({ onEntered }: AccessGateProps) {
 
   return (
     <main className="gate">
-      <section className="gate__card" aria-labelledby="gate-title">
+      <section className="gate__sheet" aria-labelledby="gate-title">
         <div className="gate__brand">
-          <Logo width={168} />
+          <Logo />
         </div>
-        <p className="gate__eyebrow">Protected demo</p>
-        <h1 id="gate-title" className="gate__title">
-          Enter the workspace
-        </h1>
-        <p className="gate__lead">
-          The model proposes and explains, the rules engine decides, a person approves every policy
-          change.
-        </p>
+        <div>
+          <h1 id="gate-title" className="gate__title">
+            Enter the workspace
+          </h1>
+          <p className="gate__lead">
+            The model proposes and explains, the rules engine decides, a person approves every
+            policy change.
+          </p>
+        </div>
         <form className="gate__form" onSubmit={(event) => void handleSubmit(event)}>
           <Field label="Access code" htmlFor="access-code" error={message}>
             <input
               id="access-code"
               name="accessCode"
-              className="input gate__input"
+              className="input input--mono"
               type="password"
               autoComplete="off"
               autoCapitalize="none"
@@ -70,16 +77,21 @@ export function AccessGate({ onEntered }: AccessGateProps) {
             type="submit"
             variant="primary"
             size="lg"
-            loading={submitting}
+            busy={submitting}
             disabled={code.trim() === ''}
           >
-            {submitting ? 'Checking' : 'Enter'}
+            Enter
           </Button>
         </form>
-        <p className="gate__hint">
+        <p className="gate__foot">
           Enter the code you received with the invitation. Everything behind this gate is synthetic
           data.
         </p>
+        <div className="gate__marks">
+          <Actor kind="model">proposes</Actor>
+          <Actor kind="engine">decides</Actor>
+          <Actor kind="person">approves</Actor>
+        </div>
       </section>
     </main>
   )

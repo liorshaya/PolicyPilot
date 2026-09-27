@@ -165,6 +165,14 @@
 }
 
 /*
+ * A value the spec's later layers write as a literal, made a token first (Document 9's second rule), with its pair in
+ * tokens.test.ts: the hover wash of a button inside a toast, the same in both themes (layer 4, .toast .btn:hover).
+ */
+:root {
+  --toast-hover: rgba(127, 127, 127, 0.2);
+}
+
+/*
  * Aliases for the components that are not ported yet (Document 9, phase 0, build item 6, and the owner's answer of
  * 2026-09-28 to the board's question 4). An old colour names the Register token with its role, so it follows the
  * theme; an old size names the Register token of the same value, or keeps its old value where the Register has none.

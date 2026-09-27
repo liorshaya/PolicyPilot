@@ -23,6 +23,8 @@ const PHONE = { width: 390, height: 844 }
 
 /** The colour of the workspace's text, --color-text (#142c43), as a browser reports it. */
 const TEXT = 'rgb(20, 44, 67)'
+// the Register's --ink-2 in the light theme, the step titles of the demo strip
+const INK_2 = 'rgb(67, 83, 106)'
 
 async function enter(page: Page): Promise<void> {
   await page.goto('/')
@@ -47,7 +49,9 @@ async function proposeTheScriptedChange(page: Page): Promise<void> {
 test.describe('on a laptop', () => {
   test.use({ viewport: LAPTOP })
 
-  test('the guided panel reads as a list of steps: dark titles on its white, each description a few words a line', async ({
+  // the Register's demo strip (the spec, section 08): its name in ink, a step's title in ink-2, a description a few words
+  // a line inside the rail
+  test('the guided demo strip reads as a list of steps: its name in ink, each description a few words a line', async ({
     page,
   }) => {
     await serveTheSeededRuleSet(page)
@@ -55,7 +59,7 @@ test.describe('on a laptop', () => {
 
     const panel = page.getByRole('region', { name: 'Guided demo' })
     await expect(panel.getByText('Guided demo', { exact: true })).toHaveCSS('color', TEXT)
-    await expect(panel.getByText('Author', { exact: true })).toHaveCSS('color', TEXT)
+    await expect(panel.getByText('Author', { exact: true })).toHaveCSS('color', INK_2)
     const what = panel.getByText(
       'Fills the form with the sample lending policy, ready to generate its rules',
     )
@@ -100,25 +104,29 @@ test.describe('on a laptop', () => {
     expect(first.y - mark.y).toBeLessThan(6)
   })
 
-  test('the header names each model on a line of its own, never broken at its hyphens', async ({
-    page,
-  }) => {
+  // Brief FR-21 and the Register (section 08): the rail names the provider, and its models stand in the legend behind
+  // Help; a model's name is a machine token, whole on one line and inside the popover
+  test('the legend names each model whole, on one line, inside its popover', async ({ page }) => {
     await serveTheSeededRuleSet(page)
     await enter(page)
+    await page.getByRole('button', { name: 'Help' }).click()
 
-    const badge = page.getByRole('region', { name: 'Model provider' })
-    const edge = (await badge.boundingBox())!
-    // one line is as tall as the one-word term "Provider" beside it
-    const line = (await badge.getByText('Provider', { exact: true }).boundingBox())!.height
+    const legend = page.getByRole('dialog', { name: 'Help' })
+    const edge = (await legend.boundingBox())!
     for (const name of ['gpt-5.6-terra', 'gpt-5.6-luna', 'text-embedding-3-small']) {
-      const model = (await badge.getByText(name, { exact: true }).boundingBox())!
-      expect(model.height, name).toBeLessThan(line * 1.5)
-      // and the name fits inside the badge rather than running past its edge
-      expect(model.x + model.width, name).toBeLessThanOrEqual(edge.x + edge.width)
+      const model = legend.getByText(name, { exact: true })
+      expect(
+        await model.evaluate(
+          (value: { getClientRects: () => { length: number } }) => value.getClientRects().length,
+        ),
+        name,
+      ).toBe(1)
+      const box = (await model.boundingBox())!
+      expect(box.x + box.width, name).toBeLessThanOrEqual(edge.x + edge.width)
     }
   })
 
-  test('a model name wider than the sidebar wraps inside it rather than running past its edge', async ({
+  test('a long local model name stays whole inside the legend rather than running past its edge', async ({
     page,
   }) => {
     await serveTheSeededRuleSet(page)
@@ -127,20 +135,20 @@ test.describe('on a laptop', () => {
       route.fulfill({ json: ollamaProvider }),
     )
     await enter(page)
+    await page.getByRole('button', { name: 'Help' }).click()
 
-    const badge = page.getByRole('region', { name: 'Model provider' })
-    const line = (await badge.getByText('Provider', { exact: true }).boundingBox())!.height
-    const names = badge.getByText(ollamaProvider.chatModels.strong, { exact: true })
+    const legend = page.getByRole('dialog', { name: 'Help' })
+    const edge = (await legend.boundingBox())!
+    const names = legend.getByText(ollamaProvider.chatModels.strong, { exact: true })
     await expect(names).toHaveCount(2)
     for (const name of await names.all()) {
-      // nothing of the name reaches past its own box, which is as wide as the sidebar allows
-      const overflow = await name.evaluate(
-        (value: { scrollWidth: number; clientWidth: number }) =>
-          value.scrollWidth - value.clientWidth,
-      )
-      expect(overflow).toBe(0)
-      // so the name takes a second line
-      expect((await name.boundingBox())!.height).toBeGreaterThan(line * 1.5)
+      expect(
+        await name.evaluate(
+          (value: { getClientRects: () => { length: number } }) => value.getClientRects().length,
+        ),
+      ).toBe(1)
+      const box = (await name.boundingBox())!
+      expect(box.x + box.width).toBeLessThanOrEqual(edge.x + edge.width)
     }
   })
 })

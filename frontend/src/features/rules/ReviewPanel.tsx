@@ -50,7 +50,7 @@ export function ReviewPanel({
                 } to check against the policy${review.status === 'STALE' ? ', before the last edit' : ''}.`}
         </p>
         {rerun ? (
-          <Button variant="secondary" loading={running} onClick={onRunReview}>
+          <Button variant="secondary" busy={running} onClick={onRunReview}>
             {review === undefined ? 'Review the draft' : 'Run the review again'}
           </Button>
         ) : null}
@@ -206,10 +206,10 @@ function FindingItem({
             />
           </label>
           <div className="review__form-actions">
-            <Button variant="primary" type="submit" disabled={!ready} loading={acknowledging}>
+            <Button variant="primary" type="submit" disabled={!ready} busy={acknowledging}>
               Record the acknowledgement
             </Button>
-            <Button variant="ghost" type="button" onClick={() => setOpen(false)}>
+            <Button variant="quiet" type="button" onClick={() => setOpen(false)}>
               Cancel
             </Button>
           </div>

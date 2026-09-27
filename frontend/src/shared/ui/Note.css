@@ -1,0 +1,32 @@
+/*
+ * Notes (the Register spec, section 08): layer 3 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Notes: what the screen must say in place. No fill; a bar and the mark of who says it. */
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--border-strong);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.note .actor {
+  flex: none;
+  margin-top: 2px;
+}
+.note--warning {
+  border-left-color: var(--refer-mark);
+}
+.note--error {
+  border-left-color: var(--decline-mark);
+  color: var(--decline-text);
+}
+.note--proposal {
+  border-left-style: dashed;
+}
+.note b {
+  color: var(--ink);
+  font-weight: 500;
+}

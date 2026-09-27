@@ -1,0 +1,60 @@
+/*
+ * A section of the sheet, its body and its toolbar (the Register spec, section 08): layer 4 of docs/design/register.css, as the spec writes it.
+ */
+.sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline);
+  min-height: 44px;
+}
+.sec__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sec__title .quiet {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.sec__side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.sheet__body {
+  padding: 16px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+}
+.toolbar .input,
+.toolbar .select {
+  width: auto;
+  min-height: var(--control-h-sm);
+  font-size: var(--text-xs);
+}
+.toolbar__spacer {
+  flex: 1;
+}
+
+/* Until phase 5 composes the phone, a narrow section row wraps its controls under its title. */
+@media (max-width: 700px) {
+  .sec {
+    flex-wrap: wrap;
+  }
+  .sec__side {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+}

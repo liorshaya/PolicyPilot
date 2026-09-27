@@ -1,0 +1,49 @@
+/*
+ * Severity marks (the Register spec, section 06): layer 3 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Severity marks: square blocks publishing, triangle warns, circle informs, a bar for an instruction found in the text. */
+.sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sev::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  flex: none;
+}
+.sev--error {
+  color: var(--decline-text);
+}
+.sev--error::before {
+  background: var(--decline-mark);
+  border-radius: 1px;
+}
+.sev--warning {
+  color: var(--refer-text);
+}
+.sev--warning::before {
+  background: var(--refer-mark);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.sev--info {
+  color: var(--ink-2);
+}
+.sev--info::before {
+  background: var(--mark-quiet);
+  border-radius: 50%;
+}
+.sev--injection {
+  color: var(--decline-text);
+}
+.sev--injection::before {
+  background: var(--decline-mark);
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+}

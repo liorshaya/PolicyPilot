@@ -1,0 +1,50 @@
+/*
+ * The provenance line (the Register spec, section 04): layer 3 of docs/design/register.css, as the spec writes it.
+ */
+
+/* The provenance line: one line, never wraps; separators are drawn, never typed; segments drop from the end. */
+.prov {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 20px;
+}
+.prov > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: top;
+}
+.prov > * + *::before {
+  content: '·';
+  color: var(--border-strong);
+  margin: 0 8px;
+}
+.prov b,
+.prov strong {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.prov > .vstatus,
+.prov > .chip {
+  position: relative;
+  margin-inline-start: 22px;
+}
+.prov > .vstatus::before,
+.prov > .chip::before {
+  position: absolute;
+  inset-inline-start: -15px;
+  margin: 0;
+  top: 0;
+}
+.prov > .vstatus:first-child,
+.prov > .chip:first-child {
+  margin-inline-start: 0;
+}
+.prov .sans {
+  font-family: var(--font-ui);
+}

@@ -1,48 +1,63 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react'
+import { Icon, type IconName } from './Icon'
 import './Button.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
-  /** A taller control for the one action a screen is about. */
-  size?: 'md' | 'lg'
-  /** Shows the control as working; the button stays in the page and keeps its width. */
-  loading?: boolean
-  /** Optional leading icon; used only where it helps to recognise the action. */
-  icon?: ReactNode
+  /** 28px inside toolbars, table rows and findings; 36px for the one primary action of a workspace header. */
+  size?: 'sm' | 'md' | 'lg'
+  /** Working: the spinner stands in for the label, which stays to keep the width, and a click does nothing. */
+  busy?: boolean
+  /** A glyph only where it adds meaning (add, open externally); never on Run, Publish or Ask. */
+  icon?: IconName
   children: ReactNode
 }
 
+/** The verbs that never carry a glyph (the spec, section 05). */
+const PLAIN_VERBS = /^(Run|Publish|Ask)\b/
+
 /**
- * The one button of the interface (the brief's control system): primary is the blue action, secondary is a bordered
- * white action, ghost is a marginal action, danger is visibly separate. Every state is visible: hover, focus,
- * active, disabled and loading.
+ * The control of the Register (the spec, section 05): one primary per screen in ink on paper, paper on ink in the dark
+ * theme; a bordered secondary; a quiet one of text alone; a danger in red text. Its label is a verb, with the object
+ * when the verb alone is ambiguous.
  */
 export function Button({
   variant = 'secondary',
   size = 'md',
-  loading = false,
+  busy = false,
   icon,
   children,
   className,
-  disabled,
+  onClick,
   type = 'button',
   ...rest
 }: ButtonProps) {
-  const classes = ['button', `button--${variant}`, `button--${size}`, className]
+  const classes = [
+    'btn',
+    `btn--${variant}`,
+    size === 'md' ? '' : `btn--${size}`,
+    busy ? 'btn--busy' : '',
+    className,
+  ]
     .filter(Boolean)
     .join(' ')
+  const glyph = icon !== undefined && !(typeof children === 'string' && PLAIN_VERBS.test(children))
   return (
     <button
       {...rest}
       type={type}
       className={classes}
-      disabled={disabled === true || loading}
-      aria-busy={loading || undefined}
+      aria-busy={busy || undefined}
+      onClick={(event: MouseEvent<HTMLButtonElement>) => {
+        if (!busy) {
+          onClick?.(event)
+        }
+      }}
     >
-      {loading ? <span className="button__spinner" aria-hidden="true" /> : icon}
-      <span>{children}</span>
+      {glyph ? <Icon name={icon} /> : null}
+      {children}
     </button>
   )
 }

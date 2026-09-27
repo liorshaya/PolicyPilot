@@ -5,7 +5,7 @@ import type { FieldSchema, RuleSetDocument, RulesetSummary } from '../../api/typ
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { DiffView } from '../change/DiffView'
 import { RulesetSwitcher, VersionPicker } from '../rules/Pickers'
@@ -41,16 +41,19 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
     <>
       <WorkspaceHeader
         title="Audit log"
-        context={
-          chosen ? (
-            <>
-              <bdi dir="auto">{chosen.name}</bdi> · <span className="mono">{chosen.domain}</span>
-            </>
-          ) : (
-            'Every publication, proposal and decision of a version'
-          )
+        provenance={
+          chosen
+            ? [
+                <bdi key="name" dir="auto" className="sans">
+                  {chosen.name}
+                </bdi>,
+                <span key="domain" className="mono">
+                  {chosen.domain}
+                </span>,
+              ]
+            : ['Every publication, proposal and decision of a version']
         }
-        actions={
+        controls={
           chosen ? (
             <>
               {list.length > 1 && onChooseRuleset ? (
@@ -71,7 +74,7 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
         sideOpen={false}
         main={
           <>
-            <Panel
+            <Section
               title="Entries"
               subtitle={`Version ${versionNo}, newest first: who changed what, when and why`}
             >
@@ -82,7 +85,7 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
                   onRetry={() => void (version.error ? version.refetch() : audit.refetch())}
                 />
               ) : audit.data === undefined ? (
-                <LoadingRows rows={4} label="Loading the audit log" />
+                <LoadingRows label="Loading the audit log" />
               ) : audit.data.length === 0 ? (
                 <EmptyState
                   title="Nothing recorded"
@@ -97,7 +100,7 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
                   ))}
                 </ol>
               )}
-            </Panel>
+            </Section>
             {chosen ? (
               <Compare
                 key={chosen.id}
@@ -138,15 +141,15 @@ function Compare({
   )
   if (numbers.length < 2) {
     return (
-      <Panel title="Compare two versions">
+      <Section title="Compare two versions">
         <p className="audit__note">
           This rule set has one version: there is nothing to compare yet.
         </p>
-      </Panel>
+      </Section>
     )
   }
   return (
-    <Panel
+    <Section
       title="Compare two versions"
       subtitle="Rule by rule, as the structural diff of the API gives it"
       actions={
@@ -175,7 +178,7 @@ function Compare({
           onRetry={() => void diff.refetch()}
         />
       ) : diff.data === undefined ? (
-        <LoadingRows rows={3} label="Comparing the two versions" />
+        <LoadingRows label="Comparing the two versions" />
       ) : (
         <DiffView
           diff={diff.data}
@@ -185,7 +188,7 @@ function Compare({
           afterLabel={`Version ${pair.to}`}
         />
       )}
-    </Panel>
+    </Section>
   )
 }
 

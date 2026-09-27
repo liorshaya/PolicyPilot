@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '../../api/client'
 import { Button } from '../../shared/ui/Button'
 import { Field } from '../../shared/ui/Field'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { directionOfText } from '../../shared/i18n/direction'
 import './AddPolicyForm.css'
 
@@ -64,7 +64,7 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
   }
 
   return (
-    <Panel
+    <Section
       title="Add a policy"
       subtitle="The text a rule set is written from; every rule will cite one of its paragraphs."
       actions={
@@ -153,14 +153,14 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
         )}
 
         <div className="add-policy__actions">
-          <Button type="submit" variant="primary" loading={pending} disabled={!ready}>
+          <Button type="submit" variant="primary" busy={pending} disabled={!ready}>
             Add policy
           </Button>
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="quiet" onClick={onCancel}>
             Cancel
           </Button>
         </div>
       </form>
-    </Panel>
+    </Section>
   )
 }

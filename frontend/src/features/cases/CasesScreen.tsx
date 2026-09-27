@@ -8,7 +8,7 @@ import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import type { VersionStatus } from '../../shared/ui/decisionLabels'
@@ -65,15 +65,17 @@ export function CasesScreen({
     <>
       <WorkspaceHeader
         title="Cases"
-        context={
-          version.data ? (
-            <>
-              <bdi dir="auto">{version.data.name}</bdi> ·{' '}
-              <span className="mono">{FIXTURE_SET}</span>, the seeded set of the demo
-            </>
-          ) : (
-            'The seeded cases, decided by the engine'
-          )
+        provenance={
+          version.data
+            ? [
+                <bdi key="name" dir="auto" className="sans">
+                  {version.data.name}
+                </bdi>,
+                <span key="set">
+                  <span className="mono">{FIXTURE_SET}</span>, the seeded set of the demo
+                </span>,
+              ]
+            : ['The seeded cases, decided by the engine']
         }
         version={
           version.data ? (
@@ -83,27 +85,28 @@ export function CasesScreen({
             </>
           ) : null
         }
-        actions={
-          <>
-            <Button
-              onClick={() => {
-                onOpenRule(null)
-              }}
-            >
-              Open the rules
-            </Button>
-            <Button
-              variant="primary"
-              loading={run.isPending}
-              disabled={ruleset === null}
-              onClick={() => run.mutate(FIXTURE_SET)}
-            >
-              Run 200 cases
-            </Button>
-          </>
+        secondary={
+          <Button
+            onClick={() => {
+              onOpenRule(null)
+            }}
+          >
+            Open the rules
+          </Button>
+        }
+        primary={
+          <Button
+            variant="primary"
+            busy={run.isPending}
+            disabled={ruleset === null}
+            onClick={() => run.mutate(FIXTURE_SET)}
+          >
+            Run 200 cases
+          </Button>
         }
       />
       <SplitView
+        wide
         sideOpen={selectedId !== null}
         main={
           <>
@@ -120,7 +123,7 @@ export function CasesScreen({
               </div>
             ) : null}
 
-            <Panel
+            <Section
               title="This version's decisions"
               subtitle={
                 run.data
@@ -128,9 +131,7 @@ export function CasesScreen({
                   : 'Every case the engine has decided with this version'
               }
             >
-              {stats.isPending && !run.data ? (
-                <LoadingRows rows={2} label="Loading the statistics" />
-              ) : null}
+              {stats.isPending && !run.data ? <LoadingRows label="Loading the statistics" /> : null}
               {aggregates?.decisions ? <Dashboard aggregates={aggregates} /> : null}
               {aggregates?.decisions === 0 ? (
                 <EmptyState
@@ -139,7 +140,7 @@ export function CasesScreen({
                   action={
                     <Button
                       variant="primary"
-                      loading={run.isPending}
+                      busy={run.isPending}
                       onClick={() => run.mutate(FIXTURE_SET)}
                     >
                       Run 200 cases
@@ -154,17 +155,16 @@ export function CasesScreen({
                   onRetry={() => void stats.refetch()}
                 />
               ) : null}
-            </Panel>
+            </Section>
 
             {/* the list is the run's own answer, so it appears with the run and not before it */}
             {run.isPending || results.length > 0 ? (
-              <Panel
-                fill
+              <Section
                 title="Cases of this run"
                 subtitle="Choose a case to read the trace the engine wrote for it"
                 flush
               >
-                {run.isPending ? <LoadingRows rows={8} label="Deciding the cases" /> : null}
+                {run.isPending ? <LoadingRows label="Deciding the cases" /> : null}
                 {results.length > 0 ? (
                   <DecisionList
                     results={results}
@@ -172,13 +172,12 @@ export function CasesScreen({
                     onSelect={setSelectedId}
                   />
                 ) : null}
-              </Panel>
+              </Section>
             ) : null}
           </>
         }
         side={
-          <Panel
-            fill
+          <Section
             title={
               decision.data?.caseNo === undefined ? (
                 'Decision'
@@ -194,16 +193,12 @@ export function CasesScreen({
                 : 'The trace of the chosen case'
             }
             actions={
-              <button
-                type="button"
-                className="button button--ghost"
-                onClick={() => setSelectedId(null)}
-              >
+              <button type="button" className="btn btn--quiet" onClick={() => setSelectedId(null)}>
                 <span>Close</span>
               </button>
             }
           >
-            {decision.isPending ? <LoadingRows rows={6} label="Loading the decision" /> : null}
+            {decision.isPending ? <LoadingRows label="Loading the decision" /> : null}
             {decision.error ? (
               <ErrorState
                 code={decision.error instanceof ApiError ? decision.error.code : undefined}
@@ -222,7 +217,7 @@ export function CasesScreen({
                 <TraceView decision={decision.data} language={language} onSelectRule={onOpenRule} />
               </>
             ) : null}
-          </Panel>
+          </Section>
         }
       />
     </>

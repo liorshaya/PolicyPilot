@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AccessGate > reads as the RTL snapshot of the gate 1`] = `
+"
+page -           Enter the workspace
+page -           The model proposes and explains, the rules engine decides, a person approves every policy change.
+page -           Access code
+page -           Enter
+page -           Enter the code you received with the invitation. Everything behind this gate is synthetic data.
+page -           proposes
+page -           decides
+page -           approves
+"
+`;

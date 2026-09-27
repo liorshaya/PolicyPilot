@@ -84,20 +84,31 @@ Questions, 2026-09-28, answered by the owner the same day: all three as recommen
 
 Not a question, for the record: the toast's hover in layer 4 is the one literal of layers 3 and 4 the lint refuses (`rgba(127, 127, 127, 0.2)`); by Document 9's second rule it becomes a token in `tokens.css` first.
 
-- [ ] Layers 3 and 4 of `register.css` ported into the files Document 9 names; the old classes (`.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header`, `.panel`, `.drawer`) deleted
-- [ ] `Panel` renamed `Section`; every caller updated
-- [ ] The rail: six screens as `<button>` elements, counts only beside Rules and Change, the workspace block (Hebrew name, sandbox, reset time, provider line when the route answers), the guided demo strip, the foot (person mark, Leave, Help, Theme)
-- [ ] Help opens the legend and the shortcuts sheet; Theme toggles `data-theme` and stores it
-- [ ] The workspace header: title, version status, one `.prov` line with CSS separators, at most one secondary action, the reason beside a disabled primary, the primary at 36px
-- [ ] `SplitView` is the sheet-and-margin grid (`--margin-w`, 440px for a trace) with the drawer below 1200px
-- [ ] `Button`, `Field`, `DecisionTag`, `VersionTag`, `Chip`, `Actor`, `Seal`, `Provenance`, `Severity`, `Note`, `Refusal`, `Kbd`, `Overlay`, `States` built with the tests Document 9 names, all green
-- [ ] The access gate matches `docs/design/screens/screen-gate.png` in both themes (paths of the two product screenshots in the evidence)
-- [ ] `rtlSnapshot` of the gate and of the shell with a Hebrew policy name, reviewed
-- [ ] Every existing test green; every wording change listed in the pull request description
-- [ ] The selector diff of layers 3 and 4 against the product's CSS listed in the pull request; nothing missing
+- [x] Layers 3 and 4 of `register.css` ported into the files Document 9 names; the old classes (`.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header`, `.panel`, `.drawer`) deleted
+- [x] `Panel` renamed `Section`; every caller updated
+- [x] The rail: six screens as `<button>` elements, counts only beside Rules and Change, the workspace block (Hebrew name, sandbox, reset time, provider line when the route answers), the guided demo strip, the foot (person mark, Leave, Help, Theme)
+- [x] Help opens the legend and the shortcuts sheet; Theme toggles `data-theme` and stores it
+- [x] The workspace header: title, version status, one `.prov` line with CSS separators, at most one secondary action, the reason beside a disabled primary, the primary at 36px
+- [x] `SplitView` is the sheet-and-margin grid (`--margin-w`, 440px for a trace) with the drawer below 1200px
+- [x] `Button`, `Field`, `DecisionTag`, `VersionTag`, `Chip`, `Actor`, `Seal`, `Provenance`, `Severity`, `Note`, `Refusal`, `Kbd`, `Overlay`, `States` built with the tests Document 9 names, all green
+- [x] The access gate matches `docs/design/screens/screen-gate.png` in both themes (paths of the two product screenshots in the evidence)
+- [x] `rtlSnapshot` of the gate and of the shell with a Hebrew policy name, reviewed
+- [x] Every existing test green; every wording change listed in the pull request description
+- [x] The selector diff of layers 3 and 4 against the product's CSS listed in the pull request; nothing missing
 - [ ] Worklog line; pull request "Register phase 1: the shell" merged
 
 Evidence:
+
+- Tests first: the 21 test files of the phase (a file per new component, the shell's three, the updated strip and gate, and tokens, theme and the lint) ran red before any component code, 40 of 113 failing and ten files not loading at all; the list is in the pull request.
+- The port: layers 3 and 4 routed rule by rule into 18 stylesheets (229 rules, with the spec's comments), and the gate's 8 rules from layer 5. The toast's hover wash became a token first (`--toast-hover`, Document 9's second rule, its pair in `tokens.test.ts`). Rules of the product's own only where the spec leaves the product to decide: where a popover stands, the drawer below 1200px, the rail's buttons drawn as text links, the shell as the window, and a narrow window until phase 5's top bar. The selector diff: 252 of the 252 selectors of this phase in the product's CSS, none missing; the 78 of the tables stay for phase 2 and the 7 of the palette for phase 6 (the owner's answer to question 3).
+- Deleted: `.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header` and `.panel` with their rules; `Panel.tsx`; the provider badge, whose `@requirement FR-21` moved to `AppShell.test.tsx`; `Logo.css`. `.drawer` stays with `RuleDrawer`, which Document 9 gives to phase 3: its phase 1 build list names the other five, and its prompt keeps the features' content for phases 2 to 5.
+- `Section`: seven callers updated, `fill` dropped (a section draws no card of its own); with it, Button's `loading` became `busy` in 13 places and `ghost` became `quiet` in 3, and two hand-written `button button--ghost` became `btn btn--quiet`.
+- The rail, as the owner answered questions 1 and 2: the policy's name in its own language and direction, the provider line ("Provider OpenAI · cloud", "Provider Ollama · local"), no sandbox or reset line, "Analyst" with the person mark, Leave back to the gate, and the Rules count alone, the open blocking findings of a reviewed draft, which `useWorkspace` reads from the rule set, version and policy queries. The shortcuts sheet lists only what the product answers: G R, G C and G A, added with the rail; each other shortcut joins it with the phase that builds it.
+- The header on every screen: the provenance segments with a Hebrew name set in `.sans`, the Rules and Audit pickers in a `controls` slot until phases 2 and 4 move them, the publish reason as text beside the disabled button.
+- The gate: `docs/demo/register/gate-light.png` and `docs/demo/register/gate-dark.png`, in `screen-gate.png`'s own frame (1361×642 at 2×) and refused as its picture is; beside it, the same sheet, words, field, refusal, primary, honesty line and marks, the lockup centred as the picture shows it; in the dark theme the lockup takes the accent and the ink, which ends phase 0's navy logo on the dark paper.
+- RTL snapshots: the gate's and the rail's are new and reviewed, every chrome text in the page's direction and the policy's name right to left and in Hebrew inside the English rail. The Cases and Policies screens' four snapshots each gained one line, the "·" between a section's title and its quiet note; no text changed direction or language.
+- Planted, each file restored byte for byte: a hex colour in `AppShell.css`, off the frozen list now, turns the lint's hex rule red; a count beside Change turns three of `AppShell.test.tsx` red; a busy button that answers a click turns the Button test red.
+- Local run on 2026-09-28: typecheck, lint with no warning, 477 Vitest tests in 57 files, Prettier and the build green; the e2e suite, 33 passed; `make check` ALL OK; Semgrep 1.177.0, 0 findings.
 
 ## 2 · The tables
 

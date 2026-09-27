@@ -1,54 +1,25 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { stylesheet, themeDeclarations, THEMES, token, type Theme } from '../test/css'
 
-/** Vitest runs from the project root, where its configuration lives. */
-const tokensCss = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8')
 /** The Register's own CSS, whose layer 1 tokens.css carries verbatim (Document 9, phase 0, build item 2). */
 const specCss = readFileSync(resolve(process.cwd(), '../docs/design/register.css'), 'utf8')
 
-type Theme = 'light' | 'dark'
-const THEMES: Theme[] = ['light', 'dark']
+const tokens = themeDeclarations(stylesheet('styles/tokens.css'))
+const spec = themeDeclarations(specCss.split('/* ---------- Layer 2')[0]!)
 
-/**
- * The custom properties a stylesheet declares for each theme: `:root` is the light theme (the aliases included), and
- * `:root[data-theme='dark']` is the dark one, which overrides the light value wherever it declares a name.
- */
-function declarations(css: string): Record<Theme, Map<string, string>> {
-  const found = { light: new Map<string, string>(), dark: new Map<string, string>() }
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  for (const [, selector, body] of text.matchAll(
-    /(:root(?:\[data-theme='dark'\])?)\s*\{([^{}]*)\}/g,
-  )) {
-    const theme: Theme = selector === ':root' ? 'light' : 'dark'
-    for (const [, name, value] of body!.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
-      found[theme].set(name!, value!.trim())
-    }
+function channels(colour: string): number[] {
+  if (/^#[0-9a-f]{6}$/i.test(colour)) {
+    return [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16))
   }
-  return found
-}
-
-const tokens = declarations(tokensCss)
-const spec = declarations(specCss.split('/* ---------- Layer 2')[0]!)
-
-/** The value a theme gives a token, following var() as the browser does on the one element both themes set. */
-function token(name: string, theme: Theme): string {
-  const value = tokens[theme].get(name) ?? tokens.light.get(name)
-  if (value === undefined) {
-    throw new Error(`tokens.css declares no --${name}`)
-  }
-  const indirect = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1]
-  return indirect === undefined ? value : token(indirect, theme)
+  throw new Error(`${colour} is not a colour this test can measure`)
 }
 
 function luminance(hex: string): number {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) {
-    throw new Error(`${hex} is not a colour this test can measure`)
-  }
-  const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
-  const linear = channels.map((value) =>
-    value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4),
-  )
+  const linear = channels(hex)
+    .map((value) => value / 255)
+    .map((value) => (value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4)))
   return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!
 }
 
@@ -56,6 +27,15 @@ function luminance(hex: string): number {
 function ratio(foreground: string, background: string): number {
   const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a)
   return (light! + 0.05) / (dark! + 0.05)
+}
+
+/** A translucent rgba() laid over an opaque background, as the browser composites it. */
+function over(wash: string, background: string): string {
+  const [r, g, b, alpha] = /^rgba\(([^)]+)\)$/.exec(wash)![1]!.split(',').map(Number)
+  const mixed = [r!, g!, b!].map((value, at) =>
+    Math.round(value * alpha! + channels(background)[at]! * (1 - alpha!)),
+  )
+  return `#${mixed.map((value) => value.toString(16).padStart(2, '0')).join('')}`
 }
 
 /** The spec's thresholds (section 12): "4.5:1 text, 3:1 marks, in both themes, tested". */
@@ -118,6 +98,18 @@ describe('the Register tokens', () => {
       expect(ratio(token(foreground, theme), token(background, theme))).toBeGreaterThanOrEqual(
         least,
       )
+    })
+
+    // Document 9's second rule: the toast's hover wash, a literal of layer 4, is a token first, with its pair
+    it("draw a toast's text on its hover wash at 4.5:1 or better", () => {
+      const wash = token('toast-hover', theme)
+
+      expect(
+        ratio(token('ink-on-ink', theme), over(wash, token('ink', theme))),
+      ).toBeGreaterThanOrEqual(TEXT)
+      expect(
+        ratio(token('toast-error-text', theme), over(wash, token('toast-error-bg', theme))),
+      ).toBeGreaterThanOrEqual(TEXT)
     })
   })
 })
