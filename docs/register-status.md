@@ -8,7 +8,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
-| 1 | The shell | Blocked | `register/phase-1` |  | 2026-09-28 |  |
+| 1 | The shell | In progress | `register/phase-1` |  | 2026-09-28 |  |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
@@ -74,9 +74,9 @@ Evidence:
 
 ## 1 · The shell
 
-Status: Blocked
+Status: In progress
 
-Questions, 2026-09-28 (the answers go in the table at the end of this file):
+Questions, 2026-09-28, answered by the owner the same day: all three as recommended (the table at the end of this file):
 
 1. **The rail's sandbox line, reset time, person and Leave have nothing to read.** The spec draws "Sandbox sb-7f3a", "Resets at 00:00", "Lior Shaya" and Leave, and the AppShell test asks for the sandbox id in mono, the reset time and "the name recorded". None of them is served, and the backend is not touched: the session is an HttpOnly cookie over a sandbox UUID that no route returns; the reset runs on `policypilot.demo.reset-cron`, `0 0 3 * * *` in UTC, not at 00:00, and no route returns it; a publish or an approval records the sandbox's UUID as its actor, and no person's name exists; no route ends a session, and entering the code again with a live cookie keeps the same sandbox. Recommended: the workspace block shows the policy's Hebrew name (`lang="he"`, `dir="rtl"`) and the provider line, and leaves out the sandbox and reset lines until a route serves them; the foot shows the person mark with "Analyst" (the word the product records on a person's edit), Leave returning to the gate in this tab, then Help and Theme. Alternative: a read-only route for the session's sandbox and reset time, which changes the backend and Document 2 first.
 2. **The Change count has no source.** The rail reads its counts from the queries the screens already use. The Rules count can (the blocking findings of the workspace's draft, from the version query), but a proposal awaiting a decision lives only in the Change screen's own state, which is gone when another screen opens, and no route lists change requests. Recommended: only the Rules count in this phase; the Change count waits for a proposal that outlives its screen (phase 4 reworks the change screen) or a route that lists them. Alternative: lift the proposal into the app's state now, a change to the change feature ahead of phase 4.
@@ -199,6 +199,6 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 | 2026-09-27 | 0 | 2. Layer 2's heading letter-spacing against the lint (recommended: the lint reads component CSS only) | 2026-09-28: as recommended |
 | 2026-09-27 | 0 | 3. `[lang="he"]` and the two-ring focus against layer 2 (recommended: layer 2 verbatim) | 2026-09-28: as recommended |
 | 2026-09-27 | 0 | 4. The old tokens that are not colours (recommended: aliased or kept at their value until phase 5) | 2026-09-28: as recommended |
-| 2026-09-28 | 1 | 1. The rail's sandbox line, reset time, person and Leave have nothing to read (recommended: the policy's name and the provider line; "Analyst" with the person mark; Leave back to the gate) |  |
-| 2026-09-28 | 1 | 2. The Change count has no source (recommended: only the Rules count until a proposal outlives its screen) |  |
-| 2026-09-28 | 1 | 3. Layer 4's tables and palette (recommended: left to phases 2 and 6, listed in the selector diff) |  |
+| 2026-09-28 | 1 | 1. The rail's sandbox line, reset time, person and Leave have nothing to read (recommended: the policy's name and the provider line; "Analyst" with the person mark; Leave back to the gate) | 2026-09-28: as recommended |
+| 2026-09-28 | 1 | 2. The Change count has no source (recommended: only the Rules count until a proposal outlives its screen) | 2026-09-28: as recommended |
+| 2026-09-28 | 1 | 3. Layer 4's tables and palette (recommended: left to phases 2 and 6, listed in the selector diff) | 2026-09-28: as recommended |
