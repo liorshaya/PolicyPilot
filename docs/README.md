@@ -21,6 +21,7 @@ to the next.
 | 6 | [Test Strategy](06-test-strategy.md) | Test levels, coverage targets by risk with mutation testing on the engine, definition of done per task, traceability matrix, fixtures and golden files, CI gates, working method | Before writing the first test, and whenever a task is declared done |
 | 7 | [Work Plan](07-work-plan.md) | Day-by-day tasks with their tests over 19 working days, phase gates G0 to G4, security and evaluation schedule, requirement-to-day map, scope ladder, daily routine | Every morning |
 | 8 | README and Demo Script | Setup, architecture summary, the scripted demo, known limitations, security and testing sections, talking points | Written on days 16 to 19 as the repository's top-level `README.md` |
+| 9 | [Register: implementing the design language](09-register-implementation.md) | Scope, order, files and tests of rebuilding `frontend/` on [the Register design language](design/register.html): seven phases, 0 to 6, each with its spec sections, product files, tests first, build, acceptance and cut line; the CSS port layer by layer; the cut order. Its [board](register-status.md) holds the state of every phase and is written only by the agent that runs it | Before any Register phase ("start phase N"); the board for where each phase stands |
 
 [Progress Checklist](progress-checklist.md) is the working tracker: one box per task of the Work Plan,
 ticked as it is done and never before its tests are green; a box skipped on purpose is struck through
