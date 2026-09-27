@@ -7,7 +7,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | # | Phase | Status | Branch | Pull request | Started | Finished |
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
-| 0 | Foundation: fonts, tokens, base, the lint | Blocked | `register/phase-0` |  | 2026-09-27 |  |
+| 0 | Foundation: fonts, tokens, base, the lint | In progress | `register/phase-0` |  | 2026-09-27 |  |
 | 1 | The shell | Not started |  |  |  |  |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
@@ -38,9 +38,9 @@ Evidence:
 
 ## 0 · Foundation
 
-Status: Blocked
+Status: In progress
 
-Questions, 2026-09-27 (the answers go in the table at the end of this file):
+Questions, 2026-09-27, answered by the owner on 2026-09-28: all four as recommended (the table at the end of this file):
 
 1. **The lint against the components this phase may not touch.** As worded, `register.lint.test.ts` finds 46 hits in 15 files today (letter-spacing 16, uppercase 12, `rgb(` 12, hex 4, gradient 2): 9 files under `src/features/`, 5 under `src/shared/`, and `src/index.css`. The phase forbids touching `src/features/` and `src/shared/`, yet the lint must pass on the repository as the phase leaves it. Recommended: the lint holds a frozen list of today's hits (file, rule, count), each owned by the phase that ports the file; any new hit fails, the planted `color: #123456` included, and a stale entry fails too, so the list only shrinks and is empty when phase 5 removes the aliases ("green without the allowance"). Alternatives: phase 0 fixes the 46 lines in the 14 files; or the lint reads only files marked as ported.
 2. **The base layer's own letter-spacing.** Layer 2 gives h1 to h4 `letter-spacing: -0.005em`; the lint forbids letter-spacing outside `.seal` and `.t-band` in every CSS file but `tokens.css`. Recommended: the lint reads component CSS only and leaves out the two spec layers, `tokens.css` and `index.css`, as the phase's goal words it ("a literal value in component CSS"). Alternatives: allow h1 to h4 in `index.css`; or drop the headings' letter-spacing from the port.
@@ -175,7 +175,7 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 
 | Date | Phase | Question | Answer |
 | --- | --- | --- | --- |
-| 2026-09-27 | 0 | 1. The lint against the components phase 0 may not touch (recommended: a frozen list of today's 46 hits that only shrinks) |  |
-| 2026-09-27 | 0 | 2. Layer 2's heading letter-spacing against the lint (recommended: the lint reads component CSS only) |  |
-| 2026-09-27 | 0 | 3. `[lang="he"]` and the two-ring focus against layer 2 (recommended: layer 2 verbatim) |  |
-| 2026-09-27 | 0 | 4. The old tokens that are not colours (recommended: aliased or kept at their value until phase 5) |  |
+| 2026-09-27 | 0 | 1. The lint against the components phase 0 may not touch (recommended: a frozen list of today's 46 hits that only shrinks) | 2026-09-28: as recommended |
+| 2026-09-27 | 0 | 2. Layer 2's heading letter-spacing against the lint (recommended: the lint reads component CSS only) | 2026-09-28: as recommended |
+| 2026-09-27 | 0 | 3. `[lang="he"]` and the two-ring focus against layer 2 (recommended: layer 2 verbatim) | 2026-09-28: as recommended |
+| 2026-09-27 | 0 | 4. The old tokens that are not colours (recommended: aliased or kept at their value until phase 5) | 2026-09-28: as recommended |
