@@ -1,6 +1,6 @@
 import type { Finding, Rule } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { DecisionTag } from '../../shared/ui/StatusTag'
 import { actionText, decisionOf } from './tableModel'
 import './RuleDrawer.css'
@@ -22,12 +22,11 @@ interface RuleDrawerProps {
 export function RuleDrawer({ rule, language, paragraph, findings, onClose }: RuleDrawerProps) {
   const decision = decisionOf(rule)
   return (
-    <Panel
-      fill
+    <Section
       title={<span className="mono">{rule.id}</span>}
       subtitle={<bdi dir="auto">{rule.label}</bdi>}
       actions={
-        <button type="button" className="button button--ghost" onClick={onClose}>
+        <button type="button" className="btn btn--quiet" onClick={onClose}>
           <span>Close</span>
         </button>
       }
@@ -118,6 +117,6 @@ export function RuleDrawer({ rule, language, paragraph, findings, onClose }: Rul
           <pre className="drawer__json mono">{JSON.stringify(rule, null, 2)}</pre>
         </dd>
       </dl>
-    </Panel>
+    </Section>
   )
 }

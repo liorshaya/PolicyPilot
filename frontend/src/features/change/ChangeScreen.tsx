@@ -7,7 +7,7 @@ import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
 import { Field } from '../../shared/ui/Field'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import { DECISION_LABELS, type VersionStatus } from '../../shared/ui/decisionLabels'
 import { SCRIPTED_CHANGE_REQUEST } from '../demo/steps'
@@ -126,15 +126,17 @@ export function ChangeScreen({
     <>
       <WorkspaceHeader
         title="Change"
-        context={
-          version.data ? (
-            <>
-              <bdi dir="auto">{version.data.name}</bdi> ·{' '}
-              <span className="mono">{version.data.domain}</span>
-            </>
-          ) : (
-            'A change request, measured on the cases before a person approves it'
-          )
+        provenance={
+          version.data
+            ? [
+                <bdi key="name" dir="auto" className="sans">
+                  {version.data.name}
+                </bdi>,
+                <span key="domain" className="mono">
+                  {version.data.domain}
+                </span>,
+              ]
+            : ['A change request, measured on the cases before a person approves it']
         }
         version={
           version.data ? (
@@ -150,7 +152,7 @@ export function ChangeScreen({
         sideOpen={false}
         main={
           <>
-            <Panel
+            <Section
               title="Change request"
               subtitle="In the policy's own terms. The model proposes, the engine decides this sandbox's cases again, and a person approves"
             >
@@ -175,7 +177,7 @@ export function ChangeScreen({
                 <Button
                   variant="primary"
                   type="submit"
-                  loading={running}
+                  busy={running}
                   disabled={base === null || version.data === undefined || text.trim() === ''}
                 >
                   Propose the change
@@ -185,11 +187,11 @@ export function ChangeScreen({
                 <Progress stage={state.stage} candidates={state.candidates} />
               ) : null}
               {state.status === 'failed' ? <Refused failure={state.failure} /> : null}
-            </Panel>
+            </Section>
             {proposal && proposedOn ? (
               <>
                 <ProposalPanel proposal={proposal} language={language} />
-                <Panel
+                <Section
                   title="What changes"
                   subtitle={`Version ${proposedOn.versionNo} beside the proposal, rule by rule`}
                 >
@@ -200,8 +202,8 @@ export function ChangeScreen({
                     beforeLabel={`Version ${proposedOn.versionNo}`}
                     afterLabel="Proposed"
                   />
-                </Panel>
-                <Panel
+                </Section>
+                <Section
                   title="Regression"
                   subtitle={`This sandbox's decisions on version ${proposedOn.versionNo}, decided again by the proposal`}
                 >
@@ -209,8 +211,8 @@ export function ChangeScreen({
                     regression={proposal.regression}
                     baseVersionNo={proposedOn.versionNo}
                   />
-                </Panel>
-                <Panel
+                </Section>
+                <Section
                   title="Decision"
                   subtitle="A person approves or rejects; the note goes into the audit log with the request"
                 >
@@ -250,14 +252,14 @@ export function ChangeScreen({
                       <div className="change__actions">
                         <Button
                           variant="primary"
-                          loading={change.deciding && verdict === 'approve'}
+                          busy={change.deciding && verdict === 'approve'}
                           disabled={change.deciding}
                           onClick={() => decide('approve')}
                         >
                           Approve and publish
                         </Button>
                         <Button
-                          loading={change.deciding && verdict === 'reject'}
+                          busy={change.deciding && verdict === 'reject'}
                           disabled={change.deciding}
                           onClick={() => decide('reject')}
                         >
@@ -273,7 +275,7 @@ export function ChangeScreen({
                       ) : null}
                     </form>
                   )}
-                </Panel>
+                </Section>
               </>
             ) : null}
           </>
@@ -326,7 +328,7 @@ function Progress({
 function ProposalPanel({ proposal, language }: { proposal: Proposal; language: ContentLanguage }) {
   const content = contentAttributes(language)
   return (
-    <Panel title="Proposal" subtitle="Nothing is published until a person approves">
+    <Section title="Proposal" subtitle="Nothing is published until a person approves">
       <p className="change__summary" {...content}>
         {proposal.summary}
       </p>
@@ -358,7 +360,7 @@ function ProposalPanel({ proposal, language }: { proposal: Proposal; language: C
           {proposal.notes}
         </p>
       ) : null}
-    </Panel>
+    </Section>
   )
 }
 

@@ -3,6 +3,7 @@
 exports[`PoliciesScreen in both directions (NFR-5) > LTR: an English policy reads left to right in the same screen (snapshot) 1`] = `
 "
 auto -           Personal Loan Policy
+page -           ·
 page -           Version 1 · 8 paragraphs · each one is a source a rule can cite
 page -           Open its rules
 page -           Generate rules
@@ -28,6 +29,7 @@ ltr  en          Applications that meet every condition above are approved. Anyt
 exports[`PoliciesScreen in both directions (NFR-5) > RTL: the Hebrew policy reads right to left inside the English screen (snapshot) 1`] = `
 "
 auto -           מדיניות אשראי צרכני
+page -           ·
 page -           Version 1 · 9 paragraphs · each one is a source a rule can cite
 page -           Open its rules
 page -           Generate rules

@@ -1,0 +1,157 @@
+/*
+ * The overlays: dialog, popover, toast; the shortcuts sheet and the legend (the Register spec, section 04 and 08): layer 4 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Overlays */
+.dialog {
+  width: 440px;
+  max-width: 100%;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-float);
+}
+.dialog__head {
+  padding: 16px 18px 0;
+}
+.dialog__title {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+.dialog__body {
+  padding: 10px 18px 16px;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  display: grid;
+  gap: 12px;
+}
+.dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--hairline);
+  background: var(--paper);
+  border-radius: 0 0 var(--r-3) var(--r-3);
+}
+.popover {
+  width: 320px;
+  max-width: 100%;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-float);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+.popover__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.popover__cite {
+  direction: rtl;
+  font-family: var(--font-doc-he);
+  font-size: 1rem;
+  line-height: var(--leading-doc);
+  color: var(--ink);
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: var(--r-2);
+}
+.popover__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+  background: var(--ink);
+  color: var(--ink-on-ink);
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-sm);
+}
+.toast .btn {
+  color: inherit;
+  height: 26px;
+  padding: 0 8px;
+  font-size: var(--text-xs);
+}
+.toast .btn:hover {
+  background: var(--toast-hover);
+}
+.toast--error {
+  background: var(--toast-error-bg);
+  color: var(--toast-error-text);
+}
+.shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+  font-size: var(--text-sm);
+}
+.shortcuts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.shortcuts .keys {
+  display: inline-flex;
+  gap: 4px;
+}
+.legend {
+  display: grid;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+/* Placement, which the spec leaves to the product: a popover stands at the edge of the control that opened it, a
+   token's gap away, over the page. */
+.popover[data-side] {
+  position: fixed;
+  z-index: 10;
+}
+.popover[data-side='below'] {
+  margin-top: var(--s-2);
+}
+.popover[data-side='above'] {
+  margin-bottom: var(--s-2);
+}
+
+/* The legend's lines and the shortcuts under it in one popover, as the spec's specimens lay them out. */
+.legend__provider {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+}
+.legend__state {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.legend__state .muted {
+  font-size: var(--text-xs);
+}
+.popover .shortcuts {
+  grid-template-columns: 1fr;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+/* A model's name is a machine token: it never wraps (the bidi law, section 03). */
+.legend__provider .mono {
+  white-space: nowrap;
+}

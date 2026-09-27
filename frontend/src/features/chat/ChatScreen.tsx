@@ -111,12 +111,12 @@ function Conversation({
     <>
       <WorkspaceHeader
         title="Assistant"
-        context={
-          <>
-            <bdi dir="auto">{ruleset.name}</bdi> · answers cite the policy and the rules; the engine
-            decided every outcome they report
-          </>
-        }
+        provenance={[
+          <bdi key="name" dir="auto" className="sans">
+            {ruleset.name}
+          </bdi>,
+          'answers cite the policy and the rules; the engine decided every outcome they report',
+        ]}
         version={<span className="tabular">Version {target.versionNo}</span>}
       />
       <div className="chat">
@@ -182,7 +182,7 @@ function Conversation({
             <Button
               type="submit"
               variant="primary"
-              loading={chat.streaming}
+              busy={chat.streaming}
               disabled={!chat.ready || chat.streaming || question.trim() === ''}
             >
               Ask
@@ -193,7 +193,7 @@ function Conversation({
           <aside className="chat__source" aria-label={`Paragraph ${String(shownParagraph.index)}`}>
             <header className="chat__source-header">
               <span>Paragraph {shownParagraph.index}</span>
-              <Button variant="ghost" onClick={() => setOpenParagraph(null)}>
+              <Button variant="quiet" onClick={() => setOpenParagraph(null)}>
                 Close
               </Button>
             </header>

@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AppShell > reads as the RTL snapshot of the rail with a Hebrew policy name 1`] = `
+"
+page -           Policies
+page -           Rules
+page -           7
+page -           Cases
+page -           Assistant
+page -           Change
+page -           Audit log
+rtl  he          מדיניות אשראי צרכני - הלוואות אישיות
+page -           Provider OpenAI · cloud
+page -           Guided demo
+page -           Analyst
+page -           Leave
+page -           Help
+page -           Theme
+"
+`;

@@ -1,42 +1,109 @@
-.split {
+/*
+ * The sheet and the margin (the Register spec, section 08): layer 4 of docs/design/register.css, as the spec writes it.
+ */
+.ws-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-6);
-  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) var(--margin-w);
   flex: 1;
-  overflow: hidden;
-}
-
-.split--open {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-}
-
-.split__main,
-.split__side {
-  min-width: 0;
   min-height: 0;
+}
+.ws-body--single {
+  grid-template-columns: 1fr;
+}
+.ws-body--wide-margin {
+  grid-template-columns: minmax(0, 1fr) var(--margin-w-wide);
+}
+
+/* Sheet and margin. The header stays; the sheet and the margin scroll on their own. */
+.sheet {
+  margin: 16px 0 16px 24px;
+  background: var(--sheet);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-3);
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  overflow: hidden;
+}
+.sheet__scroll {
+  overflow: auto;
+  min-height: 0;
+}
+.sheet > .table-scroll {
+  flex: 1;
+}
+.sheet > .sheet__foot {
+  margin-top: auto;
+}
+.margin {
+  padding: 16px 24px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   overflow: auto;
 }
+.margin__section {
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--hairline);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.margin__section:last-child {
+  border-bottom: 0;
+}
+.margin__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.margin__title .quiet {
+  font-weight: 400;
+  font-size: var(--text-xs);
+}
+.margin--sheet {
+  padding: 16px 24px 16px 0;
+}
+.margin--sheet > .sheet {
+  margin: 0;
+  flex: 1;
+}
+.sheet__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--hairline);
+  background: var(--paper);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
 
-/* Narrow: the two columns stack, the page scrolls, and a filling panel is capped so both are reachable. */
-@media (max-width: 1100px) {
-  .split,
-  .split--open {
+/* Below 1200px the margin becomes a drawer over the sheet (the spec, section 08): it stands at the end edge of the body,
+   at the margin's own width, and floats with the one shadow the spec allows. */
+@media (max-width: 1199px) {
+  .ws-body,
+  .ws-body--wide-margin {
     grid-template-columns: minmax(0, 1fr);
-    overflow: auto;
+    position: relative;
   }
-
-  .split__main,
-  .split__side {
-    overflow: visible;
+  .margin {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: 5;
+    width: var(--margin-w);
+    max-width: 100%;
+    background: var(--paper);
+    border-inline-start: 1px solid var(--hairline);
+    box-shadow: var(--shadow-float);
   }
-
-  .panel--fill {
-    flex: none;
-    max-height: 70vh;
+  .ws-body--wide-margin > .margin {
+    width: var(--margin-w-wide);
   }
 }

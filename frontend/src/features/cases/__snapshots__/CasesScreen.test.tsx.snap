@@ -4,6 +4,7 @@ exports[`CasesScreen in both directions (NFR-5) > LTR: an English trace stays le
 "
 page -           Case
 page -           17
+page -           ·
 page -           Decided in 412 µs by the engine
 page -           Close
 page -           Explain for an officer
@@ -61,6 +62,7 @@ exports[`CasesScreen in both directions (NFR-5) > RTL: the trace of case 17 read
 "
 page -           Case
 page -           17
+page -           ·
 page -           Decided in 412 µs by the engine
 page -           Close
 page -           Explain for an officer

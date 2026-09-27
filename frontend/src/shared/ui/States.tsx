@@ -1,20 +1,31 @@
 import type { ReactNode } from 'react'
+import { Button } from './Button'
+import { Note } from './Note'
 import './States.css'
 
 interface EmptyStateProps {
+  /** The one sentence: what is not here yet. */
   title: string
-  /** What to do about it, in one sentence. */
+  /** Beside the action, in the quiet voice: what the action works on. */
   description: ReactNode
+  /** The one action that would put something here. */
   action?: ReactNode
 }
 
-/** Nothing here yet, and what would put something here. */
+/**
+ * Nothing here yet (the spec, section 08): the sheet's own ruled lines, the sentence on the first, the one action on the
+ * second. No dashed frame, no illustration.
+ */
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
-    <div className="state">
-      <p className="state__title">{title}</p>
-      <p className="state__description">{description}</p>
-      {action ? <div className="state__action">{action}</div> : null}
+    <div className="empty">
+      <div className="empty__rule empty__rule--text">{title}</div>
+      <div className="empty__rule empty__rule--action">
+        {action}
+        <span className="muted">{description}</span>
+      </div>
+      <div className="empty__rule" />
+      <div className="empty__rule" />
     </div>
   )
 }
@@ -27,7 +38,7 @@ interface ErrorStateProps {
   retryLabel?: string
 }
 
-/** Something failed: the code, what it means, and the way to try again. */
+/** Something failed, said in place: a red note with the code and the way to try again. */
 export function ErrorState({
   code,
   description,
@@ -35,29 +46,37 @@ export function ErrorState({
   retryLabel = 'Try again',
 }: ErrorStateProps) {
   return (
-    <div className="state state--error" role="alert">
-      <p className="state__title">Something went wrong</p>
-      <p className="state__description">{description}</p>
-      {code ? <p className="state__code mono">{code}</p> : null}
+    <Note tone="error">
+      Something went wrong. <span>{description}</span>
+      {code ? <span className="mono"> {code}</span> : null}
       {onRetry ? (
-        <div className="state__action">
-          <button type="button" className="button button--secondary button--md" onClick={onRetry}>
-            <span>{retryLabel}</span>
-          </button>
-        </div>
+        <>
+          {' '}
+          <Button size="sm" onClick={onRetry}>
+            {retryLabel}
+          </Button>
+        </>
       ) : null}
-    </div>
+    </Note>
   )
 }
 
-/** The shape of the content that is loading, so the layout does not jump when it arrives. */
-export function LoadingRows({ rows = 4, label = 'Loading' }: { rows?: number; label?: string }) {
+/**
+ * The wait, stated and not animated (the spec, section 08): three still rows under the real header, and one line that
+ * says what is loading.
+ */
+export function LoadingRows({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="loading" aria-busy="true" aria-live="polite">
-      <span className="sr-only">{label}</span>
-      {Array.from({ length: rows }, (_, index) => (
-        <span className="loading__row" key={index} />
+      {[0, 1, 2].map((row) => (
+        <div className="loading__row" key={row} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
       ))}
+      <div className="loading__text">{label}</div>
     </div>
   )
 }

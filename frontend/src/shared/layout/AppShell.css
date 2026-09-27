@@ -1,96 +1,184 @@
+/*
+ * The shell and the rail (the Register spec, section 08): layer 4 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Shell */
 .shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  height: 100%;
+  grid-template-columns: var(--rail-w) 1fr;
+  min-height: 100%;
+  background: var(--paper);
 }
-
-.shell__skip {
-  position: absolute;
-  left: -9999px;
-  top: var(--space-2);
-  z-index: 10;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-}
-
-.shell__skip:focus {
-  left: var(--space-2);
-}
-
-.shell__sidebar {
+.rail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-5) var(--space-4);
-  background: var(--pp-midnight);
-  color: rgba(255, 255, 255, 0.82);
-  overflow: auto;
+  border-inline-end: 1px solid var(--hairline);
+  padding: 16px 12px 12px;
+  gap: 16px;
+  min-width: 0;
 }
-
-.shell__brand {
-  padding: 0 var(--space-2);
+.rail__brand {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
 }
-
-.shell__nav {
-  display: grid;
-  gap: 2px;
+.rail__brand svg {
+  height: 26px;
+  width: auto;
+}
+.rail__brand .brand-mark {
+  color: var(--accent);
+}
+.rail__nav {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
+  display: grid;
+  gap: 1px;
 }
-
-.shell__link {
+.rail__link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--r-2);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  position: relative;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+.rail__link:hover {
+  background: var(--well);
+  color: var(--ink);
+  text-decoration: none;
+}
+.rail__link[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 500;
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.rail__link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -12px;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+.rail__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--refer-text);
+}
+.rail__count--pending {
+  color: var(--ink-2);
+}
+.rail__workspace {
+  display: grid;
+  gap: 3px;
+  padding: 10px 10px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.rail__workspace .name {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-align: start;
+}
+.rail__workspace .line {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail__foot {
+  margin-top: auto;
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 10px;
+}
+.rail__me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.rail__me .actor {
+  gap: 8px;
+}
+.rail__me .btn {
+  margin-inline-start: auto;
+}
+.rail__tools {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+}
+.rail__tools .btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  color: var(--ink-3);
+  padding: 0 8px;
+}
+
+/* The product's shell is the window: the header stays put and the sheet and the margin scroll on their own; the rail
+   scrolls when a short window cannot hold the open demo strip. */
+.shell {
+  height: 100%;
+  min-height: 0;
+}
+.rail {
+  overflow-y: auto;
+}
+.workspace {
+  min-height: 0;
+}
+/* The rail's screens are buttons, which the tests find by role, drawn as the spec's text links. */
+button.rail__link {
   width: 100%;
-  min-height: var(--control-height);
-  padding: 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-md);
-  background: none;
-  color: inherit;
-  font-size: var(--text-base);
+  background: transparent;
   text-align: start;
   cursor: pointer;
 }
-
-.shell__link:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+/* The skip link stays out of sight until the keyboard reaches it. */
+.shell > .sr-only:focus-visible {
+  position: fixed;
+  inset-block-start: var(--s-2);
+  inset-inline-start: var(--s-2);
+  z-index: 20;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  clip-path: none;
+  background: var(--sheet);
 }
 
-/* The selection signature of the interface: a thin blue bar, here and on a chosen rule, source and trace step. */
-.shell__link--current {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--color-selected-bar);
-}
-
-/* the guided demo panel, under the navigation: a remote control beside the workspace, not part of it */
-.shell__aside {
-  margin-top: auto;
-}
-
-.shell__principle {
-  padding: var(--space-3);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: var(--text-xs);
-  line-height: var(--leading-normal);
-}
-
-.shell__workspace {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Small screens: the sidebar becomes a strip of links above the workspace. */
+/* Until phase 5 draws the phone's top bar (the spec, section 10), a narrow window stacks the rail over the workspace as
+   one scrolling row, as the shell before the Register did; the workspace block and the demo strip wait for a wider one. */
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
@@ -98,25 +186,24 @@
     height: auto;
     min-height: 100%;
   }
-
-  .shell__sidebar {
+  .rail {
     flex-direction: row;
     align-items: center;
-    gap: var(--space-4);
     overflow-x: auto;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--hairline);
   }
-
-  .shell__nav {
+  .rail__nav {
     grid-auto-flow: column;
-    gap: var(--space-1);
   }
-
-  .shell__link--current {
-    box-shadow: inset 0 -3px 0 var(--color-selected-bar);
-  }
-
-  .shell__principle,
-  .shell__aside {
+  .rail__workspace,
+  .rail .demo {
     display: none;
+  }
+  .rail__foot {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    grid-auto-flow: column;
   }
 }

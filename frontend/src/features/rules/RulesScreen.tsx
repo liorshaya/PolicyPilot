@@ -14,7 +14,7 @@ import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { VersionTag } from '../../shared/ui/StatusTag'
@@ -122,14 +122,17 @@ export function RulesScreen({
     <>
       <WorkspaceHeader
         title="Rules"
-        context={
-          shown ? (
-            <>
-              <bdi dir="auto">{shown.name}</bdi> · <span className="mono">{shown.domain}</span>
-            </>
-          ) : (
-            'The decision table of the rule set, and where every rule comes from'
-          )
+        provenance={
+          shown
+            ? [
+                <bdi key="name" dir="auto" className="sans">
+                  {shown.name}
+                </bdi>,
+                <span key="domain" className="mono">
+                  {shown.domain}
+                </span>,
+              ]
+            : ['The decision table of the rule set, and where every rule comes from']
         }
         version={
           shown ? (
@@ -140,7 +143,7 @@ export function RulesScreen({
             </>
           ) : null
         }
-        actions={
+        controls={
           shown ? (
             <>
               {list.length > 1 && onChooseRuleset ? (
@@ -161,27 +164,33 @@ export function RulesScreen({
                   }}
                 />
               ) : null}
-              <Button onClick={onOpenCases}>Run cases</Button>
-              <Button
-                variant="primary"
-                loading={publish.isPending}
-                disabled={
-                  !draft ||
-                  findings.some((finding) => finding.severity === 'error') ||
-                  blockers.length > 0
-                }
-                title={
-                  draft
-                    ? blockers.length > 0
-                      ? blockers.join(' ')
-                      : undefined
-                    : 'Only a draft is published'
-                }
-                onClick={() => publish.mutate(undefined, { onSuccess: setLatest })}
-              >
-                Publish version
-              </Button>
             </>
+          ) : null
+        }
+        secondary={shown ? <Button onClick={onOpenCases}>Run cases</Button> : null}
+        reason={
+          shown
+            ? draft
+              ? blockers.length > 0
+                ? blockers.join(' ')
+                : undefined
+              : 'Only a draft is published'
+            : null
+        }
+        primary={
+          shown ? (
+            <Button
+              variant="primary"
+              busy={publish.isPending}
+              disabled={
+                !draft ||
+                findings.some((finding) => finding.severity === 'error') ||
+                blockers.length > 0
+              }
+              onClick={() => publish.mutate(undefined, { onSuccess: setLatest })}
+            >
+              Publish version
+            </Button>
           ) : null
         }
       />
@@ -194,7 +203,7 @@ export function RulesScreen({
             {reviewRefusal ? <RefusedEdit error={reviewRefusal} /> : null}
             {acknowledgeRefusal ? <RefusedEdit error={acknowledgeRefusal} /> : null}
             {draft || review ? (
-              <Panel
+              <Section
                 title="Review"
                 subtitle="What the reviewer found against the policy; a person decides what stands"
                 flush
@@ -220,10 +229,9 @@ export function RulesScreen({
                     setPanel('source')
                   }}
                 />
-              </Panel>
+              </Section>
             ) : null}
-            <Panel
-              fill
+            <Section
               title="Decision table"
               subtitle={
                 document
@@ -251,7 +259,7 @@ export function RulesScreen({
               flush
             >
               {ruleset !== null && version.isPending ? (
-                <LoadingRows rows={8} label="Loading the rule set" />
+                <LoadingRows label="Loading the rule set" />
               ) : null}
               {version.error ? (
                 <ErrorState
@@ -276,18 +284,18 @@ export function RulesScreen({
                   description="The seeded lending rule set is loaded with the demo data; a rule set of your own is generated from a policy on day 7."
                 />
               ) : null}
-            </Panel>
+            </Section>
           </>
         }
         side={
           panel === 'json' ? (
-            <Panel
+            <Section
               title="Rule set JSON"
               subtitle="The document the engine runs, exactly as it is stored"
               flush
             >
               <pre className="rules__json mono">{JSON.stringify(document ?? {}, null, 2)}</pre>
-            </Panel>
+            </Section>
           ) : panel === 'rule' && selectedRule ? (
             <RuleDrawer
               rule={selectedRule}
@@ -297,8 +305,7 @@ export function RulesScreen({
               onClose={() => setPanel('source')}
             />
           ) : (
-            <Panel
-              fill
+            <Section
               title="Policy"
               subtitle={
                 asked !== null
@@ -316,9 +323,9 @@ export function RulesScreen({
                   highlighted={highlighted}
                 />
               ) : (
-                <LoadingRows rows={5} label="Loading the policy" />
+                <LoadingRows label="Loading the policy" />
               )}
-            </Panel>
+            </Section>
           )
         }
       />

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import { AccessGate } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
+import { useWorkspace } from './shared/layout/useWorkspace'
 import { PoliciesScreen } from './features/policy/PoliciesScreen'
 import { CasesScreen } from './features/cases/CasesScreen'
 import { RulesScreen } from './features/rules/RulesScreen'
@@ -19,6 +20,25 @@ function screenFromHash(): ScreenId {
 }
 
 /**
+ * The rail, with what it says about the workspace: read only once the gate is behind, when the session can read it.
+ */
+function WorkspaceShell({
+  rulesetId,
+  ...shell
+}: Omit<ComponentProps<typeof AppShell>, 'policy' | 'findingsToAcknowledge'> & {
+  rulesetId: string | null
+}) {
+  const workspace = useWorkspace(rulesetId)
+  return (
+    <AppShell
+      {...shell}
+      policy={workspace.policy}
+      findingsToAcknowledge={workspace.findingsToAcknowledge}
+    />
+  )
+}
+
+/**
  * The application: the access gate until the code is exchanged, then the workspace. The session is the HttpOnly
  * cookie, so the app keeps no token of its own (Document 5).
  */
@@ -31,6 +51,8 @@ export function App() {
   const [rulesetId, setRulesetId] = useState<string | null>(null)
   // the scripted step the guided panel asked for, which its screen carries out and then clears (Brief FR-23)
   const [demo, setDemo] = useState<DemoStep['id'] | null>(null)
+  // the last step run, which the strip keeps showing after its screen has carried the step out
+  const [lastStep, setLastStep] = useState<DemoStep['id'] | null>(null)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -54,14 +76,17 @@ export function App() {
 
   function runDemoStep(step: DemoStep) {
     setDemo(step.id)
+    setLastStep(step.id)
     navigate(step.screen)
   }
 
   return (
-    <AppShell
+    <WorkspaceShell
       current={screen}
       onNavigate={navigate}
-      aside={<GuidedPanel current={demo} onRun={runDemoStep} />}
+      onLeave={() => setEntered(false)}
+      rulesetId={rulesetId}
+      aside={<GuidedPanel current={lastStep} onRun={runDemoStep} />}
     >
       {screen === 'policies' ? (
         <PoliciesScreen
@@ -131,6 +156,6 @@ export function App() {
           }}
         />
       ) : null}
-    </AppShell>
+    </WorkspaceShell>
   )
 }

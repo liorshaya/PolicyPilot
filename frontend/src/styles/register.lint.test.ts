@@ -77,7 +77,6 @@ const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<st
     phase: 4,
     hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
   },
-  'src/features/demo/GuidedPanel.css': { phase: 1, hits: { 'hex colour': 1 } },
   'src/features/policy/PoliciesScreen.css': {
     phase: 5,
     hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
@@ -93,17 +92,6 @@ const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<st
   },
   'src/features/rules/RuleDrawer.css': {
     phase: 3,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
-  },
-  'src/shared/gate/AccessGate.css': {
-    phase: 1,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 2 },
-  },
-  'src/shared/layout/AppShell.css': { phase: 1, hits: { 'hex colour': 2, 'rgb( colour': 5 } },
-  'src/shared/layout/ProviderBadge.css': { phase: 1, hits: { 'hex colour': 1, 'rgb( colour': 3 } },
-  'src/shared/ui/States.css': { phase: 1, hits: { gradient: 1 } },
-  'src/shared/ui/StatusTag.css': {
-    phase: 1,
     hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
   },
 }

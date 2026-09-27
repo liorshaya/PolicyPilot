@@ -1,0 +1,82 @@
+/*
+ * Chips (the Register spec, section 06): layer 3 of docs/design/register.css, as the spec writes it.
+ */
+
+/* Chips. Three silhouettes: mono rectangle = any identifier; serif pill = a paragraph; outlined glyph = a tool call. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: baseline;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-1);
+  border: 1px solid var(--hairline);
+  background: var(--well);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  line-height: 1;
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-decoration: none;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+a.chip,
+button.chip {
+  cursor: pointer;
+}
+a.chip:hover,
+button.chip:hover {
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+.chip--id {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: slashed-zero;
+}
+.chip--para {
+  border-radius: var(--r-pill);
+  background: var(--sheet);
+  border-color: var(--border);
+  font-family: var(--font-doc-en);
+  font-size: var(--text-sm);
+  padding: 0 8px 0 7px;
+}
+.chip--para .pilcrow {
+  color: var(--ink-3);
+  font-size: 0.95em;
+}
+.chip--tool {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+}
+.chip--tool svg {
+  width: 11px;
+  height: 11px;
+}
+.chip--field {
+  background: transparent;
+  border: 0;
+  padding: 0 2px;
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--ink-2);
+  height: auto;
+}
+.chip--active,
+.chip[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-text);
+}
+[dir='rtl'] .chip {
+  margin: 0 4px;
+}

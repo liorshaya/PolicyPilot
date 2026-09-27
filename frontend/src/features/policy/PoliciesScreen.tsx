@@ -7,7 +7,7 @@ import { fieldHints } from '../demo/fieldHints'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
 import { Button } from '../../shared/ui/Button'
-import { Panel } from '../../shared/ui/Panel'
+import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { PolicyText } from './PolicyText'
 import { AddPolicyForm } from './AddPolicyForm'
@@ -82,12 +82,12 @@ export function PoliciesScreen({
     <>
       <WorkspaceHeader
         title="Policies"
-        context={
+        provenance={[
           list.length > 0
             ? `${list.length} ${list.length === 1 ? 'document' : 'documents'} in this sandbox`
-            : 'The policy text every rule is cited from'
-        }
-        actions={
+            : 'The policy text every rule is cited from',
+        ]}
+        primary={
           <Button
             variant={adding ? 'secondary' : 'primary'}
             onClick={() => {
@@ -124,8 +124,7 @@ export function PoliciesScreen({
                 }
               />
             ) : null}
-            <Panel
-              fill
+            <Section
               title={
                 selected.data ? (
                   // a document's own title is content, so it takes the direction of its own first letters
@@ -155,7 +154,7 @@ export function PoliciesScreen({
                     </Button>
                     <Button
                       variant="primary"
-                      loading={generation.running}
+                      busy={generation.running}
                       disabled={generation.running || preparing}
                       title={
                         create.isPending
@@ -188,7 +187,7 @@ export function PoliciesScreen({
                 }}
               />
               {selected.isPending && selectedId !== null ? (
-                <LoadingRows rows={6} label="Loading the policy" />
+                <LoadingRows label="Loading the policy" />
               ) : null}
               {selected.error ? (
                 <ErrorState
@@ -209,17 +208,16 @@ export function PoliciesScreen({
                   description="Paste or upload a policy document, or open the seeded lending policy from the list."
                 />
               ) : null}
-            </Panel>
+            </Section>
           </>
         }
         side={
-          <Panel
-            fill
+          <Section
             title="Documents"
             subtitle="Seeded first, then the ones added in this sandbox"
             flush
           >
-            {policies.isPending ? <LoadingRows rows={3} label="Loading the policies" /> : null}
+            {policies.isPending ? <LoadingRows label="Loading the policies" /> : null}
             {policies.error ? (
               <ErrorState
                 code={policies.error instanceof ApiError ? policies.error.code : undefined}
@@ -239,7 +237,7 @@ export function PoliciesScreen({
                 ))}
               </ul>
             ) : null}
-          </Panel>
+          </Section>
         }
       />
     </>

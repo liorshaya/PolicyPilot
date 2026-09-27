@@ -4,52 +4,53 @@ import { DEMO_STEPS, type DemoStep } from './steps'
 import './GuidedPanel.css'
 
 interface GuidedPanelProps {
-  /** The step the workspace is on, so the panel shows where the demo has got to. */
+  /** The step the workspace is on, so the strip shows where the demo has got to. */
   current: DemoStep['id'] | null
   onRun: (step: DemoStep) => void
 }
 
 /**
- * The guided demo panel (the brief FR-23; Document 2, Frontend Architecture): a collapsible panel that lists the
- * four scripted steps as one-click actions. It exists so the demo can be driven from an interviewer's machine,
- * and it adds no logic of its own — a step navigates to a screen and fills in what a presenter would type.
- *
- * <p>Collapsed by default: the workspace is the demo, and the panel is the remote control beside it.
+ * The guided demo strip of the rail (the brief FR-23; Document 2, Frontend Architecture; the Register spec, section 08):
+ * collapsed to one line that says which step of four the demo is on, it opens to the four scripted steps as one-click
+ * actions, the steps before the current one done and the current one marked. It sits in the rail and never covers the
+ * sheet, and it adds no logic of its own: a step navigates to a screen and fills in what a presenter would type.
  */
 export function GuidedPanel({ current, onRun }: GuidedPanelProps) {
   const [open, setOpen] = useState(false)
 
   return (
-    <section className={`guided${open ? ' guided--open' : ''}`} aria-label="Guided demo">
+    <section className="demo" aria-label="Guided demo">
       <button
         type="button"
-        className="guided__toggle"
+        className="demo__toggle"
         aria-expanded={open}
         aria-controls="guided-steps"
         onClick={() => setOpen((shown) => !shown)}
       >
-        <span className="guided__title">Guided demo</span>
-        <span className="guided__hint">{open ? 'Hide' : 'Four steps, one click each'}</span>
+        <span>Guided demo</span>{' '}
+        <span className="mono">{`step ${current ?? 1} of ${DEMO_STEPS.length}`}</span>
       </button>
-      <ol className="guided__steps" id="guided-steps" hidden={!open}>
-        {DEMO_STEPS.map((step) => (
-          <li
-            key={step.id}
-            className={`guided__step${step.id === current ? ' guided__step--current' : ''}`}
-            aria-current={step.id === current ? 'step' : undefined}
-          >
-            <span className="guided__number" aria-hidden="true">
-              {step.id}
-            </span>
-            <span className="guided__body">
-              <span className="guided__step-title">{step.title}</span>
-              <span className="guided__what">{step.what}</span>
-            </span>
-            <Button variant="secondary" className="guided__run" onClick={() => onRun(step)}>
-              Run
-            </Button>
-          </li>
-        ))}
+      <ol className="demo__steps" id="guided-steps" hidden={!open}>
+        {DEMO_STEPS.map((step) => {
+          const done = current !== null && step.id < current
+          const now = step.id === current
+          return (
+            <li
+              key={step.id}
+              className={`demo__step${done ? ' demo__step--done' : ''}${now ? ' demo__step--current' : ''}`}
+              aria-current={now ? 'step' : undefined}
+            >
+              <span className="demo__n" aria-hidden="true">
+                {step.id}
+              </span>
+              <span className="demo__title">{step.title}</span>
+              <Button variant={now ? 'secondary' : 'quiet'} size="sm" onClick={() => onRun(step)}>
+                Run
+              </Button>
+              <span className="demo__what">{step.what}</span>
+            </li>
+          )
+        })}
       </ol>
     </section>
   )

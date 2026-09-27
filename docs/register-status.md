@@ -8,7 +8,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | --- | --- | --- | --- | --- | --- | --- |
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
-| 1 | The shell | Not started |  |  |  |  |
+| 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
 | 2 | The tables | Not started |  |  |  |  |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
@@ -74,22 +74,42 @@ Evidence:
 
 ## 1 · The shell
 
-Status: Not started
+Status: Done
 
-- [ ] Layers 3 and 4 of `register.css` ported into the files Document 9 names; the old classes (`.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header`, `.panel`, `.drawer`) deleted
-- [ ] `Panel` renamed `Section`; every caller updated
-- [ ] The rail: six screens as `<button>` elements, counts only beside Rules and Change, the workspace block (Hebrew name, sandbox, reset time, provider line when the route answers), the guided demo strip, the foot (person mark, Leave, Help, Theme)
-- [ ] Help opens the legend and the shortcuts sheet; Theme toggles `data-theme` and stores it
-- [ ] The workspace header: title, version status, one `.prov` line with CSS separators, at most one secondary action, the reason beside a disabled primary, the primary at 36px
-- [ ] `SplitView` is the sheet-and-margin grid (`--margin-w`, 440px for a trace) with the drawer below 1200px
-- [ ] `Button`, `Field`, `DecisionTag`, `VersionTag`, `Chip`, `Actor`, `Seal`, `Provenance`, `Severity`, `Note`, `Refusal`, `Kbd`, `Overlay`, `States` built with the tests Document 9 names, all green
-- [ ] The access gate matches `docs/design/screens/screen-gate.png` in both themes (paths of the two product screenshots in the evidence)
-- [ ] `rtlSnapshot` of the gate and of the shell with a Hebrew policy name, reviewed
-- [ ] Every existing test green; every wording change listed in the pull request description
-- [ ] The selector diff of layers 3 and 4 against the product's CSS listed in the pull request; nothing missing
-- [ ] Worklog line; pull request "Register phase 1: the shell" merged
+Questions, 2026-09-28, answered by the owner the same day: all three as recommended (the table at the end of this file):
+
+1. **The rail's sandbox line, reset time, person and Leave have nothing to read.** The spec draws "Sandbox sb-7f3a", "Resets at 00:00", "Lior Shaya" and Leave, and the AppShell test asks for the sandbox id in mono, the reset time and "the name recorded". None of them is served, and the backend is not touched: the session is an HttpOnly cookie over a sandbox UUID that no route returns; the reset runs on `policypilot.demo.reset-cron`, `0 0 3 * * *` in UTC, not at 00:00, and no route returns it; a publish or an approval records the sandbox's UUID as its actor, and no person's name exists; no route ends a session, and entering the code again with a live cookie keeps the same sandbox. Recommended: the workspace block shows the policy's Hebrew name (`lang="he"`, `dir="rtl"`) and the provider line, and leaves out the sandbox and reset lines until a route serves them; the foot shows the person mark with "Analyst" (the word the product records on a person's edit), Leave returning to the gate in this tab, then Help and Theme. Alternative: a read-only route for the session's sandbox and reset time, which changes the backend and Document 2 first.
+2. **The Change count has no source.** The rail reads its counts from the queries the screens already use. The Rules count can (the blocking findings of the workspace's draft, from the version query), but a proposal awaiting a decision lives only in the Change screen's own state, which is gone when another screen opens, and no route lists change requests. Recommended: only the Rules count in this phase; the Change count waits for a proposal that outlives its screen (phase 4 reworks the change screen) or a route that lists them. Alternative: lift the proposal into the app's state now, a change to the change feature ahead of phase 4.
+3. **Layer 4's tables and palette.** The acceptance wants no rule of layers 3 and 4 missing, but layer 4 holds the table blocks, which phase 2's box names as its `Table.css`, and the palette, which the cut line gives to phase 6. Recommended: port layers 3 and 4 without those two groups, and list them in the pull request's selector diff as phase 2's and phase 6's, with nothing else missing. Alternative: port their CSS now, unused until then.
+
+Not a question, for the record: the toast's hover in layer 4 is the one literal of layers 3 and 4 the lint refuses (`rgba(127, 127, 127, 0.2)`); by Document 9's second rule it becomes a token in `tokens.css` first.
+
+- [x] Layers 3 and 4 of `register.css` ported into the files Document 9 names; the old classes (`.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header`, `.panel`, `.drawer`) deleted
+- [x] `Panel` renamed `Section`; every caller updated
+- [x] The rail: six screens as `<button>` elements, counts only beside Rules and Change, the workspace block (Hebrew name, sandbox, reset time, provider line when the route answers), the guided demo strip, the foot (person mark, Leave, Help, Theme)
+- [x] Help opens the legend and the shortcuts sheet; Theme toggles `data-theme` and stores it
+- [x] The workspace header: title, version status, one `.prov` line with CSS separators, at most one secondary action, the reason beside a disabled primary, the primary at 36px
+- [x] `SplitView` is the sheet-and-margin grid (`--margin-w`, 440px for a trace) with the drawer below 1200px
+- [x] `Button`, `Field`, `DecisionTag`, `VersionTag`, `Chip`, `Actor`, `Seal`, `Provenance`, `Severity`, `Note`, `Refusal`, `Kbd`, `Overlay`, `States` built with the tests Document 9 names, all green
+- [x] The access gate matches `docs/design/screens/screen-gate.png` in both themes (paths of the two product screenshots in the evidence)
+- [x] `rtlSnapshot` of the gate and of the shell with a Hebrew policy name, reviewed
+- [x] Every existing test green; every wording change listed in the pull request description
+- [x] The selector diff of layers 3 and 4 against the product's CSS listed in the pull request; nothing missing
+- [x] Worklog line; pull request "Register phase 1: the shell" merged
 
 Evidence:
+
+- Tests first: the 21 test files of the phase (a file per new component, the shell's three, the updated strip and gate, and tokens, theme and the lint) ran red before any component code, 40 of 113 failing and ten files not loading at all; the list is in the pull request.
+- The port: layers 3 and 4 routed rule by rule into 18 stylesheets (229 rules, with the spec's comments), and the gate's 8 rules from layer 5. The toast's hover wash became a token first (`--toast-hover`, Document 9's second rule, its pair in `tokens.test.ts`). Rules of the product's own only where the spec leaves the product to decide: where a popover stands, the drawer below 1200px, the rail's buttons drawn as text links, the shell as the window, and a narrow window until phase 5's top bar. The selector diff: 252 of the 252 selectors of this phase in the product's CSS, none missing; the 78 of the tables stay for phase 2 and the 7 of the palette for phase 6 (the owner's answer to question 3).
+- Deleted: `.button`, `.shell__sidebar`, `.shell__principle`, `.workspace-header` and `.panel` with their rules; `Panel.tsx`; the provider badge, whose `@requirement FR-21` moved to `AppShell.test.tsx`; `Logo.css`. `.drawer` stays with `RuleDrawer`, which Document 9 gives to phase 3: its phase 1 build list names the other five, and its prompt keeps the features' content for phases 2 to 5.
+- `Section`: seven callers updated, `fill` dropped (a section draws no card of its own); with it, Button's `loading` became `busy` in 13 places and `ghost` became `quiet` in 3, and two hand-written `button button--ghost` became `btn btn--quiet`.
+- The rail, as the owner answered questions 1 and 2: the policy's name in its own language and direction, the provider line ("Provider OpenAI · cloud", "Provider Ollama · local"), no sandbox or reset line, "Analyst" with the person mark, Leave back to the gate, and the Rules count alone, the open blocking findings of a reviewed draft, which `useWorkspace` reads from the rule set, version and policy queries. The shortcuts sheet lists only what the product answers: G R, G C and G A, added with the rail; each other shortcut joins it with the phase that builds it.
+- The header on every screen: the provenance segments with a Hebrew name set in `.sans`, the Rules and Audit pickers in a `controls` slot until phases 2 and 4 move them, the publish reason as text beside the disabled button.
+- The gate: `docs/demo/register/gate-light.png` and `docs/demo/register/gate-dark.png`, in `screen-gate.png`'s own frame (1361×642 at 2×) and refused as its picture is; beside it, the same sheet, words, field, refusal, primary, honesty line and marks, the lockup centred as the picture shows it; in the dark theme the lockup takes the accent and the ink, which ends phase 0's navy logo on the dark paper.
+- RTL snapshots: the gate's and the rail's are new and reviewed, every chrome text in the page's direction and the policy's name right to left and in Hebrew inside the English rail. The Cases and Policies screens' four snapshots each gained one line, the "·" between a section's title and its quiet note; no text changed direction or language.
+- Planted, each file restored byte for byte: a hex colour in `AppShell.css`, off the frozen list now, turns the lint's hex rule red; a count beside Change turns three of `AppShell.test.tsx` red; a busy button that answers a click turns the Button test red.
+- Local run on 2026-09-28: typecheck, lint with no warning, 477 Vitest tests in 57 files, Prettier and the build green; the e2e suite, 33 passed, and the stack's 3 against Docker Compose; `make check` ALL OK; Semgrep 1.177.0, 0 findings.
+- Pull request [#160](https://github.com/liorshaya/PolicyPilot/pull/160): CI stages 1 to 7 green on run [36358763222](https://github.com/liorshaya/PolicyPilot/actions/runs/36358763222), with 477 Vitest and 36 Playwright tests and the web app at 94.4% of statements and 87.4% of branches. The first run's stage 7 found the stack's gate test still reading the removed badge; it now reads the rail's provider line, matched exactly, and the models in the legend behind Help, and against the local stack a provider line of "clouds" and a legend without the embedding model turn it red. The worklog line of 2026-09-28 names the phase. The last commit, which ticks this box and sets Done, is merged only once its own run is green too.
 
 ## 2 · The tables
 
@@ -191,3 +211,6 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 | 2026-09-27 | 0 | 2. Layer 2's heading letter-spacing against the lint (recommended: the lint reads component CSS only) | 2026-09-28: as recommended |
 | 2026-09-27 | 0 | 3. `[lang="he"]` and the two-ring focus against layer 2 (recommended: layer 2 verbatim) | 2026-09-28: as recommended |
 | 2026-09-27 | 0 | 4. The old tokens that are not colours (recommended: aliased or kept at their value until phase 5) | 2026-09-28: as recommended |
+| 2026-09-28 | 1 | 1. The rail's sandbox line, reset time, person and Leave have nothing to read (recommended: the policy's name and the provider line; "Analyst" with the person mark; Leave back to the gate) | 2026-09-28: as recommended |
+| 2026-09-28 | 1 | 2. The Change count has no source (recommended: only the Rules count until a proposal outlives its screen) | 2026-09-28: as recommended |
+| 2026-09-28 | 1 | 3. Layer 4's tables and palette (recommended: left to phases 2 and 6, listed in the selector diff) | 2026-09-28: as recommended |
