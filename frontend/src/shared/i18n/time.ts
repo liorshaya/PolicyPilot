@@ -38,3 +38,15 @@ export function dateTimeOf(iso: string, seconds = false): string {
   const { year, month, day, hour, minute, second } = partsOf(iso)
   return `${year}-${month}-${day} ${hour}:${minute}${seconds ? `:${second}` : ''}`
 }
+
+/**
+ * How long something took, as the Register writes it (the spec, section 09: "58 µs", "38 ms", "4.1 s"): the smallest
+ * unit that keeps it under a thousand, one decimal above the microsecond when it is under ten of its unit.
+ */
+export function durationText(micros: number): string {
+  if (micros < 1_000) {
+    return `${Math.round(micros)} µs`
+  }
+  const [value, unit] = micros < 1_000_000 ? [micros / 1_000, 'ms'] : [micros / 1_000_000, 's']
+  return `${value < 10 ? value.toFixed(1).replace(/\.0$/, '') : String(Math.round(value))} ${unit}`
+}

@@ -5,6 +5,7 @@ import type {
   Audience,
   AuditEntry,
   BatchResult,
+  BudgetResponse,
   Decision,
   Diff,
   GapResolution,
@@ -23,6 +24,7 @@ import type {
 
 export const keys = {
   provider: ['provider'] as const,
+  budget: ['budget'] as const,
   policies: ['policies'] as const,
   policy: (policyId: string) => ['policy', policyId] as const,
   rulesets: ['rulesets'] as const,
@@ -36,6 +38,14 @@ export const keys = {
 /** The provider the API runs on (Document 2, GET /system/provider); it changes only with a deployment. */
 export function useProvider(): UseQueryResult<ProviderResponse> {
   return useQuery({ queryKey: keys.provider, queryFn: () => api.provider(), staleTime: Infinity })
+}
+
+/**
+ * The day's token budget (Document 2, GET /system/budget; Document 5, the banner of the degradation order). It is read
+ * when a screen that calls a model opens, and again when a call finds it spent (BUDGET_EXHAUSTED).
+ */
+export function useBudget(): UseQueryResult<BudgetResponse> {
+  return useQuery({ queryKey: keys.budget, queryFn: () => api.budget() })
 }
 
 export function usePolicies(): UseQueryResult<PolicySummary[]> {

@@ -18,6 +18,7 @@ import {
   scriptedProposalEvent,
 } from '../fixtures/change'
 import { eventStream } from '../fixtures/changeRequest'
+import { budgetOpen } from '../fixtures/budget'
 import { openAiProvider } from '../fixtures/provider'
 import {
   approvalEntry,
@@ -255,6 +256,7 @@ export function twoRulesets(): RequestHandler[] {
 
 export const handlers: RequestHandler[] = [
   http.get(`${BASE}/system/provider`, () => HttpResponse.json(openAiProvider)),
+  http.get(`${BASE}/system/budget`, () => HttpResponse.json(budgetOpen)),
   http.get(`${BASE}/policies`, () => HttpResponse.json(policies)),
   http.get(`${BASE}/policies/:id`, () => HttpResponse.json(seededPolicy)),
   http.post(`${BASE}/policies`, () => HttpResponse.json(seededPolicy, { status: 201 })),

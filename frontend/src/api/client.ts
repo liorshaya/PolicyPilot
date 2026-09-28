@@ -4,6 +4,7 @@ import type {
   Audience,
   AuditEntriesResponse,
   BatchResult,
+  BudgetResponse,
   ChangeDecision,
   Diff,
   ChatSessionResponse,
@@ -135,6 +136,9 @@ export const api = {
 
   /** The provider the API runs on: its name, the model of each role and the embeddings (Document 2). */
   provider: () => request<ProviderResponse>('GET', '/api/v1/system/provider'),
+
+  /** Whether the day's token budget is spent, and the midnight UTC it resumes at (Document 2). */
+  budget: () => request<BudgetResponse>('GET', '/api/v1/system/budget'),
 
   policies: () => request<PoliciesResponse>('GET', '/api/v1/policies'),
 

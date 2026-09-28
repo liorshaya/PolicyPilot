@@ -14,6 +14,8 @@ interface SplitViewProps {
   fill?: boolean
   /** The margin holds a sheet of its own, for a trace or a review (the spec's Cases screen: `margin--sheet`). */
   sideSheet?: boolean
+  /** What the margin holds, which names it as a landmark: "Paragraph 2". */
+  sideLabel?: string
 }
 
 /**
@@ -28,6 +30,7 @@ export function SplitView({
   wide = false,
   fill = false,
   sideSheet = false,
+  sideLabel,
 }: SplitViewProps) {
   const open = sideOpen && side !== undefined && side !== null
   const layout = !open ? ' ws-body--single' : wide ? ' ws-body--wide-margin' : ''
@@ -40,7 +43,11 @@ export function SplitView({
           <div className="sheet__scroll">{main}</div>
         </section>
       )}
-      {open ? <aside className={`margin${sideSheet ? ' margin--sheet' : ''}`}>{side}</aside> : null}
+      {open ? (
+        <aside className={`margin${sideSheet ? ' margin--sheet' : ''}`} aria-label={sideLabel}>
+          {side}
+        </aside>
+      ) : null}
     </div>
   )
 }

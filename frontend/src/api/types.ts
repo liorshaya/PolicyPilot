@@ -38,6 +38,8 @@ export type AuditEntriesResponse = components['schemas']['AuditEntriesResponse']
 export type ChangeDecision = components['schemas']['ChangeDecisionResponse']
 /** The model provider the API runs on, as the active profile names it (Document 2, GET /system/provider). */
 export type ProviderResponse = components['schemas']['ProviderResponse']
+/** Whether the day's token budget is spent, and when it resumes (Document 2, GET /system/budget). */
+export type BudgetResponse = components['schemas']['BudgetResponse']
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'
