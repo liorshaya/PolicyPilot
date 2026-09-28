@@ -3,6 +3,12 @@ import './Actor.css'
 
 export type ActorKind = 'model' | 'engine' | 'person' | 'system'
 
+/**
+ * The person the product records on an acknowledgement, a publish and a decision on a change: the one role of the demo
+ * (the owner's answer to phase 1's first question).
+ */
+export const PERSON = 'Analyst'
+
 /** The word a mark carries when it stands alone. */
 const NAMES: Record<ActorKind, string> = {
   model: 'Model',

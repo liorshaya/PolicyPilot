@@ -1,13 +1,14 @@
-import type { ChangeDecision } from '../../api/types'
+import type { ChangeDecision, ProposedDecision } from '../../api/types'
 import changeRequestFile from '../../../../fixtures/policies/consumer-lending/change-request-1.json'
 import casesExpectedFile from '../../../../fixtures/policies/consumer-lending/cases-expected.json'
 import {
   rt04Failure,
+  SCRIPTED_TIMINGS,
   scriptedProposal,
   type CasesExpectedFixture,
   type ChangeRequestFixture,
 } from './changeRequest'
-import { decisionIdOf, lendingRuleSet } from './lending'
+import { decisionIdOf, lendingRuleSet, sampleEngineDecision } from './lending'
 
 /**
  * The scripted change request for the component tests, built by ./changeRequest from the committed fixtures, which are
@@ -28,18 +29,56 @@ export const scriptedProposalEvent = scriptedProposal(
 
 export const rt04 = rt04Failure(lendingRuleSet, scriptedRequest)
 
-/** The scripted request as the stream answers it: the four stages, the candidates, then the proposal. */
+/**
+ * What the scripted proposal decides for case 17 (Document 2, GET /changes/{id}/decisions/{decisionId}/trace), as the
+ * Python reference decides it: the sample decision, but for the step of R-170, the one patched rule the case reaches,
+ * whose label, pending provenance and expected value are the patched rule's. Case 17 earns 9,500, so R-170 matches on
+ * neither side and R-330 still sends the case to manual review.
+ */
+export const proposedSampleDecision: ProposedDecision = (() => {
+  const patch = scriptedProposalEvent.patches.find(
+    (candidate) => candidate.op === 'replace' && candidate.ruleId === 'R-170',
+  )
+  if (patch === undefined || !('rule' in patch)) {
+    throw new Error('the scripted proposal does not replace R-170')
+  }
+  const { label, provenance, condition } = patch.rule
+  return {
+    ...sampleEngineDecision,
+    trace: sampleEngineDecision.trace.map((step) =>
+      step.ruleId === 'R-170'
+        ? {
+            ...step,
+            label,
+            provenance,
+            comparisons: step.comparisons?.map((comparison) => ({
+              ...comparison,
+              expected: (condition as { value: number }).value,
+            })),
+          }
+        : step,
+    ),
+    basedOnDecisionId: decisionIdOf(17),
+    changeRequestNumber: scriptedProposalEvent.number,
+  }
+})()
+
+/**
+ * The scripted request as the stream answers it: the four stages, the candidates, then the proposal, every event after
+ * the first saying which stage it ended (Document 2).
+ */
 export const scriptedEvents: [string, unknown][] = [
-  ['analyzing', { rules: lendingRuleSet.rules.length }],
+  ['analyzing', { rules: lendingRuleSet.rules.length, ended: null }],
   [
     'proposing',
     {
       candidates: scriptedRequest.expected.candidates,
       fields: scriptedRequest.expected.candidateFields,
+      ended: SCRIPTED_TIMINGS[0],
     },
   ],
-  ['validating', { rules: lendingRuleSet.rules.length }],
-  ['regression', { rules: lendingRuleSet.rules.length }],
+  ['validating', { rules: lendingRuleSet.rules.length, ended: SCRIPTED_TIMINGS[1] }],
+  ['regression', { rules: lendingRuleSet.rules.length, ended: SCRIPTED_TIMINGS[2] }],
   ['proposal', scriptedProposalEvent],
 ]
 

@@ -1,0 +1,8 @@
+/*
+ * A flipped case's two traces in one margin sheet (the Register spec, section 09, "The change request"). The spec draws
+ * no frame of its own for them; the product's rule parts the second trace from the first with the sheet's hairline.
+ */
+.both-traces .trace + .trace,
+.both-traces .trace + .sec {
+  border-top: 1px solid var(--hairline);
+}

@@ -11,6 +11,16 @@ export const CHANGE_STAGES = ['analyzing', 'proposing', 'validating', 'regressio
 
 export type ChangeStage = (typeof CHANGE_STAGES)[number]
 
+/**
+ * The stage an event ended (Document 2, the change stream, added 2026-09-28: every event after `analyzing` carries it):
+ * the stage, its milliseconds, and the tokens the answers to its prompts spent, null for a stage that got no answer.
+ */
+export interface StageEnded {
+  stage: ChangeStage
+  ms: number
+  tokens: number | null
+}
+
 /** `proposing`: the rules the model is shown, in evaluation order, and the fields the request touches. */
 export interface Candidates {
   candidates: string[]
@@ -38,18 +48,23 @@ export interface Flip {
 }
 
 /**
- * The regression report: how many of the sandbox's decisions on the base version the copy decided again, every
- * flipped outcome by case number, and the count of each transition, keyed `approve → reject`.
+ * The regression report: how many of the sandbox's decisions on the base version the copy decided again and their
+ * outcomes before, every flipped outcome by case number, the count of each transition, keyed `approve → reject`, and
+ * the decisions whose flags moved. A report stored before 2026-09-28 has neither `before` nor `flagsMoved`.
  */
 export interface Regression {
   decisions: number
+  before?: Record<string, number>
   flips: Flip[]
   transitions: Record<string, number>
+  flagsMoved?: { decisions: number; byRule: Record<string, number> }
 }
 
-/** `proposal`: the stored PROPOSED change request, with its diff and its regression report. */
+/** `proposal`: the stored PROPOSED change request, numbered in its sandbox, with its diff and its regression report. */
 export interface Proposal {
   id: string
+  /** The request's number in its sandbox, from 1, written CR-0001. */
+  number: number
   status: 'PROPOSED'
   baseVersionId: string
   summary: string
@@ -62,6 +77,8 @@ export interface Proposal {
   diff: Diff
   regression: Regression
   createdAt: string
+  /** The regression stage, which the proposal ends. */
+  ended: StageEnded
 }
 
 /**
@@ -72,4 +89,6 @@ export interface StreamFailure {
   code: string
   findings: Finding[]
   document: unknown
+  /** The stage the failure ended; absent when the request never reached the stream. */
+  ended?: StageEnded | null
 }

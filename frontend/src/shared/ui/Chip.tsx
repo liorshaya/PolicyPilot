@@ -19,6 +19,8 @@ interface ChipProps {
   title?: string
   /** What a screen reader names a chip that opens something, when its marks alone do not: "Paragraph 8" for ¶ 8. */
   label?: string
+  /** An identifier a change considered and left as it was, which the change screen fades (the spec, section 09). */
+  unchanged?: boolean
 }
 
 const NO_BREAK_SPACE = String.fromCodePoint(0x00a0)
@@ -35,6 +37,7 @@ export function Chip({
   active = false,
   title,
   label,
+  unchanged = false,
 }: ChipProps) {
   const className = `chip chip--${kind}${active ? ' chip--active' : ''}`
   const content =
@@ -53,9 +56,17 @@ export function Chip({
       children
     )
   const current = active ? 'true' : undefined
+  const state = unchanged ? 'unchanged' : undefined
   if (href !== undefined) {
     return (
-      <a className={className} href={href} title={title} aria-label={label} aria-current={current}>
+      <a
+        className={className}
+        href={href}
+        title={title}
+        aria-label={label}
+        aria-current={current}
+        data-state={state}
+      >
         {content}
       </a>
     )
@@ -69,13 +80,14 @@ export function Chip({
         title={title}
         aria-label={label}
         aria-current={current}
+        data-state={state}
       >
         {content}
       </button>
     )
   }
   return (
-    <span className={className} title={title}>
+    <span className={className} title={title} data-state={state}>
       {content}
     </span>
   )

@@ -1,64 +1,58 @@
+/*
+ * The regression report of a proposal (the Register spec, section 09, "The change request"): the matrix of layer 5 of
+ * docs/design/register.css, as the spec writes it; its figures and its bar list are the shared ones (shared/ui/
+ * Figures.css), and its list of flips is the spec's compact table (shared/ui/Table.css).
+ */
+.matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+}
+.matrix th {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  padding: 4px 10px;
+  text-align: end;
+}
+.matrix th.rowhead {
+  text-align: start;
+  border-top: 1px solid var(--hairline);
+}
+.matrix td {
+  padding: 0 10px;
+  height: 30px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--hairline);
+  min-width: 64px;
+}
+.matrix td.hot {
+  background: var(--accent-wash);
+  color: var(--ink);
+  font-weight: 600;
+}
+.matrix td.same {
+  color: var(--ink-3);
+}
+.matrix td.total,
+.matrix th.total {
+  color: var(--ink-2);
+  border-inline-start: 1px solid var(--hairline);
+}
+
+/* The product's own. The head's first cell has no rule over it (the specimen's style="border-top: 0"). */
+.matrix thead th.rowhead {
+  border-top: 0;
+}
+
+/* The report's parts stand apart as the spec's frame spaces them, and its two sentences for when nothing flips. */
 .regression {
   display: grid;
-  gap: var(--space-3);
+  gap: 14px;
 }
-
-.regression__summary,
 .regression__empty {
   margin: 0;
+  color: var(--ink-3);
   font-size: var(--text-sm);
-}
-
-.regression__empty {
-  color: var(--color-text-muted);
-}
-
-.regression__transitions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  margin: 0;
-  padding: 0;
-  font-size: var(--text-sm);
-  list-style: none;
-}
-
-.regression__transition {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.regression__count {
-  font-weight: 600;
-}
-
-.regression__scroll {
-  max-height: 22rem;
-  overflow: auto;
-}
-
-.regression__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.regression__table th {
-  position: sticky;
-  top: 0;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-align: start;
-  text-transform: uppercase;
-}
-
-.regression__table td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
 }

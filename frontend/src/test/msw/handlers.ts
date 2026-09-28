@@ -13,6 +13,7 @@ import { depositRuleSet, lendingParagraphs, lendingRuleSet } from '../fixtures/l
 import {
   approvedDecision,
   COPY_VERSION_ID,
+  proposedSampleDecision,
   rejectedDecision,
   scriptedEvents,
   scriptedProposalEvent,
@@ -24,6 +25,7 @@ import {
   approvalEntry,
   COPY_FIRST_VERSION_ID,
   copyPublishEntry,
+  everyEntry,
   seedPublishEntry,
 } from '../fixtures/audit'
 
@@ -275,17 +277,23 @@ export const handlers: RequestHandler[] = [
   ),
   http.post(`${BASE}/changes/:id/approve`, () => HttpResponse.json(approvedDecision)),
   http.post(`${BASE}/changes/:id/reject`, () => HttpResponse.json(rejectedDecision)),
-  // the audit log of a version, as the scripted change leaves it, and the diff of any two versions
+  // what the proposal decides for a stored decision, the second of a flipped case's two traces
+  http.get(`${BASE}/changes/:id/decisions/:decisionId/trace`, () =>
+    HttpResponse.json(proposedSampleDecision),
+  ),
+  // the audit log as the scripted change leaves it, every entry or a version's, and the diff of any two versions
   http.get(`${BASE}/audit`, ({ request }) => {
     const versionId = new URL(request.url).searchParams.get('versionId')
     const entries =
-      versionId === COPY_VERSION_ID
-        ? [approvalEntry]
-        : versionId === COPY_FIRST_VERSION_ID
-          ? [copyPublishEntry]
-          : versionId === SEEDED_VERSION_ID
-            ? [seedPublishEntry]
-            : []
+      versionId === null
+        ? everyEntry
+        : versionId === COPY_VERSION_ID
+          ? [approvalEntry]
+          : versionId === COPY_FIRST_VERSION_ID
+            ? [copyPublishEntry]
+            : versionId === SEEDED_VERSION_ID
+              ? [seedPublishEntry]
+              : []
     return HttpResponse.json({ entries })
   }),
   http.get(`${BASE}/rulesets/:id/versions/:a/diff/:b`, () =>

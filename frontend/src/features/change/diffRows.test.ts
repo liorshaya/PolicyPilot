@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import type { Diff, FieldSchema, Rule } from '../../api/types'
 import { scriptedProposalEvent } from '../../test/fixtures/change'
 import { lendingRuleSet } from '../../test/fixtures/lending'
-import { changedAttributes, diffRows, diffSummary } from './diffRows'
+import {
+  changedAttributes,
+  comparisonText,
+  diffRows,
+  diffSummary,
+  labelChange,
+  unifiedRows,
+} from './diffRows'
 
 // @requirement FR-18
 // @requirement FR-20
@@ -213,5 +220,123 @@ describe('changedAttributes', () => {
     expect(changedAttributes(r170?.changes ?? [])).toStrictEqual(
       new Set(['label', 'condition', 'actions', 'provenance']),
     )
+  })
+})
+
+/**
+ * The unified diff (the spec, section 09, "The change request": "one row per changed cell (rule · field · before →
+ * after) with the changed value tinted, the whole rule struck when removed"): a modified rule is a row for each
+ * comparison of its condition that changed, named by the field it tests, then one for each other attribute that
+ * changed; an added or a removed rule is one row, whole.
+ */
+describe('unifiedRows', () => {
+  it("writes the scripted change as the spec's rows: each changed comparison by its field, then the label, the action and the source", () => {
+    const rows = unifiedRows(scriptedProposalEvent.diff)
+
+    expect(rows.map((row) => [row.key, row.field, row.kind])).toStrictEqual([
+      ['R-170', 'monthly_income', 'condition'],
+      ['R-170', 'label', 'label'],
+      ['R-170', 'action', 'action'],
+      ['R-170', 'source', 'source'],
+      ['R-410', 'monthly_income', 'condition'],
+      ['R-410', 'source', 'source'],
+    ])
+    // Document 3: condition.value 8000 → 9000, and R-410's band by its two ends
+    expect(rows[0]).toMatchObject({
+      before: { field: 'monthly_income', op: 'lt', value: 8000 },
+      after: { field: 'monthly_income', op: 'lt', value: 9000 },
+    })
+    expect(rows[4]).toMatchObject({
+      before: { op: 'between', value: [8000, 9000] },
+      after: { op: 'between', value: [9000, 10000] },
+    })
+  })
+
+  it('names a comparison inside an all by the field it tests, and writes an added or a removed rule whole', () => {
+    const gate: Rule = { ...added, id: 'R-132' }
+    const tightened: Rule = {
+      ...gate,
+      condition: {
+        all: [
+          { field: 'requested_amount', op: 'gt', value: 60000 },
+          { field: 'has_guarantor', op: 'eq', value: false },
+        ],
+      },
+    }
+    const rows = unifiedRows({
+      ...empty,
+      rules: {
+        added: [added],
+        removed: [rule('R-160')],
+        modified: [
+          {
+            id: 'R-132',
+            from: gate,
+            to: tightened,
+            changes: [{ path: '/condition/all/0/value', from: 80000, to: 60000 }],
+          },
+        ],
+      },
+    })
+
+    expect(rows.map((row) => [row.key, row.field, row.kind])).toStrictEqual([
+      ['R-131', '', 'added'],
+      ['R-132', 'requested_amount', 'condition'],
+      ['R-160', '', 'removed'],
+    ])
+    expect(rows[1]).toMatchObject({
+      before: { field: 'requested_amount', op: 'gt', value: 80000 },
+      after: { field: 'requested_amount', op: 'gt', value: 60000 },
+    })
+  })
+
+  it('writes a field and the defaults as rows of their own', () => {
+    const rows = unifiedRows({
+      ...empty,
+      fields: { added: [field('has_guarantor')], removed: [], modified: [] },
+      defaults: {
+        from: { outcome: 'refer', reason: 'לבדיקה' },
+        to: { outcome: 'reject', reason: 'נדחה' },
+      },
+    })
+
+    expect(rows.map((row) => [row.key, row.field, row.kind])).toStrictEqual([
+      ['has_guarantor', 'field', 'added'],
+      ['defaults', 'defaults', 'defaults'],
+    ])
+  })
+})
+
+/**
+ * A label that changed (the spec's unified diff: "…נמוכה מ-8,000 → …נמוכה מ-9,000"): the words around the change kept
+ * for context, one before it, the rest cut, and the changed part whole: a number is tinted whole, never a digit of it.
+ */
+describe('labelChange', () => {
+  it("keeps one word before the change, cuts the rest, and tints the number whole: the spec's R-170", () => {
+    expect(
+      labelChange('דחייה: הכנסה חודשית נטו נמוכה מ-8,000', 'דחייה: הכנסה חודשית נטו נמוכה מ-9,000'),
+    ).toStrictEqual({
+      before: { cut: true, head: 'נמוכה מ-', changed: '8,000', tail: '', cutEnd: false },
+      after: { cut: true, head: 'נמוכה מ-', changed: '9,000', tail: '', cutEnd: false },
+    })
+  })
+
+  it('cuts nothing from a label that changed at its start, and keeps one word after the change', () => {
+    expect(labelChange('דחייה בגלל גיל המבקש', 'אישור בגלל גיל המבקש')).toStrictEqual({
+      before: { cut: false, head: '', changed: 'דחייה', tail: ' בגלל', cutEnd: true },
+      after: { cut: false, head: '', changed: 'אישור', tail: ' בגלל', cutEnd: true },
+    })
+  })
+})
+
+describe('comparisonText', () => {
+  it('writes a comparison as the unified diff does, without its tints: the sign, then the value', () => {
+    // the spec's audit log, section 09: "R-170 monthly_income < 8,000 → < 9,000 · R-410 [8,000 .. 9,000] → …"
+    expect(comparisonText({ field: 'monthly_income', op: 'lt', value: 8000 })).toBe('< 8,000')
+    expect(comparisonText({ field: 'monthly_income', op: 'between', value: [8000, 9000] })).toBe(
+      '[8,000 .. 9,000]',
+    )
+    // the rules table's signs (the spec, section 07)
+    expect(comparisonText({ field: 'has_guarantor', op: 'eq', value: false })).toBe('= false')
   })
 })

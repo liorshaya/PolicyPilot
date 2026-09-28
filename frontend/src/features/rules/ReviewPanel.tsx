@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import type { Finding, GapResolution, Review, ReviewFinding } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { dateTimeOf, timeOf } from '../../shared/i18n/time'
-import { Actor } from '../../shared/ui/Actor'
+import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
 import { Icon } from '../../shared/ui/Icon'
@@ -19,9 +19,6 @@ import {
   reviewStatusLine,
 } from './findings'
 import './ReviewPanel.css'
-
-/** The person the product records on an acknowledgement or a publish (the owner's answer to phase 1's first question). */
-const PERSON = 'Analyst'
 
 /** The note an acknowledgement records follows the chat message limit (Document 2, the acknowledge route). */
 const NOTE_LIMIT = 2000

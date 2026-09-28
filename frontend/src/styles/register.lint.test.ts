@@ -63,20 +63,6 @@ const RULES: [name: string, hits: (selector: string, declarations: string) => nu
  * new hit fails, and so does a hit that is gone while its count is still here. Phase 5 leaves it empty.
  */
 const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> = {
-  'src/features/change/DiffView.css': {
-    phase: 4,
-    hits: {
-      'uppercase outside .seal': 1,
-      'letter-spacing outside .seal, .t-band and .figure__value': 1,
-    },
-  },
-  'src/features/change/RegressionReport.css': {
-    phase: 4,
-    hits: {
-      'uppercase outside .seal': 1,
-      'letter-spacing outside .seal, .t-band and .figure__value': 1,
-    },
-  },
   'src/features/policy/PoliciesScreen.css': {
     phase: 5,
     hits: {

@@ -14,6 +14,7 @@ import type {
   GapResolution,
   PoliciesResponse,
   PolicyResponse,
+  ProposedDecision,
   ProviderResponse,
   RulesetsResponse,
   RuleSetDocument,
@@ -107,8 +108,9 @@ export function decisionExportUrl(decisionId: string): string {
 async function download(
   path: string,
   accept: string,
+  query?: Query,
 ): Promise<{ blob: Blob; name: string | null }> {
-  const response = await fetch(url(path), {
+  const response = await fetch(url(path, query), {
     credentials: 'include',
     headers: { [CLIENT_HEADER]: 'web', Accept: accept },
   })
@@ -201,13 +203,26 @@ export const api = {
   stats: (rulesetId: string, versionNo: number) =>
     request<Aggregates>('GET', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/stats`),
 
-  /** A version's audit entries, newest first (Document 2, GET /audit). */
-  audit: (versionId: string) =>
-    request<AuditEntriesResponse>('GET', '/api/v1/audit', { query: { versionId } }),
+  /** The audit entries of a version, or every entry the sandbox can see, newest first (Document 2, GET /audit). */
+  audit: (versionId: string | null) =>
+    request<AuditEntriesResponse>('GET', '/api/v1/audit', {
+      query: { versionId: versionId ?? undefined },
+    }),
+
+  /** The audit log as a file, a version's or all of it (Document 2: JSON or CSV by the Accept header). */
+  exportAudit: (versionId: string | null, accept: 'application/json' | 'text/csv') =>
+    download('/api/v1/audit/export', accept, { versionId: versionId ?? undefined }),
 
   /** The structural diff of two versions of one rule set (Document 2, GET .../diff/{b}). */
   diff: (rulesetId: string, from: number, to: number) =>
     request<Diff>('GET', `/api/v1/rulesets/${rulesetId}/versions/${from}/diff/${to}`),
+
+  /**
+   * What a proposal decides for one of the sandbox's decisions on its base version, with the trace (Document 2, GET
+   * /changes/{id}/decisions/{decisionId}/trace); nothing is stored.
+   */
+  proposedDecision: (changeId: string, decisionId: string) =>
+    request<ProposedDecision>('GET', `/api/v1/changes/${changeId}/decisions/${decisionId}/trace`),
 
   /** A person's decision on a proposed change; a blank note is no note (Document 2: the note is optional). */
   decideChange: (changeId: string, verdict: 'approve' | 'reject', note: string) =>

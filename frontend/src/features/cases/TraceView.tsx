@@ -1,7 +1,7 @@
-import { useId, useState, type MouseEvent } from 'react'
+import { useId, useState, type MouseEvent, type ReactElement } from 'react'
 import { api, ApiError, decisionExportUrl } from '../../api/client'
 import { useExplain } from '../../api/queries'
-import type { Decision, FieldSchema, TraceStep } from '../../api/types'
+import type { Decision, FieldSchema, ProposedDecision, TraceStep } from '../../api/types'
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { dateTimeOf, timeOf } from '../../shared/i18n/time'
 import { Actor } from '../../shared/ui/Actor'
@@ -10,7 +10,9 @@ import { Chip } from '../../shared/ui/Chip'
 import { Icon } from '../../shared/ui/Icon'
 import { Provenance } from '../../shared/ui/Provenance'
 import { DecisionTag } from '../../shared/ui/StatusTag'
+import { saveFile } from '../../shared/ui/saveFile'
 import type { DecisionStatus } from '../../shared/ui/decisionLabels'
+import { changeRequestName } from '../change/names'
 import { literalText, unitLabel } from '../rules/cellGrammar'
 import { ExplainActions, Explanation } from './ExplainPanel'
 import { engineTime } from './outcomes'
@@ -25,6 +27,36 @@ import {
   STEP_LABELS,
 } from './trace'
 import './TraceView.css'
+
+/**
+ * Who decided, on what and when: "decided on v1 · engine · 61 µs · 10:14:07" for a stored decision, the time of day as
+ * the spec's Cases screen writes it in the margin with the date on hover and in the markup; "decided on CR-0001 ·
+ * engine · not stored" for what a proposal decides, which has no time to give.
+ */
+function provenanceOf(decision: Decision | ProposedDecision): ReactElement[] {
+  if ('changeRequestNumber' in decision) {
+    return [
+      <span key="request">
+        decided on <b>{changeRequestName(decision.changeRequestNumber)}</b>
+      </span>,
+      <Actor key="engine" kind="engine">
+        engine
+      </Actor>,
+      <span key="stored">not stored</span>,
+    ]
+  }
+  return [
+    <span key="version">
+      decided on <b>v{decision.rulesetVersion.versionNo}</b>
+    </span>,
+    <Actor key="engine" kind="engine">
+      engine · {engineTime(decision.durationMicros)}
+    </Actor>,
+    <time key="time" dateTime={decision.decidedAt} title={dateTimeOf(decision.decidedAt, true)}>
+      {timeOf(decision.decidedAt, true)}
+    </time>,
+  ]
+}
 
 /** The spec's class for each outcome: the tag, the dot of the deciding step, the ring of its cell. */
 const TAGS: Record<DecisionStatus, string> = {
@@ -53,7 +85,10 @@ const CELL_CLASSES: Record<TraceStep['status'], string> = {
 }
 
 interface TraceViewProps {
-  decision: Decision
+  /** A stored decision, or what a proposal decides for one (Document 2, the proposed side of a flipped case). */
+  decision: Decision | ProposedDecision
+  /** The case a proposal's decision is about, which its answer does not carry: it names the stored decision instead. */
+  caseNo?: number | null
   /** The language of the policy, for the labels and the reason a rule gives the applicant. */
   language: ContentLanguage
   /** The fields of the version that decided, for the unit of each value the engine derived. */
@@ -67,11 +102,21 @@ interface TraceViewProps {
  * The engine's record of one decision (Document 3, Trace format; the spec, section 09, "The trace"), rendered verbatim
  * and in the engine's own words (Document 2, key decision 4): the head with the outcome, the provenance and the hit map;
  * the explanation a reader asks for; the rule that decided with its reason; what the engine derived and flagged; and the
- * steps in the order the engine walked them. Nothing on this surface is computed by the client.
+ * steps in the order the engine walked them. Nothing on this surface is computed by the client. What a proposal decides
+ * reads the same, headed by the request it was decided on; it was never stored, so it has no time, and nothing to
+ * explain or to export.
  */
-export function TraceView({ decision, language, fields, onClose, onSelectRule }: TraceViewProps) {
+export function TraceView({
+  decision,
+  caseNo,
+  language,
+  fields,
+  onClose,
+  onSelectRule,
+}: TraceViewProps) {
   const stepsId = useId()
-  const explain = useExplain(decision.id)
+  const stored = 'changeRequestNumber' in decision ? null : decision
+  const explain = useExplain(stored?.id ?? null)
   const [everyComparison, setEveryComparison] = useState(false)
   const [exportRefused, setExportRefused] = useState<string | null>(null)
   const failed = decision.status === 'ERROR'
@@ -98,26 +143,25 @@ export function TraceView({ decision, language, fields, onClose, onSelectRule }:
     </Chip>
   )
 
-  async function save(accept: 'application/json' | 'text/csv', extension: string) {
+  async function save(
+    stored: Decision,
+    accept: 'application/json' | 'text/csv',
+    extension: string,
+  ) {
     setExportRefused(null)
     try {
-      const { blob, name } = await api.exportDecision(decision.id, accept)
-      const href = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = href
-      anchor.download = name ?? `case-${String(decision.caseNo ?? decision.id)}.${extension}`
-      anchor.click()
-      URL.revokeObjectURL(href)
+      const { blob, name } = await api.exportDecision(stored.id, accept)
+      saveFile(blob, name ?? `case-${String(stored.caseNo ?? stored.id)}.${extension}`)
     } catch (error) {
       setExportRefused(error instanceof ApiError ? error.code : 'NETWORK_ERROR')
     }
   }
 
   const exportAs =
-    (accept: 'application/json' | 'text/csv', extension: string) =>
+    (stored: Decision, accept: 'application/json' | 'text/csv', extension: string) =>
     (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault()
-      void save(accept, extension)
+      void save(stored, accept, extension)
     }
 
   return (
@@ -125,7 +169,7 @@ export function TraceView({ decision, language, fields, onClose, onSelectRule }:
       <div className="trace__head">
         <div className="trace__title">
           <h2 className="trace__case">
-            Case <span className="tabular">{decision.caseNo ?? '—'}</span>
+            Case <span className="tabular">{(stored ? stored.caseNo : caseNo) ?? '—'}</span>
           </h2>
           <span className="trace__side">
             <DecisionTag status={outcome} />
@@ -136,24 +180,7 @@ export function TraceView({ decision, language, fields, onClose, onSelectRule }:
             ) : null}
           </span>
         </div>
-        <Provenance
-          segments={[
-            <span key="version">
-              decided on <b>v{decision.rulesetVersion.versionNo}</b>
-            </span>,
-            <Actor key="engine" kind="engine">
-              engine · {engineTime(decision.durationMicros)}
-            </Actor>,
-            // the time of day, as the spec's Cases screen writes it in the margin; the date on hover and in the markup
-            <time
-              key="time"
-              dateTime={decision.decidedAt}
-              title={dateTimeOf(decision.decidedAt, true)}
-            >
-              {timeOf(decision.decidedAt, true)}
-            </time>,
-          ]}
-        />
+        <Provenance segments={provenanceOf(decision)} />
         <div>
           <div
             className={`hitmap${failed ? '' : ` hitmap--${TAGS[outcome]}`}`}
@@ -191,27 +218,34 @@ export function TraceView({ decision, language, fields, onClose, onSelectRule }:
             </span>
           </div>
         </div>
-        <div className="btn-group">
-          <ExplainActions explain={explain} />
-          <span className="muted trace__export">
-            Export{' '}
-            <a href={decisionExportUrl(decision.id)} onClick={exportAs('application/json', 'json')}>
-              JSON
-            </a>{' '}
-            ·{' '}
-            <a href={decisionExportUrl(decision.id)} onClick={exportAs('text/csv', 'csv')}>
-              CSV
-            </a>
-          </span>
-          {exportRefused ? (
-            <span className="reason" role="alert">
-              The export was refused (<span className="mono">{exportRefused}</span>).
+        {stored ? (
+          <div className="btn-group">
+            <ExplainActions explain={explain} />
+            <span className="muted trace__export">
+              Export{' '}
+              <a
+                href={decisionExportUrl(stored.id)}
+                onClick={exportAs(stored, 'application/json', 'json')}
+              >
+                JSON
+              </a>{' '}
+              ·{' '}
+              <a href={decisionExportUrl(stored.id)} onClick={exportAs(stored, 'text/csv', 'csv')}>
+                CSV
+              </a>
             </span>
-          ) : null}
-        </div>
+            {exportRefused ? (
+              <span className="reason" role="alert">
+                The export was refused (<span className="mono">{exportRefused}</span>).
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
-      <Explanation explain={explain} language={language} onOpenRule={onSelectRule} />
+      {stored ? (
+        <Explanation explain={explain} language={language} onOpenRule={onSelectRule} />
+      ) : null}
 
       {failed ? (
         <div className="trace__deciding">

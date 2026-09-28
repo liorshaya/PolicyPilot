@@ -1,8 +1,10 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`DiffView > RTL: Hebrew content turns right to left inside left-to-right chrome (snapshot) 1`] = `
+exports[`DiffView · side by side, the alternative > RTL: Hebrew content turns right to left inside left-to-right chrome (snapshot) 1`] = `
 "
 page -           2 rules modified
+page -           ·
+page -           Unified
 page -           Item
 page -           Version 1
 page -           Proposed

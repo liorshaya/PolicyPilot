@@ -1,19 +1,47 @@
-import type { AuditEntry, Diff, FieldSchema } from '../../api/types'
-import { directionOfText, type ContentLanguage } from '../../shared/i18n/direction'
+import type { ReactNode } from 'react'
+import type { AuditEntry, Diff, FieldSchema, FindingKind } from '../../api/types'
+import { directionOfText, isolated, type ContentLanguage } from '../../shared/i18n/direction'
+import { dateTimeOf, timeOf } from '../../shared/i18n/time'
+import { Actor, PERSON, type ActorKind } from '../../shared/ui/Actor'
+import { Chip } from '../../shared/ui/Chip'
+import { Seal } from '../../shared/ui/Seal'
+import { DECISION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
+import { KIND_LABELS } from '../../shared/ui/findingKinds'
 import { DiffView } from '../change/DiffView'
 import { RegressionReport } from '../change/RegressionReport'
+import { comparisonText, unifiedRows } from '../change/diffRows'
+import { changeRequestName } from '../change/names'
 import type { Regression } from '../change/types'
 import { RESOLUTION_LABELS } from '../rules/findings'
-import { formatInstant } from './time'
 
-/** The actions of the audit log, in the words a reader looks for (Document 2, Data Model: `audit_entry.action`). */
-const ACTION_LABELS: Record<AuditEntry['action'], string> = {
+/** Each audit action's verb (the spec, section 09: Published, Change proposed, …, Finding acknowledged, Reset). */
+const VERBS: Record<AuditEntry['action'], string> = {
   PUBLISH: 'Published',
   CHANGE_PROPOSED: 'Change proposed',
   CHANGE_APPROVED: 'Change approved',
   CHANGE_REJECTED: 'Change rejected',
-  GAP_ACKNOWLEDGED: 'Gap acknowledged',
+  GAP_ACKNOWLEDGED: 'Finding acknowledged',
   RESET: 'Reset',
+}
+
+/**
+ * Who each action is by (the spec, section 04, and the board's note of 2026-09-28): the sandbox is every entry's actor,
+ * so a person's act carries the person's mark, a proposal the model's, and a reset the system's.
+ */
+const ACTORS: Record<AuditEntry['action'], ActorKind> = {
+  PUBLISH: 'person',
+  CHANGE_PROPOSED: 'model',
+  CHANGE_APPROVED: 'person',
+  CHANGE_REJECTED: 'person',
+  GAP_ACKNOWLEDGED: 'person',
+  RESET: 'system',
+}
+
+const ACTOR_NAMES: Record<ActorKind, string> = {
+  person: PERSON,
+  model: 'Model',
+  engine: 'Engine',
+  system: 'System',
 }
 
 interface AuditEntryViewProps {
@@ -23,124 +51,242 @@ interface AuditEntryViewProps {
   fields?: FieldSchema[]
 }
 
+/** What an entry's details hold, read defensively: an entry is stored JSON, written by the action that made it. */
+interface Details {
+  versionNo?: number
+  rules?: number
+  warnings?: unknown[]
+  forkedFromVersionId?: string
+  patches?: number
+  requestText?: string | null
+  note?: string | null
+  diff?: Diff
+  regression?: Regression
+  id?: string
+  kind?: FindingKind
+  acknowledgement?: { resolution?: keyof typeof RESOLUTION_LABELS; note?: string | null }
+}
+
 /**
- * One entry of the audit log: what happened, when, who did it, and what the entry recorded (Brief, demo step 4: "who
- * changed what, when and why"). An approval's diff and regression report are rendered from the JSON the entry stored,
- * never recomputed from the documents (Document 3, Structural diff).
+ * One row of the audit log (the spec, section 09): the time, the mark of who acted, and a provenance line with the
+ * verb, the chips and, for a person's decision on a change, the seal; under it what the entry recorded, a note as a
+ * quotation in its own direction, and for an approval the request, the diff and the regression it carried, rendered
+ * from the JSON the entry stored and never recomputed (Document 3, Structural diff).
  */
 export function AuditEntryView({ entry, language, fields }: AuditEntryViewProps) {
+  const details = (entry.details ?? {}) as Details
+  const actor = ACTORS[entry.action]
+  const version = entry.action === 'PUBLISH' || entry.action === 'CHANGE_APPROVED'
   return (
-    <article className="audit__entry">
-      <header className="audit__entry-head">
-        <h3 className="audit__action">{ACTION_LABELS[entry.action]}</h3>
-        <time className="audit__time tabular" dateTime={entry.at}>
-          {formatInstant(entry.at)}
+    <li className={`event${version ? ' event--version' : ''}`}>
+      <span className="event__time">
+        <time dateTime={entry.at} title={dateTimeOf(entry.at)}>
+          {timeOf(entry.at)}
         </time>
-      </header>
-      <p className="audit__by">
-        By <span className="mono">{entry.actor}</span>
-      </p>
-      <Details entry={entry} language={language} fields={fields} />
-    </article>
+      </span>
+      <span className="event__mark">
+        <Actor kind={actor} title={ACTOR_NAMES[actor]} />
+      </span>
+      <div className="event__body">
+        <Recorded entry={entry} details={details} language={language} fields={fields} />
+      </div>
+    </li>
   )
 }
 
-function Details({ entry, language, fields }: AuditEntryViewProps) {
-  const details = (entry.details ?? {}) as Record<string, unknown>
-  const text = (key: string) => (typeof details[key] === 'string' ? details[key] : null)
-  const count = (key: string) => (typeof details[key] === 'number' ? details[key] : 0)
+function Recorded({
+  entry,
+  details,
+  language,
+  fields,
+}: {
+  entry: AuditEntry
+  details: Details
+  language: ContentLanguage
+  fields?: FieldSchema[]
+}) {
+  const verb = <span className="event__verb">{VERBS[entry.action]}</span>
+  const request =
+    entry.changeRequestNumber === null ? null : (
+      <Chip>{changeRequestName(entry.changeRequestNumber)}</Chip>
+    )
   switch (entry.action) {
-    case 'CHANGE_APPROVED': {
-      const versionNo = count('versionNo')
+    case 'PUBLISH': {
+      const warnings = details.warnings?.length ?? 0
       return (
-        <div className="audit__details">
-          <Said label="Request" text={text('requestText')} />
-          <Said label="Note" text={text('note')} />
-          {isDiff(details.diff) ? (
-            <DiffView
-              diff={details.diff}
-              language={language}
-              fields={fields}
-              beforeLabel={`Version ${versionNo - 1}`}
-              afterLabel={`Version ${versionNo}`}
-            />
+        <>
+          <div className="event__line">
+            {verb}
+            <span className="vstatus vstatus--published">{`v${String(details.versionNo)}`}</span>
+            {details.forkedFromVersionId === undefined ? null : (
+              <span className="muted">copied from the seeded version as it was published</span>
+            )}
+            <span className="event__id" title={entry.rulesetVersionId}>
+              {shortId(entry.rulesetVersionId)}
+            </span>
+          </div>
+          <span className="event__delta">{publishedText(details.rules ?? 0, warnings)}</span>
+        </>
+      )
+    }
+    case 'CHANGE_PROPOSED': {
+      const patches = details.patches ?? 0
+      return (
+        <>
+          <div className="event__line">
+            {verb}
+            {request}
+            <span className="muted">on</span>
+            <span className="mono">{`v${String(details.versionNo)}`}</span>
+          </div>
+          <span className="event__delta">{`${String(patches)} patch${patches === 1 ? '' : 'es'}`}</span>
+        </>
+      )
+    }
+    case 'CHANGE_APPROVED': {
+      const changes = details.diff ? conditionChanges(details.diff) : []
+      const versionNo = details.versionNo ?? 0
+      return (
+        <>
+          <div className="event__line">
+            {verb}
+            {request}
+            <span className="muted">published</span>
+            <span className="vstatus vstatus--published">{`v${String(versionNo)}`}</span>
+            <span className="muted">by</span>
+            <span>{PERSON}</span>
+            <Seal kicker="Approved" line={timeOf(entry.at)} inline />
+          </div>
+          {changes.length > 0 ? (
+            <span className="event__delta">
+              {changes.map((change, index) => (
+                <span key={change.key}>
+                  {index > 0 ? ' · ' : ''}
+                  {`${change.rule} ${change.field} `}
+                  <span className="arrow">{`${change.before} → ${change.after}`}</span>
+                </span>
+              ))}
+            </span>
           ) : null}
-          {isRegression(details.regression) ? (
-            <RegressionReport regression={details.regression} baseVersionNo={versionNo - 1} />
-          ) : null}
-        </div>
+          <Quote text={details.note} />
+          <details>
+            <summary>Show the request, the diff and the regression</summary>
+            <div className="event__more">
+              <Quote text={details.requestText} />
+              {details.regression ? (
+                <span className="event__delta">{flipsText(details.regression)}</span>
+              ) : null}
+              {details.diff ? (
+                <DiffView
+                  diff={details.diff}
+                  language={language}
+                  fields={fields}
+                  beforeLabel={`v${String(versionNo - 1)}`}
+                  afterLabel={`v${String(versionNo)}`}
+                />
+              ) : null}
+              {details.regression ? (
+                <RegressionReport regression={details.regression} baseVersionNo={versionNo - 1} />
+              ) : null}
+            </div>
+          </details>
+        </>
       )
     }
     case 'CHANGE_REJECTED':
       return (
-        <div className="audit__details">
-          <Said label="Request" text={text('requestText')} />
-          <Said label="Note" text={text('note')} />
-        </div>
-      )
-    case 'CHANGE_PROPOSED': {
-      const patches = count('patches')
-      return (
-        <p className="audit__fact">
-          {`${patches} patch${patches === 1 ? '' : 'es'} proposed on version ${count('versionNo')}`}
-        </p>
-      )
-    }
-    case 'PUBLISH': {
-      const warnings = Array.isArray(details.warnings) ? details.warnings.length : 0
-      return (
-        <div className="audit__details">
-          {text('forkedFromVersionId') !== null ? (
-            <p className="audit__fact">Copied from the seeded version as it was published</p>
+        <>
+          <div className="event__line">
+            {verb}
+            {request}
+            <span className="muted">by</span>
+            <span>{PERSON}</span>
+            <Seal kicker="Rejected" line={timeOf(entry.at)} inline />
+          </div>
+          <Quote text={details.note} />
+          {details.requestText ? (
+            <details>
+              <summary>Show the request</summary>
+              <div className="event__more">
+                <Quote text={details.requestText} />
+              </div>
+            </details>
           ) : null}
-          <p className="audit__fact">
-            {`${count('rules')} rules published, ${warnings} warning${warnings === 1 ? '' : 's'} left open`}
-          </p>
-        </div>
+        </>
       )
-    }
     case 'GAP_ACKNOWLEDGED': {
-      const acknowledgement = (details.acknowledgement ?? {}) as {
-        resolution?: keyof typeof RESOLUTION_LABELS
-        note?: string
-      }
+      const resolution = details.acknowledgement?.resolution
       return (
-        <div className="audit__details">
-          <Said label="Finding" text={text('message')} />
-          {acknowledgement.resolution !== undefined ? (
-            <p className="audit__fact">{`Resolved: ${RESOLUTION_LABELS[acknowledgement.resolution]}`}</p>
-          ) : null}
-          <Said label="Note" text={acknowledgement.note ?? null} />
-        </div>
+        <>
+          <div className="event__line">
+            {verb}
+            {details.id === undefined ? null : <Chip>{details.id}</Chip>}
+            <span className="muted">{`${details.kind ? KIND_LABELS[details.kind] : 'Finding'}, on`}</span>
+            <span className="vstatus vstatus--draft">{`Draft v${String(details.versionNo)}`}</span>
+          </div>
+          {resolution === undefined ? null : (
+            <span className="event__resolution">{RESOLUTION_LABELS[resolution]}</span>
+          )}
+          <Quote text={details.acknowledgement?.note} />
+        </>
       )
     }
     case 'RESET':
-      return <p className="audit__fact">The seeded data was reset.</p>
+      return (
+        <div className="event__line">
+          {verb}
+          <span className="muted">the seeded data was reset</span>
+        </div>
+      )
   }
 }
 
-/** A text a person wrote, laid out in its own direction: a Hebrew request or note inside the English log. */
-function Said({ label, text }: { label: string; text: string | null }) {
-  if (text === null || text.trim() === '') {
+/** A text a person wrote, quoted in its own direction: a Hebrew note right to left inside the English log. */
+function Quote({ text }: { text: string | null | undefined }): ReactNode {
+  if (text === null || text === undefined || text.trim() === '') {
     return null
   }
   const dir = directionOfText(text)
+  const language: ContentLanguage = dir === 'rtl' ? 'he' : 'en'
   return (
-    <p className="audit__said">
-      <span className="audit__said-label">{label}</span>{' '}
-      <span dir={dir} lang={dir === 'rtl' ? 'he' : undefined}>
-        {text}
-      </span>
-    </p>
+    <div className="he-quote">
+      <p dir={dir} lang={language}>
+        {isolated(text, language)}
+      </p>
+    </div>
   )
 }
 
-function isDiff(value: unknown): value is Diff {
-  const diff = value as Partial<Diff> | null
-  return typeof diff?.rules === 'object' && typeof diff.fields === 'object'
+/** The changed comparisons of an approval's diff, as the row's line of what changed writes them. */
+function conditionChanges(diff: Diff) {
+  return unifiedRows(diff)
+    .filter((row) => row.kind === 'condition')
+    .map((row) => ({
+      key: `${row.key}:${row.field}`,
+      rule: row.key,
+      field: row.field,
+      before: comparisonText(row.before),
+      after: comparisonText(row.after),
+    }))
 }
 
-function isRegression(value: unknown): value is Regression {
-  const regression = value as Partial<Regression> | null
-  return typeof regression?.decisions === 'number' && Array.isArray(regression.flips)
+/** What a publication recorded: "20 rules", and the warnings it left open. */
+function publishedText(rules: number, warnings: number): string {
+  const open =
+    warnings === 0 ? '' : ` · ${String(warnings)} warning${warnings === 1 ? '' : 's'} left open`
+  return `${String(rules)} rules${open}`
+}
+
+/** An approval's regression in one line: "12 flipped · 6 approved→declined · 6 manual review→declined". */
+function flipsText(regression: Regression): string {
+  const transitions = Object.entries(regression.transitions).map(([key, count]) => {
+    const [from, to] = key.split(' → ') as [DecisionStatus, DecisionStatus]
+    return `${String(count)} ${DECISION_LABELS[from].toLowerCase()}→${DECISION_LABELS[to].toLowerCase()}`
+  })
+  return [`${String(regression.flips.length)} flipped`, ...transitions].join(' · ')
+}
+
+/** An id as the log's margin writes it: its first four characters and its last two, the whole on hover. */
+function shortId(id: string): string {
+  return `${id.slice(0, 4)}…${id.slice(-2)}`
 }

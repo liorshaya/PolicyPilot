@@ -2,20 +2,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AuditEntry } from '../../api/types'
+import { specRules, stylesheet, unported } from '../../test/css'
 import {
+  approvalEntry,
+  copyPublishEntry,
   copyRuleset,
   copyVersion,
   gapEntry,
   NOTE,
   proposedEntry,
   rejectedEntry,
-  SANDBOX,
+  resetEntry,
   seedPublishEntry,
-  copyPublishEntry,
 } from '../../test/fixtures/audit'
-import { COPY_RULESET_ID, scriptedRequest } from '../../test/fixtures/change'
+import { COPY_RULESET_ID, scriptedProposalEvent, scriptedRequest } from '../../test/fixtures/change'
 import {
   publishedVersion,
   rulesets,
@@ -31,9 +33,12 @@ import { AuditScreen } from './AuditScreen'
 // @requirement NFR-5
 
 /**
- * The audit log (Brief, demo step 4: "Version 2 is published, the audit log shows who changed what, when and why";
- * Document 2, GET /audit: a version's entries, newest first; Work Plan day 14: the audit log screen, newest first, and
- * an RTL snapshot). The entries are those the scripted change leaves (src/test/fixtures/audit.ts).
+ * The audit log (Brief, demo step 4: "Version 2 is published, the audit log shows who changed what, when and why"),
+ * drawn as the Register draws it (the spec, section 09, "Audit log": append-only, newest first, grouped by day, one row
+ * per audit action the API records, each a provenance line with the actor's mark; an approval expands to the request,
+ * the diff and the regression it carried; the compare control; no edit or delete affordance anywhere). The entries are
+ * those the scripted change leaves (src/test/fixtures/audit.ts); `GET /audit` without a version lists them all
+ * (Document 2, since 2026-09-28).
  */
 
 const BASE = 'http://localhost:8080/api/v1'
@@ -54,19 +59,22 @@ function serveTheCopy() {
   )
 }
 
-/** The seeded version's log, as a test chooses to fill it. */
-function serveTheSeededLog(entries: AuditEntry[]) {
+/** The log as a test chooses to fill it: every entry without a version, and the seeded version's own with it. */
+function serveTheLog(all: AuditEntry[], seeded: AuditEntry[] = []) {
+  const asked: string[] = []
   server.use(
-    http.get(`${BASE}/audit`, ({ request }) =>
-      HttpResponse.json({
-        entries:
-          new URL(request.url).searchParams.get('versionId') === SEEDED_VERSION_ID ? entries : [],
-      }),
-    ),
+    http.get(`${BASE}/audit`, ({ request }) => {
+      const versionId = new URL(request.url).searchParams.get('versionId')
+      asked.push(versionId ?? 'all')
+      return HttpResponse.json({
+        entries: versionId === null ? all : versionId === SEEDED_VERSION_ID ? seeded : [],
+      })
+    }),
   )
+  return asked
 }
 
-function renderScreen(rulesetId: string | null) {
+function renderScreen(rulesetId: string | null = SEEDED_RULESET_ID) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
@@ -75,102 +83,268 @@ function renderScreen(rulesetId: string | null) {
   )
 }
 
-async function entries(): Promise<HTMLElement[]> {
-  return within(await screen.findByRole('list', { name: 'Entries' })).getAllByRole('article')
+/** The rows of the log, in the order the screen shows them. */
+async function rows(): Promise<HTMLElement[]> {
+  const log = await screen.findByRole('region', { name: 'Audit log' })
+  return await waitFor(() => {
+    const found = within(log).getAllByRole('listitem')
+    expect(found.length).toBeGreaterThan(0)
+    return found
+  })
 }
 
-describe('AuditScreen', () => {
-  it('lists the entries of the version newest first, in the order the API gives them', async () => {
-    serveTheSeededLog([rejectedEntry, proposedEntry, seedPublishEntry])
-    renderScreen(SEEDED_RULESET_ID)
+/** A row's line: the verb, the chips and what stands between them, as a reader sees it. */
+function lineOf(row: HTMLElement): string {
+  return row.querySelector('.event__line')?.textContent ?? ''
+}
 
-    const shown = await entries()
-    expect(shown.map((entry) => within(entry).getByRole('heading').textContent)).toStrictEqual([
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+describe('AuditScreen, the log', () => {
+  it('opens on every entry the sandbox can see, newest first, grouped by day', async () => {
+    const asked = serveTheLog([
+      rejectedEntry,
+      approvalEntry,
+      copyPublishEntry,
+      proposedEntry,
+      gapEntry,
+      seedPublishEntry,
+    ])
+    renderScreen()
+
+    const shown = await rows()
+    expect(shown.map((row) => row.querySelector('.event__verb')?.textContent)).toStrictEqual([
       'Change rejected',
+      'Change approved',
+      'Published',
       'Change proposed',
+      'Finding acknowledged',
       'Published',
     ])
-    expect(within(shown[0]!).getByText('2026-09-27 09:20 UTC')).toBeVisible()
-    expect(within(shown[2]!).getByText('2026-09-20 09:00 UTC')).toBeVisible()
-  })
-
-  it('shows an approval as who changed what, when and why: the request, the note, the stored diff and the flips', async () => {
-    serveTheCopy()
-    renderScreen(COPY_RULESET_ID)
-
-    const [approval] = await entries()
-    expect(within(approval!).getByRole('heading')).toHaveTextContent('Change approved')
-    expect(within(approval!).getByText('2026-09-27 09:12 UTC')).toBeVisible()
-    expect(within(approval!).getByText(SANDBOX)).toBeVisible()
-    expect(within(approval!).getByText(scriptedRequest.text.he)).toHaveAttribute('dir', 'rtl')
-    expect(within(approval!).getByText(NOTE)).toHaveAttribute('dir', 'rtl')
-    // the diff and the report the approval stored, rendered as they were stored (Document 3, Structural diff)
-    const diff = within(approval!).getByRole('region', {
-      name: 'Changes from Version 1 to Version 2',
-    })
-    expect(within(diff).getByText('2 rules modified')).toBeVisible()
+    const log = screen.getByRole('region', { name: 'Audit log' })
     expect(
-      within(approval!).getByText('12 of the 200 decisions made on version 1 flip.'),
+      within(log)
+        .getAllByRole('heading', { level: 3 })
+        .map((day) => day.textContent),
+    ).toStrictEqual(['2026-09-27', '2026-09-21', '2026-09-20'])
+    expect(within(log).getByText('6 entries')).toBeVisible()
+    expect(screen.getByRole('combobox', { name: 'Version' })).toHaveDisplayValue('All versions')
+    expect(asked).toStrictEqual(['all'])
+  })
+
+  it("narrows the log to one version, which it reads from that version's entries", async () => {
+    const asked = serveTheLog(
+      [rejectedEntry, proposedEntry, seedPublishEntry, copyPublishEntry],
+      [proposedEntry, seedPublishEntry],
+    )
+    renderScreen()
+    await rows()
+    const user = userEvent.setup()
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Version' }), 'Published v1')
+
+    await waitFor(async () =>
+      expect(
+        (await rows()).map((row) => row.querySelector('.event__verb')?.textContent),
+      ).toStrictEqual(['Change proposed', 'Published']),
+    )
+    expect(asked).toStrictEqual(['all', SEEDED_VERSION_ID])
+  })
+
+  it('says "Nothing recorded yet" on the ruled lines when there is nothing to show', async () => {
+    serveTheLog([])
+    renderScreen()
+
+    const empty = await screen.findByText('Nothing recorded yet')
+    expect(empty).toHaveClass('empty__rule', 'empty__rule--text')
+  })
+})
+
+describe('AuditScreen, a row', () => {
+  it("writes an approval as a provenance line: the time, a person's mark, the verb, the chips and the seal", async () => {
+    serveTheLog([approvalEntry])
+    renderScreen()
+
+    const [approval] = await rows()
+    expect(approval).toHaveClass('event', 'event--version')
+    expect(approval!.querySelector('.event__time')).toHaveTextContent('09:12')
+    expect(approval!.querySelector('.event__mark .actor--person')).not.toBeNull()
+    // the sandbox is the actor, named as the rail names the person (the owner's answer to phase 1's first question)
+    expect(lineOf(approval!)).toBe('Change approvedCR-0001publishedv2byAnalystApproved09:12')
+    expect(within(approval!).getByText('CR-0001')).toHaveClass('chip', 'chip--id')
+    expect(approval!.querySelector('.event__line .vstatus')).toHaveClass('vstatus--published')
+    const seal = approval!.querySelector('.seal')
+    expect(seal).toHaveClass('seal--inline')
+    expect(seal).not.toHaveClass('seal--rejected')
+    // what changed, cell by cell, from the diff the entry stored
+    expect(approval!.querySelector('.event__delta')).toHaveTextContent(
+      'R-170 monthly_income < 8,000 → < 9,000 · R-410 monthly_income [8,000 .. 9,000] → [9,000 .. 10,000]',
+    )
+    const note = within(approval!).getByText(NOTE)
+    expect(note).toHaveAttribute('dir', 'rtl')
+    expect(note).toHaveAttribute('lang', 'he')
+    expect(note.closest('.he-quote')).not.toBeNull()
+  })
+
+  it('expands an approval to the request, the diff and the regression it carried', async () => {
+    serveTheLog([approvalEntry])
+    renderScreen()
+    const [approval] = await rows()
+    const user = userEvent.setup()
+    const request = approval!.querySelector<HTMLElement>('.event__more .he-quote p')!
+    expect(request).toHaveTextContent(scriptedRequest.text.he)
+    expect(request).not.toBeVisible()
+
+    await user.click(within(approval!).getByText('Show the request, the diff and the regression'))
+
+    expect(request).toBeVisible()
+    expect(request).toHaveAttribute('dir', 'rtl')
+    // the regression the approval stored: 12 flips, six approved cases and six in manual review declined now
+    expect(
+      within(approval!).getByText('12 flipped · 6 approved→declined · 6 manual review→declined'),
     ).toBeVisible()
+    expect(within(approval!).getByRole('region', { name: 'Changes from v1 to v2' })).toBeVisible()
+    expect(within(approval!).getByRole('region', { name: 'Regression report' })).toBeVisible()
   })
 
-  it('reads every other kind of entry as what it records', async () => {
-    serveTheSeededLog([copyPublishEntry, rejectedEntry, proposedEntry, gapEntry, seedPublishEntry])
-    renderScreen(SEEDED_RULESET_ID)
+  it("writes a proposal with the model's mark, and a rejection with the red seal and its note", async () => {
+    serveTheLog([rejectedEntry, proposedEntry])
+    renderScreen()
 
-    const [copied, rejected, proposed, gap, seeded] = await entries()
-    expect(copied).toHaveTextContent('Copied from the seeded version as it was published')
-    expect(within(rejected!).getByText('לא בתקופת הבחירות')).toHaveAttribute('dir', 'rtl')
-    expect(proposed).toHaveTextContent('2 patches proposed on version 1')
-    expect(within(gap!).getByText(/המדיניות אינה קובעת/)).toHaveAttribute('dir', 'rtl')
-    // in the words the analyst chose it in the review's dialog
-    expect(gap).toHaveTextContent('Resolved: A manual-check flag surfaces it')
-    expect(seeded).toHaveTextContent('20 rules published, 1 warning left open')
-    expect(within(seeded!).getByText('demo-analyst')).toBeVisible()
+    const [rejected, proposed] = await rows()
+    expect(proposed!.querySelector('.event__mark .actor--model')).not.toBeNull()
+    expect(lineOf(proposed!)).toBe('Change proposedCR-0001onv1')
+    expect(proposed!.querySelector('.event__delta')).toHaveTextContent('2 patches')
+    expect(rejected!.querySelector('.event__mark .actor--person')).not.toBeNull()
+    expect(lineOf(rejected!)).toBe('Change rejectedCR-0002byAnalystRejected09:20')
+    expect(rejected!.querySelector('.seal')).toHaveClass('seal--inline', 'seal--rejected')
+    expect(within(rejected!).getByText('לא בתקופת הבחירות').closest('.he-quote')).not.toBeNull()
   })
 
-  it('reads the log of another version when one is chosen', async () => {
+  it('writes a publication as a version row, with the id of the version it published', async () => {
+    serveTheLog([copyPublishEntry, seedPublishEntry])
+    renderScreen()
+
+    const [copied, seeded] = await rows()
+    expect(seeded).toHaveClass('event--version')
+    expect(lineOf(seeded!)).toBe('Publishedv10f4c…c1')
+    expect(seeded!.querySelector('.event__id')).toHaveAttribute('title', SEEDED_VERSION_ID)
+    expect(seeded!.querySelector('.event__delta')).toHaveTextContent(
+      '20 rules · 1 warning left open',
+    )
+    expect(lineOf(copied!)).toContain('copied from the seeded version as it was published')
+  })
+
+  it("names an acknowledgement 'Finding acknowledged' with the finding's kind, and quotes its note", async () => {
+    serveTheLog([gapEntry])
+    renderScreen()
+
+    const [acknowledged] = await rows()
+    // the API writes every acknowledgement as GAP_ACKNOWLEDGED; the row names the finding's kind (the spec, section 09)
+    expect(lineOf(acknowledged!)).toBe('Finding acknowledgedF-4Gap, onDraft v1')
+    expect(within(acknowledged!).getByText('Draft v1')).toHaveClass('vstatus', 'vstatus--draft')
+    expect(within(acknowledged!).getByText('A manual-check flag surfaces it')).toBeVisible()
+    const note = within(acknowledged!).getByText('נוסף סימון לבדיקה ידנית')
+    expect(note).toHaveAttribute('dir', 'rtl')
+    expect(note.closest('.he-quote')).not.toBeNull()
+  })
+
+  it("draws a reset with the system's mark", async () => {
+    serveTheLog([resetEntry])
+    renderScreen()
+
+    const [reset] = await rows()
+    expect(reset!.querySelector('.event__mark .actor--system')).not.toBeNull()
+    expect(lineOf(reset!)).toBe('Resetthe seeded data was reset')
+  })
+})
+
+describe('AuditScreen, its controls', () => {
+  it('is append-only: the mark says so, and nothing on the screen edits or deletes', async () => {
+    serveTheLog([rejectedEntry, approvalEntry, proposedEntry, gapEntry, seedPublishEntry])
     serveTheCopy()
     renderScreen(COPY_RULESET_ID)
-    await screen.findByRole('heading', { name: 'Change approved' })
+    await rows()
 
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1')
-
-    expect(await screen.findByRole('heading', { name: 'Published' })).toBeVisible()
-    expect(screen.queryByRole('heading', { name: 'Change approved' })).not.toBeInTheDocument()
+    expect(screen.getByText('append-only')).toHaveClass('append-only')
+    const buttons = screen.getAllByRole('button').map((button) => button.textContent ?? '')
+    expect(buttons.filter((name) => /edit|delete|remove|undo|revert/i.test(name))).toEqual([])
+    expect(screen.queryAllByRole('textbox')).toEqual([])
   })
 
-  it('says so when nothing has been recorded for the version', async () => {
-    serveTheSeededLog([])
-    renderScreen(SEEDED_RULESET_ID)
+  it('exports the log as its filter stands, through GET /audit/export', async () => {
+    const exported: string[] = []
+    serveTheLog([proposedEntry, seedPublishEntry], [seedPublishEntry])
+    server.use(
+      http.get(`${BASE}/audit/export`, ({ request }) => {
+        const address = new URL(request.url)
+        exported.push(
+          `${request.headers.get('accept') ?? ''} ${address.searchParams.get('versionId') ?? 'all'}`,
+        )
+        return new HttpResponse('at,action\n', { headers: { 'Content-Type': 'text/csv' } })
+      }),
+    )
+    const saved = vi.fn(() => 'blob:the-log')
+    // jsdom has no object URLs; the page's own URL is kept and given the two it lacks
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static override createObjectURL = saved
+        static override revokeObjectURL = vi.fn()
+      },
+    )
+    const clicked = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    renderScreen()
+    await rows()
+    const user = userEvent.setup()
 
-    expect(await screen.findByText('Nothing has been recorded for version 1 yet.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Export the log' }))
+    await waitFor(() => expect(saved).toHaveBeenCalledOnce())
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Version' }), 'Published v1')
+    await user.click(screen.getByRole('button', { name: 'Export the log' }))
+
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(2))
+    // Document 2: one row per entry, and without a version every entry the sandbox can see
+    expect(exported).toStrictEqual(['text/csv all', `text/csv ${SEEDED_VERSION_ID}`])
+    expect(clicked).toHaveBeenCalledTimes(2)
   })
 
-  it('compares any two versions side by side through the diff route', async () => {
+  it('compares two versions: From and To, then "Compare two versions" shows their diff', async () => {
     const asked: string[] = []
+    serveTheLog([])
     serveTheCopy()
     server.use(
       http.get(`${BASE}/rulesets/:id/versions/:a/diff/:b`, ({ params }) => {
         asked.push(`${String(params.id)} ${String(params.a)}→${String(params.b)}`)
-        return HttpResponse.json({
-          fields: { added: [], removed: [], modified: [] },
-          rules: { added: [], removed: [], modified: [] },
-          defaults: null,
-        })
+        return HttpResponse.json(scriptedProposalEvent.diff)
       }),
     )
     renderScreen(COPY_RULESET_ID)
+    const user = userEvent.setup()
 
-    const compare = within(
-      (await screen.findByRole('heading', { name: 'Compare two versions' })).closest('section')!,
-    )
-    expect(compare.getByRole('combobox', { name: 'From' })).toHaveValue('1')
-    expect(compare.getByRole('combobox', { name: 'To' })).toHaveValue('2')
-    expect(
-      await compare.findByText('Version 1 and Version 2 have the same rules, fields and defaults.'),
-    ).toBeVisible()
+    const from = await screen.findByRole('combobox', { name: 'Compare · from' })
+    expect(from).toHaveValue('1')
+    expect(screen.getByRole('combobox', { name: 'to' })).toHaveValue('2')
+    await user.click(screen.getByRole('button', { name: 'Compare two versions' }))
+
+    expect(await screen.findByRole('region', { name: 'Changes from v1 to v2' })).toBeVisible()
     expect(asked).toStrictEqual([`${COPY_RULESET_ID} 1→2`])
+  })
+
+  it('says "Choose two different versions." when From and To are the same', async () => {
+    serveTheCopy()
+    renderScreen(COPY_RULESET_ID)
+    const user = userEvent.setup()
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'to' }), '1')
+    await user.click(screen.getByRole('button', { name: 'Compare two versions' }))
+
+    expect(screen.getByText('Choose two different versions.')).toBeVisible()
   })
 
   it('offers nothing to compare while the rule set has one version', async () => {
@@ -179,31 +353,38 @@ describe('AuditScreen', () => {
     expect(
       await screen.findByText('This rule set has one version: there is nothing to compare yet.'),
     ).toBeVisible()
-    expect(screen.queryByRole('combobox', { name: 'From' })).not.toBeInTheDocument()
-  })
-
-  it('RTL: the Hebrew of an entry turns right to left inside the English log (snapshot)', async () => {
-    serveTheSeededLog([rejectedEntry, proposedEntry, seedPublishEntry])
-    renderScreen(SEEDED_RULESET_ID)
-
-    await entries()
-    await waitFor(() => expect(screen.getByText('לא בתקופת הבחירות')).toHaveAttribute('lang', 'he'))
-    expect(rtlSnapshot(screen.getByRole('list', { name: 'Entries' }))).toMatchSnapshot()
+    expect(screen.queryByRole('button', { name: 'Compare two versions' })).not.toBeInTheDocument()
   })
 })
 
 describe('AuditScreen in both directions (NFR-5)', () => {
-  it('LTR: an English note and request stay left to right in the log (snapshot)', async () => {
+  it('RTL: the Hebrew of a row turns right to left inside the English log (snapshot)', async () => {
+    serveTheLog([rejectedEntry, approvalEntry, proposedEntry, gapEntry, seedPublishEntry])
+    renderScreen()
+
+    await rows()
+    expect(rtlSnapshot(screen.getByRole('region', { name: 'Audit log' }))).toMatchSnapshot()
+  })
+
+  it('LTR: an English note stays left to right in the log (snapshot)', async () => {
     const english = {
       ...rejectedEntry,
       details: { requestText: scriptedRequest.text.en, note: 'Not during the election period' },
     }
-    serveTheSeededLog([english])
-    renderScreen(SEEDED_RULESET_ID)
+    serveTheLog([english])
+    renderScreen()
 
     const note = await screen.findByText('Not during the election period')
     expect(note).toHaveAttribute('dir', 'ltr')
-    expect(screen.getByText(scriptedRequest.text.en)).toHaveAttribute('dir', 'ltr')
-    expect(rtlSnapshot(screen.getByRole('list', { name: 'Entries' }))).toMatchSnapshot()
+    expect(rtlSnapshot(screen.getByRole('region', { name: 'Audit log' }))).toMatchSnapshot()
+  })
+})
+
+describe('AuditScreen.css', () => {
+  it("carries every rule of the spec's audit log, with the spec's declarations", () => {
+    const audit = specRules('.timeline__day {', '/* Figures */')
+
+    expect(audit).toHaveLength(19)
+    expect(unported(stylesheet('features/audit/AuditScreen.css'), audit)).toEqual([])
   })
 })

@@ -1,5 +1,11 @@
 import type { Diff, Finding, Outcome, Rule, RuleSetDocument } from '../../api/types'
-import type { Patch, Proposal, Regression, StreamFailure } from '../../features/change/types'
+import type {
+  Patch,
+  Proposal,
+  Regression,
+  StageEnded,
+  StreamFailure,
+} from '../../features/change/types'
 
 /**
  * The scripted change request of the demo as the API would send it, assembled from the committed fixtures and nothing
@@ -142,8 +148,38 @@ export function scriptedRegression(
   const ordered = Object.fromEntries(
     Object.entries(transitions).sort(([a], [b]) => (a < b ? -1 : 1)),
   )
-  return { decisions: expected.cases.length, flips, transitions: ordered }
+  const before: Record<string, number> = {}
+  for (const decided of [...expected.cases].sort((a, b) => (a.outcome < b.outcome ? -1 : 1))) {
+    before[decided.outcome] = (before[decided.outcome] ?? 0) + 1
+  }
+  return {
+    decisions: expected.cases.length,
+    before,
+    flips,
+    transitions: ordered,
+    flagsMoved: SCRIPTED_FLAGS_MOVED,
+  }
 }
+
+/**
+ * The flags the scripted change moves over the 200 cases, as the Python reference decides them (the backend's
+ * RegressionTest and ChangeStreamIT assert the same): eleven decisions, every one by R-410, whose range the change
+ * moved, six of them by R-420 too, which the raised threshold now stops before. The committed fixtures hold the flags
+ * of version 1 only, so these two numbers are carried here.
+ */
+export const SCRIPTED_FLAGS_MOVED = { decisions: 11, byRule: { 'R-410': 11, 'R-420': 6 } }
+
+/**
+ * The time and the tokens of each stage of the scripted request, as the spec's frame shows them (section 09, the
+ * change request: "0.8 s", "4.1 s · 2,140 tokens", "38 ms", and the regression's "0.9 s"); each stage ends with the
+ * next event.
+ */
+export const SCRIPTED_TIMINGS: StageEnded[] = [
+  { stage: 'analyzing', ms: 812, tokens: null },
+  { stage: 'proposing', ms: 4104, tokens: 2140 },
+  { stage: 'validating', ms: 38, tokens: null },
+  { stage: 'regression', ms: 912, tokens: null },
+]
 
 /** The `proposal` event of the scripted request. */
 export function scriptedProposal(
@@ -155,6 +191,7 @@ export function scriptedProposal(
   const patches = storedPatches(request, ids.proposalId)
   return {
     id: ids.proposalId,
+    number: 1,
     status: 'PROPOSED',
     baseVersionId: ids.baseVersionId,
     summary: SCRIPTED_SUMMARY,
@@ -166,6 +203,7 @@ export function scriptedProposal(
     diff: scriptedDiff(base, patches),
     regression: scriptedRegression(expected, ids.decisionOf),
     createdAt: '2026-09-27T09:10:00Z',
+    ended: SCRIPTED_TIMINGS[3]!,
   }
 }
 
@@ -229,6 +267,7 @@ export function rt04Failure(base: RuleSetDocument, request: ChangeRequestFixture
       untouched: request.expected.untouched,
       notes: '',
     },
+    ended: SCRIPTED_TIMINGS[2]!,
   }
 }
 

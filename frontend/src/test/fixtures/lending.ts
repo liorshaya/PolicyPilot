@@ -4,7 +4,13 @@ import casesExpected from '../../../../fixtures/policies/consumer-lending/cases-
 import sample from '../../../../fixtures/policies/consumer-lending/sample-decision.json'
 import policyText from '../../../../fixtures/policies/consumer-lending/policy.he.md?raw'
 import depositRules from '../../../../fixtures/eval/policies/rental-deposit-en/expected.ruleset.json'
-import type { CaseResult, Decision, Outcome, RuleSetDocument } from '../../api/types'
+import type {
+  CaseResult,
+  Decision,
+  EngineDecision,
+  Outcome,
+  RuleSetDocument,
+} from '../../api/types'
 
 /**
  * The committed demo fixtures, imported from {@code fixtures/} itself (Document 6, Fixtures and Test Data: the same
@@ -47,15 +53,17 @@ export const lendingRun: CaseResult[] = casesExpected.cases.map((expected) => ({
 }))
 
 /**
- * Case 17 as the engine decided it (fixtures/policies/consumer-lending/sample-decision.json, the worked example of
- * Document 3), with the four things the API adds to a stored decision; the time and the timing are the spec's own
- * example (section 04: "decided on v1 · … · 61 µs · 2026-09-23 10:14:07").
+ * Case 17 as the engine decided it: fixtures/policies/consumer-lending/sample-decision.json, the worked example of
+ * Document 3.
+ */
+export const sampleEngineDecision = sample as unknown as EngineDecision
+
+/**
+ * Case 17 as the API stores it: the engine's decision with the four things the API adds to it; the time and the timing
+ * are the spec's own example (section 04: "decided on v1 · … · 61 µs · 2026-09-23 10:14:07").
  */
 export const sampleDecision = {
-  ...(sample as unknown as Omit<
-    Decision,
-    'id' | 'caseNo' | 'rulesetVersion' | 'decidedAt' | 'durationMicros'
-  >),
+  ...sampleEngineDecision,
   id: decisionIdOf(17),
   caseNo: 17,
   rulesetVersion: {

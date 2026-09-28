@@ -28,17 +28,20 @@ function rulesetLabel(ruleset: RulesetSummary): string {
 interface PickerProps {
   label: string
   bare: boolean
+  /** The select's id, for a label of its own elsewhere, which then names it instead of `label`. */
+  id?: string
   className?: string
   value: string | number
   onChange: (value: string) => void
   children: ReactNode
 }
 
-function Picker({ label, bare, className, value, onChange, children }: PickerProps) {
+function Picker({ label, bare, id, className, value, onChange, children }: PickerProps) {
   const select = (
     <select
+      id={id}
       className={['select', 'select--sm', className].filter(Boolean).join(' ')}
-      aria-label={bare ? label : undefined}
+      aria-label={bare && id === undefined ? label : undefined}
       value={value}
       onChange={(event) => onChange(event.target.value)}
     >
@@ -90,6 +93,8 @@ interface VersionPickerProps {
   label?: string
   /** The select alone, named for a screen reader. */
   bare?: boolean
+  /** The select's id, for a field's label of its own, as the audit log's compare control has it. */
+  id?: string
   className?: string
 }
 
@@ -100,12 +105,14 @@ export function VersionPicker({
   onChange,
   label = 'Version',
   bare = false,
+  id,
   className,
 }: VersionPickerProps) {
   return (
     <Picker
       label={label}
       bare={bare}
+      id={id}
       className={className}
       value={value}
       onChange={(next) => onChange(Number(next))}

@@ -1,6 +1,7 @@
 /*
- * The outcome row over the case list (the Register spec, section 09, "Figures: the outcome row"): the "Figures" block of
- * layer 5 of docs/design/register.css, as the spec writes it.
+ * The outcome row over the case list (the Register spec, section 09, "Figures: the outcome row"): the outcome bar of
+ * the "Figures" block of layer 5 of docs/design/register.css, as the spec writes it; the figures and the bar list under
+ * it are shared with the regression report, in shared/ui/Figures.css.
  */
 .outcome {
   display: grid;
@@ -26,128 +27,8 @@
 .outcome__seg--error {
   background: var(--mark-quiet);
 }
-.figures {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.figure {
-  display: grid;
-  gap: 2px;
-  padding: 6px 16px 6px 0;
-  border-inline-end: 1px solid var(--hairline);
-}
-.figure:last-child {
-  border-inline-end: 0;
-}
-.figure + .figure {
-  padding-inline-start: 16px;
-}
-.figure__label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-xs);
-  color: var(--ink-2);
-}
-.figure__value {
-  font-size: var(--text-figure);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
-.figure__value small {
-  font-size: var(--text-sm);
-  font-weight: 400;
-  color: var(--ink-3);
-  margin-inline-start: 6px;
-  letter-spacing: 0;
-}
-.figure__foot {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
-}
-.barlist {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 4px 12px;
-  align-items: center;
-  font-size: var(--text-sm);
-}
-.barlist__row {
-  display: contents;
-  cursor: pointer;
-}
-.barlist__id {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: var(--text-xs);
-  padding: 3px 0;
-}
-.barlist__track {
-  height: 8px;
-  background: var(--well);
-  border-radius: 0 2px 2px 0;
-  position: relative;
-}
-.barlist__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--ink-2);
-  border-radius: 0 2px 2px 0;
-}
-.barlist__val {
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-  font-size: var(--text-xs);
-  color: var(--ink-2);
-}
-.barlist__val b {
-  color: var(--ink);
-  font-weight: 500;
-}
-.barlist__row[aria-pressed='true'] .barlist__fill {
-  background: var(--accent);
-}
-.barlist__row[aria-pressed='true'] .barlist__id {
-  color: var(--accent-text);
-}
 
-/*
- * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
- * (Document 9, "The CSS port"): the rules that decided most often stand under the figures with their title row, and
- * each row is a button that keeps its box, so its focus ring shows, while its three parts sit in the list's columns; a
- * rule's dot stands apart from its id by the figure label's gap.
- */
+/* The product's own: the rules that decided most often stand under the figures (shared/ui/Figures.css draws them). */
 .dashboard__rules {
   padding: 0 16px 16px;
-}
-.barlist__title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px 8px;
-  margin-bottom: 8px;
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--ink-3);
-}
-button.barlist__row {
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-1);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-}
-.barlist__id .dot {
-  margin-inline-end: 6px;
-}
-button.barlist__row:hover .barlist__fill {
-  background: var(--ink);
 }

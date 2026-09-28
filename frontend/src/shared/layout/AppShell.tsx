@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useProvider } from '../../api/queries'
 import { chooseTheme, type Theme } from '../../styles/theme'
 import { contentAttributes, type ContentLanguage } from '../i18n/direction'
-import { Actor } from '../ui/Actor'
+import { Actor, PERSON } from '../ui/Actor'
 import { Button } from '../ui/Button'
 import { Kbd } from '../ui/Kbd'
 import { Logo } from '../ui/Logo'
@@ -139,7 +139,7 @@ export function AppShell({
         <div className="rail__foot">
           <div className="rail__me">
             <Actor kind="person">
-              <strong>Analyst</strong>
+              <strong>{PERSON}</strong>
             </Actor>
             <Button variant="quiet" size="sm" onClick={onLeave}>
               Leave
