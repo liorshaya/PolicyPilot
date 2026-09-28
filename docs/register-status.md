@@ -9,7 +9,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | P | Preparation: the design files committed | Done | `register/preparation` | [#158](https://github.com/liorshaya/PolicyPilot/pull/158) | 2026-09-27 | 2026-09-27 |
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
 | 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
-| 2 | The tables | In progress | `register/phase-2` |  | 2026-09-28 |  |
+| 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
 | 3 | The review, the trace, the explanation, the figures | Not started |  |  |  |  |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Not started |  |  |  |  |
@@ -114,7 +114,7 @@ Evidence:
 
 ## 2 · The tables
 
-Status: In progress
+Status: Done
 
 - [x] `tableModel`: derived columns last; a `not` over one `between`, `eq` or `in` renders `∉ […]`, `≠ v`, `∉ {…}` read-only; any other `not` stays out of the cells; tests with values from Document 3
 - [x] `Table.css` from the spec's base-table and decision-table blocks: two sticky header rows (0 and 26px), frozen Rule and Action columns, the visible scrollbar, bands, gutter, `.t-cmp`, `.t-action`, `.t-rule`
@@ -125,7 +125,7 @@ Status: In progress
 - [x] The decision table's `rtlSnapshot` replaced deliberately; the diff pasted into the pull request and reviewed line by line
 - [x] `e2e/rules.spec.ts` green without a loosened query
 - [x] The Rules screen at 1376px in both themes beside `screen-rules-light.png` and `screen-rules-dark.png` (the sheet; the margin is phase 3)
-- [ ] Worklog line; pull request "Register phase 2: the tables" merged
+- [x] Worklog line; pull request "Register phase 2: the tables" merged
 
 Evidence:
 
@@ -142,6 +142,7 @@ Evidence:
 - Screens: `docs/demo/register/rules-light.png` and `docs/demo/register/rules-dark.png`, in `screen-rules-*.png`'s own frame (1361×1619 at 2×): a reviewed draft 2 served from the committed fixtures, the sheet scrolled to the table, beside the spec's the same title row, strip, two header rows, bands, gutter marks, cells and actions. The margin is today's until phase 3, as the box says.
 - Transitional: the two header rows stick and the scrollbar shows inside the table's own scroll area, but the sheet that scrolls today around the review and the table leaves them behind; in the spec's composition the table is the sheet's only scroller, which phase 3 makes of the Rules screen when the review leaves the sheet and phase 5 of every screen.
 - Local run on 2026-09-28: typecheck, lint with no warning, 565 Vitest tests in 59 files with the coverage thresholds (100% of `cellGrammar.ts`), Prettier and the build green; the e2e suite, 33 passed, and the stack's 3 against Docker Compose; `make check` ALL OK; Semgrep 1.177.0, 0 findings; gitleaks, no leaks. The pull request's first run went red on the threshold: two branches of the new cell grammar had no test, and reading them found a number below 0.000001 written without its decimals (its string is an exponent), now read from its fixed form.
+- Pull request [#162](https://github.com/liorshaya/PolicyPilot/pull/162): CI stages 1 to 7 green on run [36365015662](https://github.com/liorshaya/PolicyPilot/actions/runs/36365015662), with 565 Vitest and 36 Playwright tests and the web app at 95.1% of statements and 88.0% of branches; the snapshot diff is in its description. The worklog line of 2026-09-28 names the phase. The last commit, which ticks this box and sets Done, is merged only once its own run is green too.
 
 ## 3 · The review, the trace, the explanation, the figures
 
