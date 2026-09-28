@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { keys } from '../../api/queries'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -6,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { budgetSpent } from '../../test/fixtures/budget'
 import { notCovered } from '../../test/fixtures/english'
 import { lendingParagraphs } from '../../test/fixtures/lending'
-import { SEEDED_RULESET_ID } from '../../test/msw/handlers'
+import { batch, decision, SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
@@ -258,6 +259,37 @@ describe('ChatScreen · the thread', () => {
       'title',
       'Case 17 · Manual review, as the engine decided',
     )
+  })
+
+  // the spec, section 08: a chip opens its target, and the target flashes once; the case is the one this session ran
+  it("opens the trace of the cited case when this session has run the cases on the answer's version", async () => {
+    serveSession()
+    serveAnswer(
+      answered('Referred.[[d:17]]', [
+        { id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer' },
+      ]),
+    )
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(keys.run(SEEDED_RULESET_ID, 1), batch)
+    const onOpenCase = vi.fn()
+    const onOpenCases = vi.fn()
+    render(
+      <QueryClientProvider client={client}>
+        <ChatScreen
+          onOpenRule={vi.fn()}
+          onOpenCases={onOpenCases}
+          onOpenCase={onOpenCase}
+          rulesetId={null}
+        />
+      </QueryClientProvider>,
+    )
+    const user = await ask('למה בקשה מספר 17 הופנתה לבדיקה?')
+    const answer = (await lastAnswer()).querySelector<HTMLElement>('p.answer')!
+
+    await user.click(await within(answer).findByRole('button', { name: 'Case 17' }))
+
+    expect(onOpenCase).toHaveBeenCalledWith(decision.id)
+    expect(onOpenCases).not.toHaveBeenCalled()
   })
 
   it('shows a simulation as the tool chip with its change and outcome, and hides a marker the API did not cite', async () => {

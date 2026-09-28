@@ -901,6 +901,31 @@ describe('RulesScreen, gone to from the palette', () => {
     scrolled.mockRestore()
   })
 
+  // the spec, section 02: a chip that opens a row brings it into view, and the row flashes once
+  it("brings the row a finding's rule chip opens into view, and flashes it", async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json(draftRulesets)),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () => HttpResponse.json(reviewedDraft)),
+    )
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+    renderAt({})
+    const user = userEvent.setup()
+    const review = await screen.findByRole('region', { name: 'Review of the draft' })
+    const conflict = within(review).getByText('F-2').closest('li')!
+
+    await user.click(within(conflict).getByRole('button', { name: 'R-115' }))
+
+    const row = screen.getByText('R-115', { selector: '.t-rule__id' }).closest('tr')!
+    expect(row).toHaveClass('t-selected', 'flash')
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(row))
+    // a row chosen in the table itself is not a deep link: it neither flashes nor moves
+    await user.click(screen.getByText('R-100', { selector: '.t-rule__id' }))
+    expect(screen.getByText('R-100', { selector: '.t-rule__id' }).closest('tr')).not.toHaveClass(
+      'flash',
+    )
+    scrolled.mockRestore()
+  })
+
   it('opens on the version the palette names, not the latest', async () => {
     const asked: string[] = []
     server.use(

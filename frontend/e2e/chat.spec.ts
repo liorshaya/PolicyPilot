@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { ask, notCovered, question, serveTheChat } from './chat'
-import { serveTheSeededRuleSet } from './seeded'
+import { serveASeededRun, serveTheSeededRuleSet } from './seeded'
 
 /**
  * Demo step 3 in a real browser (Document 1, Demo script; Document 6, End to end): the three scripted questions are
@@ -105,4 +105,29 @@ test.describe('the assistant', () => {
     // the stream names it as Document 4's fixed sentence, which the system says and no source backs
     await expect(page.getByText("No source · a fixed sentence, not the model's")).toBeVisible()
   })
+})
+
+// the spec, section 08: a chip opens its target, which flashes once; the case is the one this session's run decided
+test('opens the trace of a cited case once the cases have run', async ({ page }) => {
+  await serveTheSeededRuleSet(page)
+  await serveASeededRun(page)
+  await serveTheChat(page)
+  await page.goto('/')
+  await page.getByLabel('Access code').fill('qwertyui')
+  await page.getByRole('button', { name: 'Enter' }).click()
+  const screens = page.getByRole('navigation', { name: 'Workspace' })
+  await screens.getByRole('button', { name: /^Cases/ }).click()
+  await page.getByRole('button', { name: 'Run 200 cases' }).first().click()
+  await expect(page.getByRole('button', { name: '17', exact: true })).toBeVisible()
+  await screens.getByRole('button', { name: 'Assistant' }).click()
+  await ask(page, question('Q-01').question)
+
+  const answer = page.locator('p[dir="rtl"][lang="he"]').filter({ hasText: 'ערב' })
+  await answer.getByRole('button', { name: 'Case 17' }).click()
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Cases' })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Case 17' })).toBeVisible()
+  await expect(
+    page.getByRole('row').filter({ has: page.getByRole('button', { name: '17', exact: true }) }),
+  ).toHaveClass(/flash/)
 })

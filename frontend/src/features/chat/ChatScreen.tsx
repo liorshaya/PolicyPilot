@@ -3,7 +3,7 @@ import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { useDemoStep } from '../demo/useDemoStep'
 import { Paragraph } from '../policy/Paragraph'
 import { publishedTarget } from '../../api/published'
-import { useBudget, usePolicy, useRulesets } from '../../api/queries'
+import { useBudget, useLastRun, usePolicy, useRulesets } from '../../api/queries'
 import type { RulesetSummary } from '../../api/types'
 import {
   contentAttributes,
@@ -55,6 +55,7 @@ export function ChatScreen({
   rulesetId = null,
   onOpenRule,
   onOpenCases,
+  onOpenCase,
   demoAsked = false,
   onDemoHandled,
 }: {
@@ -62,6 +63,8 @@ export function ChatScreen({
   rulesetId?: string | null
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
+  /** Opens a decision's trace, for a cited case this session has run (the spec, section 08). */
+  onOpenCase?: (decisionId: string) => void
   /** Step 3 of the guided demo: open on the first scripted question (Brief FR-23). */
   demoAsked?: boolean
   onDemoHandled?: () => void
@@ -95,6 +98,7 @@ export function ChatScreen({
       target={{ rulesetId: target.ruleset.id, versionNo: target.versionNo }}
       onOpenRule={onOpenRule}
       onOpenCases={onOpenCases}
+      onOpenCase={onOpenCase}
       demoAsked={demoAsked}
       onDemoHandled={onDemoHandled}
     />
@@ -103,7 +107,8 @@ export function ChatScreen({
 
 interface Opens {
   onOpenRule: (ruleId: string) => void
-  onOpenCases: () => void
+  /** A cited case: its trace, when this session has run the cases on the answer's version, else the Cases screen. */
+  onOpenCase: (caseNo: number | undefined) => void
   onOpenParagraph: (index: number) => void
 }
 
@@ -113,6 +118,7 @@ function Conversation({
   target,
   onOpenRule,
   onOpenCases,
+  onOpenCase,
   demoAsked,
   onDemoHandled,
 }: {
@@ -122,10 +128,13 @@ function Conversation({
   target: ChatTarget
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
+  onOpenCase?: (decisionId: string) => void
   demoAsked: boolean
   onDemoHandled?: () => void
 }) {
   const chat = useChat(target)
+  // this session's run on the version the answers are about, whose cases a cited case chip opens
+  const run = useLastRun({ id: target.rulesetId, versionNo: target.versionNo })
   const budget = useBudget()
   const policy = usePolicy(ruleset.policyId ?? null)
   const [question, setQuestion] = useState('')
@@ -145,7 +154,18 @@ function Conversation({
       void refetch()
     }
   }, [spentOn, refetch])
-  const opens: Opens = { onOpenRule, onOpenCases, onOpenParagraph: setOpenParagraph }
+  const opens: Opens = {
+    onOpenRule,
+    onOpenCase: (caseNo) => {
+      const decided = run.data?.results.find((result) => result.caseNo === caseNo)
+      if (decided !== undefined && onOpenCase !== undefined) {
+        onOpenCase(decided.id)
+      } else {
+        onOpenCases()
+      }
+    },
+    onOpenParagraph: setOpenParagraph,
+  }
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -489,7 +509,7 @@ function CitationChip({
     return (
       <Chip
         title={`${label} · ${outcomeWords(citation)}, as the engine decided`}
-        onClick={opens.onOpenCases}
+        onClick={() => opens.onOpenCase(citation.applicationNumber)}
       >
         {label}
       </Chip>

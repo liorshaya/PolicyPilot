@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { changeRequest, serveTheChange } from './change'
 import { ask, notCovered, question, serveTheChat } from './chat'
 import { inspect } from './checklist'
@@ -251,14 +251,20 @@ test.describe('the palette at 1376×900', () => {
 /**
  * The presenter's four steps through the guided panel, as the demo runs them, each screen checked where the step
  * leaves it and, asked for, written as <device>-<n>-<step>.png. On a phone the panel is in the menu, which each step
- * run from it closes, and the page scrolls as one, so its picture is the whole page.
+ * run from it closes, and the page scrolls as one, so its picture is the window with what the step shows at its top.
  */
 async function walk(page: Page, device: 'desktop' | 'phone'): Promise<void> {
   const phone = device === 'phone'
-  const shoot = async (name: string) => {
+  const shoot = async (name: string, subject: Locator) => {
+    if (phone) {
+      // a phone's page scrolls as one: what the step shows stands at the top of the window
+      await subject.evaluate((element: { scrollIntoView(options: { block: string }): void }) =>
+        element.scrollIntoView({ block: 'start' }),
+      )
+    }
     await settle(page)
     if (SHOTS) {
-      await page.screenshot({ path: `${DEMO}${device}-${name}.png`, fullPage: phone })
+      await page.screenshot({ path: `${DEMO}${device}-${name}.png` })
     }
     await keepsTheChecklist(page)
   }
@@ -283,17 +289,16 @@ async function walk(page: Page, device: 'desktop' | 'phone'): Promise<void> {
   await run('Author')
   await page.getByRole('button', { name: 'Add policy' }).click()
   await generate(page)
-  await shoot('1-author')
+  await shoot('1-author', page.getByText('A draft rule set was written from this policy:'))
   await page.getByRole('button', { name: 'Review the draft' }).click()
-  await expect(
-    page.getByRole('table').getByRole('row').filter({ hasText: 'R-110' }).getByText('Conflict'),
-  ).toBeVisible()
-  await shoot('1-review')
+  const conflict = page.getByRole('table').getByRole('row').filter({ hasText: 'R-110' })
+  await expect(conflict.getByText('Conflict')).toBeVisible()
+  await shoot('1-review', conflict)
 
   await run('Decide')
   await expect(page.getByRole('heading', { level: 1, name: 'Cases' })).toBeVisible()
   await openCase17(page)
-  await shoot('2-decide')
+  await shoot('2-decide', page.getByRole('complementary', { name: 'Case 17' }))
 
   await run('Ask')
   await page.getByRole('button', { name: 'Ask' }).click()
@@ -313,14 +318,18 @@ async function walk(page: Page, device: 'desktop' | 'phone'): Promise<void> {
   ).toBeVisible()
   await ask(page, question('Q-04').question)
   await expect(page.getByText(notCovered('he'))).toBeVisible()
-  await shoot('3-ask')
+  await shoot('3-ask', page.getByRole('log'))
 
   await run('Change')
   await page.getByRole('button', { name: 'Propose the change' }).click()
-  await expect(page.getByRole('region', { name: 'Regression report' })).toBeVisible()
-  await shoot('4-change')
+  const report = page.getByRole('region', { name: 'Regression report' })
+  await expect(report).toBeVisible()
+  await shoot('4-change', report)
   await approveAndOpenTheLog(page)
-  await shoot('4-audit')
+  await shoot(
+    '4-audit',
+    page.getByRole('region', { name: 'Audit log' }).getByRole('listitem').first(),
+  )
 }
 
 test.describe('the demo on a desktop', () => {

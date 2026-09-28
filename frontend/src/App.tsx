@@ -190,6 +190,7 @@ export function App() {
         ) : null}
         {screen === 'assistant' ? (
           <ChatScreen
+            onOpenCase={(decisionId) => goTo({ kind: 'case', decisionId })}
             rulesetId={rulesetId}
             demoAsked={demo === 3}
             onDemoHandled={() => setDemo(null)}

@@ -109,6 +109,8 @@ export function RulesScreen({
   const acknowledge = useAcknowledge(target)
   const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
   const selectedRuleId = chosenRuleId ?? focusRuleId
+  // the rule a chip on this screen opened: its row is brought into view and flashes once (the deep link, section 02)
+  const [chipped, setChipped] = useState<string | null>(null)
   // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review, and
   // any other on its fields until a rule is chosen, then on the paragraph the rule cites
   const [panel, setPanel] = useState<SidePanel | null>(null)
@@ -180,6 +182,7 @@ export function RulesScreen({
 
   function selectRule(ruleId: string) {
     setChosenRuleId(ruleId)
+    setChipped(null)
     setAsked(null)
     setReviewing(false)
     if (view === 'json') {
@@ -188,6 +191,12 @@ export function RulesScreen({
       // the rule opens where its version opens a chosen rule: its paragraph, or the rule on a draft
       setPanel(null)
     }
+  }
+
+  /** A chip in the margin that opens a rule opens it in the table as a deep link. */
+  function openRule(ruleId: string) {
+    selectRule(ruleId)
+    setChipped(ruleId)
   }
 
   function showParagraph(index: number) {
@@ -356,7 +365,7 @@ export function RulesScreen({
                 <DecisionTable
                   document={document}
                   selectedRuleId={selectedRuleId}
-                  openedRuleId={chosenRuleId === null ? focusRuleId : null}
+                  openedRuleId={chipped ?? (chosenRuleId === null ? focusRuleId : null)}
                   onSelect={selectRule}
                   onEditCell={draft ? editCell : undefined}
                   problems={refusal?.details}
@@ -402,7 +411,7 @@ export function RulesScreen({
                     acknowledging={acknowledging}
                     onAcknowledge={onAcknowledge}
                     onSelectRule={(ruleId) => {
-                      selectRule(ruleId)
+                      openRule(ruleId)
                       setPanel('rule')
                     }}
                     onShowParagraph={showParagraph}
@@ -441,7 +450,7 @@ export function RulesScreen({
               editable={draft}
               acknowledging={acknowledging}
               onAcknowledge={onAcknowledge}
-              onSelectRule={selectRule}
+              onSelectRule={openRule}
               onShowParagraph={showParagraph}
               decided={
                 topRule && stats.data
