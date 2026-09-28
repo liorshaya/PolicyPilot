@@ -97,9 +97,28 @@ async function envelopeOf(response: Response): Promise<ErrorEnvelope | null> {
   }
 }
 
-/** Where a decision's export is downloaded from; the browser follows the link and the API sets the file name. */
+/** Where a decision's export is downloaded from: the link's own address, which asks for JSON when followed. */
 export function decisionExportUrl(decisionId: string): string {
   return url(`/api/v1/decisions/${decisionId}/export`)
+}
+
+/** A file the API serves, in the format the Accept header asks for, with the name its Content-Disposition gives it. */
+async function download(
+  path: string,
+  accept: string,
+): Promise<{ blob: Blob; name: string | null }> {
+  const response = await fetch(url(path), {
+    credentials: 'include',
+    headers: { [CLIENT_HEADER]: 'web', Accept: accept },
+  })
+  if (!response.ok) {
+    throw new ApiError(response.status, await envelopeOf(response))
+  }
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  return {
+    blob: await response.blob(),
+    name: /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? null,
+  }
 }
 
 export const api = {
@@ -165,6 +184,10 @@ export const api = {
     }),
 
   decision: (decisionId: string) => request<Decision>('GET', `/api/v1/decisions/${decisionId}`),
+
+  /** A decision with its trace as a file (Document 2: JSON or CSV by the Accept header, one CSV row per step). */
+  exportDecision: (decisionId: string, accept: 'application/json' | 'text/csv') =>
+    download(`/api/v1/decisions/${decisionId}/export`, accept),
 
   openChat: (rulesetId: string, versionNo: number) =>
     request<ChatSessionResponse>('POST', '/api/v1/chat/sessions', {

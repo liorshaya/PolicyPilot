@@ -17,6 +17,8 @@ interface ChipProps {
   active?: boolean
   /** What hovering it shows, such as the text it cites. */
   title?: string
+  /** What a screen reader names a chip that opens something, when its marks alone do not: "Paragraph 8" for ¶ 8. */
+  label?: string
 }
 
 const NO_BREAK_SPACE = String.fromCodePoint(0x00a0)
@@ -25,7 +27,15 @@ const NO_BREAK_SPACE = String.fromCodePoint(0x00a0)
  * Three silhouettes (the spec, section 06): a mono rectangle is any identifier, a serif pill is a paragraph of the policy,
  * an outlined glyph is a tool call. A chip that opens something is focusable: a link or a button, never a bare span.
  */
-export function Chip({ kind = 'id', children, href, onClick, active = false, title }: ChipProps) {
+export function Chip({
+  kind = 'id',
+  children,
+  href,
+  onClick,
+  active = false,
+  title,
+  label,
+}: ChipProps) {
   const className = `chip chip--${kind}${active ? ' chip--active' : ''}`
   const content =
     kind === 'para' ? (
@@ -45,7 +55,7 @@ export function Chip({ kind = 'id', children, href, onClick, active = false, tit
   const current = active ? 'true' : undefined
   if (href !== undefined) {
     return (
-      <a className={className} href={href} title={title} aria-current={current}>
+      <a className={className} href={href} title={title} aria-label={label} aria-current={current}>
         {content}
       </a>
     )
@@ -57,6 +67,7 @@ export function Chip({ kind = 'id', children, href, onClick, active = false, tit
         className={className}
         onClick={onClick}
         title={title}
+        aria-label={label}
         aria-current={current}
       >
         {content}

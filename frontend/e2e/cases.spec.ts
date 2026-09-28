@@ -26,8 +26,11 @@ test.describe('the case runner', () => {
 
     // 113 of the 200 seeded cases are approved (fixtures/policies/consumer-lending/cases-expected.json)
     await expect(page.getByRole('term').filter({ hasText: 'Approved' })).toBeVisible()
-    await expect(page.getByRole('definition').filter({ hasText: '57%' })).toContainText('113')
-    await expect(page.getByText('Rules that decided most often, of 200 decisions')).toBeVisible()
+    await expect(page.getByRole('definition').filter({ hasText: '56.5%' })).toContainText('113')
+    await expect(page.getByRole('heading', { level: 2, name: 'Decisions on v1' })).toBeVisible()
+    await expect(
+      page.getByText('Rules that decided most often · click to filter the list'),
+    ).toBeVisible()
   })
 
   test('opens the trace of a case, step by step', async ({ page }) => {
@@ -35,12 +38,16 @@ test.describe('the case runner', () => {
 
     await page.getByRole('button', { name: '17', exact: true }).click()
 
-    await expect(page.getByText('Decided in 412 µs by the engine')).toBeVisible()
-    const steps = page.getByRole('complementary').getByRole('listitem')
+    const trace = page.getByRole('complementary')
+    await expect(trace.getByText('engine · 412 µs')).toBeVisible()
+    const steps = trace.getByRole('listitem')
     await expect(steps).toHaveCount(2)
     await expect(steps.first()).toContainText('Did not match')
+    await expect(steps.last()).toContainText('Matched · decided')
+    // a rule that did not match shows its head until every comparison is shown (phase 3's sixth question)
+    await expect(steps.first()).not.toContainText('9,500')
+    await trace.getByRole('button', { name: 'Show every comparison' }).click()
     await expect(steps.first()).toContainText('9,500')
-    await expect(steps.last()).toContainText('Matched')
   })
 
   // Work Plan day 10, Done when: "Explain on case 17 cites R-330 and its paragraph" (paragraph 7, R-330's provenance)

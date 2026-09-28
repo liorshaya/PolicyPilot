@@ -34,7 +34,9 @@ test('a second browser context sees nothing the first one added or decided', asy
     .getByRole('button', { name: 'Cases' })
     .click()
   await first.getByRole('button', { name: 'Run 200 cases' }).first().click()
-  await expect(first.getByText('Rules that decided most often, of 200 decisions')).toBeVisible()
+  await expect(
+    first.getByText('Rules that decided most often · click to filter the list'),
+  ).toBeVisible()
 
   // the second visitor lists neither, and the first one's policy is not found by its id
   await expect(second.getByRole('heading', { level: 1, name: 'Policies' })).toBeVisible()

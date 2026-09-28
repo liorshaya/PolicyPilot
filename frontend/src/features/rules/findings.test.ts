@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { Finding, Review, ReviewFinding } from '../../api/types'
-import { needs, publishBlockers, tableCounts, tableMarks, underlinedCells } from './findings'
+import {
+  markOf,
+  needs,
+  publishBlockers,
+  publishGates,
+  reviewCounts,
+  reviewStatusLine,
+  tableCounts,
+  tableMarks,
+  underlinedCells,
+} from './findings'
 
 /**
  * Expected values: Document 2, Flow 1 (what blocks a publish) and the acknowledge route (what each kind needs); the
@@ -178,5 +188,131 @@ describe('needs', () => {
     expect(needs(finding({ kind: 'unsupported', severity: 'error' }))).toBe('note')
     expect(needs(finding({ kind: 'injection' }))).toBe('nothing')
     expect(needs(finding({ kind: 'duplicate' }))).toBe('nothing')
+  })
+})
+
+/**
+ * The review as the Register reads it (the spec, section 09, "The review"; Document 9, phase 3): the mark of each kind by
+ * what the publish gate does with it, the head's counts, the lifecycle sentence and the four gates of the publish box.
+ */
+describe('markOf', () => {
+  it('draws a square for what must be acknowledged, a bar for a planted instruction, a triangle for what may stay open', () => {
+    expect(markOf(finding({ kind: 'conflict' }))).toBe('square')
+    expect(markOf(finding({ kind: 'unsupported' }))).toBe('square')
+    expect(markOf(finding({ kind: 'gap' }))).toBe('square')
+    expect(markOf(finding({ kind: 'injection' }))).toBe('bar')
+    expect(markOf(finding({ kind: 'ambiguity' }))).toBe('triangle')
+    expect(markOf(finding({ kind: 'duplicate' }))).toBe('triangle')
+  })
+})
+
+/** SF-1 to SF-5 of fixtures/eval/policies/consumer-lending/seeded.findings.json, the ambiguity acknowledged. */
+const seeded = review(
+  [
+    finding({
+      id: 'F-1',
+      acknowledgement: { note: 'נומינלית, לפי הנוהג בבנק', at: '2026-09-24T14:02:00Z' },
+    }),
+    finding({
+      id: 'F-2',
+      kind: 'conflict',
+      severity: 'error',
+      ruleIds: ['R-110', 'R-115'],
+      blocking: true,
+    }),
+    finding({
+      id: 'F-3',
+      kind: 'unsupported',
+      severity: 'error',
+      ruleIds: ['R-170'],
+      blocking: true,
+    }),
+    finding({ id: 'F-4', kind: 'gap', ruleIds: ['R-160'], blocking: true }),
+    finding({ id: 'F-5', kind: 'duplicate', ruleIds: ['R-100'] }),
+  ],
+  'DONE',
+)
+
+describe('reviewCounts', () => {
+  it('counts the findings, those that block publishing and those a person acknowledged', () => {
+    expect(reviewCounts(seeded)).toStrictEqual({ findings: 5, blocking: 3, acknowledged: 1 })
+  })
+})
+
+describe('reviewStatusLine', () => {
+  it("says the review's state in the product's own sentences", () => {
+    // Document 9, phase 3, and the spec: "Not reviewed yet." · "The review could not run." · the stale sentence
+    expect(reviewStatusLine(undefined)).toBe('Not reviewed yet.')
+    expect(reviewStatusLine(review([], 'FAILED'))).toBe('The review could not run.')
+    expect(reviewStatusLine(review([], 'STALE'))).toBe(
+      'The draft was edited after its review; run the review again.',
+    )
+  })
+
+  it('says what a done review was read against, with no time, which a review does not carry', () => {
+    // the owner's answer of 2026-09-28 to phase 3's third question
+    expect(
+      reviewStatusLine({ ...seeded, coverage: { '1': ['R-100'], '4': ['R-170'], '9': ['R-900'] } }),
+    ).toBe('Reviewed against ¶ 1–9. The draft has not changed since.')
+    expect(reviewStatusLine(seeded)).toBe(
+      'Reviewed against the policy. The draft has not changed since.',
+    )
+  })
+})
+
+describe('publishGates', () => {
+  it('lists the four gates of a draft with their facts', () => {
+    const gates = publishGates(
+      { status: 'DRAFT', versionNo: 2 },
+      { ...seeded, coverage: { '1': [], '9': [] } },
+      [],
+    )
+
+    // the spec, section 09, the publish box: only a draft; valid; reviewed and not edited since; acknowledged n of m
+    expect(gates).toStrictEqual([
+      { label: 'Only a draft is published', state: 'ok', fact: 'Draft v2' },
+      { label: 'Schema and semantics valid', state: 'ok', fact: '0 problems' },
+      { label: 'Reviewed, and not edited since', state: 'ok', fact: '¶ 1–9' },
+      { label: 'Blocking findings acknowledged', state: 'fail', fact: '0 of 3' },
+    ])
+  })
+
+  it('waits on a stale review, and counts the problems of the validator', () => {
+    const gates = publishGates({ status: 'DRAFT', versionNo: 2 }, review([], 'STALE'), [
+      validated({ severity: 'error' }),
+      validated({ code: 'DSL-201', severity: 'error' }),
+      validated({}),
+    ])
+
+    expect(gates[1]).toStrictEqual({
+      label: 'Schema and semantics valid',
+      state: 'fail',
+      fact: '2 problems',
+    })
+    expect(gates[2]).toStrictEqual({
+      label: 'Reviewed, and not edited since',
+      state: 'wait',
+      fact: 'edited after its review',
+    })
+  })
+
+  it('fails the first gate for a published version, and the third for a draft never reviewed', () => {
+    const gates = publishGates({ status: 'PUBLISHED', versionNo: 1 }, undefined, [])
+
+    expect(gates[0]).toStrictEqual({
+      label: 'Only a draft is published',
+      state: 'fail',
+      fact: 'Published v1',
+    })
+    expect(gates[2]).toStrictEqual({
+      label: 'Reviewed, and not edited since',
+      state: 'fail',
+      fact: 'not reviewed',
+    })
+    expect(gates[3]).toStrictEqual({
+      label: 'Blocking findings acknowledged',
+      state: 'ok',
+      fact: '0 of 0',
+    })
   })
 })

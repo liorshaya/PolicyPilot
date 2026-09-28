@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { lendingRuleSet } from '../../test/fixtures/lending'
-import type { FieldSchema, Rule, RuleSetDocument } from '../../api/types'
+import type { Diff, FieldSchema, Rule, RuleSetDocument } from '../../api/types'
 import {
   actionText,
   bandOf,
@@ -12,7 +12,9 @@ import {
   headerUnit,
   pointedCell,
   rowsOf,
+  sinceOf,
   tagsOf,
+  withEnabled,
   withLeaf,
 } from './tableModel'
 
@@ -451,5 +453,48 @@ describe('withLeaf', () => {
     )
 
     expect(edited).toEqual(lendingRuleSet)
+  })
+})
+
+/**
+ * "Since" in the Rules margin (the spec, section 10: "Since v1 · unchanged"): the version a rule stands in as it is now,
+ * read from the structural diff of the version before it (Document 3, Structural diff).
+ */
+describe('sinceOf', () => {
+  const r110 = lendingRuleSet.rules.find((rule) => rule.id === 'R-110')!
+  const r170 = lendingRuleSet.rules.find((rule) => rule.id === 'R-170')!
+  const diff: Diff = {
+    fields: { added: [], removed: [], modified: [] },
+    rules: {
+      added: [{ ...r110, id: 'R-175' }],
+      removed: [],
+      modified: [{ id: 'R-170', from: r170, to: r170, changes: [] }],
+    },
+    defaults: null,
+  }
+
+  it('names the version before when the rule is unchanged, and the version itself when it changed or is new', () => {
+    expect(sinceOf('R-110', 2, { versionNo: 1, diff })).toBe('v1 · unchanged')
+    expect(sinceOf('R-170', 2, { versionNo: 1, diff })).toBe('v2 · changed from v1')
+    expect(sinceOf('R-175', 2, { versionNo: 1, diff })).toBe('v2 · new')
+  })
+
+  it('names the first version as the one the rule was written in', () => {
+    expect(sinceOf('R-110', 1, null)).toBe('v1 · first version')
+  })
+})
+
+describe('withEnabled', () => {
+  it('switches one rule off or on and leaves every other rule as it was', () => {
+    const off = withEnabled(lendingRuleSet, 'R-310', false)
+
+    // Document 3, Rules: a rule whose enabled is false is skipped by the engine
+    expect(off.rules.find((rule) => rule.id === 'R-310')?.enabled).toBe(false)
+    expect(off.rules.filter((rule) => rule.id !== 'R-310')).toStrictEqual(
+      lendingRuleSet.rules.filter((rule) => rule.id !== 'R-310'),
+    )
+    expect(withEnabled(off, 'R-310', true).rules.find((rule) => rule.id === 'R-310')?.enabled).toBe(
+      true,
+    )
   })
 })

@@ -10,6 +10,10 @@ interface SplitViewProps {
   sideOpen: boolean
   /** The wider margin, for a trace. */
   wide?: boolean
+  /** The sheet's section fills it and its table is the only scroller, as in the spec's composed screens. */
+  fill?: boolean
+  /** The margin holds a sheet of its own, for a trace or a review (the spec's Cases screen: `margin--sheet`). */
+  sideSheet?: boolean
 }
 
 /**
@@ -17,15 +21,26 @@ interface SplitViewProps {
  * 340px, or 440px for a trace. Each scrolls on its own under the header; below 1200px the margin is a drawer over the
  * sheet.
  */
-export function SplitView({ main, side, sideOpen, wide = false }: SplitViewProps) {
+export function SplitView({
+  main,
+  side,
+  sideOpen,
+  wide = false,
+  fill = false,
+  sideSheet = false,
+}: SplitViewProps) {
   const open = sideOpen && side !== undefined && side !== null
   const layout = !open ? ' ws-body--single' : wide ? ' ws-body--wide-margin' : ''
   return (
     <div className={`ws-body${layout}`}>
-      <section className="sheet">
-        <div className="sheet__scroll">{main}</div>
-      </section>
-      {open ? <aside className="margin">{side}</aside> : null}
+      {fill ? (
+        <section className="sheet sheet--fill">{main}</section>
+      ) : (
+        <section className="sheet">
+          <div className="sheet__scroll">{main}</div>
+        </section>
+      )}
+      {open ? <aside className={`margin${sideSheet ? ' margin--sheet' : ''}`}>{side}</aside> : null}
     </div>
   )
 }

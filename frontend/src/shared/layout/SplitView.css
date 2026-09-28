@@ -84,6 +84,24 @@
   color: var(--ink-3);
 }
 
+/* The product's own: a sheet whose table is its only scroller, as in the spec's composed screens (section 10). The
+   section on it fills the sheet as a column, the table takes what is left and scrolls on its own under its sticky
+   header, and the foot stays at the bottom; on a screen too short for the table's floor, the section scrolls. */
+.sheet--fill > section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.sheet--fill > section > .table-scroll {
+  flex: 1;
+  min-height: 240px;
+}
+.sheet--fill > section > .sheet__foot {
+  margin-top: auto;
+}
+
 /* Below 1200px the margin becomes a drawer over the sheet (the spec, section 08): it stands at the end edge of the body,
    at the margin's own width, and floats with the one shadow the spec allows. */
 @media (max-width: 1199px) {

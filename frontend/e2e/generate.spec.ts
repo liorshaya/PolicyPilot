@@ -101,7 +101,9 @@ test.describe('demo step 1: the rules are written from the policy', () => {
     await expect(
       page.getByText('Publishing waits: 1 finding must be acknowledged: F-2.'),
     ).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Publish version' })).toBeDisabled()
+    await expect(
+      page.getByRole('complementary').getByRole('button', { name: 'Publish version 1' }),
+    ).toBeDisabled()
   })
 
   test('says what was refused and that nothing was stored', async ({ page }) => {

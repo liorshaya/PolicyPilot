@@ -1,176 +1,319 @@
-.trace {
+/*
+ * The trace of one decision (the Register spec, section 09, "The trace"): the "Trace" block of layer 5 of
+ * docs/design/register.css, as the spec writes it; its explanation's rules live beside the explanation, in
+ * ExplainPanel.css.
+ */
+.trace__head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
-
-.trace__outcome {
-  display: grid;
-  gap: var(--space-2);
-  justify-items: start;
+.trace__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
-
-.trace__reason {
-  color: var(--color-text);
-  font-size: var(--text-sm);
-  line-height: 1.7;
-}
-
-.trace__heading {
-  margin-bottom: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
+.trace__case {
+  font-size: var(--text-md);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
-
-.trace__values {
+.trace__h {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  padding: 10px 16px 4px;
+}
+.trace__inputs {
   display: grid;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.trace__values > div {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--text-sm);
-}
-
-.trace__values dt {
-  color: var(--color-text-muted);
-}
-
-.trace__values dd {
-  margin: 0;
-}
-
-.trace__flags {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--text-sm);
-}
-
-.trace__flags li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-review-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-review-bg);
-  color: var(--color-review-text);
-}
-
-.trace__flag-rule {
-  color: var(--color-text-muted);
-}
-
-.trace__steps {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Every step is numbered, and the step a person is looking at carries the interface's blue bar. */
-.trace__step {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-}
-
-.trace__step--not_fired,
-.trace__step--skipped {
-  color: var(--color-text-muted);
-  background: var(--color-surface-sunken);
-}
-
-.trace__step--fired {
-  border-color: var(--pp-blue-line);
-}
-
-.trace__step--error {
-  border-color: var(--color-declined-line);
-  background: var(--color-declined-bg);
-}
-
-.trace__step--selected {
-  box-shadow: inset 3px 0 0 var(--color-selected-bar);
-}
-
-.trace__step-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-}
-
-.trace__no {
-  min-width: 1.5rem;
-  color: var(--color-text-muted);
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  padding: 0 16px 10px;
   font-size: var(--text-xs);
+  border-bottom: 1px solid var(--hairline);
 }
-
-.trace__rule {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-accent);
-  font: inherit;
-  cursor: pointer;
+.trace__inputs div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--hairline);
 }
-
-.trace__label {
-  flex: 1;
+.trace__inputs dt {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  text-align: left;
 }
-
-.trace__status {
+.trace__inputs dd {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trace__deciding {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  align-items: start;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--well);
+}
+.trace__deciding-label {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  padding-top: 3px;
+  white-space: nowrap;
+}
+.trace__reason {
+  direction: rtl;
+  font-family: var(--font-he);
+  font-size: var(--text-md);
+  line-height: var(--leading-he);
+  unicode-bidi: isolate;
+}
+.trace__derived {
+  display: grid;
+  gap: 2px;
+  padding: 0 16px 10px;
   font-size: var(--text-xs);
+  border-bottom: 1px solid var(--hairline);
+}
+.trace__derived div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hitmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.hitmap__cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  border: 1px solid var(--mark-quiet);
+  background: transparent;
+}
+.hitmap__cell--matched {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.hitmap__cell--deciding {
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 2px var(--sheet),
+    0 0 0 4px var(--ring, var(--refer-mark));
+  margin: 0 2px;
+}
+.hitmap__cell--notreached {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.hitmap__cell--disabled {
+  border-style: dotted;
+}
+.hitmap__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  margin-top: 6px;
+}
+.hitmap__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.step {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 4px 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.step__mark {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 2px;
+  border: 1.5px solid var(--mark-quiet);
+}
+.step--matched .step__mark {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.step--notreached {
+  color: var(--ink-3);
+}
+.step--notreached .step__mark {
+  border-style: dashed;
+}
+.step--disabled .step__mark {
+  border-style: dotted;
+}
+.step__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--text-sm);
+}
+.step__label {
+  direction: rtl;
+  font-family: var(--font-he);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  unicode-bidi: isolate;
+}
+.step__status {
+  margin-inline-start: auto;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.step--matched .step__status {
+  color: var(--ink);
+}
+.cmp {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 2px 12px;
+  font-size: var(--text-xs);
+  align-items: center;
+}
+.cmp__h {
+  color: var(--ink-3);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding-top: 2px;
+}
+.cmp__field {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-2);
+  font-size: var(--text-2xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmp__cond {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  text-align: end;
+  white-space: nowrap;
+}
+.cmp__actual {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: end;
   font-weight: 500;
   white-space: nowrap;
 }
+.cmp__result {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+.cmp__result svg {
+  width: 10px;
+  height: 10px;
+}
+.cmp__result--true {
+  color: var(--approve-text);
+}
+.cmp__result--false {
+  color: var(--ink-3);
+}
+.step__effect {
+  grid-column: 2;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-2);
+}
 
-.trace__comparisons {
-  width: 100%;
-  margin-top: var(--space-2);
-  border-collapse: collapse;
+/*
+ * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
+ * (Document 9, "The CSS port"): the ring of the deciding cell takes the colour of the outcome, and the legend draws it
+ * a size smaller; the head's side holds the tag and Close; the strip stacks the rule, its label and its reason; a
+ * section with nothing in it says so in one quiet line; the steps are a list, the first comparison's heads align with
+ * their columns, and the count of what is collapsed is the last row, with no rule under it.
+ */
+.hitmap--approve {
+  --ring: var(--approve-mark);
+}
+.hitmap--refer {
+  --ring: var(--refer-mark);
+}
+.hitmap--decline {
+  --ring: var(--decline-mark);
+}
+.hitmap__legend .hitmap__cell--deciding {
+  box-shadow:
+    0 0 0 1.5px var(--paper),
+    0 0 0 3px var(--ring, var(--refer-mark));
+}
+.trace__side {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.trace__export {
+  margin-inline-start: auto;
   font-size: var(--text-xs);
 }
-
-.trace__comparisons th {
-  padding: 2px var(--space-2) 2px 0;
-  color: var(--color-text-muted);
-  font-weight: 500;
-  text-align: start;
+.trace__decided {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
-
-.trace__comparisons td {
-  padding: 2px var(--space-2) 2px 0;
-  text-align: start;
+.trace__decided > .chip {
+  justify-self: start;
 }
-
-.trace__result {
-  color: var(--color-text-muted);
+.trace__decided > .step__label,
+.trace__decided > .trace__reason {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
 }
-
-.trace__result--true {
-  color: var(--color-approved-text);
+.trace__reason-label {
+  font-size: var(--text-xs);
+  margin-top: 4px;
 }
-
-.trace__error {
-  margin-top: var(--space-2);
-  color: var(--color-declined-text);
+.trace__none {
+  padding: 0 16px 10px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--hairline);
+}
+.trace__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cmp__h--end {
+  text-align: end;
+}
+.step--foot {
+  border-bottom: 0;
+}
+.step--foot .step__head {
   font-size: var(--text-xs);
 }

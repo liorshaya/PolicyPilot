@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
 import './Button.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'link'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
@@ -20,8 +20,8 @@ const PLAIN_VERBS = /^(Run|Publish|Ask)\b/
 
 /**
  * The control of the Register (the spec, section 05): one primary per screen in ink on paper, paper on ink in the dark
- * theme; a bordered secondary; a quiet one of text alone; a danger in red text. Its label is a verb, with the object
- * when the verb alone is ambiguous.
+ * theme; a bordered secondary; a quiet one of text alone; a danger in red text; and a link, for an action the spec
+ * writes in running text as a link. Its label is a verb, with the object when the verb alone is ambiguous.
  */
 export function Button({
   variant = 'secondary',

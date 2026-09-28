@@ -17,6 +17,58 @@ export function stylesheet(path: string): string {
 
 const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '')
 
+/** The spec's own stylesheet, which the product's stylesheets port layer by layer (Document 9, "The CSS port"). */
+const SPEC = readFileSync(resolve(process.cwd(), '../docs/design/register.css'), 'utf8')
+
+/** Each rule of a stylesheet as [selector, declarations], comments removed, a selector list split into its selectors. */
+function rulesOf(css: string): [string, Record<string, string>][] {
+  return [...withoutComments(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(
+    ([, selectors, body]) => {
+      const declarations: Record<string, string> = {}
+      for (const declaration of body!.split(';')) {
+        const colon = declaration.indexOf(':')
+        if (colon > 0) {
+          declarations[declaration.slice(0, colon).trim()] = declaration
+            .slice(colon + 1)
+            .trim()
+            .replace(/\s+/g, ' ')
+        }
+      }
+      return selectors!
+        .split(',')
+        .map((selector): [string, Record<string, string>] => [
+          selector.trim().replace(/\s+/g, ' '),
+          declarations,
+        ])
+    },
+  )
+}
+
+/** The spec's rules from one of its comments up to the next one named, as [selector, declarations]. */
+export function specRules(from: string, to: string): [string, Record<string, string>][] {
+  const start = SPEC.indexOf(from)
+  const end = SPEC.indexOf(to, start)
+  if (start < 0 || end < 0) {
+    throw new Error(`register.css has no block from ${from} to ${to}`)
+  }
+  return rulesOf(SPEC.slice(start, end))
+}
+
+/**
+ * The selectors of the spec's rules that a product stylesheet does not draw as the spec writes them, empty when every
+ * one is carried over; Prettier may break a long value over lines, and the value is the same.
+ */
+export function unported(product: string, spec: [string, Record<string, string>][]): string[] {
+  return spec
+    .filter(([selector, declarations]) => {
+      const drawn = rule(product, selector)
+      return Object.entries(declarations).some(
+        ([name, value]) => drawn[name]?.replace(/\s+/g, ' ') !== value,
+      )
+    })
+    .map(([selector]) => selector)
+}
+
 /** The stylesheet with its at-rule blocks (media queries, keyframes) taken out, so what is left is its top level. */
 function topLevel(css: string): string {
   let text = withoutComments(css)

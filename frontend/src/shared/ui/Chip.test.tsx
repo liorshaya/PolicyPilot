@@ -27,6 +27,17 @@ describe('Chip', () => {
     expect(rule(css, '.chip--para')['border-radius']).toBe('var(--r-pill)')
   })
 
+  it('names a paragraph that opens something by its word, for a screen reader', () => {
+    const onClick = vi.fn()
+    render(
+      <Chip kind="para" label="Paragraph 8" onClick={onClick}>
+        8
+      </Chip>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Paragraph 8' })).toHaveClass('chip', 'chip--para')
+  })
+
   it('draws a tool call as the outlined glyph', () => {
     render(<Chip kind="tool">what-if · has_guarantor=true</Chip>)
     const chip = screen.getByText('what-if · has_guarantor=true')

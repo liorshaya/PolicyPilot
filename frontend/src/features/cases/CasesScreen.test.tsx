@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  aggregates,
   batch,
   decision,
   publishedVersion,
@@ -44,11 +43,12 @@ describe('CasesScreen', () => {
   it('shows what the version has decided before anything is run', async () => {
     renderScreen()
 
-    const approved = (await screen.findByText('Approved')).closest('div')
-    expect(within(approved!).getByText('113')).toBeInTheDocument()
-    expect(within(approved!).getByText('57%')).toBeInTheDocument()
+    // the spec, section 09: "113 56.5%" of the 200 seeded cases
+    const approved = (await screen.findByText('Approved')).closest('.figure')
+    expect(approved).toHaveTextContent('Approved11356.5%')
+    expect(screen.getByRole('heading', { level: 2, name: 'Decisions on v1' })).toBeInTheDocument()
     expect(
-      screen.getByText(`Rules that decided most often, of ${aggregates.decisions} decisions`),
+      screen.getByText('Rules that decided most often · click to filter the list'),
     ).toBeInTheDocument()
     // the list of cases belongs to a run; before one there is nothing to list
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
@@ -68,9 +68,8 @@ describe('CasesScreen', () => {
     await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
 
     await waitFor(() => expect(sent).toEqual({ fixtureSet: 'cases-200' }))
-    expect(
-      await screen.findByText('2 cases decided in this run, each with its own trace'),
-    ).toBeInTheDocument()
+    // the spec, section 09: "Decisions on v1 · 200 cases · one run"; the served run holds two
+    expect(await screen.findByText('2 cases · one run')).toBeInTheDocument()
   })
 
   it('counts a run of one case as one case', async () => {
@@ -81,9 +80,21 @@ describe('CasesScreen', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
 
-    expect(
-      await screen.findByText(/^1 case decided in this run, each with its own trace$/),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/^1 case · one run$/)).toBeInTheDocument()
+  })
+
+  it('filters the case list by a rule the figures name', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await screen.findByRole('button', { name: '18' })
+    await user.click(screen.getByRole('button', { name: /^R-330/ }))
+
+    // case 17 was decided by R-330, case 18 by R-900
+    expect(screen.getByRole('combobox', { name: 'Deciding rule' })).toHaveValue('R-330')
+    expect(screen.getByRole('button', { name: '17' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '18' })).not.toBeInTheDocument()
   })
 
   it('lists every case of the run with what the engine decided and what it flagged', async () => {
@@ -110,12 +121,18 @@ describe('CasesScreen', () => {
     const panel = within(await screen.findByRole('complementary'))
     // Document 3: the reason is the rule's own words, in the policy's language
     expect(panel.getByText(decision.reason!)).toBeInTheDocument()
-    const steps = panel.getAllByRole('listitem')
-    expect(steps).toHaveLength(decision.trace.length)
-    expect(within(steps[0]!).getByText('R-170')).toBeInTheDocument()
-    expect(within(steps[0]!).getByText('Did not match')).toBeInTheDocument()
-    expect(within(steps[1]!).getByText('Matched')).toBeInTheDocument()
-    expect(within(steps[2]!).getByText('Not reached')).toBeInTheDocument()
+    const steps = () => panel.getAllByRole('listitem')
+    // R-900 was not reached after the decision: counted under the steps until every comparison is shown (the owner's
+    // answer of 2026-09-28 to phase 3's sixth question)
+    expect(steps()).toHaveLength(2)
+    expect(within(steps()[0]!).getByText('R-170')).toBeInTheDocument()
+    expect(within(steps()[0]!).getByText('Did not match')).toBeInTheDocument()
+    expect(within(steps()[1]!).getByText('Matched · decided')).toBeInTheDocument()
+
+    await user.click(panel.getByRole('button', { name: 'Show every comparison' }))
+
+    expect(steps()).toHaveLength(decision.trace.length)
+    expect(within(steps()[2]!).getByText('Not reached')).toBeInTheDocument()
   })
 
   it('shows what each step compared and what the case carried', async () => {
@@ -126,6 +143,7 @@ describe('CasesScreen', () => {
     await user.click(await screen.findByRole('button', { name: '17' }))
 
     const panel = within(await screen.findByRole('complementary'))
+    await user.click(panel.getByRole('button', { name: 'Show every comparison' }))
     const first = panel.getAllByRole('listitem')[0]!
     // R-170 asks for an income below 8,000; the case carried 9,500, so the rule did not fire
     expect(within(first).getByText('monthly_income')).toBeInTheDocument()
@@ -144,12 +162,15 @@ describe('CasesScreen', () => {
     const reason = await screen.findByText(decision.reason!)
     expect(reason).toHaveAttribute('dir', 'rtl')
     expect(reason).toHaveAttribute('lang', 'he')
-    // the label of a step is Hebrew too, and keeps its own order beside the rule id
+    // the label of the deciding rule is Hebrew too, pinned above the steps and in its own step, beside Latin ids
     const panel = within(await screen.findByRole('complementary'))
-    const label = panel.getByText('בדיקת חתם: אירוע אשראי אחד ללא ערב')
-    expect(label.tagName).toBe('BDI')
-    expect(label).toHaveAttribute('dir', 'auto')
-    expect(panel.getByText('monthly_income')).toHaveClass('mono')
+    const labels = panel.getAllByText('בדיקת חתם: אירוע אשראי אחד ללא ערב')
+    expect(labels).toHaveLength(2)
+    for (const label of labels) {
+      expect(label).toHaveAttribute('dir', 'rtl')
+      expect(label).toHaveAttribute('lang', 'he')
+    }
+    expect(panel.getByText('credit_events_24m')).toHaveClass('cmp__field')
   })
 
   it('shows the values the engine derived and how long the case took', async () => {
@@ -162,10 +183,11 @@ describe('CasesScreen', () => {
     const panel = within(await screen.findByRole('complementary'))
     expect(panel.getByText('debt_to_income')).toBeInTheDocument()
     expect(panel.getByText('0.2835')).toBeInTheDocument()
-    expect(panel.getByText('Decided in 412 µs by the engine')).toBeInTheDocument()
+    // the spec, section 04: the engine's mark with its time, and no version (phase 3's second question)
+    expect(panel.getByText('engine · 412 µs')).toHaveClass('actor', 'actor--engine')
   })
 
-  it('leads from the step that decided to the rule that decided it', async () => {
+  it('leads from the rule that decided the case to the rule on the Rules screen', async () => {
     const user = userEvent.setup()
     const opened = vi.fn()
     renderScreen(opened)
@@ -173,7 +195,8 @@ describe('CasesScreen', () => {
     await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
     await user.click(await screen.findByRole('button', { name: '17' }))
     const panel = within(await screen.findByRole('complementary'))
-    await user.click(panel.getByRole('button', { name: 'R-330' }))
+    const deciding = panel.getByText('Decided by').closest<HTMLElement>('.trace__deciding')!
+    await user.click(within(deciding).getByRole('button', { name: 'R-330' }))
 
     expect(opened).toHaveBeenCalledExactlyOnceWith('R-330')
   })
@@ -201,7 +224,9 @@ describe('CasesScreen', () => {
 
     const panel = within(await screen.findByRole('complementary'))
     expect(panel.getByText('STABLE_INCOME_MANUAL_CHECK')).toBeInTheDocument()
-    expect(panel.getByText('R-420')).toBeInTheDocument()
+    expect(panel.getByRole('button', { name: 'R-420' })).toHaveClass('chip', 'chip--id')
+    // the message is the engine's, in the policy's language, hung under its code
+    expect(panel.getByText('יציבות ההכנסה נבדקת ידנית')).toHaveAttribute('dir', 'rtl')
   })
 
   it('closes the trace and leaves the run on the screen', async () => {

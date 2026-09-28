@@ -1,4 +1,5 @@
 import type { Finding, Review, ReviewFinding } from '../../api/types'
+import { VERSION_LABELS, type VersionStatus } from '../../shared/ui/decisionLabels'
 import { KIND_LABELS, KIND_MARKS, type FindingMark } from '../../shared/ui/findingKinds'
 
 /**
@@ -118,4 +119,118 @@ export function needs(finding: ReviewFinding): 'resolution' | 'note' | 'nothing'
     return 'resolution'
   }
   return finding.severity === 'error' ? 'note' : 'nothing'
+}
+
+/** The shape of a finding's mark, by what the publish gate does with it (the spec, section 06). */
+export type MarkShape = 'square' | 'bar' | 'triangle'
+
+const SHAPES: Record<FindingMark, MarkShape> = {
+  error: 'square',
+  injection: 'bar',
+  warning: 'triangle',
+}
+
+/** A square must be acknowledged before publishing, a bar is an instruction planted in the text, a triangle may stay. */
+export function markOf(finding: ReviewFinding): MarkShape {
+  return SHAPES[KIND_MARKS[finding.kind]]
+}
+
+/**
+ * The review's head (the spec, section 09: "Review · 10 findings · 7 block publishing · 1 acknowledged"): every finding,
+ * those that block publishing now, as the API marks them, and those a person acknowledged.
+ */
+export function reviewCounts(review: Review): {
+  findings: number
+  blocking: number
+  acknowledged: number
+} {
+  return {
+    findings: review.findings.length,
+    blocking: review.findings.filter((finding) => finding.blocking).length,
+    acknowledged: review.findings.filter((finding) => finding.acknowledgement !== undefined).length,
+  }
+}
+
+/** The paragraphs a review was read against, from its coverage: "¶ 1–9", or null when it names none. */
+function coveredParagraphs(review: Review): string | null {
+  const indexes = Object.keys(review.coverage)
+    .map(Number)
+    .filter((index) => Number.isInteger(index))
+  if (indexes.length === 0) {
+    return null
+  }
+  const first = Math.min(...indexes)
+  const last = Math.max(...indexes)
+  return first === last ? `¶ ${String(first)}` : `¶ ${String(first)}–${String(last)}`
+}
+
+/**
+ * The review's lifecycle in the product's own sentences (the spec, section 09). A review carries no time, so a done one
+ * says what it was read against and not when (the owner's answer of 2026-09-28 to phase 3's third question).
+ */
+export function reviewStatusLine(review: Review | undefined): string {
+  if (review === undefined) {
+    return 'Not reviewed yet.'
+  }
+  if (review.status === 'FAILED') {
+    return 'The review could not run.'
+  }
+  if (review.status === 'STALE') {
+    return 'The draft was edited after its review; run the review again.'
+  }
+  return `Reviewed against ${coveredParagraphs(review) ?? 'the policy'}. The draft has not changed since.`
+}
+
+/** One gate of the publish box: what must hold, whether it holds, and the fact that says so. */
+export interface PublishGate {
+  label: string
+  state: 'ok' | 'fail' | 'wait'
+  fact: string
+}
+
+/** A finding that blocked publishing: one that blocks now, or one of the kinds that must be acknowledged, acknowledged. */
+const blocked = (finding: ReviewFinding) =>
+  finding.blocking || (finding.acknowledgement !== undefined && markOf(finding) !== 'triangle')
+
+/**
+ * The real gates of publishing (the spec, section 09, the publish box; Document 2, Flow 1), each with its fact: only a
+ * draft is published; the validator found no error; the draft was reviewed and not edited since; every blocking finding
+ * was acknowledged, n of m.
+ */
+export function publishGates(
+  version: { status: string; versionNo: number },
+  review: Review | undefined,
+  findings: Finding[],
+): PublishGate[] {
+  const status = version.status as VersionStatus
+  const problems = findings.filter((finding) => finding.severity === 'error').length
+  const blocking = (review?.findings ?? []).filter(blocked)
+  const acknowledged = blocking.filter((finding) => !finding.blocking).length
+  return [
+    {
+      label: 'Only a draft is published',
+      state: status === 'DRAFT' ? 'ok' : 'fail',
+      fact: `${VERSION_LABELS[status]} v${String(version.versionNo)}`,
+    },
+    {
+      label: 'Schema and semantics valid',
+      state: problems === 0 ? 'ok' : 'fail',
+      fact: `${String(problems)} problem${problems === 1 ? '' : 's'}`,
+    },
+    {
+      label: 'Reviewed, and not edited since',
+      ...(review === undefined
+        ? { state: 'fail' as const, fact: 'not reviewed' }
+        : review.status === 'FAILED'
+          ? { state: 'fail' as const, fact: 'could not run' }
+          : review.status === 'STALE'
+            ? { state: 'wait' as const, fact: 'edited after its review' }
+            : { state: 'ok' as const, fact: coveredParagraphs(review) ?? '' }),
+    },
+    {
+      label: 'Blocking findings acknowledged',
+      state: acknowledged === blocking.length ? 'ok' : 'fail',
+      fact: `${String(acknowledged)} of ${String(blocking.length)}`,
+    },
+  ]
 }

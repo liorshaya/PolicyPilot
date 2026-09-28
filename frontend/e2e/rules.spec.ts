@@ -21,7 +21,9 @@ test.describe('the rule set screen', () => {
       .getByRole('button', { name: 'Rules' })
       .click()
 
-    await expect(page.getByText('Version 1')).toBeVisible()
+    // the header names the version, and so does its primary: "Publish version 1" (the spec, section 10)
+    await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Publish version 1' })).toBeDisabled()
     await expect(page.getByText('Published', { exact: true })).toBeVisible()
     // one row per rule, plus the head and the band of Document 3 each group sits under
     await expect(page.getByRole('rowheader')).toHaveCount(ruleSet.rules.length)
@@ -54,7 +56,7 @@ test.describe('the rule set screen', () => {
     await page.getByRole('button', { name: /R-330/ }).click()
 
     await page.getByRole('button', { name: 'Rule', exact: true }).click()
-    await expect(page.getByText('model confidence 0.88')).toBeVisible()
+    await expect(page.getByText('model · confidence 0.88')).toBeVisible()
 
     await page.getByRole('button', { name: 'JSON' }).click()
     await expect(page.getByText('"dslVersion": "1.0"')).toBeVisible()

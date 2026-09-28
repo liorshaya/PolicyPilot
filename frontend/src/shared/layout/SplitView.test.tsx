@@ -39,6 +39,39 @@ describe('SplitView', () => {
     expect(container.querySelector('aside')).toBeNull()
   })
 
+  it("makes the table the sheet's only scroller: the section fills the sheet, the table takes what is left", () => {
+    // the spec's composed screens, section 10, and the board's note of phase 2: the Rules and Cases sheets in phase 3
+    const { container } = render(
+      <SplitView main={<section>The table</section>} side={<p>The rule</p>} sideOpen fill />,
+    )
+
+    const sheet = container.querySelector('section.sheet')!
+    expect(sheet).toHaveClass('sheet--fill')
+    expect(sheet.querySelector('.sheet__scroll')).toBeNull()
+    expect(rule(css, '.sheet--fill > section')).toMatchObject({
+      display: 'flex',
+      'flex-direction': 'column',
+      flex: '1',
+      'min-height': '0',
+    })
+    expect(rule(css, '.sheet--fill > section > .table-scroll').flex).toBe('1')
+    expect(rule(css, '.sheet--fill > section > .sheet__foot')['margin-top']).toBe('auto')
+  })
+
+  it('holds a sheet in the margin, for a trace or a review, as the spec draws the Cases screen', () => {
+    const { container } = render(
+      <SplitView
+        main={<p>The cases</p>}
+        side={<div className="sheet">The trace</div>}
+        sideOpen
+        sideSheet
+      />,
+    )
+
+    expect(container.querySelector('aside')).toHaveClass('margin', 'margin--sheet')
+    expect(rule(css, '.margin--sheet > .sheet')).toStrictEqual({ margin: '0', flex: '1' })
+  })
+
   it('turns the margin into a drawer over the sheet below 1200px', () => {
     const narrow = media(css, '(max-width: 1199px)')
 

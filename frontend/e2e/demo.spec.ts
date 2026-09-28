@@ -161,7 +161,7 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   await step(page, 'Decide').click()
   await expect(page.getByRole('heading', { level: 1, name: 'Cases' })).toBeVisible()
   // 113 of the 200 are approved (fixtures/policies/consumer-lending/cases-expected.json)
-  await expect(page.getByRole('definition').filter({ hasText: '57%' })).toContainText('113')
+  await expect(page.getByRole('definition').filter({ hasText: '56.5%' })).toContainText('113')
   await page.getByRole('button', { name: '17', exact: true }).click()
   await expect(page.getByRole('complementary').getByRole('listitem').last()).toContainText(
     'Matched',

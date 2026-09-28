@@ -1,0 +1,69 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ReviewPanel in both directions (NFR-5) > RTL: the reviewer's Hebrew reads right to left beside Latin codes, kinds and chips (snapshot) 1`] = `
+"
+page -           Review
+page -           · 5 findings · 3 block publishing · 1 acknowledged
+page -           reviewer · model
+page -           Run the review again
+page -           Reviewed against ¶ 1–9. The draft has not changed since.
+page -           F-1
+page -           Ambiguity
+rtl  he          המונח "הכנסה יציבה" אינו מוגדר במדיניות.
+page -           Evidence
+page -           R-420
+page -           ¶
+page -           4
+ltr  en          What to do
+rtl  he          להוסיף סימון לבדיקה ידנית
+page -           Acknowledged
+page -           14:02 · Analyst
+rtl  he          נבדק ידנית לפי תלושים
+page -           F-2
+page -           Conflict
+page -           Blocks publishing
+rtl  he          סעיף 1 מגביל את גיל כל המבקשים ל-70, בעוד סעיף 8 מתיר לגמלאים עד גיל 75.
+page -           Evidence
+page -           R-110
+page -           R-115
+page -           ¶
+page -           1
+page -           ¶
+page -           8
+ltr  en          What to do
+rtl  he          יש להבהיר אם סעיף 8 הוא חריג לסעיף 1.
+page -           Acknowledge
+page -           F-3
+page -           Unsupported
+page -           Blocks publishing
+rtl  he          סף ההכנסה בטיוטה הוא 8,500 בעוד הטקסט קובע 8,000.
+page -           Evidence
+page -           R-170
+page -           ¶
+page -           4
+ltr  en          What to do
+rtl  he          להוסיף סימון לבדיקה ידנית
+page -           Acknowledge
+page -           F-4
+page -           Gap
+page -           Blocks publishing
+rtl  he          סעיף הוותק לעצמאים אינו מכוסה.
+page -           Evidence
+page -           R-160
+page -           ¶
+page -           3
+ltr  en          What to do
+rtl  he          להוסיף סימון לבדיקה ידנית
+page -           Acknowledge
+page -           F-5
+page -           Duplicate
+rtl  he          R-100 ו-R-101 בודקים אותו תנאי.
+page -           Evidence
+page -           R-100
+page -           ¶
+page -           1
+ltr  en          What to do
+rtl  he          להוסיף סימון לבדיקה ידנית
+page -           Acknowledge
+"
+`;

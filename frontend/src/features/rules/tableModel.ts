@@ -1,4 +1,4 @@
-import type { FieldSchema, Rule, RuleSetDocument } from '../../api/types'
+import type { Diff, FieldSchema, Rule, RuleSetDocument } from '../../api/types'
 import { ACTION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
 import {
   cellParts,
@@ -343,4 +343,39 @@ function sameLeaf(candidate: Leaf, previous: Leaf): boolean {
     candidate.op === previous.op &&
     JSON.stringify(candidate.value ?? null) === JSON.stringify(previous.value ?? null)
   )
+}
+
+/**
+ * The version a rule stands in as it is now, for the margin's "Since" (the spec, section 10: "v1 · unchanged"): the
+ * version before when the structural diff between them leaves the rule alone, the version itself when it changed or is
+ * new there, and the first version for a rule set that has no version before.
+ */
+export function sinceOf(
+  ruleId: string,
+  versionNo: number,
+  previous: { versionNo: number; diff: Diff } | null,
+): string {
+  if (previous === null) {
+    return `v${String(versionNo)} · first version`
+  }
+  const named = (rules: unknown[]) => rules.some((rule) => (rule as Rule).id === ruleId)
+  if (named(previous.diff.rules.added)) {
+    return `v${String(versionNo)} · new`
+  }
+  if (previous.diff.rules.modified.some((rule) => rule.id === ruleId)) {
+    return `v${String(versionNo)} · changed from v${String(previous.versionNo)}`
+  }
+  return `v${String(previous.versionNo)} · unchanged`
+}
+
+/** The document with one rule switched on or off, every other rule as it was (Document 3: a rule not enabled is skipped). */
+export function withEnabled(
+  document: RuleSetDocument,
+  ruleId: string,
+  enabled: boolean,
+): RuleSetDocument {
+  return {
+    ...document,
+    rules: document.rules.map((rule) => (rule.id === ruleId ? { ...rule, enabled } : rule)),
+  }
 }
