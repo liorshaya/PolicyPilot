@@ -1,0 +1,47 @@
+/*
+ * Fields, the schema a version declares (the Register spec, section 09, "Decide a case, and the field schema"): the
+ * field schema's rules of layer 5 of docs/design/register.css, as the spec writes them.
+ */
+.schema {
+  display: grid;
+}
+.schema__row {
+  display: grid;
+  gap: 3px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--text-sm);
+}
+.schema__row:last-child {
+  border-bottom: 0;
+}
+.schema__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.schema__head .mono {
+  color: var(--ink);
+  font-weight: 500;
+}
+.schema__row .he-label {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.derived-tag {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 2px;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+/* The product's own: the specimen's style attribute becomes a class (Document 9, "The CSS port"), an enum's values in
+   the caption size. */
+.schema__values {
+  font-size: var(--text-xs);
+}

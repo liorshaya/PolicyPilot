@@ -223,7 +223,7 @@ describe('CaseForm', () => {
 })
 
 describe('CaseForm.css', () => {
-  it("carries the spec's case form, with the spec's declarations", () => {
+  it("carries the spec's case form, with the spec's declarations, and the label the schema shares in Field.css", () => {
     const form = specRules('/* decide a case, and the field schema', '.schema {')
 
     expect(form.map(([selector]) => selector)).toEqual([
@@ -234,6 +234,13 @@ describe('CaseForm.css', () => {
       '.case-form .check .he-label',
       '.case-form__foot',
     ])
-    expect(unported(stylesheet('features/cases/CaseForm.css'), form)).toEqual([])
+    const shared = form.filter(([selector]) => selector === '.he-label')
+    expect(unported(stylesheet('shared/ui/Field.css'), shared)).toEqual([])
+    expect(
+      unported(
+        stylesheet('features/cases/CaseForm.css'),
+        form.filter(([selector]) => selector !== '.he-label'),
+      ),
+    ).toEqual([])
   })
 })

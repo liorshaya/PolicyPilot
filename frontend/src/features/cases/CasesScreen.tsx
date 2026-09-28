@@ -19,7 +19,6 @@ import { CaseForm } from './CaseForm'
 import { Dashboard } from './Dashboard'
 import { DecisionList } from './DecisionList'
 import { TraceView } from './TraceView'
-import './CasesScreen.css'
 
 /** The seeded set of the demo (`policypilot.demo.fixture-set` in application.yml). */
 const FIXTURE_SET = 'cases-200'
@@ -137,7 +136,7 @@ export function CasesScreen({
         main={
           <>
             {elsewhere || refusal ? (
-              <div className="cases__notes">
+              <div className="sheet__notes">
                 {elsewhere ? (
                   <Note>
                     This rule set has no published version yet; the cases ran on the seeded one.

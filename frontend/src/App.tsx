@@ -102,6 +102,7 @@ export function App() {
       {screen === 'rules' ? (
         <RulesScreen
           onOpenCases={() => navigate('cases')}
+          onOpenPolicies={() => navigate('policies')}
           focusRuleId={focusRuleId}
           rulesetId={rulesetId}
           onChooseRuleset={(chosen) => {

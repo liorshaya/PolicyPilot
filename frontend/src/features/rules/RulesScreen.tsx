@@ -17,24 +17,36 @@ import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
+import { Refusal } from '../../shared/ui/Refusal'
 import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import type { VersionStatus } from '../../shared/ui/decisionLabels'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from '../policy/PolicyText'
 import { DecisionTable } from './DecisionTable'
+import { FieldsPanel } from './FieldsPanel'
 import { RulesetSwitcher, VersionPicker } from './Pickers'
 import { publishBlockers, publishGates } from './findings'
 import { PublishBox, ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
-import { sinceOf, tagsOf, withEnabled, withLeaf } from './tableModel'
+import { columnsOf, sinceOf, tagsOf, withEnabled, withLeaf } from './tableModel'
 import type { Leaf } from './cellGrammar'
 import './RulesScreen.css'
 
-type SidePanel = 'source' | 'rule' | 'json'
+type SidePanel = 'source' | 'rule' | 'fields' | 'json'
+
+/** The margin's four views, as the switch names them (the spec, section 05: Policy · Rule · Fields · JSON). */
+const PANELS: [SidePanel, string][] = [
+  ['source', 'Policy'],
+  ['rule', 'Rule'],
+  ['fields', 'Fields'],
+  ['json', 'JSON'],
+]
 
 interface RulesScreenProps {
   onOpenCases: () => void
+  /** Where a rule set is generated from a policy, which the empty screen offers. */
+  onOpenPolicies: () => void
   /** A rule another screen asked for, such as the step that decided a case; a click here replaces it. */
   focusRuleId?: string | null
   /** The rule set another screen asked for; without one the sandbox's first is shown. */
@@ -47,11 +59,14 @@ interface RulesScreenProps {
  * The rule set screen (Work Plan day 6; the spec, section 10, the Rules screen): the decision table with the cell
  * grammar, the 422 pointers shown on the cells they name, and in the margin the review with its publish box until a
  * rule is chosen, then the chosen rule, the paragraph it cites and the findings that name it (the owner's answer of
- * 2026-09-28 to phase 3's fifth question), the policy or the JSON the engine runs. A rule, its source and its findings
- * are shown together, because that pairing is what makes a published version auditable.
+ * 2026-09-28 to phase 3's fifth question), the policy, the fields the version declares or the JSON the engine runs; a
+ * version with no review opens on its fields until a rule is chosen (the owner's answer of 2026-09-28 to phase 5's
+ * second question). A rule, its source and its findings are shown together, because that pairing is what makes a
+ * published version auditable.
  */
 export function RulesScreen({
   onOpenCases,
+  onOpenPolicies,
   focusRuleId = null,
   rulesetId = null,
   onChooseRuleset,
@@ -85,7 +100,8 @@ export function RulesScreen({
   const acknowledge = useAcknowledge(target)
   const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
   const selectedRuleId = chosenRuleId ?? focusRuleId
-  // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review
+  // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review, and
+  // any other on its fields until a rule is chosen, then on the paragraph the rule cites
   const [panel, setPanel] = useState<SidePanel | null>(null)
   // "All n, in the review" goes back to the review over a chosen rule, until another rule is chosen
   const [reviewing, setReviewing] = useState(false)
@@ -117,7 +133,8 @@ export function RulesScreen({
   const blockers = draft ? publishBlockers(review) : []
   const gates = shown ? publishGates(shown, review, findings) : []
   const toAcknowledge = review?.findings.filter((finding) => finding.blocking).length ?? 0
-  const view: SidePanel = panel ?? (draft || review ? 'rule' : 'source')
+  const view: SidePanel =
+    panel ?? (draft || review ? 'rule' : selectedRule !== undefined ? 'source' : 'fields')
   const showsRule = view === 'rule' && selectedRule !== undefined && !reviewing
   const showsReview = view === 'rule' && !showsRule && (draft || review !== undefined)
   // what the rule decided in the last run on this rule set's published version, when the statistics name it
@@ -158,6 +175,9 @@ export function RulesScreen({
     setReviewing(false)
     if (view === 'json') {
       setPanel('rule')
+    } else if (view === 'fields') {
+      // the rule opens where its version opens a chosen rule: its paragraph, or the rule on a draft
+      setPanel(null)
     }
   }
 
@@ -175,13 +195,15 @@ export function RulesScreen({
       <WorkspaceHeader
         title="Rules"
         provenance={
-          shown
+          shown && document
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {shown.name}
-                </bdi>,
                 <span key="domain" className="mono">
                   {shown.domain}
+                </span>,
+                ...(shown.forkedFromId === undefined ? [] : ['your copy of the seeded rule set']),
+                <span key="size">
+                  <b>{document.rules.length}</b> rules · <b>{columnsOf(document).length}</b> fields
+                  compared
                 </span>,
               ]
             : ['The decision table of the rule set, and where every rule comes from']
@@ -189,9 +211,14 @@ export function RulesScreen({
         version={
           shown ? (
             <>
-              <span className="tabular">Version {shown.versionNo}</span>
-              <VersionTag status={shown.status as VersionStatus} />
-              {shown.protected ? <span className="rules__seeded">Seeded, read-only</span> : null}
+              <VersionTag status={shown.status as VersionStatus} versionNo={shown.versionNo} />
+              {shown.protected ? (
+                // the glossary's words for a seeded rule set, on the seeded status's well (the spec, sections 01 and 04)
+                <>
+                  {' '}
+                  <span className="vstatus vstatus--seeded">Seeded, read-only</span>
+                </>
+              ) : null}
             </>
           ) : null
         }
@@ -226,10 +253,16 @@ export function RulesScreen({
         sideSheet={showsReview}
         main={
           <>
-            {refusal ? <RefusedEdit error={refusal} /> : null}
-            {publishRefusal ? <RefusedEdit error={publishRefusal} /> : null}
-            {reviewRefusal ? <RefusedEdit error={reviewRefusal} /> : null}
-            {acknowledgeRefusal ? <RefusedEdit error={acknowledgeRefusal} /> : null}
+            {refusal || publishRefusal || reviewRefusal || acknowledgeRefusal ? (
+              <div className="sheet__notes">
+                {refusal ? <Refused error={refusal} act="edit" /> : null}
+                {publishRefusal ? <Refused error={publishRefusal} act="publish" /> : null}
+                {reviewRefusal ? <Refused error={reviewRefusal} act="review" /> : null}
+                {acknowledgeRefusal ? (
+                  <Refused error={acknowledgeRefusal} act="acknowledge" />
+                ) : null}
+              </div>
+            ) : null}
             <Section
               title="Decision table"
               subtitle={
@@ -279,7 +312,7 @@ export function RulesScreen({
                     </select>
                   ) : null}
                   <div className="segment" role="group" aria-label="Show in the margin">
-                    {(['source', 'rule', 'json'] as const).map((id) => (
+                    {PANELS.map(([id, label]) => (
                       <Button
                         key={id}
                         variant="secondary"
@@ -290,7 +323,7 @@ export function RulesScreen({
                           setReviewing(false)
                         }}
                       >
-                        {id === 'source' ? 'Policy' : id === 'rule' ? 'Rule' : 'JSON'}
+                        {label}
                       </Button>
                     ))}
                   </div>
@@ -323,7 +356,11 @@ export function RulesScreen({
               {!document && !(ruleset !== null && version.isPending) && !version.error ? (
                 <EmptyState
                   title="No rule set yet"
-                  description="The seeded lending rule set is loaded with the demo data; a rule set of your own is generated from a policy on day 7."
+                  action={
+                    <Button size="sm" onClick={onOpenPolicies}>
+                      Generate rules from the policy
+                    </Button>
+                  }
                 />
               ) : null}
             </Section>
@@ -331,13 +368,15 @@ export function RulesScreen({
         }
         side={
           view === 'json' ? (
-            <Section
-              title="Rule set JSON"
-              subtitle="The document the engine runs, exactly as it is stored"
-              flush
-            >
+            <section className="margin__section" aria-label="Rule set JSON">
+              <div className="margin__title">
+                <span>Rule set JSON</span>
+                <span className="quiet">the document the engine runs, as it is stored</span>
+              </div>
               <pre className="rules__json mono">{JSON.stringify(document ?? {}, null, 2)}</pre>
-            </Section>
+            </section>
+          ) : view === 'fields' && document ? (
+            <FieldsPanel document={document} findings={findings} onShowParagraph={showParagraph} />
           ) : showsReview && shown ? (
             <>
               <div className="sheet">
@@ -415,17 +454,17 @@ export function RulesScreen({
               }
             />
           ) : (
-            <Section
-              title="Policy"
-              subtitle={
-                asked !== null
-                  ? `Paragraph ${String(asked)}, which a finding of the review names`
-                  : selectedRule?.provenance.kind === 'quoted'
-                    ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
-                    : 'Choose a rule to see the paragraph it cites'
-              }
-              flush
-            >
+            <section className="margin__section" aria-label="Policy">
+              <div className="margin__title">
+                <span>Policy</span>
+                <span className="quiet">
+                  {asked !== null
+                    ? `Paragraph ${String(asked)}, which a finding of the review names`
+                    : selectedRule?.provenance.kind === 'quoted'
+                      ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
+                      : 'Choose a rule to see the paragraph it cites'}
+                </span>
+              </div>
               {policy.data ? (
                 <PolicyText
                   language={policy.data.language as ContentLanguage}
@@ -435,7 +474,7 @@ export function RulesScreen({
               ) : (
                 <LoadingRows label="Loading the policy" />
               )}
-            </Section>
+            </section>
           )
         }
       />
@@ -443,25 +482,31 @@ export function RulesScreen({
   )
 }
 
-/** What the API refused, with the pointers it named (Document 2, 422 with the error list). */
-function RefusedEdit({ error }: { error: ApiError }) {
+/** What each act on a version was, when the API refused it, in the refusal's title and its 409's sentence. */
+const REFUSED: Record<
+  'edit' | 'publish' | 'review' | 'acknowledge',
+  { title: string; draft: string }
+> = {
+  edit: { title: 'The edit was refused.', draft: 'Only a draft is edited.' },
+  publish: { title: 'The version was not published.', draft: 'Only a draft is published.' },
+  review: { title: 'The review did not run.', draft: 'Only a draft is reviewed.' },
+  acknowledge: {
+    title: 'The finding was not acknowledged.',
+    draft: "Only a draft's findings are acknowledged.",
+  },
+}
+
+/**
+ * What the API refused, as section 08's refusal block (Document 2: 422 with the pointers it named, 409 on a version
+ * that is not a draft): the code, a row per pointer and problem, and the closing fact.
+ */
+function Refused({ error, act }: { error: ApiError; act: keyof typeof REFUSED }) {
   return (
-    <div className="rules__refusal" role="alert">
-      <p className="rules__refusal-title">
-        The change was refused (<span className="mono">{error.code}</span>)
-      </p>
-      {error.details.length > 0 ? (
-        <ul className="rules__refusal-list">
-          {error.details.map((detail) => (
-            <li key={detail.path}>
-              <span className="mono">{detail.path}</span>
-              <span>{detail.problem}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>The version on the screen is unchanged.</p>
-      )}
-    </div>
+    <Refusal
+      code={error.code}
+      title={REFUSED[act].title}
+      rows={error.details.map((detail) => ({ pointer: detail.path, problem: detail.problem }))}
+      explanation={error.code === 'VERSION_STATUS_CONFLICT' ? REFUSED[act].draft : undefined}
+    />
   )
 }

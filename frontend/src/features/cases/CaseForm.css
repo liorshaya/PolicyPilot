@@ -1,6 +1,7 @@
 /*
  * Decide a case (the Register spec, section 09, "Decide a case, and the field schema"): the case form's rules of layer 5
- * of docs/design/register.css, as the spec writes them.
+ * of docs/design/register.css, as the spec writes them; the field's Hebrew label, which the schema shares, is in
+ * shared/ui/Field.css.
  */
 .case-form {
   display: grid;
@@ -10,16 +11,6 @@
 .case-form .field__label {
   display: grid;
   gap: 2px;
-}
-.he-label {
-  display: block;
-  width: fit-content;
-  max-width: 100%;
-  font-family: var(--font-he);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--ink);
-  unicode-bidi: isolate;
 }
 .field__id {
   font-size: var(--text-xs);
@@ -42,8 +33,7 @@
 
 /*
  * The product's own: the specimen's style attributes become classes (Document 9, "The CSS port"). The controls stand
- * at the toolbar's height, the checkbox a little under the field above it with its name in the caption size; a field's
- * description in English keeps the chrome's face.
+ * at the toolbar's height, and the checkbox a little under the field above it with its name in the caption size.
  */
 .case-form .input,
 .case-form .select {
@@ -57,7 +47,4 @@
 }
 .case-form .check .mono {
   font-size: var(--text-xs);
-}
-.he-label:lang(en) {
-  font-family: var(--font-ui);
 }
