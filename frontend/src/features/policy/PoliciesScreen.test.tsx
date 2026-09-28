@@ -9,6 +9,7 @@ import { specRules, stylesheet, unported } from '../../test/css'
 import { lendingParagraphs, lendingRuleSet } from '../../test/fixtures/lending'
 import { seededReview } from '../../test/fixtures/review'
 import {
+  SEEDED_POLICY_ID,
   SEEDED_RULESET_ID,
   SECOND_POLICY_ID,
   SECOND_RULESET_ID,
@@ -975,5 +976,33 @@ describe('PoliciesScreen.css', () => {
 
     expect(documents).toHaveLength(6)
     expect(unported(stylesheet('features/policy/PoliciesScreen.css'), documents)).toEqual([])
+  })
+})
+
+describe('PoliciesScreen, gone to from the palette', () => {
+  // the spec, section 08: ¶ 4 opens "in the policy", the paragraph marked and brought into view
+  it('marks the paragraph the palette names and brings it into view', async () => {
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <PoliciesScreen
+          onOpenRules={() => undefined}
+          focusParagraph={{ policyId: SEEDED_POLICY_ID, index: 4 }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const paragraph = await waitFor(() => {
+      const found = document.querySelector('#paragraph-4')
+      expect(found).not.toBeNull()
+      return found!
+    })
+    // marked, and flashed once as the target of a deep link (the spec, section 02)
+    expect(paragraph).toHaveClass('para--cited', 'flash')
+    expect(paragraph).toHaveTextContent(lendingParagraphs[3]!.text)
+    expect(document.querySelectorAll('.para--cited')).toHaveLength(1)
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(paragraph))
+    scrolled.mockRestore()
   })
 })

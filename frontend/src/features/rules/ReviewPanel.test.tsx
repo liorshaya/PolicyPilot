@@ -320,6 +320,16 @@ describe('PublishBox', () => {
     expect(screen.getByRole('button', { name: 'Publish version 2' })).toBeDisabled()
   })
 
+  // the spec, sections 08 and 12: the header carries the screen's one primary, the same Publish, so the box's is a
+  // secondary beside its gates and its reason (the owner's answer to phase 6's eighth question)
+  it('publishes with a secondary, the header holding the one primary', () => {
+    renderBox()
+
+    const publish = screen.getByRole('button', { name: 'Publish version 2' })
+    expect(publish).toHaveClass('btn--secondary')
+    expect(publish).not.toHaveClass('btn--primary')
+  })
+
   it('counts the problems of the validator, and publishes a draft nothing holds back', async () => {
     const user = userEvent.setup()
     const onPublish = vi.fn()

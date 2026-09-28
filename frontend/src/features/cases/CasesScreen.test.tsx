@@ -398,6 +398,38 @@ describe('CasesScreen', () => {
 })
 
 /** The Cases row of the states matrix (the spec, section 11), one test per cell no other test covers. */
+describe('CasesScreen, gone to from the palette', () => {
+  // the spec, section 08: the palette reaches a case of this session's run by its number (the owner's answer to phase
+  // 6's second question), and opening it shows its trace, the row kept in view
+  it("keeps this session's run when it opens again, and opens the case the palette names in the margin", async () => {
+    const user = userEvent.setup()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const first = render(
+      <QueryClientProvider client={client}>
+        <CasesScreen onOpenRule={() => undefined} />
+      </QueryClientProvider>,
+    )
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await screen.findByRole('button', { name: '18' })
+    first.unmount()
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+
+    render(
+      <QueryClientProvider client={client}>
+        <CasesScreen onOpenRule={() => undefined} focusDecisionId={decision.id} />
+      </QueryClientProvider>,
+    )
+
+    // the run's cases are listed again without running them again, case 17 the selected row
+    const row = (await screen.findByRole('button', { name: '17' })).closest('tr')!
+    expect(screen.getByRole('button', { name: '18' })).toBeInTheDocument()
+    expect(row).toHaveAttribute('aria-current', 'true')
+    expect(await screen.findByRole('complementary', { name: 'Case 17' })).toBeInTheDocument()
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(row))
+    scrolled.mockRestore()
+  })
+})
+
 describe('CasesScreen, every state', () => {
   it('Cases · loading', async () => {
     let release: () => void = () => undefined

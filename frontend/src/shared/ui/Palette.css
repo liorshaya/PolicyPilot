@@ -1,0 +1,87 @@
+/*
+ * The command palette (the Register spec, section 08, "Go to anything"): the "Command palette" block of layer 4 of
+ * docs/design/register.css, as the spec writes it.
+ */
+.palette {
+  width: 520px;
+  max-width: 100%;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
+}
+.palette__input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--text-md);
+}
+.palette__input input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font-size: var(--text-md);
+  outline: none;
+  color: var(--ink);
+}
+.palette__group {
+  padding: 6px 8px 2px;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.palette__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: var(--text-sm);
+}
+.palette__row[aria-selected='true'] {
+  background: var(--accent-wash);
+}
+.palette__row .what {
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  margin-inline-start: auto;
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The palette floats over
+ * the workspace, centred, a well's width from the top of the window, and its matches scroll inside it in a short
+ * window; the input's glyph takes the specimen's style attribute; a row answers the pointer as it answers the keys; a
+ * sentence stands where rows would, in the row's measure.
+ */
+.palette-layer {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: var(--s-12) var(--s-4) 0;
+  pointer-events: none;
+}
+.palette-layer > .palette {
+  pointer-events: auto;
+}
+.palette__input svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+.palette__list {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.palette__row {
+  cursor: pointer;
+}
+.palette__note {
+  margin: 0;
+  padding: 7px 14px;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}

@@ -21,6 +21,8 @@ interface AuditScreenProps {
   rulesetId?: string | null
   /** Told when the reader switches rule sets, so the choice outlives this screen. */
   onChooseRuleset?: (rulesetId: string) => void
+  /** A change request the palette opened (the spec, section 08): its newest entry is marked and brought into view. */
+  focusChangeRequestId?: string | null
 }
 
 /** The select's value for the whole log, beside each version's number. */
@@ -33,7 +35,11 @@ const ALL = 'all'
  * export follows the same choice, and the compare control puts two versions side by side. Nothing on this screen edits
  * or deletes: the log is append-only in the database, and the screen offers no such affordance.
  */
-export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenProps) {
+export function AuditScreen({
+  rulesetId = null,
+  onChooseRuleset,
+  focusChangeRequestId = null,
+}: AuditScreenProps) {
   const rulesets = useRulesets()
   const policies = usePolicies()
   const list = rulesets.data ?? []
@@ -86,9 +92,6 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
         provenance={
           chosen
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {chosen.name}
-                </bdi>,
                 <span key="domain" className="mono">
                   {chosen.domain}
                 </span>,
@@ -171,7 +174,18 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
                 description="Every publication, change request and acknowledgement is recorded here, and nothing is ever removed."
               />
             ) : (
-              <Timeline entries={entries} languageOf={languageOf} fields={document?.fields} />
+              <Timeline
+                entries={entries}
+                languageOf={languageOf}
+                fields={document?.fields}
+                openedId={
+                  entries.find(
+                    (entry) =>
+                      focusChangeRequestId !== null &&
+                      entry.changeRequestId === focusChangeRequestId,
+                  )?.id ?? null
+                }
+              />
             )}
           </Section>
         }
@@ -185,10 +199,13 @@ function Timeline({
   entries,
   languageOf,
   fields,
+  openedId,
 }: {
   entries: AuditEntry[]
   languageOf: (entry: AuditEntry) => ContentLanguage
   fields?: FieldSchema[]
+  /** The entry the palette opened. */
+  openedId: string | null
 }) {
   const days: { day: string; entries: AuditEntry[] }[] = []
   for (const entry of entries) {
@@ -202,7 +219,14 @@ function Timeline({
   return (
     <div className="timeline">
       {days.map(({ day, entries: recorded }) => (
-        <Day key={day} day={day} entries={recorded} languageOf={languageOf} fields={fields} />
+        <Day
+          key={day}
+          day={day}
+          entries={recorded}
+          languageOf={languageOf}
+          fields={fields}
+          openedId={openedId}
+        />
       ))}
     </div>
   )
@@ -213,11 +237,13 @@ function Day({
   entries,
   languageOf,
   fields,
+  openedId,
 }: {
   day: string
   entries: AuditEntry[]
   languageOf: (entry: AuditEntry) => ContentLanguage
   fields?: FieldSchema[]
+  openedId: string | null
 }) {
   const id = useId()
   return (
@@ -232,6 +258,7 @@ function Day({
             entry={entry}
             language={languageOf(entry)}
             fields={fields}
+            opened={entry.id === openedId}
           />
         ))}
       </ol>

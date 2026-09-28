@@ -17,7 +17,12 @@ import {
   resetEntry,
   seedPublishEntry,
 } from '../../test/fixtures/audit'
-import { COPY_RULESET_ID, scriptedProposalEvent, scriptedRequest } from '../../test/fixtures/change'
+import {
+  COPY_RULESET_ID,
+  PROPOSAL_ID,
+  scriptedProposalEvent,
+  scriptedRequest,
+} from '../../test/fixtures/change'
 import {
   publishedVersion,
   rulesets,
@@ -184,6 +189,25 @@ describe('AuditScreen, the log', () => {
 
     const empty = await screen.findByText('Nothing recorded yet')
     expect(empty).toHaveClass('empty__rule', 'empty__rule--text')
+  })
+})
+
+describe('AuditScreen, the header', () => {
+  // the spec's provenance lines (section 04) lead with the rule set's id in mono, and section 12 puts no English label in a
+  // row with a Hebrew value: the rail names the policy in Hebrew, at its own size
+  it("leads the provenance with the rule set's id, with no Hebrew in the line", async () => {
+    renderScreen()
+
+    await waitFor(() =>
+      expect(document.querySelector('.ws-header .prov')).toHaveTextContent('consumer-lending'),
+    )
+    const line = document.querySelector('.ws-header .prov')!
+    expect([...line.children].map((segment) => segment.textContent)).toStrictEqual([
+      'consumer-lending',
+    ])
+    // each segment stands in a box of its own, the separator drawn before it
+    expect(line.firstElementChild?.firstElementChild).toHaveClass('mono')
+    expect(line.textContent).not.toMatch(/\p{Script=Hebrew}/u)
   })
 })
 
@@ -429,5 +453,29 @@ describe('AuditScreen.css', () => {
 
     expect(audit).toHaveLength(19)
     expect(unported(stylesheet('features/audit/AuditScreen.css'), audit)).toEqual([])
+  })
+})
+
+describe('AuditScreen, gone to from the palette', () => {
+  // the spec, section 08: CR-0001 opens in the audit log, its newest entry marked and brought into view
+  it('marks the newest entry of the change request the palette names and brings it into view', async () => {
+    serveTheLog([rejectedEntry, approvalEntry, copyPublishEntry, proposedEntry, seedPublishEntry])
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <AuditScreen rulesetId={SEEDED_RULESET_ID} focusChangeRequestId={PROPOSAL_ID} />
+      </QueryClientProvider>,
+    )
+
+    const shown = await rows()
+    const current = shown.filter((row) => row.getAttribute('aria-current') === 'true')
+    // the approval of CR-0001 is newer than its proposal
+    expect(current.map((row) => row.querySelector('.event__verb')?.textContent)).toStrictEqual([
+      'Change approved',
+    ])
+    expect(current[0]).toHaveClass('flash')
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(current[0]))
+    scrolled.mockRestore()
   })
 })

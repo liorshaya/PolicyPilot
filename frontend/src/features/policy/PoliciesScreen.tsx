@@ -30,18 +30,21 @@ import './PoliciesScreen.css'
  */
 export function PoliciesScreen({
   onOpenRules,
+  focusParagraph = null,
   demoAsked = false,
   onDemoHandled,
 }: {
   /** Opens a rule set in the Rules screen, on one of its rules when a chip under a paragraph named it. */
   onOpenRules: (rulesetId: string, ruleId?: string) => void
+  /** A paragraph the palette opened (the spec, section 08): its policy opens, the paragraph marked and in view. */
+  focusParagraph?: { policyId: string; index: number } | null
   /** Step 1 of the guided demo: open the form on the sample policy, ready to generate (Brief FR-23). */
   demoAsked?: boolean
   onDemoHandled?: () => void
 }) {
   const policies = usePolicies()
   const rulesets = useRulesets()
-  const [chosenId, setChosenId] = useState<string | null>(null)
+  const [chosenId, setChosenId] = useState<string | null>(focusParagraph?.policyId ?? null)
   const [adding, setAdding] = useState(false)
   // the form opens empty for a person, and holding the sample policy when the guided panel opened it
   const [fromDemo, setFromDemo] = useState(false)
@@ -272,7 +275,17 @@ export function PoliciesScreen({
               />
             ) : (
               <div className="sheet__scroll">
-                <PolicyText language={language} paragraphs={paragraphs} sheet cites={citesOf} />
+                <PolicyText
+                  language={language}
+                  paragraphs={paragraphs}
+                  highlighted={
+                    focusParagraph !== null && focusParagraph.policyId === selectedId
+                      ? focusParagraph.index
+                      : null
+                  }
+                  sheet
+                  cites={citesOf}
+                />
               </div>
             )}
           </Section>

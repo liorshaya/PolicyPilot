@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { api } from './client'
 import type {
   Aggregates,
@@ -31,6 +37,7 @@ export const keys = {
   rulesets: ['rulesets'] as const,
   version: (rulesetId: string, versionNo: number) => ['version', rulesetId, versionNo] as const,
   stats: (rulesetId: string, versionNo: number) => ['stats', rulesetId, versionNo] as const,
+  run: (rulesetId: string, versionNo: number) => ['run', rulesetId, versionNo] as const,
   decision: (decisionId: string) => ['decision', decisionId] as const,
   proposedDecision: (changeId: string, decisionId: string) =>
     ['proposed-decision', changeId, decisionId] as const,
@@ -256,7 +263,10 @@ export function useDecideCase(ruleset: { id: string; versionNo: number }) {
   })
 }
 
-/** Running a seeded set of cases; the statistics of the version are refreshed with the batch's own aggregates. */
+/**
+ * Running a seeded set of cases; the statistics of the version are refreshed with the batch's own aggregates, and the
+ * run is kept for the session, so the Cases screen lists it again and the palette reaches its cases by number.
+ */
 export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
   const client = useQueryClient()
   return useMutation({
@@ -264,6 +274,22 @@ export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
       api.decideFixtureSet(ruleset.id, ruleset.versionNo, fixtureSet),
     onSuccess: (batch: BatchResult) => {
       client.setQueryData(keys.stats(ruleset.id, ruleset.versionNo), batch.aggregates)
+      client.setQueryData(keys.run(ruleset.id, ruleset.versionNo), batch)
     },
+  })
+}
+
+/**
+ * This session's last run of the cases on a version, if there was one (the owner's answer to phase 6's second
+ * question): read from what the run left, never asked of the API, and kept for the session.
+ */
+export function useLastRun(
+  ruleset: { id: string; versionNo: number } | null,
+): UseQueryResult<BatchResult> {
+  return useQuery({
+    queryKey: keys.run(ruleset?.id ?? 'none', ruleset?.versionNo ?? 0),
+    queryFn: skipToken,
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
 }

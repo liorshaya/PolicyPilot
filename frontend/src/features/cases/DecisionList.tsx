@@ -11,6 +11,8 @@ import './DecisionList.css'
 interface DecisionListProps {
   results: CaseResult[]
   selectedId: string | null
+  /** The case the palette opened: its row flashes once (the deep link, section 02). */
+  openedId?: string | null
   onSelect: (decisionId: string) => void
   /** The version the run decided on, which the footer names as the list's scope. */
   versionNo?: number
@@ -56,6 +58,7 @@ const OUTCOMES: DecisionStatus[] = ['approve', 'reject', 'refer', 'error']
 export function DecisionList({
   results,
   selectedId,
+  openedId = null,
   onSelect,
   versionNo,
   decidingRule: chosenRule,
@@ -75,6 +78,7 @@ export function DecisionList({
   const [density, setDensity] = useState<Density>(storedDensity)
   const filterRef = useRef<HTMLInputElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
+  const selectedRef = useRef<HTMLTableRowElement>(null)
 
   const rules = [...new Set(results.map((result) => result.decidingRuleId))]
     .filter((ruleId) => ruleId !== undefined)
@@ -85,6 +89,11 @@ export function DecisionList({
       (outcome === '' || statusOf(result) === outcome) &&
       (decidingRule === '' || result.decidingRuleId === decidingRule),
   )
+
+  // the selected row is kept in view when the margin opens (the spec, section 08), from the palette too
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [selectedId])
 
   // "/" goes to the case filter from anywhere the reader is not typing
   useEffect(() => {
@@ -203,7 +212,15 @@ export function DecisionList({
             {shown.map((result, index) => (
               <tr
                 key={result.id}
-                className={result.id === selectedId ? 't-selected' : undefined}
+                ref={result.id === selectedId ? selectedRef : undefined}
+                className={
+                  [
+                    result.id === selectedId ? 't-selected' : '',
+                    result.id === openedId ? 'flash' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
                 aria-current={result.id === selectedId ? 'true' : undefined}
                 onClick={() => onSelect(result.id)}
               >

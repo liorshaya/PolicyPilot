@@ -50,6 +50,10 @@ interface RulesScreenProps {
   onOpenPolicies: () => void
   /** A rule another screen asked for, such as the step that decided a case; a click here replaces it. */
   focusRuleId?: string | null
+  /** A finding of the review the palette opened: the margin opens on the review with it current (section 08). */
+  focusFindingId?: string | null
+  /** A version the palette opened, shown instead of the latest until the reader picks another. */
+  focusVersionNo?: number | null
   /** The rule set another screen asked for; without one the sandbox's first is shown. */
   rulesetId?: string | null
   /** Told when the reader switches rule sets, so the choice outlives this screen. */
@@ -69,6 +73,8 @@ export function RulesScreen({
   onOpenCases,
   onOpenPolicies,
   focusRuleId = null,
+  focusFindingId = null,
+  focusVersionNo = null,
   rulesetId = null,
   onChooseRuleset,
 }: RulesScreenProps) {
@@ -77,7 +83,9 @@ export function RulesScreen({
   // the one that was asked for; a policy screen or a generation names it, and the first is only the fallback
   const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
   // the latest version unless the reader picked another; a pick belongs to its rule set (Work Plan day 14)
-  const [picked, setPicked] = useState<{ rulesetId: string; versionNo: number } | null>(null)
+  const [picked, setPicked] = useState<{ rulesetId: string; versionNo: number } | null>(() =>
+    focusVersionNo !== null && rulesetId !== null ? { rulesetId, versionNo: focusVersionNo } : null,
+  )
   const latestNo = chosen?.versions[chosen.versions.length - 1]?.versionNo ?? 1
   const versionNo = picked !== null && picked.rulesetId === chosen?.id ? picked.versionNo : latestNo
   const ruleset = chosen ? { id: chosen.id, versionNo } : null
@@ -101,6 +109,8 @@ export function RulesScreen({
   const acknowledge = useAcknowledge(target)
   const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
   const selectedRuleId = chosenRuleId ?? focusRuleId
+  // the rule a chip on this screen opened: its row is brought into view and flashes once (the deep link, section 02)
+  const [chipped, setChipped] = useState<string | null>(null)
   // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review, and
   // any other on its fields until a rule is chosen, then on the paragraph the rule cites
   const [panel, setPanel] = useState<SidePanel | null>(null)
@@ -172,6 +182,7 @@ export function RulesScreen({
 
   function selectRule(ruleId: string) {
     setChosenRuleId(ruleId)
+    setChipped(null)
     setAsked(null)
     setReviewing(false)
     if (view === 'json') {
@@ -180,6 +191,12 @@ export function RulesScreen({
       // the rule opens where its version opens a chosen rule: its paragraph, or the rule on a draft
       setPanel(null)
     }
+  }
+
+  /** A chip in the margin that opens a rule opens it in the table as a deep link. */
+  function openRule(ruleId: string) {
+    selectRule(ruleId)
+    setChipped(ruleId)
   }
 
   function showParagraph(index: number) {
@@ -195,6 +212,7 @@ export function RulesScreen({
     <>
       <WorkspaceHeader
         title="Rules"
+        goTo
         provenance={
           shown && document
             ? [
@@ -347,6 +365,7 @@ export function RulesScreen({
                 <DecisionTable
                   document={document}
                   selectedRuleId={selectedRuleId}
+                  openedRuleId={chipped ?? (chosenRuleId === null ? focusRuleId : null)}
                   onSelect={selectRule}
                   onEditCell={draft ? editCell : undefined}
                   problems={refusal?.details}
@@ -392,10 +411,11 @@ export function RulesScreen({
                     acknowledging={acknowledging}
                     onAcknowledge={onAcknowledge}
                     onSelectRule={(ruleId) => {
-                      selectRule(ruleId)
+                      openRule(ruleId)
                       setPanel('rule')
                     }}
                     onShowParagraph={showParagraph}
+                    current={focusFindingId}
                   />
                 </div>
               </div>
@@ -430,7 +450,7 @@ export function RulesScreen({
               editable={draft}
               acknowledging={acknowledging}
               onAcknowledge={onAcknowledge}
-              onSelectRule={selectRule}
+              onSelectRule={openRule}
               onShowParagraph={showParagraph}
               decided={
                 topRule && stats.data

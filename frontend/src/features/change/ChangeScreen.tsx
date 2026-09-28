@@ -151,9 +151,6 @@ export function ChangeScreen({
         provenance={
           version.data
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {version.data.name}
-                </bdi>,
                 <span key="domain" className="mono">
                   {version.data.domain}
                 </span>,
@@ -221,8 +218,9 @@ export function ChangeScreen({
                         On <span className="mono">Published v{base.versionNo}</span>
                       </span>
                     ) : null}
+                    {/* one primary per screen (sections 08 and 12): once a proposal stands, its approval is it */}
                     <Button
-                      variant="primary"
+                      variant={proposal === null ? 'primary' : 'secondary'}
                       type="submit"
                       busy={running}
                       disabled={base === null || version.data === undefined || text.trim() === ''}
@@ -353,8 +351,8 @@ function started(state: ChangeState): state is Exclude<ChangeState, { status: 'i
 
 /**
  * The four stages (the spec, section 08's progress): the one running now, the ones done with their time and the tokens
- * their answers spent, and under the first the rules considered, the ones the proposal left unchanged faded once it has
- * arrived, so the model's reach is visible beside its result. A stage a failure ended keeps its time but no mark.
+ * their answers spent, and under the first the rules considered, the ones the proposal left unchanged in ink-3 once it
+ * has arrived, so the model's reach is visible beside its result. A stage a failure ended keeps its time but no mark.
  */
 function Progress({
   state,

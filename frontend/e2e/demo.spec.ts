@@ -1,15 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import { casesExpected, changeRequest, sandboxCopy, serveTheChange } from './change'
+import { casesExpected, changeRequest, serveTheChange } from './change'
 import { ask, notCovered, question, serveTheChat } from './chat'
-import { DRAFT, REVIEW, STAGES } from './generation'
 import { step } from './panel'
-import {
-  paragraphs,
-  ruleSet,
-  seededRuleset,
-  serveASeededRun,
-  serveTheSeededRuleSet,
-} from './seeded'
+import { paragraphs, serveASeededRun, serveTheSeededRuleSet } from './seeded'
+import { serveTheSession } from './session'
 
 // @requirement FR-21
 // @requirement FR-23
@@ -27,35 +21,6 @@ import {
 const CODE = 'qwertyui'
 const NOTE = 'אושר בוועדת האשראי'
 
-/** The copy step 1 pastes: the seeded policy's own text, in a policy of the visitor's sandbox. */
-const PASTED_ID = '0f4c1c9e-0000-4000-8000-0000000000a3'
-const pasted = {
-  id: PASTED_ID,
-  title: seededRuleset.name,
-  language: 'he',
-  protected: false,
-  createdAt: '2026-09-28T09:00:00Z',
-  versions: [{ versionNo: 1, createdAt: '2026-09-28T09:00:00Z', paragraphs }],
-}
-
-/** The draft step 1 writes from the pasted copy, with the reviewer's two findings. */
-const draft = {
-  ...DRAFT,
-  ruleSet,
-  review: REVIEW,
-  policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d3',
-}
-
-/** The draft as the sandbox's list of rule sets names it once it is written. */
-const written = {
-  id: DRAFT.rulesetId,
-  name: DRAFT.name,
-  domain: DRAFT.domain,
-  protected: false,
-  policyId: PASTED_ID,
-  versions: [{ versionNo: 1, status: 'DRAFT' }],
-}
-
 /** The gate against the API's two answers (Document 2, POST /auth/code): 204 for the code, 401 for anything else. */
 async function serveTheGate(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/code', (route) => {
@@ -66,50 +31,6 @@ async function serveTheGate(page: Page): Promise<void> {
   })
 }
 
-/**
- * The session's own answers: the pasted copy of step 1 is created and read back, its generation streams the draft, and
- * the sandbox's list of rule sets grows with the draft, then with its copy of the seeded rule set once step 4 is
- * approved. Registered after the steps' routes, so these answer first (Playwright tries the last route that matches);
- * each flag is set inside a route, before the browser has the answer that makes it refetch the list.
- */
-async function serveTheSession(page: Page): Promise<{ generatedWith: () => unknown }> {
-  let generated: unknown = null
-  let approved = false
-  await page.route('**/api/v1/policies', (route) =>
-    route.request().method() === 'POST'
-      ? route.fulfill({ status: 201, json: pasted })
-      : route.fallback(),
-  )
-  await page.route(`**/api/v1/policies/${PASTED_ID}`, (route) => route.fulfill({ json: pasted }))
-  await page.route(`**/api/v1/policies/${PASTED_ID}/rulesets`, (route) => {
-    generated = route.request().postDataJSON()
-    return route.fulfill({
-      status: 200,
-      headers: { 'Content-Type': 'text/event-stream' },
-      body: STAGES + `event:draft\ndata:${JSON.stringify(draft)}\n\n`,
-    })
-  })
-  await page.route(`**/api/v1/rulesets/${DRAFT.rulesetId}/versions/*`, (route) =>
-    route.fulfill({ json: draft }),
-  )
-  await page.route('**/api/v1/changes/*/approve', (route) => {
-    approved = true
-    return route.fallback()
-  })
-  await page.route('**/api/v1/rulesets', (route) =>
-    route.fulfill({
-      json: {
-        rulesets: [
-          seededRuleset,
-          ...(generated === null ? [] : [written]),
-          ...(approved ? [sandboxCopy] : []),
-        ],
-      },
-    }),
-  )
-  return { generatedWith: () => generated }
-}
-
 test('the presenter runs the gate, then steps 1 to 4 through the guided panel, in one page', async ({
   page,
 }) => {
@@ -118,7 +39,7 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   await serveASeededRun(page)
   await serveTheChat(page)
   await serveTheChange(page)
-  const session = await serveTheSession(page)
+  const session = await serveTheSession(page, paragraphs)
   await serveTheGate(page)
 
   // The gate: a wrong code is refused on the gate, the code opens the workspace, and the rail names the provider

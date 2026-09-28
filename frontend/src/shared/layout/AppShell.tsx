@@ -30,6 +30,10 @@ interface AppShellProps {
   demoRuns?: number
   /** The guided demo strip, under the workspace block (Brief FR-23). */
   aside?: ReactNode
+  /** Opens the palette: ⌘K, or Ctrl+K, from anywhere (the spec, section 08). */
+  onOpenPalette?: () => void
+  /** The palette while it is open, over the workspace. */
+  palette?: ReactNode
   children: ReactNode
 }
 
@@ -41,6 +45,23 @@ const PROVIDERS: Record<string, { name: string; where: string }> = {
 
 /** The screens the G shortcut reaches: G R, G C, G A. */
 const GO_TO: Record<string, ScreenId> = { r: 'rules', c: 'cases', a: 'assistant' }
+
+/** ⌘K, or Ctrl+K, opens the palette from anywhere, from a field too, as a command palette does (the spec, section 04). */
+function usePaletteKey(onOpen: (() => void) | undefined) {
+  useEffect(() => {
+    if (onOpen === undefined) {
+      return undefined
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        onOpen()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onOpen])
+}
 
 /** G, then a screen's letter, goes to that screen; never while the reader types into a field. */
 function useGoTo(onNavigate: (screen: ScreenId) => void) {
@@ -89,6 +110,8 @@ export function AppShell({
   version,
   demoRuns = 0,
   aside,
+  onOpenPalette,
+  palette,
   children,
 }: AppShellProps) {
   const provider = useProvider()
@@ -104,6 +127,7 @@ export function AppShell({
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
   useGoTo(onNavigate)
+  usePaletteKey(onOpenPalette)
 
   const known = provider.data ? PROVIDERS[provider.data.provider] : undefined
   const providerName = known?.name ?? provider.data?.provider
@@ -246,6 +270,7 @@ export function AppShell({
           </Popover>
         ) : null}
         {help}
+        {palette}
       </div>
     )
   }
@@ -283,6 +308,7 @@ export function AppShell({
         {children}
       </main>
       {help}
+      {palette}
     </div>
   )
 }
@@ -323,6 +349,13 @@ function Legend({
         </span>
       </div>
       <div className="shortcuts">
+        <div>
+          <span>Go to anything by id</span>
+          <span className="keys">
+            <Kbd>⌘</Kbd>
+            <Kbd>K</Kbd>
+          </span>
+        </div>
         <div>
           <span>Filter the list</span>
           <span className="keys">

@@ -19,7 +19,7 @@ interface ChipProps {
   title?: string
   /** What a screen reader names a chip that opens something, when its marks alone do not: "Paragraph 8" for ¶ 8. */
   label?: string
-  /** An identifier a change considered and left as it was, which the change screen fades (the spec, section 09). */
+  /** An identifier a change considered and left as it was, which the change screen draws in ink-3 (section 09). */
   unchanged?: boolean
 }
 

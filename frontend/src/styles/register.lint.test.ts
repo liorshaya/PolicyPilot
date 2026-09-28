@@ -108,6 +108,34 @@ describe('component CSS', () => {
   })
 })
 
+/** The selectors of a stylesheet's rules that set a size of --text-2xs, 11px, each on its own. */
+function atTheFloor(css: string): string[] {
+  return cssRules(css)
+    .filter(([, body]) => /font-size\s*:\s*var\(--text-2xs\)/.test(body))
+    .flatMap(([selector]) => selector.split(',').map((one) => one.trim().replace(/\s+/g, ' ')))
+}
+
+/** Where the spec sets 11px: its rules in layers 1 to 5, since layer 6 styles the spec's own page and never ships. */
+const SPEC_FLOOR = new Set(
+  atTheFloor(read('../docs/design/register.css').split('/* ---------- Layer 6')[0]!),
+)
+
+describe('the type floor', () => {
+  // the spec, section 12: "12px chrome", 11px its floor "never for running text", allowed only where a rule of the spec
+  // sets it (the owner's answer of 2026-09-28 to phase 6's first question)
+  it('sets 11px only on a selector a rule of the spec sets it on', () => {
+    const below = sources('.css')
+      .filter((path) => !SPEC_LAYERS.has(path))
+      .flatMap((file) =>
+        atTheFloor(read(file))
+          .filter((selector) => !SPEC_FLOOR.has(selector))
+          .map((selector) => `${file} ${selector}`),
+      )
+
+    expect(below).toEqual([])
+  })
+})
+
 describe('the tokens before the Register', () => {
   it('are gone: no stylesheet, component or page defines or reads one', () => {
     const files = [...sources('.css'), ...sources('.tsx'), ...sources('.ts'), 'index.html'].filter(

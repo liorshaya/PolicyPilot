@@ -87,7 +87,7 @@ function stage(label: string): HTMLElement {
     .closest<HTMLElement>('.progress__step')!
 }
 
-/** The identifiers a group of chips holds, each with whether it is faded as left unchanged. */
+/** The identifiers a group of chips holds, each with whether it is drawn as left unchanged. */
 function chipsOf(group: string): [string, boolean][] {
   return [...screen.getByRole('group', { name: group }).querySelectorAll('.chip')].map((chip) => [
     chip.textContent ?? '',
@@ -153,6 +153,21 @@ describe('ChangeScreen, the request', () => {
     expect(reason.closest('.reason')?.nextElementSibling).toBe(primary)
   })
 
+  // the spec's provenance lines (section 04) lead with the rule set's id in mono, and section 12 puts no English label in a
+  // row with a Hebrew value: the rail names the policy in Hebrew, at its own size
+  it("leads the header's provenance with the rule set's id, with no Hebrew in the line", async () => {
+    renderScreen()
+
+    await waitFor(() =>
+      expect(document.querySelector('.ws-header .prov')).toHaveTextContent('consumer-lending'),
+    )
+    const line = document.querySelector('.ws-header .prov')!
+    expect(segmentsOf(line)).toStrictEqual(['consumer-lending'])
+    // each segment stands in a box of its own, the separator drawn before it
+    expect(line.firstElementChild?.firstElementChild).toHaveClass('mono')
+    expect(line.textContent).not.toMatch(/\p{Script=Hebrew}/u)
+  })
+
   it('fills in the scripted request when the guided panel runs step 4, once', async () => {
     const onDemoHandled = vi.fn()
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -166,6 +181,24 @@ describe('ChangeScreen, the request', () => {
     expect(await screen.findByLabelText('What should change')).toHaveValue(TEXT)
     expect(onDemoHandled).toHaveBeenCalledOnce()
     expect(screen.queryByRole('group', { name: 'Progress' })).not.toBeInTheDocument()
+  })
+})
+
+describe('ChangeScreen, the one primary', () => {
+  // the spec, sections 08 and 12: one primary action per screen; the request's frame and the decision's each draw one,
+  // so once a proposal stands its approval is the one (the owner's answer to phase 6's seventh question)
+  it('proposes with the primary, then hands the primary to the approval once the proposal stands', async () => {
+    renderScreen()
+    const propose = await screen.findByRole('button', { name: 'Propose the change' })
+    expect(propose).toHaveClass('btn--primary')
+
+    await proposalShown()
+
+    expect(screen.getByRole('button', { name: 'Propose the change' })).toHaveClass('btn--secondary')
+    expect(screen.getByRole('button', { name: /^Approve and publish v\d+$/ })).toHaveClass(
+      'btn--primary',
+    )
+    expect(document.querySelectorAll('.btn--primary')).toHaveLength(1)
   })
 })
 
@@ -230,7 +263,7 @@ describe('ChangeScreen, the four stages', () => {
     expect(stage("Deciding this sandbox's cases again")).toHaveTextContent(/0\.9 s$/)
   })
 
-  it('fades the rules the proposal left unchanged once it arrives, so its reach shows beside its result', async () => {
+  it('draws the rules the proposal left unchanged in ink-3 once it arrives, so its reach shows beside its result', async () => {
     renderScreen()
     await proposalShown()
 
@@ -241,6 +274,11 @@ describe('ChangeScreen, the four stages', () => {
       ['R-200', true],
       ['R-320', true],
     ])
+    // in ink-3 and whole, not at the 0.55 opacity that put it under 4.5:1 on the light well (the owner's answer to phase
+    // 6's fourth question)
+    expect(rule(css, ".candidates .chip--id[data-state='unchanged']")).toStrictEqual({
+      color: 'var(--ink-3)',
+    })
   })
 })
 

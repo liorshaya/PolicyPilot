@@ -21,6 +21,7 @@ Live demo: https://policypilot.liorshaya.com (behind an access code, sent with t
 ## Contents
 
 - [Architecture](#architecture)
+- [The design language](#the-design-language)
 - [Demo script](#demo-script)
 - [Talking points](#talking-points)
 - [Setup](#setup)
@@ -83,6 +84,59 @@ The four flows of the demo:
 The design, its trade-offs and every value are in [the documents](#documents): the DSL and its conformance suite in
 Document 3, the prompts and the citation protocol in Document 4, the threat model in Document 5.
 
+## The design language
+
+**A register, not a dashboard.** PolicyPilot keeps a bound record of rules, decisions and approvals, and every entry
+in it says where it came from. The interface is drawn like that record: a sheet carries the work, a paper margin
+carries what annotates it, ink does the talking, colour is spent only on decisions, and three marks say who did what:
+the model's dotted circle proposes, the engine's solid square decides, and a person's seal approves. The design
+language is called the Register. Its specification is [`docs/design/register.html`](docs/design/register.html), with
+its stylesheet [`register.css`](docs/design/register.css) and the composed screens in
+[`docs/design/screens/`](docs/design/screens/); [Document 9](docs/09-register-implementation.md) is the plan that built
+it into the web app.
+
+**Sheet and margin.** One working surface with hairline structure; whatever annotates it, a paragraph, a finding, a
+trace or a rule's provenance, sits in the paper margin beside it. No card inside a card, no shadow under anything that
+does not float, no sentence under a title explaining the title.
+
+**Colour is a decision.** Green, red and amber appear only beside Approved, Declined and Manual review, and on a
+changed cell in a diff. The chrome is ink on paper. The brand blue means one thing, that something is selected or
+open, and it never fills a button.
+
+**Who did what.** Three actors, three marks, and a plain outlined square for the system itself. Proposals and drafts
+are dashed, what the engine may run is solid, and what a person approved carries a seal, so a model's proposal can
+never be mistaken for a published rule, and a model is never named as an author.
+
+**Provenance in one line.** Every screen, drawer and trace carries one monospace line: the rule set, the version, its
+status, the time, by whom. It never wraps. The audit log is that line kept forever, and it is append-only.
+
+**Numbers behave.** Tabular lining figures, a true minus, 150,000 ₪ in Hebrew and ₪150,000 in English chrome. A number
+that fed a decision is never rounded, truncated or cut by an ellipsis.
+
+**Two scripts, one law.** English chrome, Hebrew content, one type family for both: IBM Plex, with Frank Ruhl Libre
+setting the policy as a document. A Hebrew value never shares a row with an English label, marks sit on the
+reading-start side, and every machine token inside Hebrew is isolated and never wraps.
+
+Everything in the product has an identifier, so everything can be reached by typing it: ⌘K opens the palette on any
+screen, and a case number, R-330, ¶ 7, CR-0001, F-1 or v1 opens the trace, the rule, the paragraph, the change, the
+finding or the version.
+
+Who reads the product, and what each must find in five seconds:
+
+| Reader | What they must find | Where the design answers it |
+| --- | --- | --- |
+| Policy analyst, who owns the policy and writes no code | Which rule came from which sentence, what the reviewer found and whether it blocks publishing, what a field means | The rule's Hebrew label first, the ¶ chip and the cited span in the margin, the findings as marks on their rows with "Publishing waits: …", the Fields panel |
+| Credit officer, who needs a consistent decision and a reason for each | The outcome, the rule that decided, the values compared, the sentence the applicant will read | The trace: the outcome tag, "Decided by" with the reason for the applicant, each comparison as field, expected, in the case and result; Decide a case |
+| Auditor, who must explain any past decision and any policy change | Which version decided, who changed what, when and why, and a record that can leave the product | The provenance line on every surface; the append-only log with the actor's mark, the note, the diff and the regression; Compare two versions; Export |
+| The interviewers at ESI Labs, on their own machine, in three minutes | That no decision passed through a model, that the table is a lossless view of the rules, that every number is the engine's, that the on-premises path exists | The actor marks and the dashed, solid and sealed grammar; the decision table in the DSL's cell grammar; the engine's version and timing on every trace; the provider line in the rail |
+| The presenter, who drives four steps while talking | One click per step, a screen readable from across a table, no surprise | The guided demo strip, one primary action per screen, the 12 and 13px type floors, a cached answer that looks like any other |
+
+The spec's checklist, its section 12, is checked in the browser on every screen, in both themes, on a desktop and on
+a phone ([`e2e/register.spec.ts`](frontend/e2e/register.spec.ts)), each check shown to find a fault planted for it
+([`e2e/checklist.spec.ts`](frontend/e2e/checklist.spec.ts)); the walk of every line of the checklist is
+[`docs/quality/register-checklist.md`](docs/quality/register-checklist.md). The seven screens in both themes are in
+[`docs/demo/register/`](docs/demo/register/).
+
 ## Demo script
 
 Four steps on the live site in three minutes, each a click in the guided demo panel. Every visitor gets a sandbox of
@@ -114,8 +168,10 @@ what-if's answers often say "אושרה" or "אישור" where its label says "�
 kept, so the question was asked live on every run. The fourth question never reaches the model: retrieval finds nothing above the
 threshold, and the API answers with Document 4's sentence.
 
-Screenshots of steps 1 to 3 on a desktop and on a phone are in [`docs/demo/`](docs/demo/); the four steps and the
-recorded two-minute run are added on day 18.
+Screenshots of the four steps on a desktop and on a phone are in [`docs/demo/`](docs/demo/), from
+`desktop-1-author.png` to `phone-4-audit.png`, taken in the Register by the register spec from the committed fixtures
+(`REGISTER_SHOTS=1 npx playwright test e2e/register.spec.ts` in `frontend/`); the recorded two-minute run is added on
+day 18.
 
 **Closing line**: "The model wrote and explained every rule you saw. It never made a single decision. That split is
 the whole design."
@@ -353,6 +409,10 @@ the same day, and each cut leaves this list in the pull request that ships it. W
 - **Retrieval**: an English question about the Hebrew policy can be refused as not covered (Q-14, in every run so far), and a
   paragraph reached only through a rule's quote can be missed: for 2 of the 23 answerable questions, no expected
   chunk is among the eight retrieved.
+- **On a phone, three tables scroll with no count**: the change's diff and the regression report's two tables scroll
+  sideways in boxes of their own on a screen 390px wide, and a phone draws a scrollbar only while one scrolls, so a
+  column out of sight is not counted as the decision table's strip counts its fields (the Register's checklist, section
+  12, walked in [`docs/quality/register-checklist.md`](docs/quality/register-checklist.md)).
 - **Deliberately not built** (Document 2): user accounts, roles, per-user audit identity, and encryption at rest
   beyond Railway's; **one shared access code** and **in-memory rate limits** on a single instance. Each is accepted
   for a demo, with what production would add, in
@@ -370,6 +430,7 @@ the same day, and each cut leaves this list in the pull request that ships it. W
 | [6. Test Strategy](docs/06-test-strategy.md) | Test levels, coverage and mutation gates, CI stages |
 | [7. Work Plan](docs/07-work-plan.md) | Days, gates, the scope ladder |
 | 8. This README | Setup, the demo script, talking points, the Definition of Done |
+| [9. Register implementation](docs/09-register-implementation.md) | The design language built into the web app in seven phases, with its [board](docs/register-status.md) |
 
 Progress: [`docs/progress-checklist.md`](docs/progress-checklist.md) and [`docs/worklog.md`](docs/worklog.md).
 The working rules every coding session starts from: [`CLAUDE.md`](CLAUDE.md).

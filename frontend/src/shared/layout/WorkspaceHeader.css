@@ -40,6 +40,11 @@
   padding: 0 14px;
 }
 
+/* The product's own: the key beside Go to, as the composed screens' style attribute sets it (section 10). */
+.ws-header__side .btn .kbd {
+  margin-inline-start: 4px;
+}
+
 /* The product's own: in a narrow window beside the rail, a header wraps its actions under its title rather than past
    the screen; on a phone the header keeps only its primary (AppShell.css). */
 @media (max-width: 900px) {

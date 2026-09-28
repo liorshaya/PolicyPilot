@@ -5,6 +5,7 @@ import { DecisionTag } from '../../shared/ui/StatusTag'
 import { percent } from '../cases/outcomes'
 import type { Flip, Regression } from './types'
 import '../../shared/ui/Figures.css'
+import '../../shared/ui/Table.css'
 import './RegressionReport.css'
 
 interface RegressionReportProps {

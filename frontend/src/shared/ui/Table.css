@@ -395,7 +395,8 @@ td.t-prio {
 
 /*
  * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes (Document
- * 9, The CSS port): the rule column's least width, a mono action in ink-2, the small "inactive". Each of several actions
+ * 9, The CSS port): the rule column's least width, a mono action in ink-2, the small "inactive", at the chrome's 12px,
+ * since no rule of the spec sets it at the floor (the owner's answer to phase 6's first question). Each of several actions
  * stands on its own line; the rule cell is a button, so a keyboard reaches the rule, drawn as the cell it fills; a label
  * of an English rule set keeps its own direction.
  */
@@ -406,7 +407,7 @@ td.t-prio {
   color: var(--ink-2);
 }
 .t-inactive {
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
 }
 .t-action-line {
   display: block;
