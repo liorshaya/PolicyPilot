@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AUTH_CODE_URL } from './api/auth'
+import { budgetSpent } from './test/fixtures/budget'
 import { server } from './test/msw/server'
 import { App } from './App'
 import { SCRIPTED_CHANGE_REQUEST, SCRIPTED_QUESTIONS } from './features/demo/steps'
@@ -98,6 +99,34 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Change' })).toBeVisible()
     await user.click(within(nav).getByRole('button', { name: /Audit log/ }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible()
+  })
+
+  // The spec, section 08: the spent budget "sits under the workspace header of every screen that calls a model";
+  // the assistant says so under its composer instead (section 09), and the audit log calls none
+  it("says the day's budget is spent under the header of every screen that calls a model", async () => {
+    server.use(
+      http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })),
+      http.get('http://localhost:8080/api/v1/system/budget', () => HttpResponse.json(budgetSpent)),
+    )
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    const nav = await screen.findByRole('navigation', { name: 'Workspace' })
+
+    for (const name of ['Policies', 'Rules', 'Cases', 'Change']) {
+      await user.click(within(nav).getByRole('button', { name: new RegExp(`^${name}`) }))
+      await screen.findByRole('heading', { level: 1, name })
+      const note = await screen.findByRole('note', { name: 'Budget' })
+      // under the header, before the body
+      expect(note.closest('.budget-note')!.previousElementSibling).toHaveClass('ws-header')
+    }
+    await user.click(within(nav).getByRole('button', { name: /Assistant/ }))
+    await screen.findByRole('heading', { level: 1, name: 'Assistant' })
+    expect(await screen.findAllByRole('note', { name: 'Budget' })).toHaveLength(1)
+    await user.click(within(nav).getByRole('button', { name: /Audit log/ }))
+    await screen.findByRole('heading', { level: 1, name: 'Audit log' })
+    expect(screen.queryByRole('note', { name: 'Budget' })).not.toBeInTheDocument()
   })
 
   // Brief FR-23; Document 2: the panel's steps "pre-fill the inputs and call the same API the regular screens

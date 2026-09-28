@@ -15,6 +15,7 @@ import {
 import type { GapResolution, RuleSetDocument, VersionResponse } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
+import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
 import { Refusal } from '../../shared/ui/Refusal'
@@ -247,6 +248,7 @@ export function RulesScreen({
           ) : null
         }
       />
+      <BudgetNote />
       <SplitView
         sideOpen
         fill

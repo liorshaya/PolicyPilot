@@ -5,6 +5,7 @@ import type { ChangeDecision, RuleSetDocument } from '../../api/types'
 import { contentAttributes, isolated, type ContentLanguage } from '../../shared/i18n/direction'
 import { dateTimeOf, durationText } from '../../shared/i18n/time'
 import { SplitView } from '../../shared/layout/SplitView'
+import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
@@ -168,6 +169,7 @@ export function ChangeScreen({
           ) : null
         }
       />
+      <BudgetNote />
       <SplitView
         wide
         sideSheet

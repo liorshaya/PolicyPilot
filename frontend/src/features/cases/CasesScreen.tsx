@@ -6,6 +6,7 @@ import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from
 import type { Decision, RuleSetDocument } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
+import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Actor } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
@@ -125,6 +126,7 @@ export function CasesScreen({
           </Button>
         }
       />
+      <BudgetNote />
       <SplitView
         wide
         fill

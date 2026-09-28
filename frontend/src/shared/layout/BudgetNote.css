@@ -1,0 +1,7 @@
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"): the budget's note stands
+ * under the workspace header, at the header's inset, above the sheet and the margin (the spec, section 08).
+ */
+.budget-note {
+  padding: 10px 24px 0;
+}

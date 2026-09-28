@@ -79,6 +79,9 @@ export function AccessGate({ onEntered }: AccessGateProps) {
             size="lg"
             busy={submitting}
             disabled={code.trim() === ''}
+            // the spec, section 11: Enter becomes "Checking" while the code is checked; the label stays under the
+            // spinner, so the button keeps its width (section 05)
+            aria-label={submitting ? 'Checking' : undefined}
           >
             Enter
           </Button>

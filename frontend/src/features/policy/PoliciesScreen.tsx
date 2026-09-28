@@ -6,6 +6,7 @@ import type { PolicySummary, RuleSetDocument, VersionResponse } from '../../api/
 import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { timeOf } from '../../shared/i18n/time'
 import { fieldHints } from '../demo/fieldHints'
+import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
 import { Button } from '../../shared/ui/Button'
@@ -197,6 +198,7 @@ export function PoliciesScreen({
           ) : null
         }
       />
+      <BudgetNote />
       <SplitView
         sideOpen
         fill

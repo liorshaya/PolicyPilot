@@ -659,6 +659,36 @@ describe('PoliciesScreen, every state', () => {
     expect(screen.queryByText('Loading the policy')).not.toBeInTheDocument()
   })
 
+  // "Generate rules → four stages, each with its count, and the run's time → the dashed draft note → Review the draft"
+  it('Policies · working', async () => {
+    const onOpenRules = vi.fn()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        streamOf([
+          ['parsing', { paragraphs: 9 }],
+          ['authoring', { paragraphs: 9 }],
+          ['validating', { paragraphs: 9 }],
+          ['reviewing', { paragraphs: 9 }],
+          ['draft', reviewedDraft],
+        ]),
+      ),
+    )
+    renderScreen(onOpenRules)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate rules' }))
+
+    const generation = await screen.findByRole('region', { name: 'Generation' })
+    await waitFor(() =>
+      expect(generation.querySelectorAll('.progress__step--done')).toHaveLength(4),
+    )
+    expect(within(generation).getByText(/^done · /)).toBeInTheDocument()
+    expect(document.querySelector('.note--proposal')).toHaveTextContent(
+      'A draft rule set was written from this policy: 20 rules, version 2.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Review the draft' }))
+    expect(onOpenRules).toHaveBeenCalledWith(SEEDED_RULESET_ID)
+  })
+
   it('Policies · empty', async () => {
     server.use(
       http.get(`${BASE}/policies`, () => HttpResponse.json({ policies: [] })),
