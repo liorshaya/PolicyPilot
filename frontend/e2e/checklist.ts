@@ -81,8 +81,11 @@ export const SERIF_LABELS: string[] = RULES.filter(([, body]) => {
  */
 const BLEEDS = '.para--cited, button.doc-row'
 
-/** What scrolls or clips on purpose, whose insides may be wider than their containers: a table's box and the provenance line. */
-const SCROLLS = '.table-scroll, .prov'
+/**
+ * What scrolls or clips on purpose: a table's box, whose table may be wider than it (what stands inside the table still
+ * fits its own container), and the provenance line, whose segments drop from its end.
+ */
+const SCROLLS = { box: '.table-scroll', clips: '.prov' }
 
 /** The faces the product loads (the spec, section 03): IBM Plex and Frank Ruhl Libre, nothing else. */
 const FONTS = [
@@ -185,7 +188,7 @@ function check({
   relative: { selector: string; factor: number }[]
   serifLabels: string
   bleeds: string
-  scrolls: string
+  scrolls: { box: string; clips: string }
   fonts: string[]
 }): Findings {
   const view = globalThis as unknown as DomWindow
@@ -380,7 +383,11 @@ function check({
     if (!inApp && !floating) {
       continue
     }
-    if (element.parentElement?.closest(scrolls) || element.matches(bleeds)) {
+    if (
+      element.parentElement?.matches(scrolls.box) ||
+      element.parentElement?.closest(scrolls.clips) ||
+      element.matches(bleeds)
+    ) {
       continue
     }
     const box = element.getBoundingClientRect()

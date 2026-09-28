@@ -998,7 +998,8 @@ describe('PoliciesScreen, gone to from the palette', () => {
       expect(found).not.toBeNull()
       return found!
     })
-    expect(paragraph).toHaveClass('para--cited')
+    // marked, and flashed once as the target of a deep link (the spec, section 02)
+    expect(paragraph).toHaveClass('para--cited', 'flash')
     expect(paragraph).toHaveTextContent(lendingParagraphs[3]!.text)
     expect(document.querySelectorAll('.para--cited')).toHaveLength(1)
     await waitFor(() => expect(scrolled.mock.contexts).toContain(paragraph))

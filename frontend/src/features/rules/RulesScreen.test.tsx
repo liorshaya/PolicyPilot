@@ -896,6 +896,7 @@ describe('RulesScreen, gone to from the palette', () => {
       return found!
     })
     expect(current).toHaveTextContent('F-2')
+    expect(current).toHaveClass('flash')
     expect(review.querySelectorAll('.finding[aria-current="true"]')).toHaveLength(1)
     await waitFor(() => expect(scrolled.mock.contexts).toContain(current))
     scrolled.mockRestore()

@@ -474,6 +474,7 @@ describe('AuditScreen, gone to from the palette', () => {
     expect(current.map((row) => row.querySelector('.event__verb')?.textContent)).toStrictEqual([
       'Change approved',
     ])
+    expect(current[0]).toHaveClass('flash')
     await waitFor(() => expect(scrolled.mock.contexts).toContain(current[0]))
     scrolled.mockRestore()
   })

@@ -409,6 +409,10 @@ the same day, and each cut leaves this list in the pull request that ships it. W
 - **Retrieval**: an English question about the Hebrew policy can be refused as not covered (Q-14, in every run so far), and a
   paragraph reached only through a rule's quote can be missed: for 2 of the 23 answerable questions, no expected
   chunk is among the eight retrieved.
+- **On a phone, three tables scroll with no count**: the change's diff and the regression report's two tables scroll
+  sideways in boxes of their own on a screen 390px wide, and a phone draws a scrollbar only while one scrolls, so a
+  column out of sight is not counted as the decision table's strip counts its fields (the Register's checklist, section
+  12, walked in [`docs/quality/register-checklist.md`](docs/quality/register-checklist.md)).
 - **Deliberately not built** (Document 2): user accounts, roles, per-user audit identity, and encryption at rest
   beyond Railway's; **one shared access code** and **in-memory rate limits** on a single instance. Each is accepted
   for a demo, with what production would add, in
