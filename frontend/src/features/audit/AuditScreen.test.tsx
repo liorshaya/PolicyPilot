@@ -217,11 +217,30 @@ describe('AuditScreen, a row', () => {
     const [rejected, proposed] = await rows()
     expect(proposed!.querySelector('.event__mark .actor--model')).not.toBeNull()
     expect(lineOf(proposed!)).toBe('Change proposedCR-0001onv1')
-    expect(proposed!.querySelector('.event__delta')).toHaveTextContent('2 patches')
+    // the spec's row: the request, then "2 patches · considered R-170, R-410, R-020, R-200, R-320 · 2,140 tokens"
+    const asked = proposed!.querySelector('.he-quote p')
+    expect(asked).toHaveTextContent(scriptedRequest.text.he)
+    expect(asked).toHaveAttribute('dir', 'rtl')
+    expect(proposed!.querySelector('.event__delta')).toHaveTextContent(
+      /^2 patches · considered R-170, R-410, R-020, R-200, R-320 · 2,140 tokens$/,
+    )
     expect(rejected!.querySelector('.event__mark .actor--person')).not.toBeNull()
     expect(lineOf(rejected!)).toBe('Change rejectedCR-0002byAnalystRejected09:20')
     expect(rejected!.querySelector('.seal')).toHaveClass('seal--inline', 'seal--rejected')
     expect(within(rejected!).getByText('לא בתקופת הבחירות').closest('.he-quote')).not.toBeNull()
+  })
+
+  it('writes a proposal recorded before its entry held the request with what it holds', async () => {
+    const older: AuditEntry = {
+      ...proposedEntry,
+      details: { rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b1', versionNo: 1, patches: 2 },
+    }
+    serveTheLog([older])
+    renderScreen()
+
+    const [proposed] = await rows()
+    expect(proposed!.querySelector('.event__delta')).toHaveTextContent(/^2 patches$/)
+    expect(proposed!.querySelector('.he-quote')).toBeNull()
   })
 
   it('writes a publication as a version row, with the id of the version it published', async () => {

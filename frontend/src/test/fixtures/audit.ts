@@ -7,6 +7,7 @@ import {
   scriptedProposalEvent,
   scriptedRequest,
 } from './change'
+import { SCRIPTED_TIMINGS } from './changeRequest'
 import { lendingRuleSet } from './lending'
 
 /**
@@ -65,7 +66,11 @@ export const copyPublishEntry: AuditEntry = {
   },
 }
 
-/** The seeded version 1: the proposal the sandbox made on it, and its own publication by the seed. */
+/**
+ * The seeded version 1: the proposal the sandbox made on it, and its own publication by the seed. The proposal's entry
+ * holds the request, the rules the model was shown and the tokens its answer spent, as the stream's proposing stage
+ * reports them (Document 2, since 2026-09-28).
+ */
 export const proposedEntry: AuditEntry = {
   id: '0f4c1c9e-0000-4000-8000-00000000e103',
   at: '2026-09-27T09:10:00.120Z',
@@ -74,7 +79,14 @@ export const proposedEntry: AuditEntry = {
   rulesetVersionId: BASE_VERSION_ID,
   changeRequestId: PROPOSAL_ID,
   changeRequestNumber: 1,
-  details: { rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b1', versionNo: 1, patches: 2 },
+  details: {
+    rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b1',
+    versionNo: 1,
+    patches: 2,
+    requestText: scriptedRequest.text.he,
+    candidates: scriptedRequest.expected.candidates,
+    tokens: SCRIPTED_TIMINGS[1]!.tokens,
+  },
 }
 
 export const seedPublishEntry: AuditEntry = {

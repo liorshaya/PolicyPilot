@@ -31,6 +31,8 @@ test.describe('the assistant', () => {
 
     const answer = page.locator('p[dir="rtl"][lang="he"]').filter({ hasText: 'ערב' })
     await expect(answer).toBeVisible()
+    // one chip per claim inline, the first of its sources (the spec, section 09); the sources strip holds them all
+    await expect(answer.getByRole('button')).toHaveCount(1)
     await expect(answer.getByRole('button', { name: 'Case 17' })).toBeVisible()
     // the lookup the answer made, as a step line above it with the engine's outcome
     const step = page.getByRole('list', { name: 'Tool calls' }).getByRole('listitem')

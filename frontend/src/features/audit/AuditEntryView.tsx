@@ -37,6 +37,8 @@ const ACTORS: Record<AuditEntry['action'], ActorKind> = {
   RESET: 'system',
 }
 
+const COUNT = new Intl.NumberFormat('en-US')
+
 const ACTOR_NAMES: Record<ActorKind, string> = {
   person: PERSON,
   model: 'Model',
@@ -58,6 +60,9 @@ interface Details {
   warnings?: unknown[]
   forkedFromVersionId?: string
   patches?: number
+  /** A proposal's: the rules the model was shown, and what the answers to its prompts spent (since 2026-09-28). */
+  candidates?: string[]
+  tokens?: number
   requestText?: string | null
   note?: string | null
   diff?: Diff
@@ -129,8 +134,7 @@ function Recorded({
         </>
       )
     }
-    case 'CHANGE_PROPOSED': {
-      const patches = details.patches ?? 0
+    case 'CHANGE_PROPOSED':
       return (
         <>
           <div className="event__line">
@@ -139,10 +143,10 @@ function Recorded({
             <span className="muted">on</span>
             <span className="mono">{`v${String(details.versionNo)}`}</span>
           </div>
-          <span className="event__delta">{`${String(patches)} patch${patches === 1 ? '' : 'es'}`}</span>
+          <Quote text={details.requestText} />
+          <span className="event__delta">{proposedText(details)}</span>
         </>
       )
-    }
     case 'CHANGE_APPROVED': {
       const changes = details.diff ? conditionChanges(details.diff) : []
       const versionNo = details.versionNo ?? 0
@@ -268,6 +272,21 @@ function conditionChanges(diff: Diff) {
       before: comparisonText(row.before),
       after: comparisonText(row.after),
     }))
+}
+
+/**
+ * What a proposal recorded: "2 patches · considered R-170, R-410, R-020, R-200, R-320 · 2,140 tokens"; an entry
+ * written before 2026-09-28 holds the count of patches alone.
+ */
+function proposedText({ patches = 0, candidates, tokens }: Details): string {
+  const parts = [`${String(patches)} patch${patches === 1 ? '' : 'es'}`]
+  if (candidates !== undefined && candidates.length > 0) {
+    parts.push(`considered ${candidates.join(', ')}`)
+  }
+  if (tokens !== undefined) {
+    parts.push(`${COUNT.format(tokens)} tokens`)
+  }
+  return parts.join(' · ')
 }
 
 /** What a publication recorded: "20 rules", and the warnings it left open. */

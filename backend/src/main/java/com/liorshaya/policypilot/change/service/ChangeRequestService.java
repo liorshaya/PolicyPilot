@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -91,6 +92,7 @@ public class ChangeRequestService {
     public Submitted submit(ChangeBase base, String request, UUID sandboxId, ChangeProgress progress) {
         progress.analyzing();
         Candidates candidates = analysis.candidates(base, request);
+        AtomicLong spent = new AtomicLong();
         Proposal proposal = proposer.propose(base, request, candidates, new ChangeService.Progress() {
             @Override
             public void stage(ChangeService.Stage stage) {
@@ -102,6 +104,7 @@ public class ChangeRequestService {
 
             @Override
             public void answered(TokenUsage usage) {
+                spent.addAndGet(usage.total());
                 progress.spent(usage);
             }
         });
@@ -113,7 +116,7 @@ public class ChangeRequestService {
         Regression regression = decisions.regression(base.versionId(), sandboxId, copy);
         StructuralDiff diff = StructuralDiff.between(base.ruleSet(), DSL.toRuleSet(copy));
         TransactionCallback<ChangeRequestView> stored =
-                status -> store(base, request, proposal, diff, regression, sandboxId);
+                status -> store(base, request, proposal, diff, regression, spent.get(), sandboxId);
         try {
             return new Submitted.Stored(Objects.requireNonNull(transactions.execute(stored)));
         } catch (DataIntegrityViolationException e) {
@@ -207,10 +210,13 @@ public class ChangeRequestService {
     /**
      * The row Document 2 describes: the request's number in its sandbox, {@code patches_json} the patches as validated
      * with the request's id in every pending provenance, {@code rationale_json} the summary, the untouched rules, the
-     * notes and the candidates.
+     * notes and the candidates; and its CHANGE_PROPOSED entry, which holds the request, the rules the model was shown
+     * and the tokens the answers to its prompts spent (added 2026-09-28, Register phase 4).
+     *
+     * @param tokens what every answer the proposal took spent, a repair's too; none for an answer from the cache
      */
     private ChangeRequestView store(ChangeBase base, String request, Proposal proposal, StructuralDiff diff,
-            Regression regression, UUID sandboxId) {
+            Regression regression, long tokens, UUID sandboxId) {
         UUID id = UUID.randomUUID();
         ObjectNode stored = proposal.storedAs(id.toString());
         ArrayNode patches = (ArrayNode) stored.required("patches");
@@ -226,7 +232,10 @@ public class ChangeRequestService {
         ObjectNode details = JSON.createObjectNode()
                 .put("rulesetId", base.rulesetId().toString())
                 .put("versionNo", base.versionNo())
-                .put("patches", patches.size());
+                .put("patches", patches.size())
+                .put("requestText", request)
+                .put("tokens", tokens);
+        details.set("candidates", JSON.valueToTree(proposal.candidates().ruleIds()));
         audit.append(AuditAction.CHANGE_PROPOSED, actor, base.versionId(), id, details);
         return new ChangeRequestView(entity.getId(), entity.getNumber(), entity.getBaseVersionId(),
                 entity.getRequestText(), entity.getStatus(), stored, proposal.candidates(), diff, regression,

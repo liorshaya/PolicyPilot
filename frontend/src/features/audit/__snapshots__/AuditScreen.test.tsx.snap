@@ -185,7 +185,9 @@ page -           Change proposed
 page -           CR-0001
 page -           on
 page -           v1
-page -           2 patches
+rtl  he          העלה את ההכנסה החודשית המינימלית ל-
+ltr  he          9,000
+page -           2 patches · considered R-170, R-410, R-020, R-200, R-320 · 2,140 tokens
 page -           2026-09-21
 page -           10:00
 page -           Finding acknowledged

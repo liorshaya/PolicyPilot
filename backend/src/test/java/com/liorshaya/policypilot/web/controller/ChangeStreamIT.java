@@ -183,6 +183,11 @@ class ChangeStreamIT extends ApiIntegrationTest {
         assertThat(details.required("rulesetId").asString()).isEqualTo(seeded);
         assertThat(details.required("versionNo").asInt()).isEqualTo(1);
         assertThat(details.required("patches").asInt()).isEqualTo(2);
+        // Document 2 (2026-09-28, Register phase 4): the entry holds the request, the rules the model was shown and the
+        // tokens the answers to its prompts spent, the recorded answer's 1,000 in and 500 out
+        assertThat(details.required("requestText").asString()).isEqualTo(ChangeRequests.scripted());
+        assertThat(strings(details.required("candidates"))).isEqualTo(CANDIDATES);
+        assertThat(details.required("tokens").asLong()).isEqualTo(1_500);
     }
 
     // RT-04: the planted text after the threshold request, and an answer that obeyed it. Expected: the refusal with
@@ -290,6 +295,23 @@ class ChangeStreamIT extends ApiIntegrationTest {
         JsonNode validating = events.first("regression").required("ended");
         assertThat(validating.required("stage").asString()).isEqualTo("validating");
         assertThat(validating.required("tokens").asInt()).isEqualTo(1_500);
+        assertThat(model.asked()).hasSize(2);
+    }
+
+    // Document 2 (2026-09-28): a proposal's audit entry holds the tokens the answers to its prompts spent, a repair's
+    // too. Expected: the first answer's 1,500 and the repaired answer's 1,500
+    @Test
+    void aProposalsAuditEntryCountsEveryAnswerItTook() {
+        model.willAnswer("{\"summary\":\"x\",\"patches\":[],\"untouched\":[],\"notes\":\"\"}");
+        model.willAnswer(ChangeRequests.scriptedPatches().toString());
+
+        UUID id = UUID.fromString(ServerSentEvents.parse(submit(ChangeRequests.scripted()).body()).first("proposal")
+                .required("id").asString());
+
+        JsonNode details = JSON.readTree(jdbc.sql(
+                "select details_json::text from audit_entry where change_request_id = :id")
+                .param("id", id).query(String.class).single());
+        assertThat(details.required("tokens").asLong()).isEqualTo(3_000);
         assertThat(model.asked()).hasSize(2);
     }
 

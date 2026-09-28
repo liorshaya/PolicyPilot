@@ -41,7 +41,8 @@ const PUNCTUATION = /^[.,;:!?]+/
 /**
  * Where the chips stand (the spec, section 03, the bidi law, clause 6): after the sentence's punctuation, so a marker
  * the model wrote before a period moves behind it; and a run of markers is one claim, whose first source is the chip
- * inline and whose others are left to the sources strip.
+ * inline and whose others are left to the sources strip. A run holds the spaces between its markers, as Document 4's
+ * answer prompt writes them ("[[d:17]] [[r:R-330]] [[p:7]]").
  */
 export function placed(parts: Segment[]): ((Segment & { kind: 'text' }) | MarkerRun)[] {
   const result: ((Segment & { kind: 'text' }) | MarkerRun)[] = []
@@ -54,8 +55,12 @@ export function placed(parts: Segment[]): ((Segment & { kind: 'text' }) | Marker
       continue
     }
     const run: MarkerRun = { kind: 'markers', at: part.at, ids: [] }
-    while (parts[index]?.kind === 'marker') {
-      run.ids.push((parts[index] as Segment & { kind: 'marker' }).id)
+    for (let current = parts[index]; current !== undefined; current = parts[index]) {
+      if (current.kind === 'marker') {
+        run.ids.push(current.id)
+      } else if (current.text.trim() !== '' || parts[index + 1]?.kind !== 'marker') {
+        break
+      }
       index++
     }
     const next = parts[index]
@@ -63,7 +68,8 @@ export function placed(parts: Segment[]): ((Segment & { kind: 'text' }) | Marker
     if (next?.kind === 'text' && punctuation !== '') {
       const previous = result[result.length - 1]
       if (previous?.kind === 'text') {
-        result[result.length - 1] = { ...previous, text: previous.text + punctuation }
+        // the space the model left before the run goes with it, so the mark closes its sentence
+        result[result.length - 1] = { ...previous, text: previous.text.trimEnd() + punctuation }
       } else {
         result.push({ kind: 'text', at: next.at, text: punctuation })
       }

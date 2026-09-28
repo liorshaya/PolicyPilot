@@ -74,10 +74,14 @@ interface Answer {
   fixed?: 'not_covered' | 'tool_limit'
 }
 
-/** One answer per scripted question, with the tool calls it made and the citations the API resolved for its markers. */
+/**
+ * One answer per scripted question, with the tool calls it made and the citations the API resolved for its markers.
+ * A sentence's sources follow it one after another with a space between them, as Document 4's answer prompt writes
+ * them ("[[d:17]] [[r:R-330]] [[p:7]]").
+ */
 const answers: Record<string, Answer> = {
   'Q-01': {
-    text: 'בקשה 17 הופנתה לבדיקת חתם: נרשם לה אירוע אשראי שלילי אחד ולא הועמד ערב.[[d:17]][[p:7]]',
+    text: 'בקשה 17 הופנתה לבדיקת חתם: נרשם לה אירוע אשראי שלילי אחד ולא הועמד ערב. [[d:17]] [[p:7]]',
     steps: [lookup],
     citations: [
       { id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer', ruleId: 'R-330' },
@@ -85,7 +89,7 @@ const answers: Record<string, Answer> = {
     ],
   },
   'Q-02': {
-    text: `כן, עם ערב הבקשה הייתה מאושרת.${SIMULATION} האישור ניתן לפי הכלל R-900.[[r:R-900]]`,
+    text: `כן, עם ערב הבקשה הייתה מאושרת. ${SIMULATION} האישור ניתן לפי הכלל R-900. [[r:R-900]]`,
     steps: [whatIf],
     citations: [
       {
@@ -99,7 +103,7 @@ const answers: Record<string, Answer> = {
     ],
   },
   'Q-03': {
-    text: 'תקופת ההחזר המקסימלית היא 84 חודשים.[[p:2]]',
+    text: 'תקופת ההחזר המקסימלית היא 84 חודשים. [[p:2]]',
     citations: [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }],
   },
   'Q-04': { text: notCovered('he'), citations: [], fixed: 'not_covered' },
