@@ -12,7 +12,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Done | `register/phase-4` | [#167](https://github.com/liorshaya/PolicyPilot/pull/167), [#168](https://github.com/liorshaya/PolicyPilot/pull/168) | 2026-09-28 | 2026-09-28 |
-| 5 | Policies, composition, Decide a case, Fields, every state, the phone | Blocked | `register/phase-5` |  | 2026-09-28 |  |
+| 5 | Policies, composition, Decide a case, Fields, every state, the phone | In progress | `register/phase-5` |  | 2026-09-28 |  |
 | 6 | Verification and the don't list | Not started |  |  |  |  |
 
 A phase starts only when the one above it is Done. Cuts follow the order at the end of Document 9 and nowhere else.
@@ -246,9 +246,9 @@ Evidence:
 
 ## 5 · Policies, composition, Decide a case, Fields, every state, the phone
 
-Status: Blocked
+Status: In progress
 
-Questions, 2026-09-28, before the tests are written. Document 9's third rule keeps the backend untouched in this phase, so where the spec asks for what the API does not serve, or two documents disagree, the owner decides:
+Questions, 2026-09-28, before the tests are written, answered by the owner the same day, each as recommended; the spec's lines (sections 05, 08, 10 and 11) and Document 9's test list are changed first, in this phase's pull request. Document 9's third rule keeps the backend untouched in this phase, so where the spec asks for what the API does not serve, or two documents disagree, the owner decides:
 
 1. **The generation's stages: counts, or time and tokens.** Section 10's Policies screen draws each finished stage with a count ("9 ¶", "20 rules", "0 problems", "10 findings") and the section's title with the whole run's time ("Generation · done · 6.9 s"); section 11's Policies row and Document 9 ask for "four stages with time and tokens". The generation stream (Document 2) sends each stage with the policy's paragraph count only: no time and no tokens. Recommended: as section 10 draws it, each stage's count from the stream and the draft, and the run's time measured in the browser from its first event to the draft; no tokens. Alternative: each stage's time and tokens in the generation stream, as the change stream's `ended`, Document 2 first, in an API pull request of its own, an exception to the third rule like phase 4's.
 2. **Where the Fields panel stands in the Rules margin.** Document 9 makes Fields the margin's default when no rule is chosen. The owner's answer to phase 3's fifth question made a draft, or a version with a review, open on the review and the publish box; the margin's switch reads Policy · Rule · JSON, as the spec writes it. Recommended: the switch gains Fields (Policy · Rule · Fields · JSON); a version with no review opens on Fields when no rule is chosen, and a draft keeps its review. Alternative: no new switch; Fields stands under a draft's review, and is the default of a version with no review.
@@ -257,9 +257,9 @@ Questions, 2026-09-28, before the tests are written. Document 9's third rule kee
 
 For the record, not questions: "Go to ⌘K" in the headers waits for the palette, phase 6's by Document 9's cut line. Where the product's sentence differs from the spec's, the spec's is taken and its test changed with it ("This rule set has no published version yet; the cases ran on the seeded one.", "Nothing decided yet." with its full stop). On a phone the top bar holds the lockup, the version and the menu; the menu holds what the rail showed besides the screens (the workspace, the guided demo, Leave, Help, Theme). Section 11's last sentence, every cell screenshot-tested in both themes, is phase 6's screenshot suite; this phase gives each cell its component test. The states survey of 2026-09-28: of the matrix's cells, 42 have a test, 9 have part of one and 8 none; the phase adds the 17.
 
-- [ ] `PoliciesScreen`: the policy in the serif at 17px with paragraph numbers, rule chips and finding marks under each paragraph, the model's dashed note with "Review the draft", the margin with the documents, the generation's four stages, the review summary; "Add policy" opens the form with Paste text and Upload a file
+- [ ] `PoliciesScreen`: the policy in the serif at 17px with paragraph numbers, rule chips and finding marks under each paragraph, the model's dashed note with "Review the draft", the margin with the documents, the generation's four stages with their counts and the run's time, the review summary; "Add policy" opens the form with Paste text and Upload a file
 - [ ] `CaseForm`: from the version's `fields`, Hebrew description first, mono name with type, unit and domain, enum as a select, boolean as a checkbox with a sentence, derived fields absent, required and optional marked, the foot sentence and Decide as the primary; Decide posts one `case` and opens the trace; `CASE_INVALID` names the field under its input; "Decide a case" is the Cases header's secondary action (or cut, with the README line)
-- [ ] `FieldsPanel`: every field with name, type, unit, required or derived, the Hebrew description, enum values, the paragraph chip; `FIELD_UNUSED` beside an unused field; the Rules margin's default section (or cut, with the README line)
+- [ ] `FieldsPanel`: every field with name, type, unit, required or derived, the Hebrew description, enum values, the paragraph chip; `FIELD_UNUSED` beside an unused field; the margin switch's Fields, what a version with no review opens on (or cut, with the README line)
 - [ ] Every screen composed as section 10: header actions, sheet, margin sections in the spec's order
 - [ ] One test per cell of the states matrix (section 11) not covered before, each named "<surface> · <state>", each with its MSW fixture, all green
 - [ ] The phone: the top bar below 720px, the screens row, the margin as the next section; `e2e/phone.spec.ts` at 390×844 with no horizontal scroll and 44px rows
