@@ -13,7 +13,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Done | `register/phase-4` | [#167](https://github.com/liorshaya/PolicyPilot/pull/167), [#168](https://github.com/liorshaya/PolicyPilot/pull/168) | 2026-09-28 | 2026-09-28 |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Done | `register/phase-5` | [#169](https://github.com/liorshaya/PolicyPilot/pull/169), [#170](https://github.com/liorshaya/PolicyPilot/pull/170) | 2026-09-28 | 2026-09-28 |
-| 6 | Verification and the don't list | In progress | `register/phase-6` |  | 2026-09-28 |  |
+| 6 | Verification and the don't list | Blocked | `register/phase-6` |  | 2026-09-28 |  |
 
 A phase starts only when the one above it is Done. Cuts follow the order at the end of Document 9 and nowhere else.
 
@@ -289,7 +289,7 @@ Evidence:
 
 ## 6 · Verification and the don't list
 
-Status: In progress
+Status: Blocked
 
 Questions, 2026-09-28, before the tests are written, answered by the owner the same day, both as recommended (the table at the end of this file). The backend is not touched in this phase:
 
@@ -302,6 +302,11 @@ Questions raised by the register spec's first run, 2026-09-28, the tests written
 4. **The unchanged candidates under 4.5:1.** Section 09 draws a rule the model considered and left unchanged at 0.55 opacity (`.candidates .chip--id[data-state='unchanged']`): 3.18:1 on the light theme's well, under the 4.5:1 of section 12; the dark theme passes. Recommended: the unchanged chip drawn in ink-3 with no opacity, 4.7:1 on the well in the light theme and above 4.5:1 in the dark (both pairs in `tokens.test.ts`), the spec's rule changed first. Alternatives: the spec's opacity kept and listed under known limitations; or the chip counted as a mark, held to 3:1.
 5. **The phone's six screens in a row 390px wide.** The spec's phone draws five screens (no Audit log) in a row that clips (`.phone__screens`, `overflow: hidden`), each button 9px either side. The product's six need 407px, 420px with the Rules count, so at 390px Audit log is cut by 17 to 30px. Recommended: the buttons 6px either side, so the six fit at 390px with the count, and the row scrolling sideways on a narrower phone instead of clipping; the spec's rule and its phone drawing changed first. Alternatives: the spec's 9px kept and the row scrolling at 390px; or the row wrapping onto a second line.
 6. **For the record, the product's own and fixed without a question:** the provenance lines of Assistant, Change and Audit log lead with the rule set's Hebrew name in the 12px mono line (13px Hebrew, and section 12's "No English label sharing a row with a Hebrew value"), where every provenance line of the spec leads with the rule set's id in mono; they take the spec's form. And at 390px the unified diff's rows keep the spec's columns (90px, 150px, two values and the arrow) inside a box that clips, so a changed value is cut off on a phone; the diff gets the scroll box the regression's tables got in phase 5 (#170).
+
+Questions raised by the walk of section 12, 2026-09-28, the palette built. Section 08 gives the header "the one primary action" and section 12 says "One primary action per screen", while section 09 draws its frames each with a primary of its own; composed on one screen, two stand side by side:
+
+7. **The change screen with a proposal.** Section 09 draws "Propose the change" in the request's frame and "Approve and publish v2" in the decision's, both primaries; the change screen shows both once a proposal stands. Recommended: once a proposal is shown, Propose the change is a secondary and Approve and publish v2 the one primary; before a proposal, Propose the change is the primary. Alternatives: both kept, as the frames draw them, under known limitations; or Propose the change hidden while a proposal stands.
+8. **A draft's Rules screen.** The header carries "Publish version 1" (section 10's composed screen) and the publish box in the margin carries it again (section 09's frame, in the margin by the owner's answer to phase 3's fifth question): two primaries, one action. Recommended: the header keeps the one primary, and the publish box's Publish is a secondary beside its gates and its reason. Alternatives: the publish box keeps the primary and the header shows none while the box stands in the margin; or both kept, under known limitations.
 
 For the record, not questions: the screenshots of each demo step in `docs/demo/` (a desktop and a phone, steps 1 to 3, still the product before the Register) are taken again in the Register under the same names, with step 4 added, and the README's line says so; the register spec writes its screenshots only when it is asked to (`REGISTER_SHOTS`), so a run of the suite leaves the tree as it was. The contrast audit leaves disabled controls out, as WCAG 1.4.3 does: the spec draws a disabled primary in ink-3 at 0.7 opacity. The overflow check's "intentional bleeds" are the spec's negative-margin rules (`.para--cited`, a document row in the margin). `docs/README.md` has listed Document 9 since the Preparation (#158).
 
