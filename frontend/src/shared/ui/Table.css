@@ -409,6 +409,18 @@ td.t-prio {
 .t-inactive {
   font-size: var(--text-xs);
 }
+/* A set of values stands with its operator in one box no wider than the cell, the set taking what the operator leaves,
+   so a long set wraps inside its cell rather than stand past it (the cloud walk of phase 6); centred on the set's lines,
+   as the spec's vertical-align centres it. */
+.t-cmp__set {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.t-cmp__set .enum--set {
+  min-width: 0;
+}
 .t-action-line {
   display: block;
 }

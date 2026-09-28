@@ -385,6 +385,15 @@ function Comparison({ parts }: { parts: CellParts }) {
       </span>
     )
   }
+  if (parts.set) {
+    // a set and its operator in one box as wide as the cell, the set taking what the operator leaves (Table.css)
+    return (
+      <span className="t-cmp__set">
+        {op}
+        {value}
+      </span>
+    )
+  }
   return (
     <>
       {op}

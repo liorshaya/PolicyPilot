@@ -224,6 +224,27 @@ test.describe('the seven screens at 1376×900', () => {
   }
 })
 
+/**
+ * The Rules screen on the seeded version as a visitor first finds it, published and read-only: the table of section 07
+ * with every comparison of the lending rules, which the draft the seven screens show does not hold in the same widths
+ * (the cloud walk of 2026-09-29 found a set of values standing past its cell there).
+ */
+test.describe('the published rule table at 1376×900', () => {
+  test.use({ viewport: { width: 1376, height: 900 } })
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`published rules, ${theme}: keeps the checklist`, async ({ page }) => {
+      await choose(page, theme)
+      await serve(page)
+      await enter(page)
+      await open(page, 'Rules')
+      await expect(page.getByRole('table').getByRole('button', { name: /R-310/ })).toBeVisible()
+      await settle(page)
+      await keepsTheChecklist(page)
+    })
+  }
+})
+
 /** The palette over the Cases screen, 17 typed after a run: section 08's own example, in both themes. */
 test.describe('the palette at 1376×900', () => {
   test.use({ viewport: { width: 1376, height: 900 }, deviceScaleFactor: SHOTS ? 2 : 1 })
