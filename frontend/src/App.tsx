@@ -54,6 +54,10 @@ export function App() {
   const [demo, setDemo] = useState<DemoStep['id'] | null>(null)
   // the last step run, which the strip keeps showing after its screen has carried the step out
   const [lastStep, setLastStep] = useState<DemoStep['id'] | null>(null)
+  // how many steps have run, so a step run from the phone's menu closes it (the spec, section 10)
+  const [demoRuns, setDemoRuns] = useState(0)
+  // whether the strip shows its steps, kept here since the phone's menu mounts the strip anew each time it opens
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -78,6 +82,7 @@ export function App() {
   function runDemoStep(step: DemoStep) {
     setDemo(step.id)
     setLastStep(step.id)
+    setDemoRuns((runs) => runs + 1)
     navigate(step.screen)
   }
 
@@ -87,7 +92,15 @@ export function App() {
       onNavigate={navigate}
       onLeave={() => setEntered(false)}
       rulesetId={rulesetId}
-      aside={<GuidedPanel current={lastStep} onRun={runDemoStep} />}
+      demoRuns={demoRuns}
+      aside={
+        <GuidedPanel
+          current={lastStep}
+          onRun={runDemoStep}
+          open={demoOpen}
+          onToggle={setDemoOpen}
+        />
+      }
     >
       {screen === 'policies' ? (
         <PoliciesScreen

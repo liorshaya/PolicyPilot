@@ -70,14 +70,19 @@ test.describe('the demo on a phone', () => {
     }
   })
 
-  test('runs a step of the guided demo from the menu, which closes on the screen it opens', async ({
+  test('runs the steps of the guided demo from the menu, which closes on the screen each opens', async ({
     page,
   }) => {
-    await page.getByRole('button', { name: 'Menu' }).click()
     const menu = page.getByRole('dialog', { name: 'Menu' })
+    // step 1 runs on Policies, the screen the workspace opens on
+    await page.getByRole('button', { name: 'Menu' }).click()
     await menu.getByRole('button', { name: /guided demo/i }).click()
-    await step(page, 'Decide').click()
+    await step(page, 'Author').click()
+    await expect(menu).toHaveCount(0)
+    await expect(page.getByLabel('Policy text')).not.toHaveValue('')
 
+    await page.getByRole('button', { name: 'Menu' }).click()
+    await step(page, 'Decide').click()
     await expect(page.getByRole('heading', { level: 1, name: 'Cases' })).toBeVisible()
     await expect(menu).toHaveCount(0)
     await expect(page.getByRole('button', { name: '17', exact: true })).toBeVisible()

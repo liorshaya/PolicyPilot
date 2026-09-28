@@ -105,4 +105,14 @@ describe('the guided demo panel', () => {
     expect(rule(css, '.demo').position).toBeUndefined()
     expect(rule(css, '.demo__steps').position).toBeUndefined()
   })
+
+  // On a phone the strip stands in the menu, which mounts it anew each time it opens: the app keeps whether it is open
+  it('shows its steps as the app keeps them, and tells the app when they are opened or closed', async () => {
+    const onToggle = vi.fn()
+    render(<GuidedPanel current={null} onRun={vi.fn()} open onToggle={onToggle} />)
+
+    expect(screen.getByRole('list')).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: /Guided demo/ }))
+    expect(onToggle).toHaveBeenCalledWith(false)
+  })
 })

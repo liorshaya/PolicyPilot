@@ -26,6 +26,8 @@ interface AppShellProps {
   findingsToAcknowledge?: number
   /** The workspace's version, which the phone's top bar names beside the lockup (the spec, section 10). */
   version?: { status: VersionStatus; versionNo: number } | null
+  /** How many steps of the guided demo have run: a step run from the phone's menu closes it, on any screen. */
+  demoRuns?: number
   /** The guided demo strip, under the workspace block (Brief FR-23). */
   aside?: ReactNode
   children: ReactNode
@@ -85,15 +87,18 @@ export function AppShell({
   policy,
   findingsToAcknowledge = 0,
   version,
+  demoRuns = 0,
   aside,
   children,
 }: AppShellProps) {
   const provider = useProvider()
   const phone = usePhone()
   const [helpAnchor, setHelpAnchor] = useState<HTMLElement | null>(null)
-  // the menu belongs to the screen it was opened on: a step or a screen chosen from it closes it
-  const [menu, setMenu] = useState<{ anchor: HTMLElement; on: ScreenId } | null>(null)
-  const menuAnchor = menu !== null && menu.on === current ? menu.anchor : null
+  // the menu belongs to the screen it was opened on and the steps run so far: a screen chosen, or a step run from it,
+  // closes it, step 1 on Policies too
+  const [menu, setMenu] = useState<{ anchor: HTMLElement; on: ScreenId; runs: number } | null>(null)
+  const menuAnchor =
+    menu !== null && menu.on === current && menu.runs === demoRuns ? menu.anchor : null
   const menuRef = useRef<HTMLButtonElement>(null)
   const [theme, setTheme] = useState<Theme>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
@@ -205,7 +210,9 @@ export function AppShell({
               aria-label="Menu"
               aria-expanded={menuAnchor !== null}
               onClick={(event) =>
-                setMenu(menuAnchor ? null : { anchor: event.currentTarget, on: current })
+                setMenu(
+                  menuAnchor ? null : { anchor: event.currentTarget, on: current, runs: demoRuns },
+                )
               }
             >
               <Icon name="menu" />

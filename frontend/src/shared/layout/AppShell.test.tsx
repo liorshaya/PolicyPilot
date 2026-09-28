@@ -273,6 +273,31 @@ describe('AppShell below 720px', () => {
     expect(onLeave).toHaveBeenCalledOnce()
   })
 
+  // Step 1 runs on Policies, the screen the workspace opens on: a step run from the menu closes it on its own screen too
+  it('closes the menu when a step of the guided demo runs from it, even on the screen it was opened on', async () => {
+    windowOf(true)
+    const { rerender } = renderShell({ current: 'policies', demoRuns: 0 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }))
+    expect(screen.getByRole('dialog', { name: 'Menu' })).toBeInTheDocument()
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <AppShell
+          current="policies"
+          onNavigate={vi.fn()}
+          onLeave={vi.fn()}
+          policy={POLICY}
+          demoRuns={1}
+          aside={<section aria-label="Guided demo">Guided demo</section>}
+        >
+          <p>The workspace</p>
+        </AppShell>
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument()
+  })
+
   it('keeps the rail from 721px up', () => {
     windowOf(false)
     renderShell()
