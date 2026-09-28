@@ -20,7 +20,7 @@ test.describe('the case runner', () => {
   })
 
   test('runs the seeded set and sums up what the engine decided', async ({ page }) => {
-    await expect(page.getByText('Nothing decided yet')).toBeVisible()
+    await expect(page.getByText('Nothing decided yet.', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Run 200 cases' }).first().click()
 

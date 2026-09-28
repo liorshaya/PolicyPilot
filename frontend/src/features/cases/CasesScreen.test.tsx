@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  aggregates,
   batch,
   decision,
   publishedVersion,
@@ -15,6 +16,7 @@ import {
 } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { CasesScreen } from './CasesScreen'
+import { lendingCase17, lendingRuleSet } from '../../test/fixtures/lending'
 import { ENGLISH_RULESET_ID, englishDecision, englishRuleSet } from '../../test/fixtures/english'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
 
@@ -43,9 +45,10 @@ describe('CasesScreen', () => {
   it('shows what the version has decided before anything is run', async () => {
     renderScreen()
 
-    // the spec, section 09: "113 56.5%" of the 200 seeded cases
-    const approved = (await screen.findByText('Approved')).closest('.figure')
-    expect(approved).toHaveTextContent('Approved11356.5%')
+    // the spec, section 09: "113 56.5%" of the 200 seeded cases, once the statistics are read (a dash until then)
+    await waitFor(() =>
+      expect(screen.getByText('Approved').closest('.figure')).toHaveTextContent('Approved11356.5%'),
+    )
     expect(screen.getByRole('heading', { level: 2, name: 'Decisions on v1' })).toBeInTheDocument()
     expect(
       screen.getByText('Rules that decided most often · click to filter the list'),
@@ -243,14 +246,28 @@ describe('CasesScreen', () => {
     expect(screen.getByRole('table')).toBeInTheDocument()
   })
 
-  it('leads to the rules of the version it is running', async () => {
+  // The spec, section 10, the Cases screen: the header's one secondary action is Decide a case, beside the primary
+  it('offers Decide a case beside Run 200 cases, and opens its form in the margin', async () => {
     const user = userEvent.setup()
-    const opened = vi.fn()
-    renderScreen(opened)
+    renderScreen()
 
-    await user.click(await screen.findByRole('button', { name: 'Open the rules' }))
+    await screen.findByText('Approved')
+    const actions = document.querySelector<HTMLElement>('.ws-header__side')!
+    expect(
+      within(actions)
+        .getAllByRole('button')
+        .map((one) => one.textContent),
+    ).toEqual(['Decide a case', 'Run 200 cases'])
+    expect(within(actions).getByRole('button', { name: 'Decide a case' })).toHaveClass(
+      'btn--secondary',
+    )
+    await user.click(within(actions).getByRole('button', { name: 'Decide a case' }))
 
-    expect(opened).toHaveBeenCalledExactlyOnceWith(null)
+    const margin = screen.getByRole('complementary', { name: 'Decide a case' })
+    expect(margin.querySelector('.case-form')).not.toBeNull()
+    expect(within(margin).getByText('Decided by', { exact: false })).toHaveTextContent(
+      'Decided by v1, the published version, and recorded like any other decision.',
+    )
   })
 
   it('says that nothing was decided when the run is refused', async () => {
@@ -269,19 +286,6 @@ describe('CasesScreen', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('RATE_LIMITED')
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
-  })
-
-  it('offers the run when the version has decided nothing yet', async () => {
-    server.use(
-      http.get(`${BASE}/rulesets/:id/versions/:no/stats`, () =>
-        HttpResponse.json({ outcomes: {}, errors: 0, topDecidingRules: [], decisions: 0 }),
-      ),
-    )
-    renderScreen()
-
-    expect(await screen.findByText('Nothing decided yet')).toBeInTheDocument()
-    // the action is offered where the eye already is, as well as in the header
-    expect(screen.getAllByRole('button', { name: 'Run 200 cases' })).toHaveLength(2)
   })
 
   it('reports statistics that could not be read', async () => {
@@ -351,11 +355,11 @@ describe('CasesScreen', () => {
     )
     renderScreen(() => undefined, DRAFT_ID)
 
-    expect(
-      await screen.findByText(
-        'The rule set on the workspace has no published version yet; the cases run on the seeded one.',
-      ),
-    ).toBeInTheDocument()
+    // the spec's note, in the system's voice (sections 08 and 11)
+    const note = await screen.findByText(
+      'This rule set has no published version yet; the cases ran on the seeded one.',
+    )
+    expect(note.closest('.note')!.querySelector('.actor--system')).not.toBeNull()
     await user.click(screen.getByRole('button', { name: 'Run 200 cases' }))
 
     await waitFor(() => expect(decided).toEqual([`${SEEDED_RULESET_ID}/1`]))
@@ -390,6 +394,172 @@ describe('CasesScreen', () => {
 
     await waitFor(() => expect(decided).toEqual([`${SEEDED_RULESET_ID}/1`]))
     expect(screen.queryByText(/has no published version yet/)).not.toBeInTheDocument()
+  })
+})
+
+/** The Cases row of the states matrix (the spec, section 11), one test per cell no other test covers. */
+describe('CasesScreen, every state', () => {
+  it('Cases · loading', async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get(`${BASE}/rulesets/:id/versions/:no/stats`, async () => {
+        await read
+        return HttpResponse.json(aggregates)
+      }),
+    )
+    renderScreen()
+
+    // still rows, and the three figures under their words with a dash for the number not read yet
+    const loading = await screen.findByText('Loading the statistics')
+    expect(loading.closest('.loading')!.querySelectorAll('.loading__row')).toHaveLength(3)
+    const figures = [...document.querySelectorAll<HTMLElement>('.figure')]
+    expect(figures.map((one) => one.querySelector('.figure__label')!.textContent)).toEqual([
+      'Approved',
+      'Manual review',
+      'Declined',
+    ])
+    expect(figures.map((one) => one.querySelector('.figure__value')!.textContent)).toEqual([
+      '—',
+      '—',
+      '—',
+    ])
+    release()
+    await waitFor(() =>
+      expect(document.querySelector('.figure')).toHaveTextContent('Approved11356.5%'),
+    )
+  })
+
+  it('Cases · empty', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets/:id/versions/:no/stats`, () =>
+        HttpResponse.json({ outcomes: {}, errors: 0, topDecidingRules: [], decisions: 0 }),
+      ),
+    )
+    renderScreen()
+
+    // "Nothing decided yet." on the ruled lines, and the run offered where the eye already is (section 08's empty)
+    const sentence = await screen.findByText('Nothing decided yet.')
+    expect(sentence).toHaveClass('empty__rule--text')
+    const empty = sentence.closest<HTMLElement>('.empty')!
+    const run = within(empty).getByRole('button', { name: 'Run 200 cases' })
+    // one primary per screen, the header's: the empty sheet's action is a small secondary
+    expect(run).toHaveClass('btn', 'btn--secondary', 'btn--sm')
+    expect(within(empty).getByText('the seeded set, on version 1')).toHaveClass('muted')
+  })
+
+  // The owner's answer of 2026-09-28 to phase 5's fourth question: the row in ink, the code in the trace it opens
+  it('Cases · evaluation error', async () => {
+    const user = userEvent.setup()
+    const failedId = '0f4c1c9e-0000-4000-8000-0000000000e3'
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, () =>
+        HttpResponse.json({
+          ...batch,
+          results: [...batch.results, { id: failedId, caseNo: 19, status: 'ERROR', flags: [] }],
+        }),
+      ),
+      http.get(`${BASE}/decisions/${failedId}`, () =>
+        HttpResponse.json({
+          ...decision,
+          id: failedId,
+          caseNo: 19,
+          status: 'ERROR',
+          outcome: undefined,
+          reason: undefined,
+          decidingRuleId: null,
+          errorCode: 'DIVISION_BY_ZERO',
+          errorRuleId: 'R-020',
+          trace: [
+            {
+              ruleId: 'R-020',
+              label: 'יחס החוב להכנסה',
+              priority: 20,
+              status: 'error',
+              error: { code: 'DIVISION_BY_ZERO', detail: 'monthly_income is 0' },
+            },
+          ],
+        }),
+      ),
+    )
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    const row = (await screen.findByRole('button', { name: '19' })).closest('tr')!
+    // the ink tag and its words, never a colour (the spec, section 06)
+    expect(within(row).getByText('Evaluation error')).toHaveClass('tag', 'tag--error')
+    expect(row).not.toHaveTextContent('DIVISION_BY_ZERO')
+    await user.click(within(row).getByRole('button', { name: '19' }))
+
+    const trace = await screen.findByRole('complementary')
+    expect(await within(trace).findByText('DIVISION_BY_ZERO · R-020')).toBeInTheDocument()
+  })
+
+  // The spec, section 11: "Decide a case → its trace"; Document 2: one case returns the full decision with its trace
+  it('Cases · Decide a case, its trace', async () => {
+    const user = userEvent.setup()
+    let sent: unknown = null
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json(decision)
+      }),
+    )
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Decide a case' }))
+    const form = screen.getByRole('complementary', { name: 'Decide a case' })
+    for (const [name, value] of Object.entries(lendingCase17)) {
+      const description = lendingRuleSet.fields.find((one) => one.name === name)!.description!
+      const input = within(form).getByLabelText(description, { exact: false })
+      if (input instanceof HTMLSelectElement) {
+        await user.selectOptions(input, String(value))
+      } else {
+        await user.type(input, String(value))
+      }
+    }
+    await user.click(within(form).getByRole('button', { name: 'Decide' }))
+
+    // the margin turns to the decision's trace, the form gone
+    const trace = await screen.findByRole('complementary', { name: 'Case 17' })
+    expect(sent).toEqual({ case: lendingCase17 })
+    expect(within(trace).getByText(decision.reason!)).toBeInTheDocument()
+    expect(document.querySelector('.case-form')).toBeNull()
+  })
+
+  // The spec, section 11: "a case the schema refuses is refused whole (CASE_INVALID), the field named under its
+  // input, nothing stored"
+  it('Cases · CASE_INVALID', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, () =>
+        HttpResponse.json(
+          {
+            code: 'CASE_INVALID',
+            message: "The case is not valid against the rule set's fields.",
+            details: [{ path: '/case/age', problem: 'CASE_REQUIRED_MISSING' }],
+            traceId: 't',
+          },
+          { status: 422 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Decide a case' }))
+    const form = screen.getByRole('complementary', { name: 'Decide a case' })
+    await user.click(within(form).getByRole('button', { name: 'Decide' }))
+
+    const age = within(form).getByLabelText('גיל המבקש בעת הגשת הבקשה', { exact: false })
+    await waitFor(() => expect(age).toHaveAttribute('aria-invalid', 'true'))
+    expect(document.getElementById(`${age.id}-error`)).toHaveTextContent(
+      'This field is required. CASE_REQUIRED_MISSING',
+    )
+    expect(within(form).getByText('Nothing was stored.')).toBeInTheDocument()
+    // the form stays, and no trace opens
+    expect(screen.getByRole('complementary', { name: 'Decide a case' })).toBeInTheDocument()
   })
 })
 

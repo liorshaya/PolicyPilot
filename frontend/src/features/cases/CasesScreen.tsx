@@ -3,15 +3,19 @@ import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
 import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from '../../api/queries'
-import type { RuleSetDocument } from '../../api/types'
+import type { Decision, RuleSetDocument } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
+import { Actor } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
+import { Note } from '../../shared/ui/Note'
+import { Refusal } from '../../shared/ui/Refusal'
 import { Section } from '../../shared/ui/Section'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { VersionTag } from '../../shared/ui/StatusTag'
 import type { VersionStatus } from '../../shared/ui/decisionLabels'
+import { CaseForm } from './CaseForm'
 import { Dashboard } from './Dashboard'
 import { DecisionList } from './DecisionList'
 import { TraceView } from './TraceView'
@@ -20,10 +24,16 @@ import './CasesScreen.css'
 /** The seeded set of the demo (`policypilot.demo.fixture-set` in application.yml). */
 const FIXTURE_SET = 'cases-200'
 
+/** What names the margin while a decision is open: its case, or the decision alone for a case typed by an officer. */
+function traceLabel(decision: Decision): string {
+  return decision.caseNo === undefined ? 'Decision' : `Case ${String(decision.caseNo)}`
+}
+
 /**
  * The case runner (Work Plan day 6; the spec, section 10, the Cases screen): the 200 seeded cases are decided by the
  * engine, the run is summed up by outcome and by the rules that decided over its list, and every case opens its own
- * trace in the wide margin. The engine decides; this screen only shows what it decided and why.
+ * trace in the wide margin; Decide a case opens the officer's form there, built from the version's fields (section
+ * 09). The engine decides; this screen only shows what it decided and why.
  */
 export function CasesScreen({
   onOpenRule,
@@ -49,6 +59,8 @@ export function CasesScreen({
   const stats = useStats(ruleset)
   const run = useRunFixtureSet(ruleset ?? { id: '', versionNo: 1 })
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // the margin holds the officer's form until a case is decided or another one is opened
+  const [deciding, setDeciding] = useState(false)
   // the rule the figures filter the list by, which the list's own select changes too
   const [decidingRule, setDecidingRule] = useState<string | null>(null)
   const decision = useDecision(selectedId)
@@ -60,6 +72,10 @@ export function CasesScreen({
   const aggregates = run.data?.aggregates ?? stats.data
   const results = run.data?.results ?? []
   const refusal = run.error instanceof ApiError ? run.error : null
+  const open = (decisionId: string) => {
+    setDeciding(false)
+    setSelectedId(decisionId)
+  }
 
   return (
     <>
@@ -68,30 +84,35 @@ export function CasesScreen({
         provenance={
           version.data
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {version.data.name}
-                </bdi>,
-                <span key="set">
-                  <span className="mono">{FIXTURE_SET}</span>, the seeded set of the demo
+                <span key="domain" className="mono">
+                  {version.data.domain}
                 </span>,
+                <span key="set">
+                  <span className="mono">{FIXTURE_SET}</span>, the seeded set
+                </span>,
+                <Actor key="engine" kind="engine">
+                  engine
+                </Actor>,
               ]
             : ['The seeded cases, decided by the engine']
         }
         version={
           version.data ? (
-            <>
-              <span className="tabular">Version {version.data.versionNo}</span>
-              <VersionTag status={version.data.status as VersionStatus} />
-            </>
+            <VersionTag
+              status={version.data.status as VersionStatus}
+              versionNo={version.data.versionNo}
+            />
           ) : null
         }
         secondary={
           <Button
+            disabled={ruleset === null}
             onClick={() => {
-              onOpenRule(null)
+              setDeciding(true)
+              setSelectedId(null)
             }}
           >
-            Open the rules
+            Decide a case
           </Button>
         }
         primary={
@@ -108,20 +129,32 @@ export function CasesScreen({
       <SplitView
         wide
         fill
-        sideSheet
-        sideOpen={selectedId !== null}
+        sideSheet={!deciding}
+        sideOpen={deciding || selectedId !== null}
+        sideLabel={
+          deciding ? 'Decide a case' : decision.data ? traceLabel(decision.data) : undefined
+        }
         main={
           <>
-            {elsewhere ? (
-              <p className="cases__elsewhere" role="note">
-                The rule set on the workspace has no published version yet; the cases run on the
-                seeded one.
-              </p>
-            ) : null}
-            {refusal ? (
-              <div className="cases__refusal" role="alert">
-                The run was refused (<span className="mono">{refusal.code}</span>). Nothing was
-                decided.
+            {elsewhere || refusal ? (
+              <div className="cases__notes">
+                {elsewhere ? (
+                  <Note>
+                    This rule set has no published version yet; the cases ran on the seeded one.
+                  </Note>
+                ) : null}
+                {refusal ? (
+                  <Refusal
+                    code={refusal.code}
+                    title="The run was refused."
+                    rows={[]}
+                    explanation={
+                      refusal.code === 'RATE_LIMITED'
+                        ? 'Too many runs in a short time. Wait a minute, then try again.'
+                        : undefined
+                    }
+                  />
+                ) : null}
               </div>
             ) : null}
 
@@ -134,7 +167,17 @@ export function CasesScreen({
               }
               flush
             >
-              {stats.isPending && !run.data ? <LoadingRows label="Loading the statistics" /> : null}
+              {stats.isPending && !run.data ? (
+                <>
+                  <Dashboard
+                    aggregates={undefined}
+                    rules={[]}
+                    filter={null}
+                    onFilter={setDecidingRule}
+                  />
+                  <LoadingRows label="Loading the statistics" />
+                </>
+              ) : null}
               {aggregates?.decisions ? (
                 <Dashboard
                   aggregates={aggregates}
@@ -145,14 +188,10 @@ export function CasesScreen({
               ) : null}
               {aggregates?.decisions === 0 ? (
                 <EmptyState
-                  title="Nothing decided yet"
-                  description={`Run the ${FIXTURE_SET} set to decide the 200 seeded cases with this version. The engine decides every one of them and keeps the trace it wrote.`}
+                  title="Nothing decided yet."
+                  description={`the seeded set, on version ${String(ruleset?.versionNo ?? 1)}`}
                   action={
-                    <Button
-                      variant="primary"
-                      busy={run.isPending}
-                      onClick={() => run.mutate(FIXTURE_SET)}
-                    >
+                    <Button size="sm" busy={run.isPending} onClick={() => run.mutate(FIXTURE_SET)}>
                       Run 200 cases
                     </Button>
                   }
@@ -171,7 +210,7 @@ export function CasesScreen({
                 <DecisionList
                   results={results}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={open}
                   versionNo={ruleset?.versionNo}
                   decidingRule={decidingRule}
                   onDecidingRuleChange={setDecidingRule}
@@ -181,39 +220,53 @@ export function CasesScreen({
           </>
         }
         side={
-          <div className="sheet">
-            <div className="sheet__scroll">
-              {decision.data ? (
-                <TraceView
-                  key={decision.data.id}
-                  decision={decision.data}
-                  language={language}
-                  fields={document?.fields ?? []}
-                  onClose={() => setSelectedId(null)}
-                  onSelectRule={onOpenRule}
-                />
-              ) : (
-                <>
-                  <div className="sec">
-                    <h2 className="sec__title">Decision</h2>
-                    <div className="sec__side">
-                      <Button variant="quiet" size="sm" onClick={() => setSelectedId(null)}>
-                        Close
-                      </Button>
+          deciding && ruleset ? (
+            document ? (
+              <CaseForm
+                fields={document.fields}
+                language={language}
+                version={ruleset}
+                onDecided={(decided) => open(decided.id)}
+                onClose={() => setDeciding(false)}
+              />
+            ) : (
+              <LoadingRows label="Loading the fields" />
+            )
+          ) : (
+            <div className="sheet">
+              <div className="sheet__scroll">
+                {decision.data ? (
+                  <TraceView
+                    key={decision.data.id}
+                    decision={decision.data}
+                    language={language}
+                    fields={document?.fields ?? []}
+                    onClose={() => setSelectedId(null)}
+                    onSelectRule={onOpenRule}
+                  />
+                ) : (
+                  <>
+                    <div className="sec">
+                      <h2 className="sec__title">Decision</h2>
+                      <div className="sec__side">
+                        <Button variant="quiet" size="sm" onClick={() => setSelectedId(null)}>
+                          Close
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  {decision.isPending ? <LoadingRows label="Loading the decision" /> : null}
-                  {decision.error ? (
-                    <ErrorState
-                      code={decision.error instanceof ApiError ? decision.error.code : undefined}
-                      description="The decision could not be read."
-                      onRetry={() => void decision.refetch()}
-                    />
-                  ) : null}
-                </>
-              )}
+                    {decision.isPending ? <LoadingRows label="Loading the decision" /> : null}
+                    {decision.error ? (
+                      <ErrorState
+                        code={decision.error instanceof ApiError ? decision.error.code : undefined}
+                        description="The decision could not be read."
+                        onRetry={() => void decision.refetch()}
+                      />
+                    ) : null}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )
         }
       />
     </>

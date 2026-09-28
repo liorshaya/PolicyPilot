@@ -269,7 +269,7 @@ test.describe('demo step 1: the rules are written from the policy', () => {
     expect(decided).toEqual([`/api/v1/rulesets/${RULESET_ID}/versions/1/decide`])
     await expect(
       page.getByText(
-        'The rule set on the workspace has no published version yet; the cases run on the seeded one.',
+        'This rule set has no published version yet; the cases ran on the seeded one.',
       ),
     ).toBeVisible()
   })

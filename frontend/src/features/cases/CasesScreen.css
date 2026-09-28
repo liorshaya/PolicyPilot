@@ -1,21 +1,11 @@
-.cases__refusal {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-declined-line);
-  border-inline-start-width: 3px;
-  border-inline-start-color: var(--color-declined-text);
-  border-radius: var(--radius-md);
-  background: var(--color-declined-bg);
-  color: var(--color-declined-text);
-  font-size: var(--text-sm);
-}
-
-/* The workspace is on a draft, which decides nothing; the note says which rule set the cases run on instead. */
-.cases__elsewhere {
-  margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-accent-wash);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-wash);
-  color: var(--color-accent);
-  font-size: var(--text-sm);
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"): what the sheet must say
+ * before its figures, the note that the cases ran elsewhere and a refused run, stands in a strip of its own under the
+ * header, as the Policies screen's draft note does.
+ */
+.cases__notes {
+  display: grid;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--hairline);
 }
