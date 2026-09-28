@@ -14,20 +14,28 @@ import { RulesetSwitcher, VersionPicker } from './Pickers'
  * Version lineage), so the switcher has to tell the two apart.
  */
 describe('VersionPicker', () => {
-  it('lists every version of the rule set with its status, and reports the one chosen', async () => {
+  it('lists every version of the rule set by its state and number, and reports the one chosen', async () => {
     const onChange = vi.fn()
     render(<VersionPicker ruleset={copyRuleset} value={2} onChange={onChange} />)
 
     const picker = screen.getByRole('combobox', { name: 'Version' })
     expect(picker).toHaveValue('2')
+    // the spec, section 10: the options read "Published v1", as the version's tag does
     expect(
       within(picker)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toStrictEqual(['Version 1 · Published', 'Version 2 · Published'])
+    ).toStrictEqual(['Published v1', 'Published v2'])
     await userEvent.selectOptions(picker, '1')
 
     expect(onChange).toHaveBeenCalledWith(1)
+  })
+
+  it("stands in a section's toolbar as the select alone, named for a screen reader", () => {
+    render(<VersionPicker ruleset={copyRuleset} value={2} onChange={vi.fn()} bare />)
+
+    expect(screen.getByRole('combobox', { name: 'Version' })).toHaveClass('select', 'select--sm')
+    expect(screen.queryByText('Version')).not.toBeInTheDocument()
   })
 })
 
@@ -57,5 +65,19 @@ describe('RulesetSwitcher', () => {
     await userEvent.selectOptions(switcher, copyRuleset.id)
 
     expect(onChange).toHaveBeenCalledWith(copyRuleset.id)
+  })
+
+  it("stands in a section's toolbar as the select alone, named for a screen reader", () => {
+    render(
+      <RulesetSwitcher
+        rulesets={[rulesets.rulesets[0]!, secondRuleset]}
+        value={secondRuleset.id}
+        onChange={vi.fn()}
+        bare
+      />,
+    )
+
+    expect(screen.getByRole('combobox', { name: 'Rule set' })).toHaveClass('select', 'select--sm')
+    expect(screen.queryByText('Rule set')).not.toBeInTheDocument()
   })
 })

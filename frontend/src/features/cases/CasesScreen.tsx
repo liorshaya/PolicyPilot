@@ -170,6 +170,7 @@ export function CasesScreen({
                     results={results}
                     selectedId={selectedId}
                     onSelect={setSelectedId}
+                    versionNo={ruleset?.versionNo}
                   />
                 ) : null}
               </Section>

@@ -155,6 +155,8 @@ export interface FieldSchema {
   exclusiveMinimum?: number
   exclusiveMaximum?: number
   description?: string
+  /** The paragraph that implies the field, when the authoring step inferred it from the policy (Document 3). */
+  source?: Extract<Provenance, { kind: 'quoted' }>
 }
 
 /** The whole DSL document of a version (Document 3, Document Structure). */

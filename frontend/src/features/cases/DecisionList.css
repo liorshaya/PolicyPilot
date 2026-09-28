@@ -1,7 +1,10 @@
-.decisions__no {
-  width: 5rem;
+/*
+ * The case list's own, where the spec leaves the product to decide (the Register spec, section 07): the case filter at
+ * the width the spec's toolbar gives it, the case number a button drawn as the cell it fills, the flags side by side.
+ */
+.toolbar .input.decisions__case {
+  width: 140px;
 }
-
 .decisions__open {
   padding: 0;
   border: 0;
@@ -10,27 +13,7 @@
   font: inherit;
   cursor: pointer;
 }
-
-.decisions__rule {
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
 .decisions__flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-
-.decisions__flag {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-}
-
-.decisions__none {
-  color: var(--color-border-strong);
+  display: inline-flex;
+  gap: var(--s-1);
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { RulesetSummary } from '../../api/types'
 import { isolate } from '../../shared/i18n/direction'
 import { VERSION_LABELS, type VersionStatus } from '../../shared/ui/decisionLabels'
@@ -6,7 +7,8 @@ import './Pickers.css'
 /**
  * What a screen shows: a rule set of the sandbox, and one of its versions (Work Plan day 14: the version picker). The
  * rules screen, the audit log and the comparison of two versions choose with these, so a version reads the same
- * everywhere.
+ * everywhere. Bare, a picker is the select alone, named for a screen reader, as a section's title row holds it (the
+ * spec, section 10); otherwise its label stands beside it.
  */
 
 /**
@@ -23,28 +25,60 @@ function rulesetLabel(ruleset: RulesetSummary): string {
   return `${isolate(ruleset.name)} · ${ruleset.domain}${whose}`
 }
 
+interface PickerProps {
+  label: string
+  bare: boolean
+  className?: string
+  value: string | number
+  onChange: (value: string) => void
+  children: ReactNode
+}
+
+function Picker({ label, bare, className, value, onChange, children }: PickerProps) {
+  const select = (
+    <select
+      className={['select', 'select--sm', className].filter(Boolean).join(' ')}
+      aria-label={bare ? label : undefined}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {children}
+    </select>
+  )
+  return bare ? (
+    select
+  ) : (
+    <label className="picker">
+      <span className="picker__label">{label}</span>
+      {select}
+    </label>
+  )
+}
+
 interface RulesetSwitcherProps {
   rulesets: RulesetSummary[]
   value: string
   onChange: (rulesetId: string) => void
+  /** The select alone, named for a screen reader. */
+  bare?: boolean
+  className?: string
 }
 
-export function RulesetSwitcher({ rulesets, value, onChange }: RulesetSwitcherProps) {
+export function RulesetSwitcher({
+  rulesets,
+  value,
+  onChange,
+  bare = false,
+  className,
+}: RulesetSwitcherProps) {
   return (
-    <label className="picker">
-      <span className="picker__label">Rule set</span>
-      <select
-        className="picker__select"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {rulesets.map((ruleset) => (
-          <option key={ruleset.id} value={ruleset.id}>
-            {rulesetLabel(ruleset)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Picker label="Rule set" bare={bare} className={className} value={value} onChange={onChange}>
+      {rulesets.map((ruleset) => (
+        <option key={ruleset.id} value={ruleset.id}>
+          {rulesetLabel(ruleset)}
+        </option>
+      ))}
+    </Picker>
   )
 }
 
@@ -54,23 +88,33 @@ interface VersionPickerProps {
   onChange: (versionNo: number) => void
   /** What the choice is for, when a screen chooses two: "From" and "To". */
   label?: string
+  /** The select alone, named for a screen reader. */
+  bare?: boolean
+  className?: string
 }
 
-export function VersionPicker({ ruleset, value, onChange, label = 'Version' }: VersionPickerProps) {
+/** A version as its option reads, as its tag writes it: "Published v1" (the spec, section 10). */
+export function VersionPicker({
+  ruleset,
+  value,
+  onChange,
+  label = 'Version',
+  bare = false,
+  className,
+}: VersionPickerProps) {
   return (
-    <label className="picker">
-      <span className="picker__label">{label}</span>
-      <select
-        className="picker__select"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      >
-        {ruleset.versions.map((version) => (
-          <option key={version.versionNo} value={version.versionNo}>
-            {`Version ${version.versionNo} · ${VERSION_LABELS[version.status as VersionStatus]}`}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Picker
+      label={label}
+      bare={bare}
+      className={className}
+      value={value}
+      onChange={(next) => onChange(Number(next))}
+    >
+      {ruleset.versions.map((version) => (
+        <option key={version.versionNo} value={version.versionNo}>
+          {`${VERSION_LABELS[version.status as VersionStatus]} v${String(version.versionNo)}`}
+        </option>
+      ))}
+    </Picker>
   )
 }

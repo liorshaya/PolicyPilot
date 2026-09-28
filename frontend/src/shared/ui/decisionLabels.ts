@@ -9,6 +9,13 @@ export const DECISION_LABELS: Record<DecisionStatus, string> = {
   error: 'Evaluation error',
 }
 
+/** The words of a rule's action column, where a rule does what the engine will decide (the spec's glossary). */
+export const ACTION_LABELS: Record<Exclude<DecisionStatus, 'error'>, string> = {
+  approve: 'Approve',
+  reject: 'Decline',
+  refer: 'Manual review',
+}
+
 /** The life of a rule set version (Document 2, Data Model: DRAFT, PUBLISHED, SUPERSEDED). */
 export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'SUPERSEDED'
 

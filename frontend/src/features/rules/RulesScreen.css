@@ -1,6 +1,13 @@
-.rules__tabs {
-  display: flex;
-  gap: var(--space-2);
+/* The selects of the decision table's title row, at the widths the spec's Rules screen gives them (section 10). */
+.rules__version {
+  width: 190px;
+}
+.rules__tag {
+  width: 120px;
+}
+.rules__ruleset {
+  width: auto;
+  max-inline-size: 16rem;
 }
 
 .rules__seeded {

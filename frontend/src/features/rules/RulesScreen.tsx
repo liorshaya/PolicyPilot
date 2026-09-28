@@ -21,10 +21,10 @@ import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from '../policy/PolicyText'
 import { DecisionTable } from './DecisionTable'
 import { RulesetSwitcher, VersionPicker } from './Pickers'
-import { findingsByRule, publishBlockers } from './findings'
+import { publishBlockers } from './findings'
 import { ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
-import { withLeaf } from './tableModel'
+import { tagsOf, withLeaf } from './tableModel'
 import type { Leaf } from './cellGrammar'
 import './RulesScreen.css'
 
@@ -83,6 +83,11 @@ export function RulesScreen({
   const [panel, setPanel] = useState<SidePanel>('source')
   const [asked, setAsked] = useState<number | null>(null)
   const document = shown?.ruleSet as RuleSetDocument | undefined
+  const tags = document ? tagsOf(document) : []
+  // a tag the version on the screen does not carry filters nothing: all tags are shown
+  const [chosenTag, setChosenTag] = useState<string | null>(null)
+  const tag = chosenTag !== null && tags.includes(chosenTag) ? chosenTag : null
+  const tagged = document?.rules.filter((rule) => tag === null || (rule.tags ?? []).includes(tag))
   const language: ContentLanguage = document?.language ?? 'en'
   const policy = usePolicy(chosen?.policyId ?? null)
   const selectedRule = document?.rules.find((rule) => rule.id === selectedRuleId)
@@ -140,30 +145,6 @@ export function RulesScreen({
               <span className="tabular">Version {shown.versionNo}</span>
               <VersionTag status={shown.status as VersionStatus} />
               {shown.protected ? <span className="rules__seeded">Seeded, read-only</span> : null}
-            </>
-          ) : null
-        }
-        controls={
-          shown ? (
-            <>
-              {list.length > 1 && onChooseRuleset ? (
-                <RulesetSwitcher
-                  rulesets={list}
-                  value={chosen?.id ?? ''}
-                  onChange={onChooseRuleset}
-                />
-              ) : null}
-              {chosen && chosen.versions.length > 1 ? (
-                <VersionPicker
-                  ruleset={chosen}
-                  value={versionNo}
-                  onChange={(next) => {
-                    setPicked({ rulesetId: chosen.id, versionNo: next })
-                    // the last answer was about the version on the screen, which the reader has just left
-                    setAnswered(null)
-                  }}
-                />
-              ) : null}
             </>
           ) : null
         }
@@ -234,27 +215,65 @@ export function RulesScreen({
             <Section
               title="Decision table"
               subtitle={
-                document
-                  ? `${document.rules.length} rules in evaluation order · ${draft ? 'edit a cell to change a rule' : 'published versions are read-only'}`
+                document && tagged
+                  ? tag === null
+                    ? `${String(document.rules.length)} rules`
+                    : `${String(tagged.length)} of ${String(document.rules.length)} rules`
                   : 'The rules of this version'
               }
               actions={
-                <div
-                  className="rules__tabs"
-                  role="group"
-                  aria-label="What to show beside the table"
-                >
-                  {(['source', 'rule', 'json'] as const).map((id) => (
-                    <Button
-                      key={id}
-                      variant={panel === id ? 'primary' : 'secondary'}
-                      aria-pressed={panel === id}
-                      onClick={() => setPanel(id)}
+                <>
+                  {shown && list.length > 1 && onChooseRuleset ? (
+                    <RulesetSwitcher
+                      bare
+                      className="rules__ruleset"
+                      rulesets={list}
+                      value={chosen?.id ?? ''}
+                      onChange={onChooseRuleset}
+                    />
+                  ) : null}
+                  {shown && chosen && chosen.versions.length > 1 ? (
+                    <VersionPicker
+                      bare
+                      className="rules__version"
+                      ruleset={chosen}
+                      value={versionNo}
+                      onChange={(next) => {
+                        setPicked({ rulesetId: chosen.id, versionNo: next })
+                        // the last answer was about the version on the screen, which the reader has just left
+                        setAnswered(null)
+                      }}
+                    />
+                  ) : null}
+                  {tags.length > 0 ? (
+                    <select
+                      className="select select--sm rules__tag"
+                      aria-label="Tag"
+                      value={tag ?? ''}
+                      onChange={(event) => setChosenTag(event.target.value || null)}
                     >
-                      {id === 'source' ? 'Policy' : id === 'rule' ? 'Rule' : 'JSON'}
-                    </Button>
-                  ))}
-                </div>
+                      <option value="">All tags</option>
+                      {tags.map((one) => (
+                        <option key={one} value={one}>
+                          {one}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <div className="segment" role="group" aria-label="Show in the margin">
+                    {(['source', 'rule', 'json'] as const).map((id) => (
+                      <Button
+                        key={id}
+                        variant="secondary"
+                        size="sm"
+                        aria-pressed={panel === id}
+                        onClick={() => setPanel(id)}
+                      >
+                        {id === 'source' ? 'Policy' : id === 'rule' ? 'Rule' : 'JSON'}
+                      </Button>
+                    ))}
+                  </div>
+                </>
               }
               flush
             >
@@ -275,7 +294,9 @@ export function RulesScreen({
                   onSelect={selectRule}
                   onEditCell={draft ? editCell : undefined}
                   problems={refusal?.details}
-                  reviewFindings={findingsByRule(review)}
+                  review={review}
+                  findings={findings}
+                  tag={tag}
                 />
               ) : null}
               {!document && !(ruleset !== null && version.isPending) && !version.error ? (

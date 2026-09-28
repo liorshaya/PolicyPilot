@@ -38,4 +38,11 @@ describe('Actor', () => {
 
     expect(container.querySelector('.actor--system')).toHaveAttribute('title', 'System')
   })
+
+  it('says what a mark alone stands for when it is told', () => {
+    // the spec, section 07: the Source column's person mark for a rule an analyst wrote
+    render(<Actor kind="person" title="Written by an analyst" />)
+
+    expect(screen.getByTitle('Written by an analyst')).toHaveClass('actor', 'actor--person')
+  })
 })

@@ -7,7 +7,7 @@ import {
   type CasesExpectedFixture,
   type ChangeRequestFixture,
 } from './changeRequest'
-import { lendingRuleSet } from './lending'
+import { decisionIdOf, lendingRuleSet } from './lending'
 
 /**
  * The scripted change request for the component tests, built by ./changeRequest from the committed fixtures, which are
@@ -19,15 +19,11 @@ export const casesExpected = casesExpectedFile as unknown as CasesExpectedFixtur
 export const PROPOSAL_ID = '0f4c1c9e-0000-4000-8000-0000000000f1'
 export const BASE_VERSION_ID = '0f4c1c9e-0000-4000-8000-0000000000c1'
 
-/** A decision id per case, readable in a failure message: case 8 is ...000000000008. */
-export const decisionOf = (caseNo: number): string =>
-  `0f4c1c9e-0000-4000-8000-${String(caseNo).padStart(12, '0')}`
-
 export const scriptedProposalEvent = scriptedProposal(
   lendingRuleSet,
   scriptedRequest,
   casesExpected,
-  { proposalId: PROPOSAL_ID, baseVersionId: BASE_VERSION_ID, decisionOf },
+  { proposalId: PROPOSAL_ID, baseVersionId: BASE_VERSION_ID, decisionOf: decisionIdOf },
 )
 
 export const rt04 = rt04Failure(lendingRuleSet, scriptedRequest)

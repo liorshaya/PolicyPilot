@@ -132,16 +132,57 @@ describe('RulesScreen', () => {
 
     // one row per rule, under the band of Document 3 that its priority falls in
     const ruleRows = (await screen.findAllByRole('row')).filter(
-      (row) => row.querySelector('.table__rule') !== null,
+      (row) => row.querySelector('.t-rule') !== null,
     )
     expect(ruleRows).toHaveLength(lendingRuleSet.rules.length)
     expect(within(ruleRows[0]!).getByText('R-010')).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Derivations' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Positive outcome' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: /debt_to_income/ })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Derivations 1–99' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('columnheader', { name: 'Positive outcome 900–999' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('columnheader', { name: 'debt_to_income, derived' }),
+    ).toBeInTheDocument()
     // Document 3: the cell grammar, not a rendering of the JSON; a published version is read, not edited
-    expect(within(ruleRows[2]!).getByText('< 21 years')).toBeInTheDocument()
+    expect(within(ruleRows[2]!).getByText('21').closest('td')).toHaveTextContent(/^<21$/)
     expect(screen.queryByLabelText('R-100, age')).not.toBeInTheDocument()
+  })
+
+  it("names the rule count beside the section's title and offers the version, the tag and the margin's view", async () => {
+    serveDraft()
+    renderScreen()
+
+    await screen.findByLabelText('R-100, age')
+    // the spec, section 10: "Decision table · 20 rules", then Version, Tag and Policy · Rule · JSON
+    expect(
+      screen.getByRole('heading', { name: 'Decision table' }).closest('.sec'),
+    ).toHaveTextContent('Decision table · 20 rules')
+    expect(screen.getByRole('combobox', { name: 'Version' })).toHaveValue('2')
+    const tag = screen.getByRole('combobox', { name: 'Tag' })
+    expect(within(tag).getAllByRole('option')[0]).toHaveTextContent('All tags')
+    const margin = screen.getByRole('group', { name: 'Show in the margin' })
+    expect(margin).toHaveClass('segment')
+    expect(within(margin).getByRole('button', { name: 'Policy' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(within(margin).getByRole('button', { name: 'Rule' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('keeps the rules of the chosen tag, and says how many of them it shows', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Tag' }), 'credit_history')
+
+    // R-220 and R-330 carry credit_history (fixtures/policies/consumer-lending/ruleset.v1.json)
+    expect(screen.getAllByRole('rowheader')).toHaveLength(2)
+    expect(
+      screen.getByRole('heading', { name: 'Decision table' }).closest('.sec'),
+    ).toHaveTextContent('Decision table · 2 of 20 rules')
   })
 
   it('states the version, its status and that a seeded version is read-only', async () => {
@@ -161,8 +202,10 @@ describe('RulesScreen', () => {
 
     // R-330 is quoted from paragraph 7 of the Hebrew policy (fixtures/policies/consumer-lending)
     expect(await screen.findByText(/Paragraph 7 is the source of R-330/)).toBeInTheDocument()
-    const quote = screen.getAllByText('מבקש עם אירוע אחד יידרש להעמיד ערב')[0]!
-    expect(quote.closest('[dir]')).toHaveAttribute('dir', 'rtl')
+    const cited = document.getElementById('paragraph-7')!
+    expect(cited).toHaveAttribute('aria-current', 'true')
+    expect(cited).toHaveTextContent('מבקש עם אירוע אחד יידרש להעמיד ערב')
+    expect(cited.closest('[dir]')).toHaveAttribute('dir', 'rtl')
   })
 
   it('shows one rule in full, with its source and its findings, in the rule panel', async () => {
@@ -178,6 +221,7 @@ describe('RulesScreen', () => {
               path: '/rules/12',
               message: 'the rule is unreachable',
               ruleIds: ['R-330'],
+              fieldNames: [],
             },
           ],
         }),
@@ -232,7 +276,7 @@ describe('RulesScreen', () => {
 
     const cell = await screen.findByLabelText('R-100, age')
     await user.clear(cell)
-    await user.type(cell, '< 23 years{Enter}')
+    await user.type(cell, '< 23{Enter}')
 
     await waitFor(() => expect(sent).not.toBeNull())
     const document = sent as unknown as RuleSetDocument
@@ -287,11 +331,18 @@ describe('RulesScreen', () => {
 
     const cell = await screen.findByLabelText('R-100, age')
     await user.clear(cell)
-    await user.type(cell, '< 5 years{Enter}')
+    await user.type(cell, '< 5{Enter}')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('RULESET_INVALID')
-    expect(screen.getByText('/rules/2/condition/value')).toBeInTheDocument()
-    expect(screen.getByText('below the minimum of the field')).toBeInTheDocument()
+    const refusal = await screen.findByRole('alert')
+    expect(refusal).toHaveTextContent('RULESET_INVALID')
+    expect(within(refusal).getByText('/rules/2/condition/value')).toBeInTheDocument()
+    expect(within(refusal).getByText('below the minimum of the field')).toBeInTheDocument()
+    // and under the cell the pointer names, R-100's age (the spec, section 11: "422 on a cell")
+    expect(
+      screen
+        .getByText('below the minimum of the field', { selector: '.t-cell-problem' })
+        .closest('td'),
+    ).toContainElement(screen.getByLabelText('R-100, age'))
   })
 
   it('publishes a draft and shows the version it returned', async () => {
@@ -328,6 +379,7 @@ describe('RulesScreen', () => {
               path: '/rules/3/condition/field',
               message: 'unknown field',
               ruleIds: ['R-120'],
+              fieldNames: [],
             },
           ],
         }),
@@ -476,9 +528,7 @@ describe('RulesScreen, the review of a draft', () => {
   }
 
   function rowOf(ruleId: string): HTMLElement {
-    const row = screen
-      .getAllByRole('row')
-      .find((one) => one.querySelector('.table__rule')?.textContent?.startsWith(ruleId))
+    const row = screen.getByText(ruleId, { selector: '.t-rule__id' }).closest('tr')
     if (!row) {
       throw new Error(`no row for ${ruleId}`)
     }
@@ -491,10 +541,22 @@ describe('RulesScreen, the review of a draft', () => {
 
     await screen.findByText('הכנסה יציבה אינה מוגדרת')
 
-    expect(within(rowOf('R-110')).getByText('Conflict')).toBeInTheDocument()
-    expect(within(rowOf('R-115')).getByText('Conflict')).toBeInTheDocument()
-    expect(within(rowOf('R-420')).getByText('Ambiguity')).toBeInTheDocument()
-    expect(within(rowOf('R-100')).queryByText('Conflict')).not.toBeInTheDocument()
+    // the spec, section 07: a mark in the gutter, its finding in the title ("F-1 Conflict")
+    expect(within(rowOf('R-110')).getByTitle('F-2 Conflict')).toHaveClass('sev--error')
+    expect(within(rowOf('R-115')).getByTitle('F-2 Conflict')).toHaveClass('sev--error')
+    expect(within(rowOf('R-420')).getByTitle('F-1 Ambiguity')).toHaveClass('sev--warning')
+    expect(within(rowOf('R-100')).queryByTitle('F-2 Conflict')).not.toBeInTheDocument()
+  })
+
+  it('counts above the table what blocks publishing and what warns', async () => {
+    serveReviewed()
+    renderScreen()
+
+    await screen.findByText('הכנסה יציבה אינה מוגדרת')
+
+    // F-2 and F-3 block publishing, F-1 warns
+    expect(screen.getByText('2 block')).toHaveClass('sev--error')
+    expect(screen.getByText('1 warn')).toHaveClass('sev--warning')
   })
 
   it('says what publishing waits for and keeps the button disabled', async () => {
@@ -629,7 +691,9 @@ describe('RulesScreen in both directions (NFR-5)', () => {
 
     const table = await screen.findByRole('table')
     const label = await within(table).findByText(lendingRuleSet.rules[0]!.label)
-    expect(label).toHaveAttribute('dir', 'auto')
+    // the rule set's language is known, so its labels say it (the spec, section 03, the bidi law, clause 4)
+    expect(label).toHaveAttribute('dir', 'rtl')
+    expect(label).toHaveAttribute('lang', 'he')
     expect(rtlSnapshot(table)).toMatchSnapshot()
   })
 
