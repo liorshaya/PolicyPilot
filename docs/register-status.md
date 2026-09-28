@@ -13,7 +13,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Done | `register/phase-4` | [#167](https://github.com/liorshaya/PolicyPilot/pull/167), [#168](https://github.com/liorshaya/PolicyPilot/pull/168) | 2026-09-28 | 2026-09-28 |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Done | `register/phase-5` | [#169](https://github.com/liorshaya/PolicyPilot/pull/169), [#170](https://github.com/liorshaya/PolicyPilot/pull/170) | 2026-09-28 | 2026-09-28 |
-| 6 | Verification and the don't list | Not started |  |  |  |  |
+| 6 | Verification and the don't list | Blocked | `register/phase-6` |  | 2026-09-28 |  |
 
 A phase starts only when the one above it is Done. Cuts follow the order at the end of Document 9 and nowhere else.
 
@@ -289,7 +289,14 @@ Evidence:
 
 ## 6 · Verification and the don't list
 
-Status: Not started
+Status: Blocked
+
+Questions, 2026-09-28, before the tests are written. The backend is not touched in this phase:
+
+1. **The type floor against the spec's own labels.** Document 9's register spec wants "no text under 11px and no chrome text under 12px", and section 12 says "12px chrome, 13px Hebrew, 16px serif". The spec's own CSS sets 37 of its rules at `--text-2xs`, 11px, which its token calls "the floor; never for running text": the seal's kicker, the derived tag, a band's range, the trace's, the comparison's and the matrix's small headings, the timeline's day, a step's status, the event's id and more, all ported as written. Recommended: the audit allows 11px only on the elements those 37 rules of `register.css` style, read from the file, and holds every other chrome text to 12px, Hebrew to 13px and the serif to 16px. Alternatives: raise those labels to 12px, a change to the spec's CSS and to the ported rules; or keep only the 11px floor.
+2. **How the palette finds a case by its number.** Document 9 builds the palette "on the four kinds of identifier the API can resolve (case, rule, paragraph, finding, change, version)", and its test types `17` for "Case 17 with its decision tag". No route resolves a case number to its decision: `GET /decisions/{id}` takes the decision's id, and only the chat's tool looks a case up by its number, inside the API. Recommended: the palette resolves the six kinds from what the screens already read: a case from this session's run of the 200 cases (its results kept where the palette can read them; before a run, a number finds nothing and the palette says "Run the cases to reach a case by its number"), a rule and a finding from the workspace's version, a paragraph from its policy, a change from the audit log (which names each change request since phase 4), a version from the rule set list. Alternatives: a read-only route that finds the sandbox's latest decision of a case by its number, Document 2 first, as phase 4's exceptions; or the palette cut, first in Document 9's cut line, with the README's line.
+
+For the record, not questions: the screenshots of each demo step in `docs/demo/` (a desktop and a phone, steps 1 to 3, still the product before the Register) are taken again in the Register under the same names, with step 4 added, and the README's line says so; the register spec writes its screenshots only when it is asked to (`REGISTER_SHOTS`), so a run of the suite leaves the tree as it was. The contrast audit leaves disabled controls out, as WCAG 1.4.3 does: the spec draws a disabled primary in ink-3 at 0.7 opacity. The overflow check's "intentional bleeds" are the spec's negative-margin rules (`.para--cited`, a document row in the margin). `docs/README.md` has listed Document 9 since the Preparation (#158).
 
 - [ ] `e2e/register.spec.ts`: seven screens × two themes at 1376×900 as screenshots into `docs/demo/register/`; the overflow, size, contrast, uppercase, gradient and font assertions; the first paint light
 - [ ] `Palette` with `e2e/palette.spec.ts` (or cut, with the README line)
