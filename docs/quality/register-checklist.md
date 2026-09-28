@@ -4,7 +4,8 @@ The design's checklist is section 12 of [the Register spec](../design/register.h
 the interface is reviewed against it, and its "don't" column is a hard rejection. Document 9's phase 6 walks it once
 through the whole product, as Document 7's day 16 walks the Brief's Definition of Done. Walked on 2026-09-29 on the
 branch `register/phase-6`, in Chromium at 1376×900 in both themes and at 390×844, every API call answered from the
-committed fixtures. A line a browser can see is checked on every screen by
+committed fixtures, then on the cloud site after the merge, on the screens that call no model, in both themes. A line
+a browser can see is checked on every screen by
 [`frontend/e2e/register.spec.ts`](../../frontend/e2e/register.spec.ts): the seven screens in both themes, the palette
 open, and the four demo steps on a desktop and on a phone. Each of those checks is shown to find a fault planted for it
 by [`frontend/e2e/checklist.spec.ts`](../../frontend/e2e/checklist.spec.ts). A line that failed was fixed in phase 6,
@@ -50,4 +51,5 @@ Found by the checks' first run, before anything was built, or by the walk, and f
 answers where the spec disagreed with itself: the unchanged candidates under 4.5:1; the phone's six screens clipping
 Audit log; the Hebrew rule set name in three provenance lines; the unified diff clipped on a phone; section 02's deep
 link, which no screen drew; the assistant's cited case, which opened the Cases screen but not the case; and two screens
-with two primaries. One line stays open on a phone and is listed under the README's known limitations.
+with two primaries. The cloud walk found one line more, a set of values standing past its cell on the published rule
+table, fixed in #173. One line stays open on a phone and is listed under the README's known limitations.

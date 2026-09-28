@@ -13,7 +13,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Done | `register/phase-4` | [#167](https://github.com/liorshaya/PolicyPilot/pull/167), [#168](https://github.com/liorshaya/PolicyPilot/pull/168) | 2026-09-28 | 2026-09-28 |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Done | `register/phase-5` | [#169](https://github.com/liorshaya/PolicyPilot/pull/169), [#170](https://github.com/liorshaya/PolicyPilot/pull/170) | 2026-09-28 | 2026-09-28 |
-| 6 | Verification and the don't list | In progress | `register/phase-6` |  | 2026-09-28 |  |
+| 6 | Verification and the don't list | Done | `register/phase-6` | [#172](https://github.com/liorshaya/PolicyPilot/pull/172), [#173](https://github.com/liorshaya/PolicyPilot/pull/173) | 2026-09-28 | 2026-09-29 |
 
 A phase starts only when the one above it is Done. Cuts follow the order at the end of Document 9 and nowhere else.
 
@@ -289,7 +289,7 @@ Evidence:
 
 ## 6 · Verification and the don't list
 
-Status: In progress
+Status: Done
 
 Questions, 2026-09-28, before the tests are written, answered by the owner the same day, both as recommended (the table at the end of this file). The backend is not touched in this phase:
 
@@ -313,9 +313,9 @@ For the record, not questions: the screenshots of each demo step in `docs/demo/`
 - [x] `e2e/register.spec.ts`: seven screens × two themes at 1376×900 as screenshots into `docs/demo/register/`; the overflow, size, contrast, uppercase, gradient and font assertions; the first paint light
 - [x] `Palette` with `e2e/palette.spec.ts` (or cut, with the README line)
 - [x] The four demo specs green in one Playwright run
-- [ ] `docs/demo/` regenerated from the Register; `docs/README.md` lists Document 9; the README's section "The design language" merged
+- [x] `docs/demo/` regenerated from the Register; `docs/README.md` lists Document 9; the README's section "The design language" merged
 - [x] The Definition of Done walk of Document 7 day 16 repeated with spec section 12; every red line fixed or listed under known limitations
-- [ ] CI stages 1 to 7 green; worklog line; pull request "Register phase 6: verification" merged
+- [x] CI stages 1 to 7 green; worklog line; pull request "Register phase 6: verification" merged
 
 Evidence:
 
@@ -330,7 +330,9 @@ Evidence:
 - CI's first run of #172 ([36485139152](https://github.com/liorshaya/PolicyPilot/actions/runs/36485139152)) was green but for stage 7: on Linux the phone walk found an answer's turn 11px past the window at step 3, where on the Mac it fitted with 11px to spare. The what-if's tool chip, "what-if · case 17 · has_guarantor=true", never wraps and set the width of the turn's column; it now breaks between its words on a line narrower than it, each word whole (`e2e/phone.spec.ts`, a turn at 360px, red first). The phone's row of screens counts as a scroll box in the check, as the owner's fifth answer made it on a narrower phone.
 - Local run on 2026-09-29: the backend untouched, its clean unit and full verify green; typecheck, lint with no warning, Prettier, 841 Vitest tests in 74 files with the coverage thresholds (95.9% of statements, 88.6% of branches), the build; Playwright, 90 passed (the 37 before, the register spec's 20, the checklist's 23, the palette's 8, the chat's new one and the phone's); the stack suite, 3 passed on the compose stack; `make check` ALL OK with the traceability matrix regenerated; Semgrep 1.177.0, 0 findings; gitleaks, no leaks.
 
-- Pull request [#172](https://github.com/liorshaya/PolicyPilot/pull/172): CI stages 1 to 7 green on run [36486558516](https://github.com/liorshaya/PolicyPilot/actions/runs/36486558516) at ec40f00, with 1,359 unit, 443 integration, 841 Vitest and 93 Playwright tests (90 on the fixtures, 3 against the stack), the API at 97.1% of lines and 94.0% of branches, the web app at 95.9% of statements and 88.6% of branches, and 100% of the mutants of `engine` and `rules` killed, neither touched. Stage 7 ran the four demo steps' specs and the presenter's run of all four in its one run, green. The worklog line of 2026-09-29 names the phase. The walk of the checklist on the cloud site, on the screens that call no model, follows the deploy.
+- Pull request [#172](https://github.com/liorshaya/PolicyPilot/pull/172): CI stages 1 to 7 green on run [36486558516](https://github.com/liorshaya/PolicyPilot/actions/runs/36486558516) at ec40f00, with 1,359 unit, 443 integration, 841 Vitest and 93 Playwright tests (90 on the fixtures, 3 against the stack), the API at 97.1% of lines and 94.0% of branches, the web app at 95.9% of statements and 88.6% of branches, and 100% of the mutants of `engine` and `rules` killed, neither touched. Stage 7 ran the four demo steps' specs and the presenter's run of all four in its one run, green. The worklog line of 2026-09-29 names the phase. 
+- Merged as `023fad5`; `main`'s run [36488818751](https://github.com/liorshaya/PolicyPilot/actions/runs/36488818751) green, Railway's deploy healthy, and Vercel's production bundle carrying the palette's words ("Go to anything by id", "Run the cases to reach a case by its number", "open in the audit log").
+- The walk of the checklist on the cloud site, on the screens that call no model, so no token was spent: the gate, Policies, Rules with R-110 chosen, Cases after the 200 cases with case 17's trace, the audit log, and the palette open on 17, which then opened case 17's trace; in both themes at 1376×900, `e2e/checklist.ts` run on each, the access code read from Railway inside the script and never printed. Every screen passed but one line, in both themes: on the published rule table, R-310's set `{salaried, self_employed}` stood 5px past its cell, the spec's inline block taking the cell's whole width after its operator. The register spec had checked the Rules screen only on a draft, whose columns fall at other widths. [#173](https://github.com/liorshaya/PolicyPilot/pull/173) stood a set with its operator in one box as wide as the cell, the spec's rules untouched, and added the published table to the register spec in both themes, red first; green on run [36490590065](https://github.com/liorshaya/PolicyPilot/actions/runs/36490590065). Merged as `b63384f`, `main`'s run [36491557816](https://github.com/liorshaya/PolicyPilot/actions/runs/36491557816) green and deployed; the walk again: all 14 checks passed.
 
 ---
 
