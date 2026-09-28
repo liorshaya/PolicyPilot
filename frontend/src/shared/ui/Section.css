@@ -48,7 +48,7 @@
   flex: 1;
 }
 
-/* Until phase 5 composes the phone, a narrow section row wraps its controls under its title. */
+/* The product's own: in a narrow window, and on a phone, a section row wraps its controls under its title. */
 @media (max-width: 700px) {
   .sec {
     flex-wrap: wrap;

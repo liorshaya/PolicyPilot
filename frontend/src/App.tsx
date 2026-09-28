@@ -25,7 +25,7 @@ function screenFromHash(): ScreenId {
 function WorkspaceShell({
   rulesetId,
   ...shell
-}: Omit<ComponentProps<typeof AppShell>, 'policy' | 'findingsToAcknowledge'> & {
+}: Omit<ComponentProps<typeof AppShell>, 'policy' | 'findingsToAcknowledge' | 'version'> & {
   rulesetId: string | null
 }) {
   const workspace = useWorkspace(rulesetId)
@@ -34,6 +34,7 @@ function WorkspaceShell({
       {...shell}
       policy={workspace.policy}
       findingsToAcknowledge={workspace.findingsToAcknowledge}
+      version={workspace.version}
     />
   )
 }
@@ -53,6 +54,10 @@ export function App() {
   const [demo, setDemo] = useState<DemoStep['id'] | null>(null)
   // the last step run, which the strip keeps showing after its screen has carried the step out
   const [lastStep, setLastStep] = useState<DemoStep['id'] | null>(null)
+  // how many steps have run, so a step run from the phone's menu closes it (the spec, section 10)
+  const [demoRuns, setDemoRuns] = useState(0)
+  // whether the strip shows its steps, kept here since the phone's menu mounts the strip anew each time it opens
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -77,6 +82,7 @@ export function App() {
   function runDemoStep(step: DemoStep) {
     setDemo(step.id)
     setLastStep(step.id)
+    setDemoRuns((runs) => runs + 1)
     navigate(step.screen)
   }
 
@@ -86,15 +92,23 @@ export function App() {
       onNavigate={navigate}
       onLeave={() => setEntered(false)}
       rulesetId={rulesetId}
-      aside={<GuidedPanel current={lastStep} onRun={runDemoStep} />}
+      demoRuns={demoRuns}
+      aside={
+        <GuidedPanel
+          current={lastStep}
+          onRun={runDemoStep}
+          open={demoOpen}
+          onToggle={setDemoOpen}
+        />
+      }
     >
       {screen === 'policies' ? (
         <PoliciesScreen
           demoAsked={demo === 1}
           onDemoHandled={() => setDemo(null)}
-          onOpenRules={(chosen) => {
+          onOpenRules={(chosen, ruleId) => {
             setRulesetId(chosen)
-            setFocusRuleId(null)
+            setFocusRuleId(ruleId ?? null)
             navigate('rules')
           }}
         />
@@ -102,6 +116,7 @@ export function App() {
       {screen === 'rules' ? (
         <RulesScreen
           onOpenCases={() => navigate('cases')}
+          onOpenPolicies={() => navigate('policies')}
           focusRuleId={focusRuleId}
           rulesetId={rulesetId}
           onChooseRuleset={(chosen) => {

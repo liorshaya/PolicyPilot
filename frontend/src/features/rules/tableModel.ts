@@ -11,6 +11,7 @@ import {
   type CellParts,
   type Leaf,
 } from './cellGrammar'
+import { domainText } from './fieldSchema'
 
 /**
  * The decision table as a view of the DSL document (Document 3, Decision Table Rendering; the Register spec, section
@@ -223,9 +224,6 @@ export function tagsOf(document: RuleSetDocument): string[] {
   return [...new Set(document.rules.flatMap((rule) => rule.tags ?? []))].sort()
 }
 
-/** A number of a field's domain, grouped by thousands. */
-const grouped = (value: number) => new Intl.NumberFormat('en-US').format(value)
-
 /**
  * What a field header says on hover (the spec, section 07): the DSL's Hebrew description first, the business reader's
  * name for the column, then the type with its unit, domain and absence, or the values of an enum, then the paragraph
@@ -244,14 +242,7 @@ export function fieldTitle(field: FieldSchema, document: RuleSetDocument): strin
   }
   const kind =
     field.type === 'enum' && field.values !== undefined ? field.values.join(', ') : field.type
-  const domain =
-    field.minimum !== undefined && field.maximum !== undefined
-      ? `${grouped(field.minimum)} to ${grouped(field.maximum)}`
-      : field.minimum !== undefined && field.minimum !== 0
-        ? `at least ${grouped(field.minimum)}`
-        : field.maximum !== undefined
-          ? `at most ${grouped(field.maximum)}`
-          : undefined
+  const domain = domainText(field) ?? undefined
   const absent =
     field.required === true
       ? undefined

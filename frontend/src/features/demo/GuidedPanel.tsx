@@ -7,6 +7,12 @@ interface GuidedPanelProps {
   /** The step the workspace is on, so the strip shows where the demo has got to. */
   current: DemoStep['id'] | null
   onRun: (step: DemoStep) => void
+  /**
+   * Whether the steps are shown, when the app keeps it: on a phone the strip stands in the menu, which mounts it anew
+   * each time it opens (the spec, section 10). Without it the strip keeps its own, collapsed at first.
+   */
+  open?: boolean
+  onToggle?: (open: boolean) => void
 }
 
 /**
@@ -15,8 +21,9 @@ interface GuidedPanelProps {
  * actions, the steps before the current one done and the current one marked. It sits in the rail and never covers the
  * sheet, and it adds no logic of its own: a step navigates to a screen and fills in what a presenter would type.
  */
-export function GuidedPanel({ current, onRun }: GuidedPanelProps) {
-  const [open, setOpen] = useState(false)
+export function GuidedPanel({ current, onRun, open: kept, onToggle }: GuidedPanelProps) {
+  const [own, setOwn] = useState(false)
+  const open = kept ?? own
 
   return (
     <section className="demo" aria-label="Guided demo">
@@ -25,7 +32,10 @@ export function GuidedPanel({ current, onRun }: GuidedPanelProps) {
         className="demo__toggle"
         aria-expanded={open}
         aria-controls="guided-steps"
-        onClick={() => setOpen((shown) => !shown)}
+        onClick={() => {
+          setOwn(!open)
+          onToggle?.(!open)
+        }}
       >
         <span>Guided demo</span>{' '}
         <span className="mono">{`step ${current ?? 1} of ${DEMO_STEPS.length}`}</span>

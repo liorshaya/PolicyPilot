@@ -1,10 +1,11 @@
 import { Fragment, useId, useState, type FormEvent } from 'react'
 import { publishedTarget } from '../../api/published'
 import { useRulesets, useStats, useVersion } from '../../api/queries'
-import type { ChangeDecision, Finding, RuleSetDocument } from '../../api/types'
+import type { ChangeDecision, RuleSetDocument } from '../../api/types'
 import { contentAttributes, isolated, type ContentLanguage } from '../../shared/i18n/direction'
 import { dateTimeOf, durationText } from '../../shared/i18n/time'
 import { SplitView } from '../../shared/layout/SplitView'
+import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
@@ -12,6 +13,7 @@ import { Chip } from '../../shared/ui/Chip'
 import { Field } from '../../shared/ui/Field'
 import { Note } from '../../shared/ui/Note'
 import { Refusal } from '../../shared/ui/Refusal'
+import { findingRows } from '../../shared/ui/refusalRows'
 import { Seal } from '../../shared/ui/Seal'
 import { Section } from '../../shared/ui/Section'
 import '../../shared/ui/States.css'
@@ -167,6 +169,7 @@ export function ChangeScreen({
           ) : null
         }
       />
+      <BudgetNote />
       <SplitView
         wide
         sideSheet
@@ -588,7 +591,7 @@ function Refused({ failure }: { failure: StreamFailure }) {
       <Refusal
         code={failure.code}
         title={invalid ? 'The proposal was refused.' : 'The change could not be proposed.'}
-        rows={rowsOf(failure.findings)}
+        rows={findingRows(failure.findings)}
         explanation={invalid ? undefined : proposeFailureText(failure.code)}
         next={
           attempted.length > 0 ? (
@@ -607,18 +610,6 @@ function Refused({ failure }: { failure: StreamFailure }) {
       ) : null}
     </div>
   )
-}
-
-/** A refusal's rows: each pointer once, with the problems the validator found there. */
-function rowsOf(findings: Finding[]): { pointer: string; problem: string }[] {
-  const problems = new Map<string, string[]>()
-  for (const finding of findings) {
-    problems.set(finding.path, [
-      ...(problems.get(finding.path) ?? []),
-      `${finding.code} · ${finding.message}`,
-    ])
-  }
-  return [...problems].map(([pointer, found]) => ({ pointer, problem: found.join('; ') }))
 }
 
 /**

@@ -239,6 +239,23 @@ export function useDiff(
   })
 }
 
+/**
+ * Deciding one case the officer typed (Document 2, decide: one `case`, the full decision with its trace back, or 422
+ * CASE_INVALID with nothing stored). The decision is recorded like any other, so it is cached under its id for the
+ * trace to open, and the version's statistics, which count it, are read again.
+ */
+export function useDecideCase(ruleset: { id: string; versionNo: number }) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      api.decideCase(ruleset.id, ruleset.versionNo, input),
+    onSuccess: async (decided: Decision) => {
+      client.setQueryData(keys.decision(decided.id), decided)
+      await client.invalidateQueries({ queryKey: keys.stats(ruleset.id, ruleset.versionNo) })
+    },
+  })
+}
+
 /** Running a seeded set of cases; the statistics of the version are refreshed with the batch's own aggregates. */
 export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
   const client = useQueryClient()

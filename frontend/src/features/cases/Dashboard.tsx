@@ -3,7 +3,7 @@ import type { Aggregates, Rule } from '../../api/types'
 import { Button } from '../../shared/ui/Button'
 import { DECISION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
 import { decisionOf } from '../rules/tableModel'
-import { outcomeCounts, percent } from './outcomes'
+import { OUTCOME_ORDER, outcomeCounts, percent } from './outcomes'
 import '../../shared/ui/Figures.css'
 import './Dashboard.css'
 
@@ -16,7 +16,8 @@ const TAGS: Record<DecisionStatus, string> = {
 }
 
 interface DashboardProps {
-  aggregates: Aggregates
+  /** The version's statistics; while they are read, the figures stand with a dash for each number (section 11). */
+  aggregates: Aggregates | undefined
   /** The rules of the version, for the outcome each one decides: the dot beside it in the list. */
   rules: Rule[]
   /** The deciding rule the case list is filtered by, if any. */
@@ -31,6 +32,9 @@ interface DashboardProps {
  */
 export function Dashboard({ aggregates, rules, filter, onFilter }: DashboardProps) {
   const [declinesOnly, setDeclinesOnly] = useState(false)
+  if (aggregates === undefined) {
+    return <PendingFigures />
+  }
   const counts = outcomeCounts(aggregates)
   const errors = aggregates.errors
   const outcomeOf = new Map(rules.map((rule) => [rule.id, decisionOf(rule)]))
@@ -120,5 +124,28 @@ export function Dashboard({ aggregates, rules, filter, onFilter }: DashboardProp
         </div>
       ) : null}
     </>
+  )
+}
+
+/**
+ * The outcome row while the statistics are read (the spec, section 11: "the figures show dashes"): the three figures
+ * under their words, a dash where each number will stand, and nothing drawn in the bar.
+ */
+function PendingFigures() {
+  return (
+    <div className="outcome">
+      <div className="outcome__bar" aria-hidden="true" />
+      <dl className="figures">
+        {OUTCOME_ORDER.map((outcome) => (
+          <div key={outcome} className="figure">
+            <dt className="figure__label">
+              <span className={`dot dot--${TAGS[outcome]}`} />
+              {DECISION_LABELS[outcome]}
+            </dt>
+            <dd className="figure__value">—</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }

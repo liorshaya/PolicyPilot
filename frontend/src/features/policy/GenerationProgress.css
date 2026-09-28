@@ -1,107 +1,36 @@
-.generation {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-sunken);
-}
-
-.generation__stages {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* The stage that is running carries the interface's blue bar, like a selected row. */
-.generation__stage {
+/*
+ * How a generation ended, and the review summed up (the Register spec, section 10, "Policies · author"). The product's
+ * own: the spec's composed screen writes these in style attributes, and they become classes (Document 9, "The CSS
+ * port"): the strip under the policy's title that holds the draft's note and its button, the refusal in the same
+ * place, what the model proposed as the JSON it wrote, and the way to the whole review in the caption size.
+ */
+.generation__draft {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--hairline);
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.generation__stage--now {
-  box-shadow: inset 3px 0 0 var(--color-selected-bar);
-  background: var(--color-accent-wash);
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.generation__number {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-/* The sentence and the button share the first row; what the validator and the reviewer noted reads full width
-   beneath, because a reviewer's Hebrew sentence does not fit a narrow column. */
-.generation__done {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
   align-items: center;
-  gap: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
+  justify-content: space-between;
 }
-
-.generation__done > .generation__noted,
-.generation__done > .generation__noted-title {
-  grid-column: 1 / -1;
-}
-
-.generation__done > .generation__open {
-  grid-column: 2;
-  grid-row: 1;
-}
-
 .generation__refused {
-  color: var(--color-declined-text);
-  font-size: var(--text-sm);
-}
-
-.generation__refused-title {
-  font-weight: 600;
-}
-
-.generation__findings {
   display: grid;
-  gap: var(--space-1);
-  margin: var(--space-2) 0 0;
-  padding-inline-start: var(--space-4);
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--hairline);
 }
-
-.generation__findings li {
-  display: flex;
-  gap: var(--space-2);
-}
-
-@media (max-width: 700px) {
-  .generation__done {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .generation__done > .generation__open {
-    grid-column: 1;
-    grid-row: auto;
-  }
-}
-
-/* What the validator noted about a draft that passed: a warning to read, not a refusal. */
-.generation__noted {
-  margin-block: var(--space-3) 0;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-inline-start: 3px solid var(--color-review-text);
-  border-radius: var(--radius-md);
-  background: var(--color-review-bg);
-  color: var(--color-text);
-  font-size: var(--text-sm);
-}
-
-.generation__noted-title {
+.generation__proposed {
   margin: 0;
-  font-weight: 600;
+  max-height: 320px;
+  padding: 12px;
+  overflow: auto;
+  background: var(--well);
+  border-radius: var(--r-2);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  white-space: pre;
+}
+.generation__all {
+  justify-self: start;
+  font-size: var(--text-xs);
+  font-weight: 400;
 }

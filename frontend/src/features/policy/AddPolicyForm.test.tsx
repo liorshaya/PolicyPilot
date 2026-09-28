@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
@@ -39,6 +39,26 @@ describe('AddPolicyForm', () => {
     })
   })
 
+  // The spec, section 05: the two ways as a segment of small secondary buttons, the pressed one marked, and the policy
+  // text in the document serif, so the analyst sees what the sheet will show
+  it('offers Paste text and Upload a file as a segment, and writes the text in the document serif', async () => {
+    renderForm()
+
+    const modes = screen.getByRole('group', { name: 'How to add the policy' })
+    const paste = within(modes).getByRole('button', { name: 'Paste text' })
+    const upload = within(modes).getByRole('button', { name: 'Upload a file' })
+    expect(modes).toHaveClass('segment')
+    expect(paste).toHaveClass('btn', 'btn--secondary', 'btn--sm')
+    expect(paste).toHaveAttribute('aria-pressed', 'true')
+    expect(upload).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByLabelText('Policy text')).toHaveClass('textarea', 'textarea--doc')
+    await userEvent.click(upload)
+    expect(upload).toHaveAttribute('aria-pressed', 'true')
+    expect(upload).toHaveClass('btn--secondary')
+    // one primary per screen, the header's Generate rules: the form's own action is secondary
+    expect(screen.getByRole('button', { name: 'Add policy' })).toHaveClass('btn--secondary')
+  })
+
   it('sends the chosen file when the upload tab is open', async () => {
     const { onSubmit } = renderForm()
     const file = new File(['Applicants must be 21.'], 'policy.md', { type: 'text/markdown' })
@@ -74,13 +94,19 @@ describe('AddPolicyForm', () => {
     ['PAYLOAD_TOO_LARGE', /larger than the 2 MB/],
     ['RATE_LIMITED', /Too many requests/],
     ['INTERNAL_ERROR', /INTERNAL_ERROR/],
-  ])('explains %s in the words of the person who pasted the text', (code, expected) => {
-    renderForm({
-      error: new ApiError(422, { code, message: 'refused', details: [], traceId: 'trace' }),
-    })
+  ])(
+    'explains %s in the words of the person who pasted the text, and names the code',
+    (code, expected) => {
+      renderForm({
+        error: new ApiError(422, { code, message: 'refused', details: [], traceId: 'trace' }),
+      })
 
-    expect(screen.getByRole('alert')).toHaveTextContent(expected)
-  })
+      const alert = screen.getByRole('alert')
+      expect(alert).toHaveTextContent(expected)
+      // the owner's answer of 2026-09-28 to phase 5's third question: the refusal shows the code the API sent
+      expect(within(alert).getByText(code)).toHaveClass('mono')
+    },
+  )
 
   it('explains a failure that never reached the API', () => {
     renderForm({ error: new TypeError('network down') })

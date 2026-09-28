@@ -1,27 +1,17 @@
+/*
+ * The form that adds a policy, in the Policies screen's margin (the Register spec, section 05, "Fields · the product's
+ * own"; section 10). The product's own, where the spec leaves the product to decide: the specimen's frame is a grid with
+ * 16px between its fields and the segment stands at its start; the form's action and its Cancel close it on one row.
+ */
+.add-policy__modes {
+  justify-self: start;
+}
 .add-policy {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--s-4);
 }
-
-.add-policy__row {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--space-4);
-}
-
-.add-policy__modes {
-  display: flex;
-  gap: var(--space-2);
-}
-
 .add-policy__actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-}
-
-@media (max-width: 700px) {
-  .add-policy__row {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  gap: var(--s-2);
 }

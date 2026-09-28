@@ -103,6 +103,30 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/** The Audit log row of the states matrix (the spec, section 11) that no other test covers. */
+describe('AuditScreen, every state', () => {
+  it('Audit log · loading', async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get(`${BASE}/audit`, async () => {
+        await read
+        return HttpResponse.json({ entries: [] })
+      }),
+    )
+    renderScreen()
+
+    // still rows and a line of text under the real header (the spec, section 08)
+    const loading = await screen.findByText('Loading the audit log')
+    expect(loading.closest('.loading')!.querySelectorAll('.loading__row')).toHaveLength(3)
+    expect(screen.getByRole('heading', { level: 1, name: 'Audit log' })).toBeInTheDocument()
+    release()
+    expect(await screen.findByText('Nothing recorded yet')).toBeInTheDocument()
+  })
+})
+
 describe('AuditScreen, the log', () => {
   it('opens on every entry the sandbox can see, newest first, grouped by day', async () => {
     const asked = serveTheLog([

@@ -57,7 +57,22 @@
   padding-inline-end: 8px;
 }
 
-/* The product's own: the quoted span is a mark, which keeps the paragraph's ink in both themes. */
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The quoted span is a
+ * mark, which keeps the paragraph's ink in both themes; a paragraph in English, and the chips under it, read left to
+ * right, where the spec draws only Hebrew. On the sheet the chips stand under the text, and the findings follow the
+ * rules after a gap, as the composed screen's style attributes set them (section 10).
+ */
 mark.para__hl {
   color: inherit;
+}
+.para__text[dir='ltr'],
+.para__text[dir='ltr'] ~ .para__cites {
+  direction: ltr;
+}
+.para--sheet .para__cites {
+  grid-column: 2;
+}
+.para__cites .chip + .sev {
+  margin-inline-start: 6px;
 }

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { RuleSetDocument, RulesetsResponse, VersionResponse } from '../../api/types'
 import { copyRuleset, copyVersion } from '../../test/fixtures/audit'
 import { lendingRuleSet } from '../../test/fixtures/lending'
@@ -112,12 +112,14 @@ function renderScreen(
   focusRuleId: string | null = null,
   rulesetId: string | null = null,
   onChooseRuleset: (id: string) => void = () => undefined,
+  onOpenPolicies: () => void = () => undefined,
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
       <RulesScreen
         onOpenCases={() => undefined}
+        onOpenPolicies={onOpenPolicies}
         focusRuleId={focusRuleId}
         rulesetId={rulesetId}
         onChooseRuleset={onChooseRuleset}
@@ -189,9 +191,13 @@ describe('RulesScreen', () => {
   it('states the version, its status and that a seeded version is read-only', async () => {
     renderScreen()
 
-    expect(await screen.findByText('Version 1')).toBeInTheDocument()
-    expect(screen.getByText('Published')).toBeInTheDocument()
-    expect(screen.getByText('Seeded, read-only')).toBeInTheDocument()
+    // the spec, section 10: the version's state beside the title, "Draft v2", "Published v1"; the glossary's words
+    // for a seeded rule set, on the seeded status's well
+    const title = await screen.findByRole('heading', { level: 1 })
+    await waitFor(() =>
+      expect(within(title).getByText('Published v1')).toHaveClass('vstatus', 'vstatus--published'),
+    )
+    expect(within(title).getByText('Seeded, read-only')).toHaveClass('vstatus', 'vstatus--seeded')
     // the spec, section 10: the primary names the version it would publish
     expect(screen.getByRole('button', { name: 'Publish version 1' })).toBeDisabled()
     expect(screen.getByText('Only a draft is published')).toHaveClass('reason')
@@ -208,7 +214,7 @@ describe('RulesScreen', () => {
     const cited = document.getElementById('paragraph-7')!
     expect(cited).toHaveAttribute('aria-current', 'true')
     expect(cited).toHaveTextContent('מבקש עם אירוע אחד יידרש להעמיד ערב')
-    expect(cited.closest('[dir]')).toHaveAttribute('dir', 'rtl')
+    expect(cited.querySelector('.para__text')).toHaveAttribute('dir', 'rtl')
   })
 
   it('shows one rule in full, with its source and its findings, in the rule panel', async () => {
@@ -396,7 +402,7 @@ describe('RulesScreen', () => {
     expect(
       await margin.findByText('Version 2 decides cases from now on. Version 1 stays readable.'),
     ).toBeInTheDocument()
-    expect(within(screen.getByRole('heading', { level: 1 })).getByText('Published')).toHaveClass(
+    expect(within(screen.getByRole('heading', { level: 1 })).getByText('Published v2')).toHaveClass(
       'vstatus',
       'vstatus--published',
     )
@@ -424,7 +430,9 @@ describe('RulesScreen', () => {
     )
     renderScreen()
 
-    expect(await screen.findByText('Draft')).toBeInTheDocument()
+    expect(
+      await within(await screen.findByRole('heading', { level: 1 })).findByText('Draft v2'),
+    ).toBeInTheDocument()
     // the header's primary and the publish box's button: one action, disabled in both places
     const publish = screen.getAllByRole('button', { name: 'Publish version 2' })
     expect(publish).toHaveLength(2)
@@ -450,14 +458,39 @@ describe('RulesScreen', () => {
     expect(await screen.findByText('NOT_FOUND')).toBeInTheDocument()
   })
 
-  it('says so when there is no rule set at all', async () => {
-    server.use(http.get(`${BASE}/rulesets`, () => HttpResponse.json({ rulesets: [] })))
+  // The owner's answer of 2026-09-28 to phase 5's second question: Policy · Rule · Fields · JSON, and a version with
+  // no review opens on its fields until a rule is chosen, which shows the paragraph it cites
+  it('offers Policy, Rule, Fields and JSON in the margin, and opens a version with no review on its fields', async () => {
+    const user = userEvent.setup()
     renderScreen()
 
-    expect(await screen.findByText('No rule set yet')).toBeInTheDocument()
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const switcher = await screen.findByRole('group', { name: 'Show in the margin' })
+    expect(
+      within(switcher)
+        .getAllByRole('button')
+        .map((one) => one.textContent),
+    ).toEqual(['Policy', 'Rule', 'Fields', 'JSON'])
+    const fields = await screen.findByRole('region', { name: 'Fields' })
+    expect(within(fields).getByText('9 case fields, 2 derived')).toBeInTheDocument()
+    expect(within(switcher).getByRole('button', { name: 'Fields' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await user.click(await screen.findByRole('button', { name: /R-330/ }))
+    expect(await screen.findByText(/Paragraph 7 is the source of R-330/)).toBeInTheDocument()
+    await user.click(within(switcher).getByRole('button', { name: 'Fields' }))
+    expect(screen.getByRole('region', { name: 'Fields' })).toBeInTheDocument()
   })
 
+  it("opens a field's paragraph from the Fields panel in the Policy view", async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    const fields = await screen.findByRole('region', { name: 'Fields' })
+    await user.click(within(fields).getAllByRole('button', { name: 'Paragraph 4' })[0]!)
+
+    expect(document.getElementById('paragraph-4')).toHaveAttribute('aria-current', 'true')
+  })
   it('asks for the version the rule set list names last', async () => {
     let asked = ''
     serveDraft()
@@ -469,7 +502,7 @@ describe('RulesScreen', () => {
     )
     renderScreen()
 
-    await screen.findByText('Version 2')
+    await within(await screen.findByRole('heading', { level: 1 })).findByText('Draft v2')
     expect(asked).toBe(`${SEEDED_RULESET_ID}/2`)
   })
 
@@ -516,10 +549,11 @@ describe('RulesScreen', () => {
     renderScreen(null, copyRuleset.id)
 
     // the latest version first: version 2, where the approved change stands
-    expect(await screen.findByText('Version 2')).toBeVisible()
+    const title = await screen.findByRole('heading', { level: 1 })
+    expect(await within(title).findByText('Published v2')).toBeVisible()
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1')
 
-    expect(await screen.findByText('Version 1')).toBeVisible()
+    expect(await within(title).findByText(/^(Published|Superseded) v1$/)).toBeVisible()
     expect(asked).toStrictEqual(['2', '1'])
   })
 
@@ -557,6 +591,72 @@ describe('RulesScreen', () => {
       .map((option) => option.textContent)
     expect(new Set(labels).size).toBe(2)
     expect(labels[1]).toContain('draft-of-it')
+  })
+})
+
+/** The Rules row of the states matrix (the spec, section 11), one test per cell no other test covers. */
+describe('RulesScreen, every state', () => {
+  it('Rules · loading', async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get(`${BASE}/rulesets/:id/versions/:no`, async () => {
+        await read
+        return HttpResponse.json(publishedVersion)
+      }),
+    )
+    renderScreen()
+
+    const loading = await screen.findByText('Loading the rule set')
+    expect(loading.closest('.loading')!.querySelectorAll('.loading__row')).toHaveLength(3)
+    expect(screen.getByRole('heading', { level: 1, name: 'Rules' })).toBeInTheDocument()
+    release()
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+  })
+
+  it('Rules · empty', async () => {
+    const onOpenPolicies = vi.fn()
+    server.use(http.get(`${BASE}/rulesets`, () => HttpResponse.json({ rulesets: [] })))
+    renderScreen(null, null, () => undefined, onOpenPolicies)
+
+    const sentence = await screen.findByText('No rule set yet')
+    expect(sentence).toHaveClass('empty__rule--text')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await userEvent.click(
+      within(sentence.closest<HTMLElement>('.empty')!).getByRole('button', {
+        name: 'Generate rules from the policy',
+      }),
+    )
+    expect(onOpenPolicies).toHaveBeenCalledOnce()
+  })
+
+  // The spec, section 11: "VERSION_STATUS_CONFLICT: 'Only a draft is published'" (Document 2: 409 on a version that is
+  // not a DRAFT or is protected)
+  it('Rules · VERSION_STATUS_CONFLICT', async () => {
+    const user = userEvent.setup()
+    serveDraft()
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/publish`, () =>
+        HttpResponse.json(
+          { code: 'VERSION_STATUS_CONFLICT', message: 'not a draft', details: [], traceId: 't' },
+          { status: 409 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    const margin = within(await screen.findByRole('complementary'))
+    await user.click(await margin.findByRole('button', { name: 'Publish version 2' }))
+
+    const refusal = await screen.findByRole('alert')
+    expect(refusal.querySelector('.refusal__head')!.textContent).toBe(
+      'VERSION_STATUS_CONFLICTThe version was not published.',
+    )
+    expect(refusal.querySelector('.refusal__foot')!.textContent).toBe(
+      'Only a draft is published. Nothing was stored.',
+    )
   })
 })
 

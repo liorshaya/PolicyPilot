@@ -3,8 +3,8 @@ import { Icon } from './Icon'
 import './Field.css'
 
 interface FieldProps {
-  /** The label stays above the control and never becomes a placeholder. */
-  label: string
+  /** The label stays above the control and never becomes a placeholder; a case's field puts its name under it. */
+  label: ReactNode
   htmlFor: string
   /** A short line of guidance under the control. */
   hint?: ReactNode

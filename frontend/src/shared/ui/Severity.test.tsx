@@ -53,4 +53,14 @@ describe('Severity', () => {
 
     expect(screen.getByText('F-1 Conflict')).toHaveClass('sev--error')
   })
+
+  // The spec, section 10: under a paragraph of the Policies screen the mark carries the finding's code, "F-3"
+  it('writes the code alone beside the mark where the spec does, the kind in its title and for a screen reader', () => {
+    render(<Severity kind="ambiguity" code="F-3" brief />)
+
+    const mark = screen.getByTitle('F-3 Ambiguity')
+    expect(mark).toHaveClass('sev', 'sev--warning')
+    expect(mark.firstChild).toHaveTextContent(/^F-3$/)
+    expect(mark.querySelector('.sr-only')).toHaveTextContent(/^Ambiguity$/)
+  })
 })

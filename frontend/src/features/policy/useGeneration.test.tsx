@@ -1,19 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactElement } from 'react'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { publishedVersion, rulesets } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
+import { seededReview } from '../../test/fixtures/review'
 import { useRulesets } from '../../api/queries'
-import { GenerationProgress } from './GenerationProgress'
+import { GenerationProgress, GenerationResult, ReviewSummary } from './GenerationProgress'
 import { STAGE_LABELS, useGeneration } from './useGeneration'
 
 /**
- * The generation stream as the screen consumes it (Document 2, API Surface: parsing, authoring, validating, then
- * the draft). MSW answers with a real event stream, so the parser, the stage order and the two endings — a draft
- * and a refusal — are exercised the way the API sends them.
+ * The generation stream as the screen consumes it (Document 2, API Surface: parsing, authoring, validating, reviewing,
+ * then the draft or an error). MSW answers with a real event stream, so the parser, the stage order and the two
+ * endings, a draft and a refusal, are exercised the way the API sends them.
  */
 
 const BASE = 'http://localhost:8080/api/v1'
@@ -25,20 +26,45 @@ function streamOf(events: [string, unknown][]): HttpResponse<string> {
   return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
 }
 
-function Harness({ onStarted }: { onStarted?: (start: () => void) => void }) {
+/** A stream the test writes event by event; `send` is ready once the request has arrived. */
+function heldStream(): {
+  response: () => HttpResponse<ReadableStream>
+  send: (name: string, data: unknown) => void
+  close: () => void
+  opened: () => boolean
+} {
+  let controller: ReadableStreamDefaultController | null = null
+  return {
+    response: () =>
+      new HttpResponse(
+        new ReadableStream({
+          start(opened) {
+            controller = opened
+          },
+        }),
+        { headers: { 'Content-Type': 'text/event-stream' } },
+      ),
+    send: (name, data) =>
+      controller?.enqueue(
+        new TextEncoder().encode(`event:${name}\ndata:${JSON.stringify(data)}\n\n`),
+      ),
+    close: () => controller?.close(),
+    opened: () => controller !== null,
+  }
+}
+
+function Harness() {
   const generation = useGeneration()
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          generation.start('policy-1')
-          onStarted?.(() => generation.cancel())
-        }}
-      >
+      <button type="button" onClick={() => generation.start('policy-1')}>
         Generate rules
       </button>
-      <GenerationProgress generation={generation} onOpenRules={() => undefined} />
+      <GenerationResult generation={generation} onReview={() => undefined} />
+      <GenerationProgress generation={generation} />
+      {generation.draft ? (
+        <ReviewSummary review={generation.draft.review} language="he" onOpen={() => undefined} />
+      ) : null}
     </>
   )
 }
@@ -55,67 +81,99 @@ function renderHarness(ui: ReactElement) {
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
 }
 
-/** SF-1 and SF-2 of fixtures/eval/policies/consumer-lending/seeded.findings.json, as the review of a draft. */
-const lendingReview = {
-  status: 'DONE' as const,
-  promptVersion: 'v1',
-  coverage: {},
-  findings: [
-    {
-      id: 'F-1',
-      kind: 'ambiguity' as const,
-      severity: 'warning' as const,
-      ruleIds: ['R-420'],
-      paragraphIndexes: [4],
-      message: 'הכנסה יציבה אינה מוגדרת',
-      suggestion: 'להוסיף סימון לבדיקה ידנית',
-      confidence: 0.8,
-      blocking: false,
-    },
-    {
-      id: 'F-2',
-      kind: 'conflict' as const,
-      severity: 'error' as const,
-      ruleIds: ['R-110', 'R-115'],
-      paragraphIndexes: [1, 8],
-      message: 'סעיף 1 מגביל את הגיל ל-70 וסעיף 8 מתיר גמלאים עד 75',
-      suggestion: 'להחריג גמלאים מ-R-110',
-      confidence: 0.9,
-      blocking: true,
-    },
-  ],
+/** The stage list's steps, in order. */
+function steps(): HTMLElement[] {
+  return [
+    ...screen
+      .getByRole('region', { name: 'Generation' })
+      .querySelectorAll<HTMLElement>('.progress__step'),
+  ]
 }
+
+const draftOf = (overrides: object) => ({
+  ...publishedVersion,
+  status: 'DRAFT',
+  versionNo: 1,
+  ...overrides,
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('useGeneration', () => {
   // Document 2, API Surface: progress events parsing, authoring, validating, reviewing; the reviewer reads the draft
-  // last, and that stage is the one named while it runs
-  it('names the reviewing stage while the reviewer reads the draft', async () => {
+  // last, and that stage is the one marked while it runs
+  it('marks the reviewing stage while the reviewer reads the draft', async () => {
     const user = userEvent.setup()
-    server.use(
-      http.post(`${BASE}/policies/:id/rulesets`, () => {
-        const stream = new ReadableStream({
-          start(controller) {
-            for (const stage of ['parsing', 'authoring', 'validating', 'reviewing']) {
-              controller.enqueue(
-                new TextEncoder().encode(`event:${stage}\ndata:{"paragraphs":9}\n\n`),
-              )
-            }
-          },
-        })
-        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
-      }),
-    )
+    const stream = heldStream()
+    server.use(http.post(`${BASE}/policies/:id/rulesets`, () => stream.response()))
     renderHarness(<Harness />)
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+    await waitFor(() => expect(stream.opened()).toBe(true))
+    act(() => {
+      for (const stage of ['parsing', 'authoring', 'validating', 'reviewing']) {
+        stream.send(stage, { paragraphs: 9 })
+      }
+    })
 
-    const reviewing = await screen.findByText(STAGE_LABELS.reviewing)
     await waitFor(() =>
-      expect(reviewing.closest('li')).toHaveClass('generation__stage generation__stage--now'),
+      expect(
+        within(screen.getByRole('region', { name: 'Generation' }))
+          .getByText(STAGE_LABELS.reviewing)
+          .closest('.progress__step'),
+      ).toHaveClass('progress__step progress__step--now'),
     )
-    expect(screen.getByText(STAGE_LABELS.validating).closest('li')).not.toHaveClass(
-      'generation__stage--now',
+    expect(steps().map((step) => step.className)).toEqual([
+      'progress__step progress__step--done',
+      'progress__step progress__step--done',
+      'progress__step progress__step--done',
+      'progress__step progress__step--now',
+    ])
+    expect(steps()[3]).toHaveAttribute('aria-current', 'step')
+  })
+
+  // The owner's answer of 2026-09-28 to phase 5's first question: each finished stage with its count, from the stream
+  // and the draft, and the run's time in the browser from its first event to the draft; no tokens
+  it('counts each finished stage and times the run from its first event to the draft', async () => {
+    const user = userEvent.setup()
+    let now = 52_000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const stream = heldStream()
+    server.use(http.post(`${BASE}/policies/:id/rulesets`, () => stream.response()))
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+    await waitFor(() => expect(stream.opened()).toBe(true))
+    act(() => {
+      stream.send('parsing', { paragraphs: 9 })
+      stream.send('authoring', { paragraphs: 9 })
+    })
+    await waitFor(() => expect(steps()[1]).toHaveClass('progress__step--now'))
+    // the first stage's count is the stream's, while the rest are still to come
+    expect(steps()[0]!.querySelector('.progress__meta')).toHaveTextContent(/^9 ¶$/)
+    expect(steps()[1]!.querySelector('.progress__meta')).toBeNull()
+    act(() => {
+      now = 56_100
+      stream.send('validating', { paragraphs: 9 })
+      stream.send('reviewing', { paragraphs: 9 })
+      stream.send('draft', draftOf({ review: seededReview }))
+      stream.close()
+    })
+
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Generation' })).toHaveTextContent(
+        'Generation done · 4.1 s',
+      ),
     )
+    // Expected: the lending rule set's 20 rules, the validator's findings on the draft (none), the review's five
+    expect(steps().map((step) => step.querySelector('.progress__meta')?.textContent)).toEqual([
+      '9 ¶',
+      '20 rules',
+      '0 problems',
+      '5 findings',
+    ])
   })
 
   // Document 1, demo step 1: "Two rows carry warnings: one ambiguity and one conflict"
@@ -126,7 +184,10 @@ describe('useGeneration', () => {
         streamOf([
           ['parsing', { paragraphs: 9 }],
           ['reviewing', { paragraphs: 9 }],
-          ['draft', { ...publishedVersion, status: 'DRAFT', versionNo: 1, review: lendingReview }],
+          [
+            'draft',
+            draftOf({ review: { ...seededReview, findings: seededReview.findings.slice(0, 2) } }),
+          ],
         ]),
       ),
     )
@@ -134,12 +195,16 @@ describe('useGeneration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
 
-    expect(await screen.findByText(/The reviewer found/)).toHaveTextContent(
-      'The reviewer found 2 things to check against the policy:',
+    const summary = await screen.findByRole('region', {
+      name: 'The reviewer found 2 things to check',
+    })
+    expect(within(summary).getByText('1 blocks publishing')).toBeInTheDocument()
+    expect(within(summary).getByText('Ambiguity')).toBeInTheDocument()
+    expect(within(summary).getByText('Conflict')).toBeInTheDocument()
+    expect(within(summary).getByText(seededReview.findings[0]!.message)).toHaveAttribute(
+      'dir',
+      'rtl',
     )
-    expect(screen.getByText('Ambiguity')).toBeInTheDocument()
-    expect(screen.getByText('Conflict')).toBeInTheDocument()
-    expect(screen.getByText('הכנסה יציבה אינה מוגדרת')).toHaveAttribute('dir', 'auto')
   })
 
   // Document 2, Flow 1: a failed review keeps the draft, and publishing waits for the review to run again
@@ -150,12 +215,9 @@ describe('useGeneration', () => {
         streamOf([
           [
             'draft',
-            {
-              ...publishedVersion,
-              status: 'DRAFT',
-              versionNo: 1,
+            draftOf({
               review: { status: 'FAILED', promptVersion: 'v1', findings: [], coverage: {} },
-            },
+            }),
           ],
         ]),
       ),
@@ -171,7 +233,7 @@ describe('useGeneration', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows every stage and then the draft it was given', async () => {
+  it('announces the draft it was given, which decides nothing until a person publishes it', async () => {
     const user = userEvent.setup()
     server.use(
       http.post(`${BASE}/policies/:id/rulesets`, () =>
@@ -179,7 +241,7 @@ describe('useGeneration', () => {
           ['parsing', { paragraphs: 9 }],
           ['authoring', { paragraphs: 9 }],
           ['validating', { paragraphs: 9 }],
-          ['draft', { ...publishedVersion, status: 'DRAFT', versionNo: 1 }],
+          ['draft', draftOf({})],
         ]),
       ),
     )
@@ -187,42 +249,27 @@ describe('useGeneration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
 
-    expect(await screen.findByText(/A draft rule set was written/)).toBeInTheDocument()
+    await screen.findByRole('button', { name: 'Review the draft' })
     // the lending rule set has twenty rules, and the draft decides nothing until a person publishes it
-    expect(screen.getByText('20 rules')).toBeInTheDocument()
-    expect(
-      screen.getByText(/Nothing decides cases until a person publishes it/),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review the draft' })).toBeInTheDocument()
+    expect(document.querySelector('.note--proposal')!.textContent).toBe(
+      'A draft rule set was written from this policy: 20 rules, version 1. Nothing decides cases until a person publishes it.',
+    )
   })
 
   it('names the stage that is running while the stream is open', async () => {
     const user = userEvent.setup()
-    let release: (() => void) | null = null
-    server.use(
-      http.post(`${BASE}/policies/:id/rulesets`, () => {
-        const stream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode('event:parsing\ndata:{"paragraphs":9}\n\n'))
-            release = () => {
-              controller.enqueue(
-                new TextEncoder().encode('event:authoring\ndata:{"paragraphs":9}\n\n'),
-              )
-              controller.close()
-            }
-          },
-        })
-        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
-      }),
-    )
+    const stream = heldStream()
+    server.use(http.post(`${BASE}/policies/:id/rulesets`, () => stream.response()))
     renderHarness(<Harness />)
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+    await waitFor(() => expect(stream.opened()).toBe(true))
+    act(() => stream.send('parsing', { paragraphs: 9 }))
 
-    expect(await screen.findByText(STAGE_LABELS.parsing)).toBeInTheDocument()
-    await waitFor(() => expect(release).not.toBeNull())
-    act(() => release?.())
-    await waitFor(() => expect(screen.queryByText(STAGE_LABELS.parsing)).not.toBeInTheDocument())
+    await waitFor(() => expect(steps()[0]).toHaveClass('progress__step--now'))
+    act(() => stream.send('authoring', { paragraphs: 9 }))
+    await waitFor(() => expect(steps()[1]).toHaveClass('progress__step--now'))
+    expect(steps()[0]).toHaveClass('progress__step--done')
   })
 
   it('says what was refused and that nothing was stored', async () => {
@@ -245,6 +292,7 @@ describe('useGeneration', () => {
                   fieldNames: [],
                 },
               ],
+              document: null,
             },
           ],
         ]),
@@ -254,13 +302,23 @@ describe('useGeneration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('RULESET_INVALID')
-    expect(screen.getByText(/Nothing was stored/)).toBeInTheDocument()
-    expect(screen.getByText('PROVENANCE_QUOTE_MISMATCH')).toBeInTheDocument()
+    const refusal = await screen.findByRole('alert')
+    expect(refusal).toHaveTextContent('RULESET_INVALID')
+    expect(refusal).toHaveTextContent('Nothing was stored.')
+    expect(within(refusal).getByText('/rules/0/provenance/quote')).toBeInTheDocument()
+    expect(
+      within(refusal).getByText(
+        'PROVENANCE_QUOTE_MISMATCH · R-100: the quote does not occur in paragraph 1',
+      ),
+    ).toBeInTheDocument()
+    // the model's answer is shown only when the stream carried one
+    expect(
+      within(refusal).queryByRole('button', { name: 'What the model proposed' }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Review the draft' })).not.toBeInTheDocument()
   })
 
-  it('reports a stream that never opened as the provider being unavailable', async () => {
+  it('reports a stream that never opened, with no code of its own, as the provider being unavailable', async () => {
     const user = userEvent.setup()
     server.use(
       http.post(`${BASE}/policies/:id/rulesets`, () => new HttpResponse(null, { status: 503 })),
@@ -272,10 +330,31 @@ describe('useGeneration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('PROVIDER_UNAVAILABLE')
   })
 
+  // Document 2: before any stream opens, a refusal carries the error envelope, 429 RATE_LIMITED for the rate limits
+  it('reports a refusal before the stream opened by the code the API sent', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        HttpResponse.json(
+          { code: 'RATE_LIMITED', message: 'Too many requests.', details: [], traceId: 't' },
+          { status: 429 },
+        ),
+      ),
+    )
+    renderHarness(<Harness />)
+
+    await user.click(screen.getByRole('button', { name: 'Generate rules' }))
+
+    const refusal = await screen.findByRole('alert')
+    expect(refusal).toHaveTextContent('RATE_LIMITED')
+    expect(refusal).not.toHaveTextContent('PROVIDER_UNAVAILABLE')
+  })
+
   it('shows nothing at all before a run', () => {
     renderHarness(<Harness />)
 
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Generation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('makes the rule set list stale, so the new draft is there when a screen opens it', async () => {
@@ -286,9 +365,7 @@ describe('useGeneration', () => {
         listed += 1
         return HttpResponse.json(rulesets)
       }),
-      http.post(`${BASE}/policies/:id/rulesets`, () =>
-        streamOf([['draft', { ...publishedVersion, status: 'DRAFT', versionNo: 1 }]]),
-      ),
+      http.post(`${BASE}/policies/:id/rulesets`, () => streamOf([['draft', draftOf({})]])),
     )
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
@@ -305,17 +382,18 @@ describe('useGeneration', () => {
     await waitFor(() => expect(listed).toBe(2))
   })
 
-  it('shows what the validator noted about a draft that passed', async () => {
+  // A draft that validated can still be a poor one: the checking stage counts what the validator noted
+  it('counts what the validator noted about a draft that passed', async () => {
     const user = userEvent.setup()
     server.use(
       http.post(`${BASE}/policies/:id/rulesets`, () =>
         streamOf([
+          ['parsing', { paragraphs: 9 }],
+          ['authoring', { paragraphs: 9 }],
+          ['validating', { paragraphs: 9 }],
           [
             'draft',
-            {
-              ...publishedVersion,
-              status: 'DRAFT',
-              versionNo: 1,
+            draftOf({
               findings: [
                 {
                   code: 'NO_TERMINAL_APPROVE',
@@ -334,7 +412,7 @@ describe('useGeneration', () => {
                   fieldNames: [],
                 },
               ],
-            },
+            }),
           ],
         ]),
       ),
@@ -343,10 +421,7 @@ describe('useGeneration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate rules' }))
 
-    // a draft that validated can still be a poor one; the analyst approving it has to see what was noted
-    expect(await screen.findByText('NO_TERMINAL_APPROVE')).toBeInTheDocument()
-    expect(screen.getByText('no rule can produce approve')).toBeInTheDocument()
-    expect(screen.getByText('REFER_PRECEDES_REJECT')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review the draft' })).toBeInTheDocument()
+    await screen.findByRole('button', { name: 'Review the draft' })
+    expect(steps()[2]!.querySelector('.progress__meta')).toHaveTextContent(/^2 problems$/)
   })
 })

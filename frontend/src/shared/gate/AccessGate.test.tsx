@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
@@ -30,6 +30,34 @@ describe('AccessGate', () => {
     await user.type(screen.getByLabelText('Access code'), 'demo1234')
 
     expect(screen.getByRole('button', { name: 'Enter' })).toBeEnabled()
+  })
+
+  // The spec, section 11, the Gate row: "Enter becomes 'Checking' (busy)"; section 05: busy keeps the button's width
+  it('Gate · loading', async () => {
+    let release: () => void = () => undefined
+    const checked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.post(AUTH_CODE_URL, async () => {
+        await checked
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const onEntered = vi.fn()
+    const user = userEvent.setup()
+    render(<AccessGate onEntered={onEntered} />)
+
+    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+
+    const checking = await screen.findByRole('button', { name: 'Checking' })
+    expect(checking).toHaveAttribute('aria-busy', 'true')
+    expect(checking).toHaveClass('btn--busy')
+    // the label stays under the spinner, so the button keeps the width Enter gave it
+    expect(checking).toHaveTextContent(/^Enter$/)
+    release()
+    await waitFor(() => expect(onEntered).toHaveBeenCalledOnce())
   })
 
   it('enters when the API accepts the code', async () => {

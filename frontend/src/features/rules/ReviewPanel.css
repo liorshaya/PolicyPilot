@@ -213,6 +213,16 @@
   justify-content: space-between;
 }
 
+/* A finding in the margin, under a chosen rule or in the Policies screen's summary of a review: the spec's specimens set
+   no padding of their own on it and the claim at the margin's size, in style attributes. */
+.margin__section > .finding,
+.margin__section .review__findings > .finding {
+  padding: 0;
+}
+.margin__section .finding__claim {
+  font-size: var(--text-sm);
+}
+
 /* The margin is 340px, narrower than the spec draws the review: its head and the publish box's last row wrap, and a
    finding's id never parts across two lines. */
 .review > .sec {

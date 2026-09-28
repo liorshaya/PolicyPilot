@@ -40,7 +40,8 @@
   padding: 0 14px;
 }
 
-/* Until phase 5 composes the phone, a narrow header wraps its actions under its title rather than past the screen. */
+/* The product's own: in a narrow window beside the rail, a header wraps its actions under its title rather than past
+   the screen; on a phone the header keeps only its primary (AppShell.css). */
 @media (max-width: 900px) {
   .ws-header {
     flex-wrap: wrap;

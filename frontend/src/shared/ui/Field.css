@@ -147,3 +147,21 @@
   min-height: var(--control-h-sm);
   font-size: var(--text-xs);
 }
+
+/* A field's description in the policy's language, above its name (the spec, section 09, "Decide a case, and the field
+   schema", layer 5 of register.css): the case form's label and the schema's row both draw it. */
+.he-label {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  font-family: var(--font-he);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
+  unicode-bidi: isolate;
+}
+
+/* The product's own: a description in English keeps the chrome's face. */
+.he-label:lang(en) {
+  font-family: var(--font-ui);
+}

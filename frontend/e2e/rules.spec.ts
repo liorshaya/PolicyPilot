@@ -21,10 +21,12 @@ test.describe('the rule set screen', () => {
       .getByRole('button', { name: 'Rules' })
       .click()
 
-    // the header names the version, and so does its primary: "Publish version 1" (the spec, section 10)
-    await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
+    // the header names the version's state and number, "Published v1", and so does its primary: "Publish version 1"
+    // (the spec, section 10)
+    await expect(
+      page.getByRole('heading', { level: 1 }).getByText('Published v1', { exact: true }),
+    ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Publish version 1' })).toBeDisabled()
-    await expect(page.getByText('Published', { exact: true })).toBeVisible()
     // one row per rule, plus the head and the band of Document 3 each group sits under
     await expect(page.getByRole('rowheader')).toHaveCount(ruleSet.rules.length)
     await expect(page.getByRole('columnheader', { name: 'Referral conditions' })).toBeVisible()

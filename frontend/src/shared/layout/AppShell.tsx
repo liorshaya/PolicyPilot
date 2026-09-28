@@ -1,14 +1,18 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useProvider } from '../../api/queries'
+import type { ProviderResponse } from '../../api/types'
 import { chooseTheme, type Theme } from '../../styles/theme'
 import { contentAttributes, type ContentLanguage } from '../i18n/direction'
 import { Actor, PERSON } from '../ui/Actor'
 import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
 import { Kbd } from '../ui/Kbd'
 import { Logo } from '../ui/Logo'
 import { Popover } from '../ui/Overlay'
 import { VersionTag } from '../ui/StatusTag'
+import { VERSION_LABELS, type VersionStatus } from '../ui/decisionLabels'
 import { SCREENS, type ScreenId } from './screens'
+import { usePhone } from './usePhone'
 import './AppShell.css'
 
 interface AppShellProps {
@@ -20,6 +24,10 @@ interface AppShellProps {
   policy?: { title: string; language: ContentLanguage } | null
   /** Blocking findings of the workspace's draft that wait to be acknowledged: the one count the rail shows. */
   findingsToAcknowledge?: number
+  /** The workspace's version, which the phone's top bar names beside the lockup (the spec, section 10). */
+  version?: { status: VersionStatus; versionNo: number } | null
+  /** How many steps of the guided demo have run: a step run from the phone's menu closes it, on any screen. */
+  demoRuns?: number
   /** The guided demo strip, under the workspace block (Brief FR-23). */
   aside?: ReactNode
   children: ReactNode
@@ -68,7 +76,9 @@ function useGoTo(onNavigate: (screen: ScreenId) => void) {
  * The frame every screen sits in (the spec, section 08): a paper rail on the start edge with the six screens, a count
  * only beside Rules for the findings to acknowledge, the workspace named by its policy with the provider line, the guided
  * demo strip and, at the foot, the person the product records, Leave, and the legend, shortcuts and theme behind two
- * quiet buttons; the workspace on the end. The chrome is English and left to right; only content blocks turn around.
+ * quiet buttons; the workspace on the end. Below 720px the rail becomes the phone's top bar (section 10): the lockup,
+ * the version and a menu that holds what the rail held besides the screens, over a row of the six screens. The chrome
+ * is English and left to right; only content blocks turn around.
  */
 export function AppShell({
   current,
@@ -76,11 +86,20 @@ export function AppShell({
   onLeave,
   policy,
   findingsToAcknowledge = 0,
+  version,
+  demoRuns = 0,
   aside,
   children,
 }: AppShellProps) {
   const provider = useProvider()
+  const phone = usePhone()
   const [helpAnchor, setHelpAnchor] = useState<HTMLElement | null>(null)
+  // the menu belongs to the screen it was opened on and the steps run so far: a screen chosen, or a step run from it,
+  // closes it, step 1 on Policies too
+  const [menu, setMenu] = useState<{ anchor: HTMLElement; on: ScreenId; runs: number } | null>(null)
+  const menuAnchor =
+    menu !== null && menu.on === current && menu.runs === demoRuns ? menu.anchor : null
+  const menuRef = useRef<HTMLButtonElement>(null)
   const [theme, setTheme] = useState<Theme>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
@@ -91,6 +110,145 @@ export function AppShell({
   const providerLine = provider.data
     ? `Provider ${providerName}${known ? ` · ${known.where}` : ''}`
     : null
+  const count = (screen: ScreenId) =>
+    screen === 'rules' && findingsToAcknowledge > 0 ? (
+      <>
+        {' '}
+        <span
+          className="rail__count"
+          title={`${findingsToAcknowledge} finding${findingsToAcknowledge === 1 ? '' : 's'} to acknowledge`}
+        >
+          {findingsToAcknowledge}
+        </span>
+      </>
+    ) : null
+  const workspaceLines = (
+    <div className="rail__workspace">
+      {policy ? (
+        <span className="name" {...contentAttributes(policy.language)}>
+          {policy.title}
+        </span>
+      ) : null}
+      {providerLine ? <span className="line">{providerLine}</span> : null}
+    </div>
+  )
+  const foot = (
+    <div className="rail__foot">
+      <div className="rail__me">
+        <Actor kind="person">
+          <strong>{PERSON}</strong>
+        </Actor>
+        <Button variant="quiet" size="sm" onClick={onLeave}>
+          Leave
+        </Button>
+      </div>
+      <div className="rail__tools">
+        <Button
+          variant="quiet"
+          size="sm"
+          icon="help"
+          aria-expanded={helpAnchor !== null}
+          onClick={(event) => {
+            if (phone) {
+              // on a phone the legend takes the menu's place, beside the button that opened the menu
+              setMenu(null)
+              setHelpAnchor(helpAnchor ? null : menuRef.current)
+            } else {
+              setHelpAnchor(helpAnchor ? null : event.currentTarget)
+            }
+          }}
+        >
+          Help
+        </Button>
+        <Button
+          variant="quiet"
+          size="sm"
+          icon={theme === 'dark' ? 'sun' : 'moon'}
+          onClick={() => {
+            const next: Theme = theme === 'dark' ? 'light' : 'dark'
+            chooseTheme(next)
+            setTheme(next)
+          }}
+        >
+          Theme
+        </Button>
+      </div>
+    </div>
+  )
+  const help = helpAnchor ? (
+    <Popover
+      anchor={helpAnchor}
+      label="Help"
+      align={phone ? 'end' : 'start'}
+      onClose={() => setHelpAnchor(null)}
+    >
+      <Legend provider={provider.data} providerLine={providerLine} />
+    </Popover>
+  ) : null
+
+  if (phone) {
+    return (
+      <div className="phone">
+        <a className="sr-only" href="#workspace">
+          Skip to the workspace
+        </a>
+        <header className="phone__top">
+          <Logo />
+          <span className="phone__side">
+            {version ? (
+              <span
+                className={`vstatus vstatus--${version.status.toLowerCase()}`}
+                title={`${VERSION_LABELS[version.status]} v${String(version.versionNo)}`}
+              >
+                {`v${String(version.versionNo)}`}
+              </span>
+            ) : null}
+            <button
+              ref={menuRef}
+              type="button"
+              className="btn btn--quiet btn--sm"
+              aria-label="Menu"
+              aria-expanded={menuAnchor !== null}
+              onClick={(event) =>
+                setMenu(
+                  menuAnchor ? null : { anchor: event.currentTarget, on: current, runs: demoRuns },
+                )
+              }
+            >
+              <Icon name="menu" />
+            </button>
+          </span>
+        </header>
+        <nav className="phone__screens" aria-label="Workspace">
+          {SCREENS.map((screen) => (
+            <Button
+              key={screen.id}
+              variant={screen.id === current ? 'secondary' : 'quiet'}
+              aria-pressed={screen.id === current}
+              title={screen.hint}
+              onClick={() => onNavigate(screen.id)}
+            >
+              {screen.label}
+              {count(screen.id)}
+            </Button>
+          ))}
+        </nav>
+        <main className="workspace phone__body" id="workspace">
+          {children}
+        </main>
+        {menuAnchor ? (
+          <Popover anchor={menuAnchor} label="Menu" align="end" onClose={() => setMenu(null)}>
+            <div className="phone__menu">
+              {workspaceLines}
+              {aside}
+              {foot}
+            </div>
+          </Popover>
+        ) : null}
+        {help}
+      </div>
+    )
+  }
 
   return (
     <div className="shell">
@@ -112,122 +270,86 @@ export function AppShell({
                 onClick={() => onNavigate(screen.id)}
               >
                 <span>{screen.label}</span>
-                {screen.id === 'rules' && findingsToAcknowledge > 0 ? (
-                  <>
-                    {' '}
-                    <span
-                      className="rail__count"
-                      title={`${findingsToAcknowledge} finding${findingsToAcknowledge === 1 ? '' : 's'} to acknowledge`}
-                    >
-                      {findingsToAcknowledge}
-                    </span>
-                  </>
-                ) : null}
+                {count(screen.id)}
               </button>
             </li>
           ))}
         </ul>
-        <div className="rail__workspace">
-          {policy ? (
-            <span className="name" {...contentAttributes(policy.language)}>
-              {policy.title}
-            </span>
-          ) : null}
-          {providerLine ? <span className="line">{providerLine}</span> : null}
-        </div>
+        {workspaceLines}
         {aside}
-        <div className="rail__foot">
-          <div className="rail__me">
-            <Actor kind="person">
-              <strong>{PERSON}</strong>
-            </Actor>
-            <Button variant="quiet" size="sm" onClick={onLeave}>
-              Leave
-            </Button>
-          </div>
-          <div className="rail__tools">
-            <Button
-              variant="quiet"
-              size="sm"
-              icon="help"
-              aria-expanded={helpAnchor !== null}
-              onClick={(event) => setHelpAnchor(helpAnchor ? null : event.currentTarget)}
-            >
-              Help
-            </Button>
-            <Button
-              variant="quiet"
-              size="sm"
-              icon={theme === 'dark' ? 'sun' : 'moon'}
-              onClick={() => {
-                const next: Theme = theme === 'dark' ? 'light' : 'dark'
-                chooseTheme(next)
-                setTheme(next)
-              }}
-            >
-              Theme
-            </Button>
-          </div>
-        </div>
+        {foot}
       </nav>
       <main className="workspace" id="workspace">
         {children}
       </main>
-      {helpAnchor ? (
-        <Popover anchor={helpAnchor} label="Help" onClose={() => setHelpAnchor(null)}>
-          <div className="legend">
-            <Actor kind="model">The model proposes and explains</Actor>
-            <Actor kind="engine">The rules engine decides</Actor>
-            <Actor kind="person">A person approves</Actor>
-            <Actor kind="system">The system records and resets</Actor>
-            {provider.data ? (
-              <span className="muted legend__provider">
-                {providerLine} · authoring, review and changes on{' '}
-                <span className="mono">{provider.data.chatModels.strong}</span>, answers and
-                explanations on <span className="mono">{provider.data.chatModels.fast}</span>,
-                embeddings <span className="mono">{provider.data.embeddingModel}</span> (
-                {provider.data.embeddingDimension})
-              </span>
-            ) : null}
-            <span className="legend__state">
-              <VersionTag status="DRAFT" />
-              <span className="muted">dashed: nothing decides with it yet</span>
-            </span>
-            <span className="legend__state">
-              <VersionTag status="PUBLISHED" />
-              <span className="muted">solid: the engine runs it</span>
-            </span>
-          </div>
-          <div className="shortcuts">
-            <div>
-              <span>Filter the list</span>
-              <span className="keys">
-                <Kbd>/</Kbd>
-              </span>
-            </div>
-            <div>
-              <span>Select next / previous row</span>
-              <span className="keys">
-                <Kbd>↓</Kbd>
-                <Kbd>↑</Kbd>
-              </span>
-            </div>
-            <div>
-              <span>Open the row in the margin</span>
-              <span className="keys">
-                <Kbd>↵</Kbd>
-              </span>
-            </div>
-            <div>
-              <span>Go to Rules / Cases / Assistant</span>
-              <span className="keys">
-                <Kbd>G</Kbd>
-                <Kbd>R</Kbd> <Kbd>C</Kbd> <Kbd>A</Kbd>
-              </span>
-            </div>
-          </div>
-        </Popover>
-      ) : null}
+      {help}
     </div>
+  )
+}
+
+/**
+ * What Help opens (the spec, section 04, "The legend and the shortcuts"): the four marks, the provider's models, the
+ * two states of a version, and the shortcuts the product answers.
+ */
+function Legend({
+  provider,
+  providerLine,
+}: {
+  provider: ProviderResponse | undefined
+  providerLine: string | null
+}) {
+  return (
+    <>
+      <div className="legend">
+        <Actor kind="model">The model proposes and explains</Actor>
+        <Actor kind="engine">The rules engine decides</Actor>
+        <Actor kind="person">A person approves</Actor>
+        <Actor kind="system">The system records and resets</Actor>
+        {provider ? (
+          <span className="muted legend__provider">
+            {providerLine} · authoring, review and changes on{' '}
+            <span className="mono">{provider.chatModels.strong}</span>, answers and explanations on{' '}
+            <span className="mono">{provider.chatModels.fast}</span>, embeddings{' '}
+            <span className="mono">{provider.embeddingModel}</span> ({provider.embeddingDimension})
+          </span>
+        ) : null}
+        <span className="legend__state">
+          <VersionTag status="DRAFT" />
+          <span className="muted">dashed: nothing decides with it yet</span>
+        </span>
+        <span className="legend__state">
+          <VersionTag status="PUBLISHED" />
+          <span className="muted">solid: the engine runs it</span>
+        </span>
+      </div>
+      <div className="shortcuts">
+        <div>
+          <span>Filter the list</span>
+          <span className="keys">
+            <Kbd>/</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Select next / previous row</span>
+          <span className="keys">
+            <Kbd>↓</Kbd>
+            <Kbd>↑</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Open the row in the margin</span>
+          <span className="keys">
+            <Kbd>↵</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Go to Rules / Cases / Assistant</span>
+          <span className="keys">
+            <Kbd>G</Kbd>
+            <Kbd>R</Kbd> <Kbd>C</Kbd> <Kbd>A</Kbd>
+          </span>
+        </div>
+      </div>
+    </>
   )
 }

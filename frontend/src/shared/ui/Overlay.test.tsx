@@ -73,6 +73,29 @@ describe('Popover', () => {
     vi.unstubAllGlobals()
   })
 
+  // The phone's menu (the spec, section 10) opens from a button at the window's end edge, so it lines up with that edge
+  it("lines up with its anchor's end edge when asked, for a control at the window's end", () => {
+    vi.stubGlobal('innerHeight', 844)
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(390)
+    const anchor = document.createElement('button')
+    document.body.append(anchor)
+    vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue(new DOMRect(340, 10, 36, 28))
+
+    render(
+      <Popover anchor={anchor} label="Menu" align="end" onClose={vi.fn()}>
+        The menu
+      </Popover>,
+    )
+
+    const popover = screen.getByRole('dialog', { name: 'Menu' })
+    // 390 − (340 + 36): the popover's end edge is the button's
+    expect(popover).toHaveStyle({ right: '14px', top: '38px' })
+    expect(popover.style.left).toBe('')
+    anchor.remove()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
   it('closes on Escape', async () => {
     const onClose = vi.fn()
     const anchor = document.createElement('button')

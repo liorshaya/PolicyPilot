@@ -287,6 +287,41 @@ describe('ChatScreen · the thread', () => {
   })
 })
 
+/** The Assistant row of the states matrix (the spec, section 11) that no other test covers. */
+describe('ChatScreen, every state', () => {
+  // "The caret; tool steps appear as they run": a tool call's step line stands before the answer's first token
+  it('Assistant · loading', async () => {
+    serveSession()
+    server.use(
+      http.post(`${BASE}/chat/sessions/${SESSION}/messages`, ({ request }) => {
+        const encoder = new TextEncoder()
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(`event:tool\ndata:${JSON.stringify(whatIf)}\n\n`))
+            // the answer has not begun; the stream ends only when the screen goes away
+            request.signal.addEventListener('abort', () =>
+              controller.error(new DOMException('aborted', 'AbortError')),
+            )
+          },
+        })
+        return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
+      }),
+    )
+    renderScreen()
+
+    await ask('האם בקשה 17 הייתה מאושרת אם היה ערב?')
+
+    const answer = await lastAnswer()
+    const steps = await within(answer).findByRole('list', { name: 'Tool calls' })
+    expect(steps.querySelector('.chip--tool')).toHaveTextContent(
+      'what-if · case 17 · has_guarantor=true',
+    )
+    // the caret stands under the step line while the answer is still to come
+    expect(answer.querySelector('p.answer')).toHaveClass('streaming')
+    expect(answer.querySelector('p.answer')).toHaveTextContent(/^$/)
+  })
+})
+
 describe('ChatScreen · tool calls', () => {
   it('draws each tool call as a step line above its answer: the tool chip, what it ran on, the time and the outcome', async () => {
     serveSession()

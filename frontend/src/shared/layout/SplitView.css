@@ -84,9 +84,10 @@
   color: var(--ink-3);
 }
 
-/* The product's own: a sheet whose table is its only scroller, as in the spec's composed screens (section 10). The
-   section on it fills the sheet as a column, the table takes what is left and scrolls on its own under its sticky
-   header, and the foot stays at the bottom; on a screen too short for the table's floor, the section scrolls. */
+/* The product's own: a sheet whose table, or whose document, is its only scroller, as in the spec's composed screens
+   (section 10). The section on it fills the sheet as a column, the table or the document takes what is left and
+   scrolls on its own under the title row, and the foot stays at the bottom; on a screen too short for the table's
+   floor, the section scrolls. */
 .sheet--fill > section {
   display: flex;
   flex-direction: column;
@@ -100,6 +101,18 @@
 }
 .sheet--fill > section > .sheet__foot {
   margin-top: auto;
+}
+.sheet--fill > section > .sheet__scroll {
+  flex: 1;
+}
+
+/* The product's own: what a sheet must say before its work, a note or a refusal, stands in a strip of its own under the
+   header, with the sheet's padding and its hairline, as the spec's Policies screen sets its draft note (section 10). */
+.sheet__notes {
+  display: grid;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--hairline);
 }
 
 /* Below 1200px the margin becomes a drawer over the sheet (the spec, section 08): it stands at the end edge of the body,
@@ -123,5 +136,32 @@
   }
   .ws-body--wide-margin > .margin {
     width: var(--margin-w-wide);
+  }
+}
+
+/* Below 720px the margin is the next section of the page, under the sheet, as the phone's composed screen draws the trace
+   under the list (the spec, section 10); the page scrolls as one, so neither the sheet nor the margin scrolls alone. */
+@media (max-width: 720px) {
+  .ws-body,
+  .ws-body--wide-margin {
+    gap: 12px;
+  }
+  .margin,
+  .margin--sheet {
+    position: static;
+    width: auto;
+    padding: 0;
+    overflow: visible;
+    border-inline-start: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .ws-body--wide-margin > .margin {
+    width: auto;
+  }
+  .sheet,
+  .sheet__scroll,
+  .sheet--fill > section {
+    overflow: visible;
   }
 }
