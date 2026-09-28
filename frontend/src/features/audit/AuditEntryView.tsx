@@ -7,6 +7,7 @@ import { Chip } from '../../shared/ui/Chip'
 import { Seal } from '../../shared/ui/Seal'
 import { DECISION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
 import { KIND_LABELS } from '../../shared/ui/findingKinds'
+import { useInView } from '../../shared/ui/useInView'
 import { DiffView } from '../change/DiffView'
 import { RegressionReport } from '../change/RegressionReport'
 import { comparisonText, unifiedRows } from '../change/diffRows'
@@ -51,6 +52,8 @@ interface AuditEntryViewProps {
   /** The rule set's language, for the diff an approval stored. */
   language: ContentLanguage
   fields?: FieldSchema[]
+  /** The entry the palette opened: current, brought into view and flashed once (the deep link, section 02). */
+  opened?: boolean
 }
 
 /** What an entry's details hold, read defensively: an entry is stored JSON, written by the action that made it. */
@@ -78,12 +81,19 @@ interface Details {
  * quotation in its own direction, and for an approval the request, the diff and the regression it carried, rendered
  * from the JSON the entry stored and never recomputed (Document 3, Structural diff).
  */
-export function AuditEntryView({ entry, language, fields }: AuditEntryViewProps) {
+export function AuditEntryView({ entry, language, fields, opened = false }: AuditEntryViewProps) {
   const details = (entry.details ?? {}) as Details
   const actor = ACTORS[entry.action]
   const version = entry.action === 'PUBLISH' || entry.action === 'CHANGE_APPROVED'
+  const ref = useInView<HTMLLIElement>(opened)
   return (
-    <li className={`event${version ? ' event--version' : ''}`}>
+    <li
+      ref={ref}
+      className={['event', version ? 'event--version' : '', opened ? 'flash' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-current={opened ? 'true' : undefined}
+    >
       <span className="event__time">
         <time dateTime={entry.at} title={dateTimeOf(entry.at)}>
           {timeOf(entry.at)}

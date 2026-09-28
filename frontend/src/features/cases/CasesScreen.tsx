@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
-import { useDecision, useRulesets, useRunFixtureSet, useStats, useVersion } from '../../api/queries'
+import {
+  useDecision,
+  useLastRun,
+  useRulesets,
+  useRunFixtureSet,
+  useStats,
+  useVersion,
+} from '../../api/queries'
 import type { Decision, RuleSetDocument } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
@@ -33,17 +40,21 @@ function traceLabel(decision: Decision): string {
  * The case runner (Work Plan day 6; the spec, section 10, the Cases screen): the 200 seeded cases are decided by the
  * engine, the run is summed up by outcome and by the rules that decided over its list, and every case opens its own
  * trace in the wide margin; Decide a case opens the officer's form there, built from the version's fields (section
- * 09). The engine decides; this screen only shows what it decided and why.
+ * 09). The engine decides; this screen only shows what it decided and why. The run stays for the session, so the
+ * screen lists it again when it opens again, and the palette opens one of its cases here.
  */
 export function CasesScreen({
   onOpenRule,
   rulesetId = null,
+  focusDecisionId = null,
   demoAsked = false,
   onDemoHandled,
 }: {
   onOpenRule: (ruleId: string | null) => void
   /** The rule set the workspace is on; without one the sandbox's first is used. */
   rulesetId?: string | null
+  /** The case the palette opened (the spec, section 08), whose trace the margin opens on. */
+  focusDecisionId?: string | null
   /** Step 2 of the guided demo: run the 200 seeded cases (Brief FR-23). */
   demoAsked?: boolean
   onDemoHandled?: () => void
@@ -58,7 +69,10 @@ export function CasesScreen({
   const version = useVersion(ruleset)
   const stats = useStats(ruleset)
   const run = useRunFixtureSet(ruleset ?? { id: '', versionNo: 1 })
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // this screen's run, else the one this session ran on the same version before the screen opened again
+  const lastRun = useLastRun(ruleset)
+  const batch = run.data ?? lastRun.data
+  const [selectedId, setSelectedId] = useState<string | null>(focusDecisionId)
   // the margin holds the officer's form until a case is decided or another one is opened
   const [deciding, setDeciding] = useState(false)
   // the rule the figures filter the list by, which the list's own select changes too
@@ -69,8 +83,8 @@ export function CasesScreen({
 
   const document = version.data?.ruleSet as RuleSetDocument | undefined
   const language: ContentLanguage = document?.language ?? 'en'
-  const aggregates = run.data?.aggregates ?? stats.data
-  const results = run.data?.results ?? []
+  const aggregates = batch?.aggregates ?? stats.data
+  const results = batch?.results ?? []
   const refusal = run.error instanceof ApiError ? run.error : null
   const open = (decisionId: string) => {
     setDeciding(false)
@@ -81,6 +95,7 @@ export function CasesScreen({
     <>
       <WorkspaceHeader
         title="Cases"
+        goTo
         provenance={
           version.data
             ? [
@@ -162,13 +177,13 @@ export function CasesScreen({
             <Section
               title={ruleset ? `Decisions on v${String(ruleset.versionNo)}` : 'Decisions'}
               subtitle={
-                run.data
+                batch
                   ? `${String(results.length)} ${results.length === 1 ? 'case' : 'cases'} · one run`
                   : 'Every case the engine has decided with this version'
               }
               flush
             >
-              {stats.isPending && !run.data ? (
+              {stats.isPending && !batch ? (
                 <>
                   <Dashboard
                     aggregates={undefined}
@@ -211,6 +226,7 @@ export function CasesScreen({
                 <DecisionList
                   results={results}
                   selectedId={selectedId}
+                  openedId={focusDecisionId}
                   onSelect={open}
                   versionNo={ruleset?.versionNo}
                   decidingRule={decidingRule}

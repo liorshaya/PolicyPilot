@@ -350,8 +350,8 @@ function started(state: ChangeState): state is Exclude<ChangeState, { status: 'i
 
 /**
  * The four stages (the spec, section 08's progress): the one running now, the ones done with their time and the tokens
- * their answers spent, and under the first the rules considered, the ones the proposal left unchanged faded once it has
- * arrived, so the model's reach is visible beside its result. A stage a failure ended keeps its time but no mark.
+ * their answers spent, and under the first the rules considered, the ones the proposal left unchanged in ink-3 once it
+ * has arrived, so the model's reach is visible beside its result. A stage a failure ended keeps its time but no mark.
  */
 function Progress({
   state,

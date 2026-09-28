@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from 'react'
+import { useCallback, useEffect, useState, type ComponentProps } from 'react'
 import { AccessGate } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
@@ -11,12 +11,25 @@ import { ChangeScreen } from './features/change/ChangeScreen'
 import { AuditScreen } from './features/audit/AuditScreen'
 import { GuidedPanel } from './features/demo/GuidedPanel'
 import type { DemoStep } from './features/demo/steps'
+import { GoToPalette } from './features/palette/GoToPalette'
+import type { PaletteTarget } from './features/palette/paletteItems'
+import { PaletteContext } from './shared/ui/paletteContext'
 import { applyTheme, storedTheme } from './styles/theme'
 
 /** The screen the address bar names, so a screen can be linked to and the back button works. */
 function screenFromHash(): ScreenId {
   const candidate = window.location.hash.replace('#/', '')
   return SCREENS.some((screen) => screen.id === candidate) ? (candidate as ScreenId) : 'policies'
+}
+
+/** The screen each kind of the palette's targets opens on (the spec, section 08). */
+const OPENS_ON: Record<PaletteTarget['kind'], ScreenId> = {
+  case: 'cases',
+  rule: 'rules',
+  finding: 'rules',
+  version: 'rules',
+  paragraph: 'policies',
+  change: 'audit',
 }
 
 /**
@@ -58,6 +71,13 @@ export function App() {
   const [demoRuns, setDemoRuns] = useState(0)
   // whether the strip shows its steps, kept here since the phone's menu mounts the strip anew each time it opens
   const [demoOpen, setDemoOpen] = useState(false)
+  // the palette (the spec, section 08): whether it is open, and where it last went, which the screen it opened reads
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [goneTo, setGoneTo] = useState<PaletteTarget | null>(null)
+  // each place the palette opens is a visit of its own: the screen mounts afresh on it, even the one already open
+  const [visit, setVisit] = useState(0)
+  const openPalette = useCallback(() => setPaletteOpen(true), [])
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
 
   useEffect(() => {
     const onHashChange = () => setScreen(screenFromHash())
@@ -80,97 +100,132 @@ export function App() {
   }
 
   function runDemoStep(step: DemoStep) {
+    setGoneTo(null)
     setDemo(step.id)
     setLastStep(step.id)
     setDemoRuns((runs) => runs + 1)
     navigate(step.screen)
   }
 
+  function goTo(target: PaletteTarget) {
+    setGoneTo(target)
+    setVisit((count) => count + 1)
+    if (target.kind === 'rule' || target.kind === 'finding' || target.kind === 'version') {
+      setRulesetId(target.rulesetId)
+      setFocusRuleId(target.kind === 'rule' ? target.ruleId : null)
+    }
+    navigate(OPENS_ON[target.kind])
+  }
+
   return (
-    <WorkspaceShell
-      current={screen}
-      onNavigate={navigate}
-      onLeave={() => setEntered(false)}
-      rulesetId={rulesetId}
-      demoRuns={demoRuns}
-      aside={
-        <GuidedPanel
-          current={lastStep}
-          onRun={runDemoStep}
-          open={demoOpen}
-          onToggle={setDemoOpen}
-        />
-      }
-    >
-      {screen === 'policies' ? (
-        <PoliciesScreen
-          demoAsked={demo === 1}
-          onDemoHandled={() => setDemo(null)}
-          onOpenRules={(chosen, ruleId) => {
-            setRulesetId(chosen)
-            setFocusRuleId(ruleId ?? null)
-            navigate('rules')
-          }}
-        />
-      ) : null}
-      {screen === 'rules' ? (
-        <RulesScreen
-          onOpenCases={() => navigate('cases')}
-          onOpenPolicies={() => navigate('policies')}
-          focusRuleId={focusRuleId}
-          rulesetId={rulesetId}
-          onChooseRuleset={(chosen) => {
-            setRulesetId(chosen)
-            setFocusRuleId(null)
-          }}
-        />
-      ) : null}
-      {screen === 'cases' ? (
-        <CasesScreen
-          rulesetId={rulesetId}
-          demoAsked={demo === 2}
-          onDemoHandled={() => setDemo(null)}
-          onOpenRule={(ruleId) => {
-            setFocusRuleId(ruleId)
-            navigate('rules')
-          }}
-        />
-      ) : null}
-      {screen === 'assistant' ? (
-        <ChatScreen
-          rulesetId={rulesetId}
-          demoAsked={demo === 3}
-          onDemoHandled={() => setDemo(null)}
-          onOpenRule={(ruleId) => {
-            setFocusRuleId(ruleId)
-            navigate('rules')
-          }}
-          onOpenCases={() => navigate('cases')}
-        />
-      ) : null}
-      {screen === 'change' ? (
-        <ChangeScreen
-          rulesetId={rulesetId}
-          demoAsked={demo === 4}
-          onDemoHandled={() => setDemo(null)}
-          onPublished={(published) => {
-            // a protected base is approved into the sandbox's own copy: the workspace follows the new version
-            setRulesetId(published.rulesetId)
-            setFocusRuleId(null)
-          }}
-          onOpenRules={() => navigate('rules')}
-          onOpenAudit={() => navigate('audit')}
-        />
-      ) : null}
-      {screen === 'audit' ? (
-        <AuditScreen
-          rulesetId={rulesetId}
-          onChooseRuleset={(chosen) => {
-            setRulesetId(chosen)
-            setFocusRuleId(null)
-          }}
-        />
-      ) : null}
-    </WorkspaceShell>
+    <PaletteContext value={openPalette}>
+      <WorkspaceShell
+        current={screen}
+        onNavigate={(next) => {
+          setGoneTo(null)
+          navigate(next)
+        }}
+        onLeave={() => setEntered(false)}
+        rulesetId={rulesetId}
+        demoRuns={demoRuns}
+        onOpenPalette={openPalette}
+        palette={
+          paletteOpen ? (
+            <GoToPalette rulesetId={rulesetId} onGoTo={goTo} onClose={closePalette} />
+          ) : null
+        }
+        aside={
+          <GuidedPanel
+            current={lastStep}
+            onRun={runDemoStep}
+            open={demoOpen}
+            onToggle={setDemoOpen}
+          />
+        }
+      >
+        {screen === 'policies' ? (
+          <PoliciesScreen
+            key={visit}
+            focusParagraph={
+              goneTo?.kind === 'paragraph'
+                ? { policyId: goneTo.policyId, index: goneTo.index }
+                : null
+            }
+            demoAsked={demo === 1}
+            onDemoHandled={() => setDemo(null)}
+            onOpenRules={(chosen, ruleId) => {
+              setRulesetId(chosen)
+              setFocusRuleId(ruleId ?? null)
+              navigate('rules')
+            }}
+          />
+        ) : null}
+        {screen === 'rules' ? (
+          <RulesScreen
+            key={visit}
+            focusFindingId={goneTo?.kind === 'finding' ? goneTo.findingId : null}
+            focusVersionNo={goneTo?.kind === 'version' ? goneTo.versionNo : null}
+            onOpenCases={() => navigate('cases')}
+            onOpenPolicies={() => navigate('policies')}
+            focusRuleId={focusRuleId}
+            rulesetId={rulesetId}
+            onChooseRuleset={(chosen) => {
+              setRulesetId(chosen)
+              setFocusRuleId(null)
+            }}
+          />
+        ) : null}
+        {screen === 'cases' ? (
+          <CasesScreen
+            key={visit}
+            focusDecisionId={goneTo?.kind === 'case' ? goneTo.decisionId : null}
+            rulesetId={rulesetId}
+            demoAsked={demo === 2}
+            onDemoHandled={() => setDemo(null)}
+            onOpenRule={(ruleId) => {
+              setFocusRuleId(ruleId)
+              navigate('rules')
+            }}
+          />
+        ) : null}
+        {screen === 'assistant' ? (
+          <ChatScreen
+            rulesetId={rulesetId}
+            demoAsked={demo === 3}
+            onDemoHandled={() => setDemo(null)}
+            onOpenRule={(ruleId) => {
+              setFocusRuleId(ruleId)
+              navigate('rules')
+            }}
+            onOpenCases={() => navigate('cases')}
+          />
+        ) : null}
+        {screen === 'change' ? (
+          <ChangeScreen
+            rulesetId={rulesetId}
+            demoAsked={demo === 4}
+            onDemoHandled={() => setDemo(null)}
+            onPublished={(published) => {
+              // a protected base is approved into the sandbox's own copy: the workspace follows the new version
+              setRulesetId(published.rulesetId)
+              setFocusRuleId(null)
+            }}
+            onOpenRules={() => navigate('rules')}
+            onOpenAudit={() => navigate('audit')}
+          />
+        ) : null}
+        {screen === 'audit' ? (
+          <AuditScreen
+            key={visit}
+            focusChangeRequestId={goneTo?.kind === 'change' ? goneTo.changeRequestId : null}
+            rulesetId={rulesetId}
+            onChooseRuleset={(chosen) => {
+              setRulesetId(chosen)
+              setFocusRuleId(null)
+            }}
+          />
+        ) : null}
+      </WorkspaceShell>
+    </PaletteContext>
   )
 }

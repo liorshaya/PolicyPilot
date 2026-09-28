@@ -23,6 +23,7 @@ import {
   type Cell,
   type Row,
 } from './tableModel'
+import { useInView } from '../../shared/ui/useInView'
 // the gutter's marks and the strip's counts are the severity marks of section 06
 import '../../shared/ui/Severity.css'
 import '../../shared/ui/Table.css'
@@ -31,6 +32,8 @@ interface DecisionTableProps {
   document: RuleSetDocument
   /** The rule whose row is selected; its source paragraph and its drawer follow it. */
   selectedRuleId: string | null
+  /** The rule another screen or the palette opened: its row is brought into view and flashes once (section 02). */
+  openedRuleId?: string | null
   onSelect: (ruleId: string) => void
   /** An edit of one cell, already parsed; absent on a published version, which is read-only. */
   onEditCell?: (ruleId: string, previous: Leaf, next: Leaf) => void
@@ -54,6 +57,7 @@ interface DecisionTableProps {
 export function DecisionTable({
   document,
   selectedRuleId,
+  openedRuleId = null,
   onSelect,
   onEditCell,
   problems = [],
@@ -149,6 +153,7 @@ export function DecisionTable({
                   columns={columns}
                   document={document}
                   selected={row.rule.id === selectedRuleId}
+                  opened={row.rule.id === openedRuleId}
                   marks={marks.get(row.rule.id) ?? []}
                   underlines={underlines.get(row.rule.id)}
                   problems={problems}
@@ -254,6 +259,8 @@ interface RuleRowProps {
   columns: FieldSchema[]
   document: RuleSetDocument
   selected: boolean
+  /** Opened from elsewhere: brought into view and flashed once. */
+  opened: boolean
   marks: TableMark[]
   underlines: Map<string, 'err' | 'warn'> | undefined
   problems: { path: string; problem: string }[]
@@ -271,6 +278,7 @@ function RuleRow({
   columns,
   document,
   selected,
+  opened,
   marks,
   underlines,
   problems,
@@ -278,6 +286,7 @@ function RuleRow({
   onEditCell,
 }: RuleRowProps) {
   const { rule } = row
+  const ref = useInView<HTMLTableRowElement>(opened)
   const inactive = rule.enabled === false
   const cellProblems = new Map<string, string>()
   const ruleProblems: TableMark[] = []
@@ -296,8 +305,11 @@ function RuleRow({
 
   return (
     <tr
+      ref={ref}
       className={
-        [selected ? 't-selected' : '', inactive ? 't-disabled' : ''].join(' ').trim() || undefined
+        [selected ? 't-selected' : '', inactive ? 't-disabled' : '', opened ? 'flash' : '']
+          .filter(Boolean)
+          .join(' ') || undefined
       }
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(rule.id)}

@@ -223,6 +223,31 @@ test.describe('the seven screens at 1376×900', () => {
   }
 })
 
+/** The palette over the Cases screen, 17 typed after a run: section 08's own example, in both themes. */
+test.describe('the palette at 1376×900', () => {
+  test.use({ viewport: { width: 1376, height: 900 }, deviceScaleFactor: SHOTS ? 2 : 1 })
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`palette, ${theme}: keeps the checklist`, async ({ page }) => {
+      await choose(page, theme)
+      await serve(page)
+      await enter(page)
+      await open(page, 'Cases')
+      await runTheCases(page)
+      await page.keyboard.press('ControlOrMeta+K')
+      await page.getByRole('combobox', { name: 'Go to' }).fill('17')
+      await expect(
+        page.getByRole('dialog', { name: 'Go to' }).getByRole('option').first(),
+      ).toHaveAttribute('aria-selected', 'true')
+      await settle(page)
+      if (SHOTS) {
+        await page.screenshot({ path: `${DEMO}register/palette-${theme}.png` })
+      }
+      await keepsTheChecklist(page)
+    })
+  }
+})
+
 /**
  * The presenter's four steps through the guided panel, as the demo runs them, each screen checked where the step
  * leaves it and, asked for, written as <device>-<n>-<step>.png. On a phone the panel is in the menu, which each step

@@ -7,6 +7,7 @@ import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
 import { Icon } from '../../shared/ui/Icon'
 import { Seal } from '../../shared/ui/Seal'
+import { useInView } from '../../shared/ui/useInView'
 import '../../shared/ui/Severity.css'
 import { KIND_MARKS } from '../../shared/ui/findingKinds'
 import {
@@ -36,6 +37,8 @@ interface ReviewPanelProps {
   onAcknowledge: (findingId: string, resolution?: GapResolution, note?: string) => void
   onSelectRule: (ruleId: string) => void
   onShowParagraph: (index: number) => void
+  /** The finding the palette opened: the current one, brought into view (the spec, section 08). */
+  current?: string | null
 }
 
 /**
@@ -54,6 +57,7 @@ export function ReviewPanel({
   onAcknowledge,
   onSelectRule,
   onShowParagraph,
+  current = null,
 }: ReviewPanelProps) {
   const titleId = useId()
   const counts = review ? reviewCounts(review) : null
@@ -89,6 +93,7 @@ export function ReviewPanel({
               onAcknowledge={onAcknowledge}
               onSelectRule={onSelectRule}
               onShowParagraph={onShowParagraph}
+              current={finding.id === current}
             />
           ))}
         </ul>
@@ -120,6 +125,8 @@ interface FindingItemProps {
   onShowParagraph: (index: number) => void
   /** Under a rule in the margin, the finding leads back to the whole review. */
   toReview?: { total: number; onOpen: () => void }
+  /** The one a deep link opened: marked current, brought into view, and flashed once (the spec, section 02). */
+  current?: boolean
 }
 
 /**
@@ -136,11 +143,19 @@ export function FindingItem({
   onSelectRule,
   onShowParagraph,
   toReview,
+  current = false,
 }: FindingItemProps) {
   const [open, setOpen] = useState(false)
+  const ref = useInView<HTMLLIElement>(current)
   const acknowledgement = finding.acknowledgement
   return (
-    <li className={`finding${acknowledgement ? ' finding--done' : ''}`}>
+    <li
+      ref={ref}
+      className={['finding', acknowledgement ? 'finding--done' : '', current ? 'flash' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-current={current ? 'true' : undefined}
+    >
       <div className="finding__gutter">
         {/* the mark is drawn for the eye; its word stands beside it, in the head */}
         <span className={`sev sev--${KIND_MARKS[finding.kind]}`} aria-hidden="true" />

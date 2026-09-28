@@ -106,6 +106,7 @@
   --t-fast: 120ms;
   --t-base: 180ms;
   --t-seal: 320ms;          /* the one signature motion: the seal lands */
+  --t-flash: 1200ms;        /* the deep link: an opened target fades from accent-line to its rest, once (section 02) */
   --ease-seal: cubic-bezier(0.2, 0.9, 0.3, 1.2);
 
   /* Frame */

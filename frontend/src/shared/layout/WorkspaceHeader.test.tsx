@@ -1,8 +1,10 @@
 import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import { rule, stylesheet } from '../../test/css'
 import { Button } from '../ui/Button'
 import { VersionTag } from '../ui/StatusTag'
+import { PaletteContext } from '../ui/paletteContext'
 import { WorkspaceHeader } from './WorkspaceHeader'
 
 /**
@@ -76,5 +78,32 @@ describe('WorkspaceHeader', () => {
     expect(reason).toHaveClass('reason')
     expect(reason.compareDocumentPosition(publish) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(publish).not.toHaveAttribute('title')
+  })
+
+  // the spec, section 10: the Rules and Cases headers open the palette from "Go to ⌘K", before their secondary
+  it('offers Go to ⌘K first on its end when the palette can open, and opens it', async () => {
+    const open = vi.fn()
+    const { container } = render(
+      <PaletteContext value={open}>
+        <WorkspaceHeader title="Cases" goTo secondary={<Button>Decide a case</Button>} />
+      </PaletteContext>,
+    )
+
+    const side = container.querySelector('.ws-header__side')!
+    expect([...side.children].map((control) => control.textContent)).toStrictEqual([
+      'Go to ⌘K',
+      'Decide a case',
+    ])
+    expect(within(side.firstElementChild as HTMLElement).getByText('⌘K')).toHaveClass('kbd')
+    // the specimen's style attribute, a rule of the header's own
+    expect(rule(css, '.ws-header__side .btn .kbd')).toStrictEqual({ 'margin-inline-start': '4px' })
+    await userEvent.click(screen.getByRole('button', { name: /^Go to/ }))
+    expect(open).toHaveBeenCalledOnce()
+  })
+
+  it('offers no Go to where no palette can open', () => {
+    render(<WorkspaceHeader title="Cases" goTo />)
+
+    expect(screen.queryByRole('button', { name: /^Go to/ })).not.toBeInTheDocument()
   })
 })

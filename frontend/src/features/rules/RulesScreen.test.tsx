@@ -865,6 +865,60 @@ describe('RulesScreen, the review of a draft', () => {
   })
 })
 
+describe('RulesScreen, gone to from the palette', () => {
+  function renderAt(focus: { focusFindingId?: string; focusVersionNo?: number }) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <RulesScreen
+          onOpenCases={() => undefined}
+          onOpenPolicies={() => undefined}
+          rulesetId={SEEDED_RULESET_ID}
+          {...focus}
+        />
+      </QueryClientProvider>,
+    )
+  }
+
+  // the spec, section 08: F-1 opens "in the review"; the finding is the current one, brought into view
+  it('opens on the finding the palette names: the review in the margin, that finding current and in view', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json(draftRulesets)),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () => HttpResponse.json(reviewedDraft)),
+    )
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+    renderAt({ focusFindingId: 'F-2' })
+
+    const review = await screen.findByRole('region', { name: 'Review of the draft' })
+    const current = await waitFor(() => {
+      const found = review.querySelector('.finding[aria-current="true"]')
+      expect(found).not.toBeNull()
+      return found!
+    })
+    expect(current).toHaveTextContent('F-2')
+    expect(review.querySelectorAll('.finding[aria-current="true"]')).toHaveLength(1)
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(current))
+    scrolled.mockRestore()
+  })
+
+  it('opens on the version the palette names, not the latest', async () => {
+    const asked: string[] = []
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json(draftRulesets)),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, ({ params }) => {
+        asked.push(String(params.no))
+        return HttpResponse.json(params.no === '1' ? publishedVersion : draftVersion)
+      }),
+    )
+    renderAt({ focusVersionNo: 1 })
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Published v1'),
+    )
+    expect(asked).not.toContain('2')
+  })
+})
+
 describe('RulesScreen in both directions (NFR-5)', () => {
   it('RTL: Hebrew labels turn right to left beside Latin ids, fields and numbers (snapshot)', async () => {
     renderScreen()

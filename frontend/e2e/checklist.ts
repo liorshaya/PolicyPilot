@@ -506,7 +506,16 @@ function check({
         dont('no rounded-xl', `${at} ${radius}`)
       }
     }
-    // a shadow only under what floats: a ring drawn with a spread is not a shadow
+    // a shadow only under what floats, or a frozen column: what stands in a floating layer floats with it; a ring drawn
+    // with a spread is not a shadow
+    let floats = ['absolute', 'fixed', 'sticky'].includes(read(element, 'position'))
+    for (
+      let layer = element.parentElement;
+      layer !== null && !floats;
+      layer = layer.parentElement
+    ) {
+      floats = ['absolute', 'fixed'].includes(read(layer, 'position'))
+    }
     const shadows = read(element, 'box-shadow')
     const dropped = shadows.split(/,(?![^(]*\))/).filter(
       (layer) =>
@@ -515,11 +524,7 @@ function check({
           .slice(0, 3)
           .some((length) => length !== 0),
     )
-    if (
-      shadows !== 'none' &&
-      dropped.length > 0 &&
-      !['absolute', 'fixed', 'sticky'].includes(read(element, 'position'))
-    ) {
+    if (shadows !== 'none' && dropped.length > 0 && !floats) {
       dont('no drop shadows on panels', `${at} ${shadows}`)
     }
     if (element.getAttribute('role') === 'switch') {

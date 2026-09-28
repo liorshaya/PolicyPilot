@@ -141,6 +141,20 @@ bdi {
 }
 
 /*
+ * The product's own: the deep link (the spec, section 02, "When a chip opens a row or a paragraph, the target scrolls
+ * into view and its background fades from accent-line to its rest colour over 1.2s, once"). A target a chip or the
+ * palette opens carries .flash; a reader who prefers reduced motion is spared it by the rule above.
+ */
+@keyframes flash {
+  from {
+    background-color: var(--accent-line);
+  }
+}
+.flash {
+  animation: flash var(--t-flash) var(--ease);
+}
+
+/*
  * The product's own: the shell is the window (the spec, section 08: the header stays put, the sheet and the margin
  * scroll on their own), so it fills the window from the root down.
  */

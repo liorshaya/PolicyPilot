@@ -50,6 +50,10 @@ interface RulesScreenProps {
   onOpenPolicies: () => void
   /** A rule another screen asked for, such as the step that decided a case; a click here replaces it. */
   focusRuleId?: string | null
+  /** A finding of the review the palette opened: the margin opens on the review with it current (section 08). */
+  focusFindingId?: string | null
+  /** A version the palette opened, shown instead of the latest until the reader picks another. */
+  focusVersionNo?: number | null
   /** The rule set another screen asked for; without one the sandbox's first is shown. */
   rulesetId?: string | null
   /** Told when the reader switches rule sets, so the choice outlives this screen. */
@@ -69,6 +73,8 @@ export function RulesScreen({
   onOpenCases,
   onOpenPolicies,
   focusRuleId = null,
+  focusFindingId = null,
+  focusVersionNo = null,
   rulesetId = null,
   onChooseRuleset,
 }: RulesScreenProps) {
@@ -77,7 +83,9 @@ export function RulesScreen({
   // the one that was asked for; a policy screen or a generation names it, and the first is only the fallback
   const chosen = list.find((one) => one.id === rulesetId) ?? list[0]
   // the latest version unless the reader picked another; a pick belongs to its rule set (Work Plan day 14)
-  const [picked, setPicked] = useState<{ rulesetId: string; versionNo: number } | null>(null)
+  const [picked, setPicked] = useState<{ rulesetId: string; versionNo: number } | null>(() =>
+    focusVersionNo !== null && rulesetId !== null ? { rulesetId, versionNo: focusVersionNo } : null,
+  )
   const latestNo = chosen?.versions[chosen.versions.length - 1]?.versionNo ?? 1
   const versionNo = picked !== null && picked.rulesetId === chosen?.id ? picked.versionNo : latestNo
   const ruleset = chosen ? { id: chosen.id, versionNo } : null
@@ -195,6 +203,7 @@ export function RulesScreen({
     <>
       <WorkspaceHeader
         title="Rules"
+        goTo
         provenance={
           shown && document
             ? [
@@ -347,6 +356,7 @@ export function RulesScreen({
                 <DecisionTable
                   document={document}
                   selectedRuleId={selectedRuleId}
+                  openedRuleId={chosenRuleId === null ? focusRuleId : null}
                   onSelect={selectRule}
                   onEditCell={draft ? editCell : undefined}
                   problems={refusal?.details}
@@ -396,6 +406,7 @@ export function RulesScreen({
                       setPanel('rule')
                     }}
                     onShowParagraph={showParagraph}
+                    current={focusFindingId}
                   />
                 </div>
               </div>

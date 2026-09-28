@@ -58,7 +58,8 @@ export function Paragraph({
       )}
     </p>
   )
-  const classes = ['para', sheet ? 'para--sheet' : '', cited ? 'para--cited' : '']
+  // a cited paragraph is what a rule, a chip or the palette opened: it flashes once (the deep link, section 02)
+  const classes = ['para', sheet ? 'para--sheet' : '', cited ? 'para--cited flash' : '']
     .filter(Boolean)
     .join(' ')
   return (
