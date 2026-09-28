@@ -62,15 +62,8 @@ const RULES: [name: string, hits: (selector: string, declarations: string) => nu
  * question 1): each file with the phase of Document 9 that ports it, and its hits by rule. The list only shrinks: a
  * new hit fails, and so does a hit that is gone while its count is still here. Phase 5 leaves it empty.
  */
-const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> = {
-  'src/features/policy/PoliciesScreen.css': {
-    phase: 5,
-    hits: {
-      'uppercase outside .seal': 1,
-      'letter-spacing outside .seal, .t-band and .figure__value': 1,
-    },
-  },
-}
+const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> =
+  {}
 
 /** Every CSS rule of a stylesheet as [selector, declarations], comments removed and at-rules opened. */
 function cssRules(css: string): [string, string][] {

@@ -7,7 +7,7 @@ interface EmptyStateProps {
   /** The one sentence: what is not here yet. */
   title: string
   /** Beside the action, in the quiet voice: what the action works on. */
-  description: ReactNode
+  description?: ReactNode
   /** The one action that would put something here. */
   action?: ReactNode
 }
@@ -22,7 +22,7 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
       <div className="empty__rule empty__rule--text">{title}</div>
       <div className="empty__rule empty__rule--action">
         {action}
-        <span className="muted">{description}</span>
+        {description === undefined ? null : <span className="muted">{description}</span>}
       </div>
       <div className="empty__rule" />
       <div className="empty__rule" />

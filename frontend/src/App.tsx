@@ -92,9 +92,9 @@ export function App() {
         <PoliciesScreen
           demoAsked={demo === 1}
           onDemoHandled={() => setDemo(null)}
-          onOpenRules={(chosen) => {
+          onOpenRules={(chosen, ruleId) => {
             setRulesetId(chosen)
-            setFocusRuleId(null)
+            setFocusRuleId(ruleId ?? null)
             navigate('rules')
           }}
         />

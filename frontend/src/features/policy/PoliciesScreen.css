@@ -1,50 +1,65 @@
-.policy-list {
-  margin: 0;
-  padding: var(--space-2);
+/*
+ * The documents of the Policies screen (the Register spec, section 09, "Policy document and its list"): the document
+ * list's rules of layer 5 of docs/design/register.css, as the spec writes them.
+ */
+.docs {
   list-style: none;
-  display: grid;
-  gap: 2px;
+  margin: 0;
+  padding: 0;
 }
-
-.policy-list__item {
+.doc-row {
   display: grid;
-  gap: 2px;
-  width: 100%;
-  padding: var(--space-3);
-  border: 0;
-  border-inline-start: 3px solid transparent;
-  border-radius: var(--radius-md);
-  background: none;
-  text-align: start;
+  gap: 3px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline);
   cursor: pointer;
 }
-
-.policy-list__item:hover {
-  background: var(--color-surface-sunken);
+.doc-row:hover {
+  background: var(--well);
 }
-
-.policy-list__item--selected {
-  background: var(--color-accent-wash);
-  border-inline-start-color: var(--color-selected-bar);
+.doc-row[aria-current='true'] {
+  background: var(--accent-wash);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
-
-.policy-list__title {
+.doc-row__name {
+  direction: rtl;
+  font-family: var(--font-he);
+  font-size: var(--text-md);
   font-weight: 500;
+  unicode-bidi: isolate;
 }
-
-.policy-list__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.policy-list__seeded {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+.doc-row__meta {
   font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). A row is a button, so it
+ * clears what a browser draws on one, keeping the spec's rule under it; in the margin it reaches into the section's
+ * padding, as the composed screen's style attribute sets it; a document in English keeps its own direction and the
+ * chrome's face. The sheet's title is the document's name at the size of a panel title, and its size in the caption's.
+ */
+button.doc-row {
+  width: calc(100% + 16px);
+  padding-inline: 8px;
+  margin-inline: -8px;
+  border-block-start: 0;
+  border-inline: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+.doc-row__name[dir='ltr'] {
+  direction: ltr;
+  font-family: var(--font-ui);
+}
+.policies__title {
+  font-size: var(--text-md);
+}
+.policies__size {
+  font-size: var(--text-xs);
 }

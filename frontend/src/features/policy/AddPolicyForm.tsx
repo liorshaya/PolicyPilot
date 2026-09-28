@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError } from '../../api/client'
 import { Button } from '../../shared/ui/Button'
 import { Field } from '../../shared/ui/Field'
-import { Section } from '../../shared/ui/Section'
 import { directionOfText } from '../../shared/i18n/direction'
+import { policyFailureText } from './failures'
 import './AddPolicyForm.css'
 
 interface AddPolicyInput {
@@ -22,30 +22,26 @@ interface AddPolicyFormProps {
   initial?: { title: string; language: 'he' | 'en'; text: string }
 }
 
-/** What the API refuses, said in the words of the person who pasted it (Document 2, error codes). */
-function refusal(error: unknown): string | null {
+/** What the API refused: the sentence, then the code the API sent, in mono; a failure that never reached it has none. */
+function refusal(error: unknown): ReactNode {
   if (!(error instanceof ApiError)) {
     return error ? 'The policy could not be saved. Try again.' : null
   }
-  switch (error.code) {
-    case 'POLICY_INVALID':
-      return 'The text is over its limits (40 KB, 200 paragraphs, 4,000 characters a paragraph) or holds a control character.'
-    case 'UPLOAD_REJECTED':
-      return 'The file must be a .txt, .md or .pdf under 2 MB, with readable text and no scripts.'
-    case 'PAYLOAD_TOO_LARGE':
-      return 'The file is larger than the 2 MB the API accepts.'
-    case 'RATE_LIMITED':
-      return 'Too many requests from this address; wait a moment and try again.'
-    default:
-      return `The policy was refused (${error.code}).`
-  }
+  return (
+    <>
+      {policyFailureText(error.code)} <span className="mono">{error.code}</span>
+    </>
+  )
 }
 
 /**
- * Paste a policy, or upload one (Brief FR-1; Document 5, Input Validation). The labels stay above the controls and
- * the refusals name the limit that was broken, never the text that broke it.
+ * Paste a policy, or upload one (Brief FR-1; Document 5, Input Validation; the spec, section 05, "Fields · the
+ * product's own"), in the margin of the Policies screen (section 10). The labels stay above the controls, the policy
+ * text is in the document serif so the analyst sees what the sheet will show, and the refusals name the limit that was
+ * broken, never the text that broke it.
  */
 export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: AddPolicyFormProps) {
+  const titleId = useId()
   const [mode, setMode] = useState<'paste' | 'upload'>('paste')
   const [title, setTitle] = useState(initial?.title ?? '')
   const [language, setLanguage] = useState<'he' | 'en'>(initial?.language ?? 'he')
@@ -64,59 +60,48 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
   }
 
   return (
-    <Section
-      title="Add a policy"
-      subtitle="The text a rule set is written from; every rule will cite one of its paragraphs."
-      actions={
-        <div className="add-policy__modes" role="group" aria-label="How to add the policy">
-          <Button
-            variant={mode === 'paste' ? 'primary' : 'secondary'}
-            onClick={() => setMode('paste')}
-            aria-pressed={mode === 'paste'}
-          >
-            Paste text
-          </Button>
-          <Button
-            variant={mode === 'upload' ? 'primary' : 'secondary'}
-            onClick={() => setMode('upload')}
-            aria-pressed={mode === 'upload'}
-          >
-            Upload a file
-          </Button>
-        </div>
-      }
-    >
+    <section className="margin__section" aria-labelledby={titleId}>
+      <div className="margin__title">
+        <span id={titleId}>Add a policy</span>
+      </div>
+      <div className="segment add-policy__modes" role="group" aria-label="How to add the policy">
+        <Button size="sm" aria-pressed={mode === 'paste'} onClick={() => setMode('paste')}>
+          Paste text
+        </Button>
+        <Button size="sm" aria-pressed={mode === 'upload'} onClick={() => setMode('upload')}>
+          Upload a file
+        </Button>
+      </div>
       <form className="add-policy" onSubmit={handleSubmit}>
-        <div className="add-policy__row">
-          <Field
-            label="Title"
-            htmlFor="policy-title"
-            hint="How this document is listed in the workspace."
+        <Field
+          label="Title"
+          htmlFor="policy-title"
+          hint="How this document is listed in the workspace."
+        >
+          <input
+            id="policy-title"
+            className="input"
+            dir={directionOfText(title)}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            maxLength={200}
+          />
+        </Field>
+        <Field
+          label="Language"
+          htmlFor="policy-language"
+          hint="Sets the direction the text is read in."
+        >
+          <select
+            id="policy-language"
+            className="select"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value as 'he' | 'en')}
           >
-            <input
-              id="policy-title"
-              className="input"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              maxLength={200}
-            />
-          </Field>
-          <Field
-            label="Language"
-            htmlFor="policy-language"
-            hint="Sets the direction the text is read in."
-          >
-            <select
-              id="policy-language"
-              className="select"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as 'he' | 'en')}
-            >
-              <option value="he">Hebrew</option>
-              <option value="en">English</option>
-            </select>
-          </Field>
-        </div>
+            <option value="he">Hebrew</option>
+            <option value="en">English</option>
+          </select>
+        </Field>
 
         {mode === 'paste' ? (
           <Field
@@ -127,7 +112,7 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
           >
             <textarea
               id="policy-text"
-              className="textarea"
+              className="textarea textarea--doc"
               dir={directionOfText(text)}
               value={text}
               onChange={(event) => setText(event.target.value)}
@@ -153,7 +138,7 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
         )}
 
         <div className="add-policy__actions">
-          <Button type="submit" variant="primary" busy={pending} disabled={!ready}>
+          <Button type="submit" busy={pending} disabled={!ready}>
             Add policy
           </Button>
           <Button variant="quiet" onClick={onCancel}>
@@ -161,6 +146,6 @@ export function AddPolicyForm({ pending, error, onSubmit, onCancel, initial }: A
           </Button>
         </div>
       </form>
-    </Section>
+    </section>
   )
 }

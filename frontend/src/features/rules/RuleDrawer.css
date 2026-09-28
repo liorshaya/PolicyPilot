@@ -29,9 +29,8 @@
 /*
  * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
  * (Document 9, "The CSS port"): the rule's Hebrew label in the size of a panel title, its condition in mono at the
- * regular weight, the quiet "terminal" and the reason's size; a finding in the margin has no padding of its own, its
- * claim at the size of the margin, a finding of the validator in the chrome's own direction, and a link in a title row
- * or under a finding in the caption size.
+ * regular weight, the quiet "terminal" and the reason's size, a finding of the validator in the chrome's own direction,
+ * and a link in a title row or under a finding in the caption size.
  */
 .rule__label {
   font-size: var(--text-md);
@@ -45,12 +44,6 @@
   font-size: var(--text-xs);
 }
 .rule__reason {
-  font-size: var(--text-sm);
-}
-.margin__section > .finding {
-  padding: 0;
-}
-.margin__section .finding__claim {
   font-size: var(--text-sm);
 }
 .rule__finding {

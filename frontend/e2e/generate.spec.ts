@@ -36,8 +36,15 @@ test.describe('demo step 1: the rules are written from the policy', () => {
 
     await page.getByRole('button', { name: 'Generate rules' }).click()
 
-    await expect(page.getByText('A draft rule set was written from this policy:')).toBeVisible()
-    await expect(page.getByText(`${String(ruleSet.rules.length)} rules`)).toBeVisible()
+    const note = page.getByText('A draft rule set was written from this policy:')
+    await expect(note).toBeVisible()
+    // the count stands in the note, and again beside the stage that wrote the rules
+    await expect(note).toContainText(`${String(ruleSet.rules.length)} rules`)
+    await expect(
+      page
+        .getByRole('region', { name: 'Generation' })
+        .getByText(`${String(ruleSet.rules.length)} rules`),
+    ).toBeVisible()
     // the engine decides, and nothing decides anything until a person publishes this draft
     await expect(page.getByText('Nothing decides cases until a person publishes it.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Review the draft' })).toBeVisible()
@@ -88,7 +95,7 @@ test.describe('demo step 1: the rules are written from the policy', () => {
     await page.getByRole('button', { name: 'Generate rules' }).click()
 
     await expect(
-      page.getByText('The reviewer found 2 things to check against the policy:'),
+      page.getByRole('region', { name: 'The reviewer found 2 things to check' }),
     ).toBeVisible()
     await page.getByRole('button', { name: 'Review the draft' }).click()
     const table = page.getByRole('table')

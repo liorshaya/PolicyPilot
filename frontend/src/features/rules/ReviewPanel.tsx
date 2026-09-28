@@ -219,6 +219,34 @@ export function FindingItem({
 }
 
 /**
+ * A finding in brief, as the Policies screen's margin sums up a review (the spec, section 10): its mark, its code and
+ * kind, and the claim in the reviewer's language; the evidence and what to do wait in the review itself.
+ */
+export function FindingBrief({
+  finding,
+  language,
+}: {
+  finding: ReviewFinding
+  language: ContentLanguage
+}) {
+  return (
+    <div className="finding">
+      <div className="finding__gutter">
+        {/* the mark is drawn for the eye; its word stands beside it, in the head */}
+        <span className={`sev sev--${KIND_MARKS[finding.kind]}`} aria-hidden="true" />
+      </div>
+      <div className="finding__head">
+        <span className="finding__code">{finding.id}</span>
+        <span className="finding__kind">{KIND_LABELS[finding.kind]}</span>
+      </div>
+      <p className="finding__claim" {...contentAttributes(language)}>
+        {finding.message}
+      </p>
+    </div>
+  )
+}
+
+/**
  * The paper box that records an acknowledgement (the spec, section 09): an error needs the reason the draft stands, a
  * gap one of the three resolutions and takes a note, and a warning nothing; the button says what happens, an audit entry
  * with the analyst's name.

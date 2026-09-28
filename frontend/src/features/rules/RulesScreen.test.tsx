@@ -208,7 +208,7 @@ describe('RulesScreen', () => {
     const cited = document.getElementById('paragraph-7')!
     expect(cited).toHaveAttribute('aria-current', 'true')
     expect(cited).toHaveTextContent('מבקש עם אירוע אחד יידרש להעמיד ערב')
-    expect(cited.closest('[dir]')).toHaveAttribute('dir', 'rtl')
+    expect(cited.querySelector('.para__text')).toHaveAttribute('dir', 'rtl')
   })
 
   it('shows one rule in full, with its source and its findings, in the rule panel', async () => {

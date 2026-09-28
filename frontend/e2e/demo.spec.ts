@@ -142,7 +142,7 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   await page.getByRole('button', { name: 'Generate rules' }).click()
   await expect(page.getByText('A draft rule set was written from this policy:')).toBeVisible()
   await expect(
-    page.getByText('The reviewer found 2 things to check against the policy:'),
+    page.getByRole('region', { name: 'The reviewer found 2 things to check' }),
   ).toBeVisible()
   // the pasted copy is generated with the seeded rule set's inputs as its field hints (Document 4, Field hints)
   expect(session.generatedWith()).toMatchObject({

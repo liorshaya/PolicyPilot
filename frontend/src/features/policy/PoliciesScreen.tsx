@@ -1,31 +1,39 @@
-import { useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useDemoStep } from '../demo/useDemoStep'
 import { ApiError } from '../../api/client'
 import { usePolicies, usePolicy, useCreatePolicy, useRulesets, useVersion } from '../../api/queries'
-import type { PolicySummary, RuleSetDocument } from '../../api/types'
+import type { PolicySummary, RuleSetDocument, VersionResponse } from '../../api/types'
+import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
+import { timeOf } from '../../shared/i18n/time'
 import { fieldHints } from '../demo/fieldHints'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
 import { Button } from '../../shared/ui/Button'
+import { Chip } from '../../shared/ui/Chip'
 import { Section } from '../../shared/ui/Section'
+import { Severity } from '../../shared/ui/Severity'
 import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
+import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from './PolicyText'
 import { AddPolicyForm } from './AddPolicyForm'
-import { GenerationProgress } from './GenerationProgress'
+import { GenerationProgress, GenerationResult, ReviewSummary } from './GenerationProgress'
 import { useGeneration } from './useGeneration'
 import './PoliciesScreen.css'
 
 /**
- * The policy screen (Work Plan day 6: paste or upload, paragraph list). A policy's paragraphs are numbered, because
- * the number is what a rule cites (Document 3, Provenance), and a Hebrew policy reads right to left inside the
- * left-to-right workspace.
+ * The policy screen (Work Plan day 6; the spec, section 10, "Policies · author"). The policy is the sheet, each
+ * paragraph numbered, because the number is what a rule cites (Document 3, Provenance), and under each paragraph the
+ * rules that cite it and the findings that name it, so provenance runs both ways; a Hebrew policy reads right to left
+ * inside the left-to-right workspace. The margin holds the form that adds a policy, the documents, the generation's
+ * stages and the review's summary.
  */
 export function PoliciesScreen({
   onOpenRules,
   demoAsked = false,
   onDemoHandled,
 }: {
-  onOpenRules: (rulesetId: string) => void
+  /** Opens a rule set in the Rules screen, on one of its rules when a chip under a paragraph named it. */
+  onOpenRules: (rulesetId: string, ruleId?: string) => void
   /** Step 1 of the guided demo: open the form on the sample policy, ready to generate (Brief FR-23). */
   demoAsked?: boolean
   onDemoHandled?: () => void
@@ -41,7 +49,8 @@ export function PoliciesScreen({
   const create = useCreatePolicy()
 
   const generation = useGeneration()
-  const list = policies.data ?? []
+  // seeded first, then the sandbox's own (the spec, section 10: "Documents · seeded first, then this sandbox's")
+  const list = seededFirst(policies.data ?? [])
   // Step 1 of the demo pastes the sample policy. It is the seeded one, so its text is read back through the same
   // API the screen already uses rather than copied into the web app, where it would be a second fixture to keep
   const sample = list.find((one) => one.protected === true)
@@ -75,33 +84,198 @@ export function PoliciesScreen({
     create.isPending ||
     (selectedId !== null && selectedId === demoPolicyId && seededFields === undefined)
   const selected = usePolicy(selectedId)
-  // the rule set written from this policy, which is what "its rules" means; a policy may not have one yet
-  const ownRuleset = (rulesets.data ?? []).find((one) => one.policyId === selectedId)
+  const versions = selected.data?.versions ?? []
+  const latest = versions[versions.length - 1]
+  const paragraphs = latest?.paragraphs ?? []
+  const language: ContentLanguage = selected.data?.language === 'en' ? 'en' : 'he'
+  // the run on the screen belongs to the policy it was started for
+  const run = generation.policyId !== null && generation.policyId === selectedId ? generation : null
+  // the rule set written from this policy, which is what "its rules" means: the one the run just wrote, else the
+  // sandbox's own, else the seeded one; a policy may not have one yet
+  const written = (rulesets.data ?? []).filter((one) => one.policyId === selectedId)
+  const citing =
+    written.find((one) => one.id === run?.draft?.rulesetId) ??
+    written.find((one) => !one.protected) ??
+    written[0]
+  const citingNo = citing?.versions[citing.versions.length - 1]?.versionNo
+  const citingVersion = useVersion(
+    citing && citingNo !== undefined ? { id: citing.id, versionNo: citingNo } : null,
+  )
+  // the version whose rules and findings stand under the paragraphs: the run's draft, else the rule set's latest
+  const shown: VersionResponse | undefined = run?.draft ?? citingVersion.data
+  const rulesetId = run?.draft?.rulesetId ?? citing?.id
+
+  function openForm() {
+    setFromDemo(false)
+    setAdding(true)
+  }
+
+  /** Under a paragraph: the rules that cite it, in the document's order, then the review's findings that name it. */
+  function citesOf(index: number): ReactNode {
+    const document = shown?.ruleSet as RuleSetDocument | undefined
+    const rules = (document?.rules ?? []).filter(
+      (rule) => rule.provenance.kind === 'quoted' && rule.provenance.paragraph === index,
+    )
+    const findings = (shown?.review?.findings ?? []).filter((finding) =>
+      finding.paragraphIndexes.includes(index),
+    )
+    if (rules.length + findings.length === 0) {
+      return null
+    }
+    return (
+      <>
+        {rules.map((rule) => (
+          <Chip
+            key={rule.id}
+            onClick={() => {
+              if (shown) {
+                onOpenRules(shown.rulesetId, rule.id)
+              }
+            }}
+          >
+            {rule.id}
+          </Chip>
+        ))}
+        {findings.map((finding) => (
+          <Severity key={finding.id} kind={finding.kind} code={finding.id} brief />
+        ))}
+      </>
+    )
+  }
 
   return (
     <>
       <WorkspaceHeader
         title="Policies"
         provenance={[
-          list.length > 0
-            ? `${list.length} ${list.length === 1 ? 'document' : 'documents'} in this sandbox`
-            : 'The policy text every rule is cited from',
+          <span key="documents">
+            <b>{list.length}</b> {list.length === 1 ? 'document' : 'documents'}
+          </span>,
+          ...(selected.data
+            ? [
+                ...(selected.data.protected
+                  ? [<VersionTag key="seeded" status="PUBLISHED" seeded />]
+                  : []),
+                <span key="paragraphs">
+                  <b>{paragraphs.length}</b> {paragraphs.length === 1 ? 'paragraph' : 'paragraphs'}
+                </span>,
+                language === 'he' ? 'Hebrew' : 'English',
+                'every rule cites one of them',
+              ]
+            : []),
         ]}
+        secondary={
+          adding ? null : (
+            <Button icon="plus" onClick={openForm}>
+              Add policy
+            </Button>
+          )
+        }
+        reason={
+          selected.data && preparing
+            ? create.isPending
+              ? 'The new policy is still being added'
+              : "Reading the seeded rule set's inputs for the hints"
+            : undefined
+        }
         primary={
-          <Button
-            variant={adding ? 'secondary' : 'primary'}
-            onClick={() => {
-              setFromDemo(false)
-              setAdding((open) => !open)
-            }}
-          >
-            {adding ? 'Close' : 'Add policy'}
-          </Button>
+          selected.data ? (
+            <Button
+              variant="primary"
+              busy={generation.running}
+              disabled={preparing}
+              onClick={() => {
+                const hints =
+                  selected.data.id === demoPolicyId && seededFields !== undefined
+                    ? fieldHints(seededFields)
+                    : undefined
+                generation.start(selected.data.id, hints)
+              }}
+            >
+              Generate rules
+            </Button>
+          ) : null
         }
       />
       <SplitView
         sideOpen
+        fill
         main={
+          <Section
+            title={
+              selected.data ? (
+                // a document's own title is content, in its own language and direction
+                <bdi className="policies__title" {...contentAttributes(language)}>
+                  {selected.data.title}
+                </bdi>
+              ) : (
+                'Policy'
+              )
+            }
+            actions={
+              selected.data ? (
+                <>
+                  <span className="muted policies__size">
+                    {`Version ${String(latest?.versionNo ?? 1)} · ${String(paragraphs.length)} paragraphs`}
+                  </span>
+                  {rulesetId === undefined ? (
+                    <span className="reason">Generate rules for this policy first</span>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    disabled={rulesetId === undefined}
+                    onClick={() => {
+                      if (rulesetId !== undefined) {
+                        onOpenRules(rulesetId)
+                      }
+                    }}
+                  >
+                    Open its rules
+                  </Button>
+                </>
+              ) : null
+            }
+            flush
+          >
+            {run ? (
+              <GenerationResult
+                generation={run}
+                onReview={() => {
+                  if (run.draft) {
+                    onOpenRules(run.draft.rulesetId)
+                  }
+                }}
+              />
+            ) : null}
+            {selectedId === null ? (
+              policies.isPending ? (
+                <LoadingRows label="Loading the policy" />
+              ) : policies.error ? null : (
+                <EmptyState
+                  title="No policy open"
+                  action={
+                    <Button size="sm" onClick={openForm}>
+                      Add policy
+                    </Button>
+                  }
+                />
+              )
+            ) : selected.isPending ? (
+              <LoadingRows label="Loading the policy" />
+            ) : selected.error ? (
+              <ErrorState
+                code={selected.error instanceof ApiError ? selected.error.code : undefined}
+                description="The policy could not be read. It may belong to another sandbox."
+                onRetry={() => void selected.refetch()}
+              />
+            ) : (
+              <div className="sheet__scroll">
+                <PolicyText language={language} paragraphs={paragraphs} sheet cites={citesOf} />
+              </div>
+            )}
+          </Section>
+        }
+        side={
           <>
             {adding ? (
               <AddPolicyForm
@@ -124,155 +298,93 @@ export function PoliciesScreen({
                 }
               />
             ) : null}
-            <Section
-              title={
-                selected.data ? (
-                  // a document's own title is content, so it takes the direction of its own first letters
-                  <bdi dir="auto">{selected.data.title}</bdi>
-                ) : (
-                  'Policy text'
-                )
-              }
-              subtitle={
-                selected.data
-                  ? `Version ${selected.data.versions?.[0]?.versionNo ?? 1} · ${selected.data.versions?.[0]?.paragraphs?.length ?? 0} paragraphs · each one is a source a rule can cite`
-                  : 'Choose a policy to read its paragraphs'
-              }
-              actions={
-                selected.data ? (
-                  <>
-                    <Button
-                      disabled={!ownRuleset}
-                      title={ownRuleset ? undefined : 'Generate rules for this policy first'}
-                      onClick={() => {
-                        if (ownRuleset) {
-                          onOpenRules(ownRuleset.id)
-                        }
-                      }}
-                    >
-                      Open its rules
-                    </Button>
-                    <Button
-                      variant="primary"
-                      busy={generation.running}
-                      disabled={generation.running || preparing}
-                      title={
-                        create.isPending
-                          ? 'The new policy is still being added'
-                          : preparing
-                            ? "Reading the seeded rule set's inputs for the hints"
-                            : undefined
-                      }
-                      onClick={() => {
-                        const hints =
-                          selected.data.id === demoPolicyId && seededFields !== undefined
-                            ? fieldHints(seededFields)
-                            : undefined
-                        generation.start(selected.data.id, hints)
-                      }}
-                    >
-                      Generate rules
-                    </Button>
-                  </>
-                ) : null
-              }
-              flush
-            >
-              <GenerationProgress
-                generation={generation}
-                onOpenRules={() => {
-                  if (generation.draft) {
-                    onOpenRules(generation.draft.rulesetId)
-                  }
-                }}
-              />
-              {selected.isPending && selectedId !== null ? (
-                <LoadingRows label="Loading the policy" />
-              ) : null}
-              {selected.error ? (
-                <ErrorState
-                  code={selected.error instanceof ApiError ? selected.error.code : undefined}
-                  description="The policy could not be read. It may belong to another sandbox."
-                  onRetry={() => void selected.refetch()}
-                />
-              ) : null}
-              {selected.data ? (
-                <PolicyText
-                  language={(selected.data.language as 'he' | 'en') ?? 'en'}
-                  paragraphs={selected.data.versions?.[0]?.paragraphs ?? []}
-                />
-              ) : null}
-              {!selected.data && !selected.isPending && selectedId === null ? (
-                <EmptyState
-                  title="No policy open"
-                  description="Paste or upload a policy document, or open the seeded lending policy from the list."
-                />
-              ) : null}
-            </Section>
+            <Documents
+              query={policies}
+              list={list}
+              selectedId={selectedId}
+              onSelect={setChosenId}
+            />
+            {run ? <GenerationProgress generation={run} /> : null}
+            <ReviewSummary
+              review={shown?.review}
+              language={language}
+              onOpen={() => {
+                if (rulesetId !== undefined) {
+                  onOpenRules(rulesetId)
+                }
+              }}
+            />
           </>
-        }
-        side={
-          <Section
-            title="Documents"
-            subtitle="Seeded first, then the ones added in this sandbox"
-            flush
-          >
-            {policies.isPending ? <LoadingRows label="Loading the policies" /> : null}
-            {policies.error ? (
-              <ErrorState
-                code={policies.error instanceof ApiError ? policies.error.code : undefined}
-                description="The policy list could not be read."
-                onRetry={() => void policies.refetch()}
-              />
-            ) : null}
-            {policies.data ? (
-              <ul className="policy-list">
-                {list.map((policy) => (
-                  <PolicyListItem
-                    key={policy.id}
-                    policy={policy}
-                    selected={policy.id === selectedId}
-                    onSelect={() => setChosenId(policy.id)}
-                  />
-                ))}
-              </ul>
-            ) : null}
-          </Section>
         }
       />
     </>
   )
 }
 
-function PolicyListItem({
-  policy,
-  selected,
+/**
+ * The documents the sandbox can see (the spec, section 10, the Policies margin): each with its name in its own
+ * language, its size and language, and "Seeded" or when it was added; the open one is the current row.
+ */
+function Documents({
+  query,
+  list,
+  selectedId,
   onSelect,
 }: {
-  policy: PolicySummary
-  selected: boolean
-  onSelect: () => void
+  query: ReturnType<typeof usePolicies>
+  list: PolicySummary[]
+  selectedId: string | null
+  onSelect: (policyId: string) => void
 }) {
+  const titleId = useId()
   return (
-    <li>
-      <button
-        type="button"
-        className={`policy-list__item${selected ? ' policy-list__item--selected' : ''}`}
-        aria-current={selected ? 'true' : undefined}
-        onClick={onSelect}
-      >
-        <bdi className="policy-list__title" dir="auto">
-          {policy.title}
-        </bdi>
-        <span className="policy-list__meta">
-          <span className="tabular">{policy.paragraphs} paragraphs</span>
-          <span aria-hidden="true">·</span>
-          <span>{policy.language === 'he' ? 'Hebrew' : 'English'}</span>
-          {policy.protected ? <span className="policy-list__seeded">Seeded</span> : null}
-        </span>
-      </button>
-    </li>
+    <section className="margin__section" aria-labelledby={titleId}>
+      <div className="margin__title">
+        <span id={titleId}>Documents</span>{' '}
+        <span className="quiet">seeded first, then this sandbox&apos;s</span>
+      </div>
+      {query.isPending ? <LoadingRows label="Loading the policies" /> : null}
+      {query.error ? (
+        <ErrorState
+          code={query.error instanceof ApiError ? query.error.code : undefined}
+          description="The policy list could not be read."
+          onRetry={() => void query.refetch()}
+        />
+      ) : null}
+      {query.data ? (
+        <ul className="docs">
+          {list.map((policy) => (
+            <li key={policy.id}>
+              <button
+                type="button"
+                className="doc-row"
+                aria-current={policy.id === selectedId ? 'true' : undefined}
+                onClick={() => onSelect(policy.id)}
+              >
+                <span className="doc-row__name" {...contentAttributes(languageOf(policy))}>
+                  {policy.title}
+                </span>
+                <span className="doc-row__meta">
+                  <span>{`${String(policy.paragraphs)} ${policy.paragraphs === 1 ? 'paragraph' : 'paragraphs'}`}</span>
+                  <span>{languageOf(policy) === 'he' ? 'Hebrew' : 'English'}</span>
+                  {policy.protected ? (
+                    <span className="vstatus vstatus--seeded">Seeded</span>
+                  ) : (
+                    <span>{`added ${timeOf(policy.createdAt)}`}</span>
+                  )}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   )
+}
+
+/** The seeded documents first, then the sandbox's own, each group in the order the API lists it. */
+function seededFirst(policies: PolicySummary[]): PolicySummary[] {
+  return [...policies.filter((one) => one.protected), ...policies.filter((one) => !one.protected)]
 }
 
 /** A policy's language as the form takes it; the API's is a string, and only these two are policy languages. */
