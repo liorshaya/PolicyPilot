@@ -99,9 +99,6 @@
  * on the left and inserted on the right, and under a modified item its changes by JSON pointer. The spec leaves its
  * drawing to the product; it takes the spec's table header, hairlines and diff colours.
  */
-.diff__scroll {
-  overflow-x: auto;
-}
 .diff__table {
   width: 100%;
   border-collapse: collapse;
@@ -213,9 +210,11 @@ ins.diff__mark {
   font-family: var(--font-mono);
 }
 
-/* Narrow: the two sides keep a readable width and the table scrolls sideways inside its panel, and an attribute's
-   name sits over its value; at a phone's width the sides had no room left, and a label ran a letter a line. */
+/* Narrow: each view keeps a readable width and scrolls sideways in its box, and an attribute's name sits over its value;
+   at a phone's width the side-by-side table had no room left, a label running a letter a line, and the unified rows,
+   the spec's columns of 90px and 150px, clipped the values they changed. */
 @media (max-width: 700px) {
+  .udiff,
   .diff__table {
     min-width: 34rem;
   }

@@ -151,9 +151,6 @@ export function ChangeScreen({
         provenance={
           version.data
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {version.data.name}
-                </bdi>,
                 <span key="domain" className="mono">
                   {version.data.domain}
                 </span>,

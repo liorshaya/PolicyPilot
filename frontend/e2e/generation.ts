@@ -1,7 +1,10 @@
+import type { Page } from '@playwright/test'
+import { POLICY_ID, ruleSet, seededRuleset } from './seeded'
+
 /**
  * Demo step 1 as the tests serve it (Document 2, POST /policies/{id}/rulesets): the four stages of the generation
- * stream, the draft it ends with and the review of that draft, or a refusal in their place. The step 1 spec and the
- * presenter's run of all four steps both answer the generation with these.
+ * stream, the draft it ends with and the review of that draft, or a refusal in their place. The step 1 spec, the
+ * presenter's run of all four steps and the register spec answer the generation with these.
  */
 
 export const STAGES =
@@ -59,3 +62,48 @@ export const REFUSAL =
   'event:error\ndata:{"code":"RULESET_INVALID","findings":[{"code":"PROVENANCE_QUOTE_MISMATCH",' +
   '"severity":"error","path":"/rules/0/provenance/quote","message":"R-100: the quote does not occur in ' +
   'paragraph 1","ruleIds":["R-100"],"fieldNames":[]}]}\n\n'
+
+/**
+ * The generation of the seeded policy itself, its header's Generate rules: the four stages and the draft with the
+ * review above on the stream, the draft on its own route, and the list of rule sets naming it once it is written.
+ * Registered after serveTheSeededRuleSet, whose list this answers over.
+ */
+export async function serveTheGeneration(page: Page): Promise<void> {
+  const draft = {
+    ...DRAFT,
+    ruleSet,
+    review: REVIEW,
+    policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d1',
+  }
+  let written = false
+  await page.route(`**/api/v1/policies/${POLICY_ID}/rulesets`, (route) => {
+    written = true
+    return route.fulfill({
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+      body: STAGES + `event:draft\ndata:${JSON.stringify(draft)}\n\n`,
+    })
+  })
+  await page.route(`**/api/v1/rulesets/${DRAFT.rulesetId}/versions/*`, (route) =>
+    route.fulfill({ json: draft }),
+  )
+  await page.route('**/api/v1/rulesets', (route) =>
+    route.fulfill({
+      json: {
+        rulesets: written
+          ? [
+              seededRuleset,
+              {
+                id: DRAFT.rulesetId,
+                name: DRAFT.name,
+                domain: DRAFT.domain,
+                protected: false,
+                policyId: POLICY_ID,
+                versions: [{ versionNo: 1, status: 'DRAFT' }],
+              },
+            ]
+          : [seededRuleset],
+      },
+    }),
+  )
+}

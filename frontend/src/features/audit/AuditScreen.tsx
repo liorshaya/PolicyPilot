@@ -86,9 +86,6 @@ export function AuditScreen({ rulesetId = null, onChooseRuleset }: AuditScreenPr
         provenance={
           chosen
             ? [
-                <bdi key="name" dir="auto" className="sans">
-                  {chosen.name}
-                </bdi>,
                 <span key="domain" className="mono">
                   {chosen.domain}
                 </span>,

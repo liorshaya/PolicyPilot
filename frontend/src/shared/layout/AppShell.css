@@ -193,12 +193,12 @@ button.rail__link {
   display: flex;
   gap: 4px;
   padding: 8px 10px;
-  overflow: hidden;
+  overflow-x: auto;
   border-bottom: 1px solid var(--hairline);
 }
 .phone__screens .btn {
   height: 26px;
-  padding: 0 9px;
+  padding: 0 6px;
   font-size: var(--text-xs);
 }
 .phone__body {
@@ -227,7 +227,7 @@ button.rail__link {
 /*
  * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The spec's .phone is the
  * device frame it draws a phone in (390px, a border, rounded corners); the product's phone is the window, and the page
- * scrolls as one. The screens' row scrolls sideways when it is wider than the window, as the block's comment says; the
+ * scrolls as one. A screen's button keeps its width, so the row scrolls sideways on a phone narrower than its six; the
  * pressed screen stands on the well, the lockup and the version beside the menu, the third figure across the row, as
  * the specimen's style attributes set them. The header keeps its title, one segment of its provenance and the primary
  * at 28px (section 10). The body's one column never grows past the window, so a wide table scrolls in its own box
@@ -247,9 +247,6 @@ button.rail__link {
   display: flex;
   gap: 6px;
   align-items: center;
-}
-.phone__screens {
-  overflow-x: auto;
 }
 .phone__screens .btn {
   flex: none;

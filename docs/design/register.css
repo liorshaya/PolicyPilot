@@ -628,7 +628,7 @@ td.t-prio { font-family: var(--font-mono); }
 
 /* Change request */
 .candidates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--ink-3); }
-.candidates .chip--id[data-state='unchanged'] { opacity: 0.55; }
+.candidates .chip--id[data-state='unchanged'] { color: var(--ink-3); }
 .patch { display: grid; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--hairline); }
 .patch__head { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
 .patch__op { font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 500; color: var(--ink-2); border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; }
@@ -737,8 +737,8 @@ td.t-prio { font-family: var(--font-mono); }
 .phone { width: 390px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .phone__top { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--hairline); }
 .phone__top svg { height: 20px; width: auto; }
-.phone__screens { display: flex; gap: 4px; padding: 8px 10px; overflow: hidden; border-bottom: 1px solid var(--hairline); }
-.phone__screens .btn { height: 26px; padding: 0 9px; font-size: var(--text-xs); }
+.phone__screens { display: flex; gap: 4px; padding: 8px 10px; overflow-x: auto; border-bottom: 1px solid var(--hairline); }
+.phone__screens .btn { height: 26px; padding: 0 6px; font-size: var(--text-xs); }
 .phone__body { padding: 12px; display: grid; gap: 12px; }
 .phone .sheet { margin: 0; }
 .phone .ws-header { padding: 6px 2px 8px; min-height: 0; border: 0; }

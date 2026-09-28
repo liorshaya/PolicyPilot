@@ -161,9 +161,9 @@ function Conversation({
       <WorkspaceHeader
         title="Assistant"
         provenance={[
-          <bdi key="name" dir="auto" className="sans">
-            {ruleset.name}
-          </bdi>,
+          <span key="domain" className="mono">
+            {ruleset.domain}
+          </span>,
           'answers cite the policy and the rules; the engine decided every outcome they report',
         ]}
         version={<span className="tabular">Version {target.versionNo}</span>}

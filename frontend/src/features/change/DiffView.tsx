@@ -23,6 +23,7 @@ import {
   type LabelSide,
   type UnifiedRow,
 } from './diffRows'
+import '../../shared/ui/Table.css'
 import './DiffView.css'
 
 interface DiffViewProps {
@@ -139,41 +140,47 @@ function Unified({
   ])
   const unchanged = (rules ?? []).filter((rule) => !changed.has(rule.id))
   return (
-    <div className="udiff">
-      <div className="udiff__row udiff__row--head">
-        <span>Rule</span>
-        <span>Field</span>
-        <span>{beforeLabel}</span>
-        <span />
-        <span>{afterLabel}</span>
-      </div>
-      {unifiedRows(diff).map((row) => (
-        <UnifiedRowView key={`${row.key}:${row.field}:${row.kind}`} row={row} language={language} />
-      ))}
-      {showUnchanged
-        ? unchanged.map((rule) => (
-            <div key={rule.id} className="udiff__row udiff__row--he">
-              <Chip>{rule.id}</Chip>
-              <span className="udiff__kind">unchanged</span>
-              <span className="step__label" {...contentAttributes(language)}>
-                {isolated(rule.label, language)}
-              </span>
-            </div>
-          ))
-        : null}
-      <div className="udiff__row udiff__row--collapsed">
-        {unchanged.length > 0 ? (
-          <>
-            {`${String(unchanged.length)} unchanged rule${unchanged.length === 1 ? '' : 's'}`} ·{' '}
-            <Button variant="link" onClick={() => setShowUnchanged(!showUnchanged)}>
-              {showUnchanged ? 'Hide' : 'Show'}
-            </Button>{' '}
-            ·{' '}
-          </>
-        ) : null}
-        <Button variant="link" onClick={onSideBySide}>
-          Side by side
-        </Button>
+    <div className="table-scroll">
+      <div className="udiff">
+        <div className="udiff__row udiff__row--head">
+          <span>Rule</span>
+          <span>Field</span>
+          <span>{beforeLabel}</span>
+          <span />
+          <span>{afterLabel}</span>
+        </div>
+        {unifiedRows(diff).map((row) => (
+          <UnifiedRowView
+            key={`${row.key}:${row.field}:${row.kind}`}
+            row={row}
+            language={language}
+          />
+        ))}
+        {showUnchanged
+          ? unchanged.map((rule) => (
+              <div key={rule.id} className="udiff__row udiff__row--he">
+                <Chip>{rule.id}</Chip>
+                <span className="udiff__kind">unchanged</span>
+                <span className="step__label" {...contentAttributes(language)}>
+                  {isolated(rule.label, language)}
+                </span>
+              </div>
+            ))
+          : null}
+        <div className="udiff__row udiff__row--collapsed">
+          {unchanged.length > 0 ? (
+            <>
+              {`${String(unchanged.length)} unchanged rule${unchanged.length === 1 ? '' : 's'}`} ·{' '}
+              <Button variant="link" onClick={() => setShowUnchanged(!showUnchanged)}>
+                {showUnchanged ? 'Hide' : 'Show'}
+              </Button>{' '}
+              ·{' '}
+            </>
+          ) : null}
+          <Button variant="link" onClick={onSideBySide}>
+            Side by side
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -409,7 +416,7 @@ function SideBySide({
           Unified
         </Button>
       </p>
-      <div className="diff__scroll">
+      <div className="table-scroll">
         <table className="diff__table">
           <thead>
             <tr>

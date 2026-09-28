@@ -288,6 +288,26 @@ describe('ChatScreen · the thread', () => {
 })
 
 /** The Assistant row of the states matrix (the spec, section 11) that no other test covers. */
+describe('ChatScreen · the header', () => {
+  // the spec's provenance lines (section 04) lead with the rule set's id in mono, and section 12 puts no English label in a
+  // row with a Hebrew value: the rail names the policy in Hebrew, at its own size
+  it("leads the provenance with the rule set's id, with no Hebrew in the line", async () => {
+    renderScreen()
+
+    await waitFor(() =>
+      expect(document.querySelector('.ws-header .prov')).toHaveTextContent('consumer-lending'),
+    )
+    const line = document.querySelector('.ws-header .prov')!
+    expect([...line.children].map((segment) => segment.textContent)).toStrictEqual([
+      'consumer-lending',
+      'answers cite the policy and the rules; the engine decided every outcome they report',
+    ])
+    // each segment stands in a box of its own, the separator drawn before it
+    expect(line.firstElementChild?.firstElementChild).toHaveClass('mono')
+    expect(line.textContent).not.toMatch(/\p{Script=Hebrew}/u)
+  })
+})
+
 describe('ChatScreen, every state', () => {
   // "The caret; tool steps appear as they run": a tool call's step line stands before the answer's first token
   it('Assistant · loading', async () => {

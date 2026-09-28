@@ -187,6 +187,25 @@ describe('AuditScreen, the log', () => {
   })
 })
 
+describe('AuditScreen, the header', () => {
+  // the spec's provenance lines (section 04) lead with the rule set's id in mono, and section 12 puts no English label in a
+  // row with a Hebrew value: the rail names the policy in Hebrew, at its own size
+  it("leads the provenance with the rule set's id, with no Hebrew in the line", async () => {
+    renderScreen()
+
+    await waitFor(() =>
+      expect(document.querySelector('.ws-header .prov')).toHaveTextContent('consumer-lending'),
+    )
+    const line = document.querySelector('.ws-header .prov')!
+    expect([...line.children].map((segment) => segment.textContent)).toStrictEqual([
+      'consumer-lending',
+    ])
+    // each segment stands in a box of its own, the separator drawn before it
+    expect(line.firstElementChild?.firstElementChild).toHaveClass('mono')
+    expect(line.textContent).not.toMatch(/\p{Script=Hebrew}/u)
+  })
+})
+
 describe('AuditScreen, a row', () => {
   it("writes an approval as a provenance line: the time, a person's mark, the verb, the chips and the seal", async () => {
     serveTheLog([approvalEntry])
