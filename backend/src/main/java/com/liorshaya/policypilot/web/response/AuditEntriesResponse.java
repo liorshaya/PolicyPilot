@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.web.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.liorshaya.policypilot.audit.service.AuditEntry;
+import com.liorshaya.policypilot.change.service.TrailEntry;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
@@ -12,10 +13,12 @@ import tools.jackson.databind.node.ObjectNode;
 /** Audit entries, newest first (Document 2, {@code GET /audit} and {@code GET /audit/export}). */
 public record AuditEntriesResponse(@JsonProperty(required = true) List<Entry> entries) {
 
-    public static AuditEntriesResponse of(List<AuditEntry> entries) {
-        return new AuditEntriesResponse(entries.stream().map(entry -> new Entry(entry.id(), entry.at(),
-                entry.actor(), entry.action().name(), entry.rulesetVersionId(), entry.changeRequestId(),
-                entry.details())).toList());
+    public static AuditEntriesResponse of(List<TrailEntry> entries) {
+        return new AuditEntriesResponse(entries.stream().map(read -> {
+            AuditEntry entry = read.entry();
+            return new Entry(entry.id(), entry.at(), entry.actor(), entry.action().name(), entry.rulesetVersionId(),
+                    entry.changeRequestId(), read.changeRequestNumber(), entry.details());
+        }).toList());
     }
 
     /**
@@ -23,6 +26,7 @@ public record AuditEntriesResponse(@JsonProperty(required = true) List<Entry> en
      *
      * @param actor the sandbox that acted, or {@code demo-analyst} for the seeded rows (Document 5)
      * @param changeRequestId the change request the entry is about, or null
+     * @param changeRequestNumber that request's number in the sandbox, or null (added 2026-09-28, Register phase 4)
      */
     public record Entry(
             @JsonProperty(required = true) UUID id,
@@ -34,6 +38,7 @@ public record AuditEntriesResponse(@JsonProperty(required = true) List<Entry> en
             String action,
             @JsonProperty(required = true) UUID rulesetVersionId,
             @JsonProperty(required = true) @Schema(nullable = true) @Nullable UUID changeRequestId,
+            @JsonProperty(required = true) @Schema(nullable = true) @Nullable Integer changeRequestNumber,
             @JsonProperty(required = true) @Schema(implementation = Object.class, description = "The entry's details")
             ObjectNode details) {}
 }

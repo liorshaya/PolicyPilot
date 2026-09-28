@@ -311,6 +311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the day's token budget is spent, and when it resumes */
+        get: operations["budget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rulesets": {
         parameters: {
             query?: never;
@@ -430,6 +447,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/changes/{id}/decisions/{decisionId}/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a proposal decides for one of the sandbox's decisions on its base version */
+        get: operations["proposedTrace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -437,7 +471,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The audit entries of a rule set version, newest first */
+        /** The audit entries the sandbox can see, or those of one rule set version, newest first */
         get: operations["audit"];
         put?: never;
         post?: never;
@@ -672,6 +706,8 @@ export interface components {
         ChangeDecisionResponse: {
             /** Format: uuid */
             id: string;
+            /** Format: int32 */
+            number: number;
             /** @enum {string} */
             status: "APPROVED" | "REJECTED";
             /** Format: date-time */
@@ -704,6 +740,11 @@ export interface components {
             embeddingModel: string;
             /** Format: int32 */
             embeddingDimension: number;
+        };
+        BudgetResponse: {
+            spent: boolean;
+            /** Format: date-time */
+            resumesAt: string;
         };
         Ruleset: {
             /** Format: uuid */
@@ -809,6 +850,8 @@ export interface components {
             rulesetVersionId: string;
             /** Format: uuid */
             changeRequestId: string | null;
+            /** Format: int32 */
+            changeRequestNumber: number | null;
             /** @description The entry's details */
             details: unknown;
         };
@@ -970,7 +1013,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description The model provider failed; the review is left FAILED */
+            /** @description The model provider failed or the day's token budget is spent; the review is left FAILED */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1377,7 +1420,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description The model provider failed, or its answer was not an explanation */
+            /** @description The provider failed, the day's token budget is spent, or the answer was not an explanation */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1454,7 +1497,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description An event stream: token events, then citations, usage and done */
+            /** @description An event stream: tool events, token events, then citations, usage and done */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1667,6 +1710,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderResponse"];
+                };
+            };
+        };
+    };
+    budget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether today's ledger has stopped, and the next midnight UTC */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetResponse"];
                 };
             };
         };
@@ -1884,10 +1947,42 @@ export interface operations {
             };
         };
     };
+    proposedTrace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                decisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The decision object of Document 3 on the patched copy, with its trace, basedOnDecisionId and the request's number; nothing is stored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description No such change request or decision in this sandbox, or a decision of another version */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     audit: {
         parameters: {
-            query: {
-                versionId: string;
+            query?: {
+                versionId?: string;
             };
             header?: never;
             path?: never;
@@ -1904,7 +1999,7 @@ export interface operations {
                     "application/json": components["schemas"]["AuditEntriesResponse"];
                 };
             };
-            /** @description No versionId, or one that is not an id */
+            /** @description A versionId that is not an id */
             400: {
                 headers: {
                     [name: string]: unknown;

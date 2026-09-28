@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One answer as it streams (Document 4, Prompt 4): the gateway's pieces go through the marker resolver, what may be
@@ -40,14 +41,23 @@ public final class AnswerComposer {
 
     /**
      * What an answer came to: the text shown, the ids it cites, what the call cost, the tool calls it made with what
-     * they returned, and whether the turn ran past the tool caps.
+     * they returned, and the fixed sentence it is, if it is one.
+     *
+     * @param fixed {@link FixedAnswer#TOOL_LIMIT} for a turn that ran past the tool caps, whatever was shown before
+     *     the sentence; {@link FixedAnswer#NOT_COVERED} for an answer that is the not-covered sentence and nothing
+     *     else; null for an answer a model wrote
      */
     public record Answer(String text, List<String> cited, TokenUsage usage, List<CachedAnswer.ToolStep> steps,
-            boolean overrun) {
+            @Nullable FixedAnswer fixed) {
 
         public Answer {
             cited = List.copyOf(cited);
             steps = List.copyOf(steps);
+        }
+
+        /** Whether the turn ran past the tool caps and ended with the fixed sentence. */
+        public boolean overrun() {
+            return fixed == FixedAnswer.TOOL_LIMIT;
         }
     }
 
@@ -104,12 +114,13 @@ public final class AnswerComposer {
         if (turn.overrun()) {
             String sentence = (text.isEmpty() ? "" : " ") + toolLimit.get(language);
             sink.token(sentence);
-            return new Answer(text + sentence, List.of(), usage, steps, true);
+            return new Answer(text + sentence, List.of(), usage, steps, FixedAnswer.TOOL_LIMIT);
         }
         if (text.contains(notCoveredSentence)) {
-            return new Answer(text, List.of(), usage, steps, false);
+            return new Answer(text, List.of(), usage, steps,
+                    text.strip().equals(notCoveredSentence) ? FixedAnswer.NOT_COVERED : null);
         }
-        return new Answer(text, resolver.cited(), usage, steps, false);
+        return new Answer(text, resolver.cited(), usage, steps, null);
     }
 
     /** The tool, with each call it runs kept with what it returned. */

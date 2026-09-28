@@ -15,9 +15,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * The V10 schema as Document 2 describes it (Data Model, {@code change_request}) and as the API role reaches it: every
- * statement runs through the application pool, whose connections {@code SET ROLE policypilot_app}, so a missing or an
- * extra grant fails here and not first on Railway.
+ * The V10 schema, with the number V12 added last, as Document 2 describes it (Data Model, {@code change_request}) and
+ * as the API role reaches it: every statement runs through the application pool, whose connections {@code SET ROLE
+ * policypilot_app}, so a missing or an extra grant fails here and not first on Railway.
  */
 @Requirement("FR-17")
 class ChangeRequestSchemaIT extends ApiIntegrationTest {
@@ -37,7 +37,7 @@ class ChangeRequestSchemaIT extends ApiIntegrationTest {
 
         assertThat(columns).containsExactly("id", "sandbox_id", "base_version_id", "request_text", "status",
                 "patches_json", "rationale_json", "regression_json", "result_version_id", "created_at", "decided_at",
-                "actor");
+                "actor", "number");
     }
 
     // Document 2: status PROPOSED, APPROVED or REJECTED. Expected: a check violation for a fourth value, on a row
@@ -92,12 +92,13 @@ class ChangeRequestSchemaIT extends ApiIntegrationTest {
                 .rootCause().hasMessageContaining("audit_entry_change_request_fk");
     }
 
+    /** A request of a sandbox of its own, so its number, 1, is free. */
     private int insert(UUID id, String status, boolean decided) {
         return jdbc.sql("""
                 insert into change_request (id, sandbox_id, base_version_id, request_text, status, patches_json,
-                        rationale_json, created_at, decided_at, actor)
+                        rationale_json, created_at, decided_at, actor, number)
                 values (:id, :sandbox, :version, 'raise the threshold', :status, '[]', '{}', now(),
-                        case when :decided then now() end, 'schema-check')""")
+                        case when :decided then now() end, 'schema-check', 1)""")
                 .param("id", id).param("sandbox", UUID.randomUUID()).param("version", seededVersionId())
                 .param("status", status).param("decided", decided).update();
     }

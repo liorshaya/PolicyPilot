@@ -10,9 +10,9 @@ import com.liorshaya.policypilot.ai.PromptSpec;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.rules.model.Language;
-import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.RecordedGateway.Streamed;
 import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
+import com.liorshaya.policypilot.support.RecordedGateway;
 import com.liorshaya.policypilot.support.Requirement;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -234,6 +235,11 @@ class AnswerComposerTest {
     private record Collecting(List<String> tokens) implements ChatEvents {
 
         @Override
+        public void tool(ToolCallReport call) {
+            throw new UnsupportedOperationException("the turn reports the calls");
+        }
+
+        @Override
         public void token(String text) {
             tokens.add(text);
         }
@@ -249,7 +255,7 @@ class AnswerComposerTest {
         }
 
         @Override
-        public void done(UUID messageId) {
+        public void done(UUID messageId, @Nullable FixedAnswer fixed) {
             throw new UnsupportedOperationException("the use case stores the answer");
         }
     }

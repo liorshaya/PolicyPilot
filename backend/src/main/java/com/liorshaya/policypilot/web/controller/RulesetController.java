@@ -138,7 +138,8 @@ public class RulesetController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @ApiResponse(responseCode = "409", description = "The version is not a DRAFT, or is protected",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
-    @ApiResponse(responseCode = "503", description = "The model provider failed; the review is left FAILED",
+    @ApiResponse(responseCode = "503",
+            description = "The model provider failed or the day's token budget is spent; the review is left FAILED",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @PostMapping(ApiPaths.RULESET_VERSION_REVIEW)
     public VersionResponse review(@PathVariable UUID id, @PathVariable int no,
@@ -154,7 +155,7 @@ public class RulesetController {
             try {
                 return Optional.of(reviewer.review(version.get(), session.sandboxId(), true));
             } catch (LlmUnavailableException e) {
-                throw new ApiException(ErrorCode.PROVIDER_UNAVAILABLE);
+                throw new ApiException(ErrorCode.unavailable(e));
             }
         });
     }

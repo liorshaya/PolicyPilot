@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.ai.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
@@ -13,6 +14,7 @@ import com.liorshaya.policypilot.support.RecordedGateway.ToolCall;
 import com.liorshaya.policypilot.support.Requirement;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Demo step 3 served from the cache (Document 4, Serving the scripted questions from the cache; Document 6, Cached chat
@@ -46,6 +49,8 @@ class CachedScriptedAnswerIT {
     static {
         POSTGRES.start();
     }
+
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Autowired
     private ChatService chat;
@@ -101,6 +106,42 @@ class CachedScriptedAnswerIT {
         assertThat(model.asked()).hasSize(asked + 1);
         assertThat(model.toolResults().getLast()).startsWith("<tool_result error=\"not_found\">");
         assertThat(undecided.cited()).doesNotContain("d:17");
+    }
+
+    // Document 2, the tool event (2026-09-28, Register phase 4): a served answer's tool calls run again in the
+    // caller's sandbox and are reported as they end, before its first token. Expected: no model call, one tool event
+    // per call the served answer stored, all of them before the first token, and getDecision of application 17
+    // referred by R-330, as the Python reference decides it (Document 3's worked example)
+    @Test
+    void aServedAnswerReportsItsToolCallsBeforeItsFirstToken() {
+        String referral = question("Q-01");
+        decided().ask(referral);
+        int asked = model.asked().size();
+
+        ScriptedQuestions.Asked served = decided().ask(referral);
+
+        assertThat(model.asked()).hasSize(asked);
+        assertThat(served.tools()).hasSize(JSON.readTree(served.toolCalls()).size()).isNotEmpty();
+        assertThat(served.events().lastIndexOf("tool")).isLessThan(served.events().indexOf("token"));
+        assertThat(served.tools()).anySatisfy(call -> {
+            assertThat(call.tool()).isEqualTo("getDecision");
+            assertThat(call.applicationNumber()).isEqualTo(17);
+            assertThat(call.decided()).isEqualTo(new ToolCallReport.Decided("refer", "R-330", List.of()));
+        });
+    }
+
+    // Document 4: a replay whose calls return something else is discarded and the question answered live with a
+    // fresh turn. Expected: the tool events are the live turn's alone, one per call its answer stored, each refused
+    // as not_found in a sandbox that decided nothing
+    @Test
+    void aDiscardedReplayReportsOnlyTheLiveTurnsCalls() {
+        String referral = question("Q-01");
+        decided().ask(referral);
+
+        ScriptedQuestions.Asked undecided = ScriptedQuestions.undecided(chat, rulesets, jdbc).ask(referral);
+
+        assertThat(undecided.tools()).hasSize(JSON.readTree(undecided.toolCalls()).size()).isNotEmpty();
+        assertThat(undecided.tools()).allSatisfy(call -> assertThat(call.refused()).isEqualTo("not_found"));
     }
 
     // Document 4: "A live answer is kept only when it ... meets its label". Q-03's label asks for 84; an answer

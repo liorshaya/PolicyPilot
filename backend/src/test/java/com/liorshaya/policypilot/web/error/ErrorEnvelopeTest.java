@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.jayway.jsonpath.JsonPath;
+import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.test.simple.SimpleTracer;
@@ -187,9 +188,21 @@ class ErrorEnvelopeTest {
         "NOT_FOUND, 404", "VERSION_STATUS_CONFLICT, 409", "PAYLOAD_TOO_LARGE, 413", "UNSUPPORTED_MEDIA_TYPE, 415", "POLICY_INVALID, 422",
         "UPLOAD_REJECTED, 422", "RULESET_INVALID, 422", "CASE_INVALID, 422", "FINDINGS_UNRESOLVED, 422",
         "RATE_LIMITED, 429", "INTERNAL_ERROR, 500",
-        "PROVIDER_UNAVAILABLE, 503"})
+        "PROVIDER_UNAVAILABLE, 503", "BUDGET_EXHAUSTED, 503"})
     void everyErrorCodeMapsToItsDocumentedStatus(String code, int status) {
         assertThat(ErrorCode.valueOf(code).status().value()).isEqualTo(status);
+    }
+
+    // Document 2, Error codes (2026-09-28, Register phase 4): a model call the day's token budget stopped is
+    // BUDGET_EXHAUSTED, the budget's own code; every other call that did not answer is the provider's. Expected: that
+    // code for every reason a call can fail with
+    @ParameterizedTest(name = "{0} is {1}")
+    @CsvSource({"BUDGET_EXHAUSTED, BUDGET_EXHAUSTED", "TIMEOUT, PROVIDER_UNAVAILABLE",
+        "RATE_LIMITED, PROVIDER_UNAVAILABLE", "PROVIDER_ERROR, PROVIDER_UNAVAILABLE",
+        "OUTPUT_TRUNCATED, PROVIDER_UNAVAILABLE"})
+    void aModelCallThatDidNotAnswerIsReportedWithItsReasonsCode(String reason, String code) {
+        assertThat(ErrorCode.unavailable(new LlmUnavailableException(LlmUnavailableException.Reason.valueOf(reason),
+                "no answer"))).isEqualTo(ErrorCode.valueOf(code));
     }
 
     // Document 2, Error codes: the table, row for row
@@ -199,7 +212,7 @@ class ErrorEnvelopeTest {
                 "ACCESS_CODE_INVALID", "SESSION_INVALID", "CSRF_REJECTED", "ADMIN_CODE_INVALID", "NOT_FOUND",
                 "VERSION_STATUS_CONFLICT", "PAYLOAD_TOO_LARGE", "UNSUPPORTED_MEDIA_TYPE", "POLICY_INVALID",
                 "UPLOAD_REJECTED", "RULESET_INVALID", "CASE_INVALID", "FINDINGS_UNRESOLVED",
-                "RATE_LIMITED", "INTERNAL_ERROR", "PROVIDER_UNAVAILABLE", "ANSWER_WITHHELD");
+                "RATE_LIMITED", "INTERNAL_ERROR", "PROVIDER_UNAVAILABLE", "BUDGET_EXHAUSTED", "ANSWER_WITHHELD");
     }
 
     @Test

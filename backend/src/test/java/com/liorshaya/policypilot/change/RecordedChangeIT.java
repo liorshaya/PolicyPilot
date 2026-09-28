@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.change;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.change.ChangeAnalysis;
 import com.liorshaya.policypilot.ai.service.Candidates;
 import com.liorshaya.policypilot.ai.service.ChangeBase;
@@ -73,6 +74,9 @@ class RecordedChangeIT {
 
         @Override
         public void regression() {}
+
+        @Override
+        public void spent(TokenUsage usage) {}
     };
 
     @Autowired

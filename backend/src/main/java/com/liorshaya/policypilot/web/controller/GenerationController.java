@@ -114,7 +114,7 @@ public class GenerationController {
             }
             emitter.complete();
         } catch (LlmUnavailableException e) {
-            fail(emitter, lease, ErrorCode.PROVIDER_UNAVAILABLE, e.reason().name(), e);
+            fail(emitter, lease, ErrorCode.unavailable(e), e.reason().name(), e);
         } catch (LlmMalformedOutputException e) {
             fail(emitter, lease, ErrorCode.RULESET_INVALID, "the model did not answer with a document", e);
         } catch (RuntimeException e) {

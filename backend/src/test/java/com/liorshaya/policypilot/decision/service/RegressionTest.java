@@ -76,10 +76,10 @@ class RegressionTest {
         UUID first = new UUID(0, 1);
         UUID second = new UUID(0, 2);
         List<Regression.Decided> decided = List.of(
-                new Regression.Decided(second, null, "refer", null, input),
-                new Regression.Decided(UUID.randomUUID(), 3, "refer", null, input),
-                new Regression.Decided(first, null, "refer", null, input),
-                new Regression.Decided(UUID.randomUUID(), 1, "refer", null, input));
+                new Regression.Decided(second, null, "refer", null, List.of(), input),
+                new Regression.Decided(UUID.randomUUID(), 3, "refer", null, List.of(), input),
+                new Regression.Decided(first, null, "refer", null, List.of(), input),
+                new Regression.Decided(UUID.randomUUID(), 1, "refer", null, List.of(), input));
         String outcome = outcomeOf(base, input);
 
         Regression regression = Regression.of(decided, CompiledRuleSet.compile(MAPPER.toRuleSet(base)), ENGINE);
@@ -101,12 +101,13 @@ class RegressionTest {
                 "{\"name\": \"bonus_income\", \"type\": \"number\", \"required\": true}"));
         ObjectNode input = inputs("policies/consumer-lending/cases-200.json").getFirst();
         List<Regression.Decided> decided = List.of(
-                new Regression.Decided(UUID.randomUUID(), 1, outcomeOf(base, input), "R-900", input),
-                new Regression.Decided(UUID.randomUUID(), 2, Regression.ERROR, null, input));
+                new Regression.Decided(UUID.randomUUID(), 1, outcomeOf(base, input), "R-900", List.of(), input),
+                new Regression.Decided(UUID.randomUUID(), 2, Regression.ERROR, null, List.of(), input));
 
         Regression regression = Regression.of(decided, CompiledRuleSet.compile(MAPPER.toRuleSet(copy)), ENGINE);
 
         assertThat(regression.decisions()).isEqualTo(2);
+        assertThat(regression.before()).isEqualTo(Map.of(outcomeOf(base, input), 1, Regression.ERROR, 1));
         assertThat(regression.flips()).singleElement().satisfies(flip -> {
             assertThat(flip.caseNo()).isEqualTo(1);
             assertThat(flip.after()).isEqualTo(Regression.ERROR);
@@ -124,6 +125,57 @@ class RegressionTest {
         assertThat(regression.decisions()).isZero();
         assertThat(regression.flips()).isEmpty();
         assertThat(regression.transitions()).isEmpty();
+        assertThat(regression.before()).isEmpty();
+        assertThat(regression.flagsMoved()).isEqualTo(new Regression.FlagsMoved(0, Map.of()));
+    }
+
+    // Document 3, Regression report (2026-09-28, Register phase 4): the report counts the base outcomes, before.
+    // Expected: CR-1 over cases-200 as the Python reference decides it, 113 approved, 27 referred and 60 rejected
+    @Test
+    void theReportCountsTheBaseOutcomes() {
+        Regression regression = scripted();
+
+        assertThat(regression.before()).isEqualTo(Map.of("approve", 113, "refer", 27, "reject", 60));
+    }
+
+    // Document 3: and the flags that moved, how many decisions gained or lost a flag, by the rule that raises it.
+    // Expected: the Python reference's eleven decisions, every one by R-410, whose range the change moved, and six of
+    // them by R-420 as well, which the raised threshold now stops before
+    @Test
+    void theReportCountsTheFlagsThatMovedByTheRuleThatRaisesThem() {
+        Regression regression = scripted();
+
+        assertThat(regression.flagsMoved().decisions()).isEqualTo(11);
+        assertThat(regression.flagsMoved().byRule()).isEqualTo(Map.of("R-410", 11, "R-420", 6));
+    }
+
+    // Expected: a decision whose flags are the same codes from the same rules has not moved, in whatever order they
+    // were stored, and one with a flag the copy does not raise has. Case 8, which the Python reference approves by
+    // R-900 with INCOME_NEAR_MINIMUM by R-410 and STABLE_INCOME_MANUAL_CHECK by R-420, decided again by the base
+    @Test
+    void theSameFlagsInAnotherOrderHaveNotMoved() {
+        ObjectNode base = Fixtures.lendingV1();
+        ObjectNode input = inputs("policies/consumer-lending/cases-200.json").get(7);
+        List<Regression.Raised> raised = List.of(new Regression.Raised("INCOME_NEAR_MINIMUM", "R-410"),
+                new Regression.Raised("STABLE_INCOME_MANUAL_CHECK", "R-420"));
+        List<Regression.Raised> more = new ArrayList<>(raised);
+        more.add(new Regression.Raised("NOT_RAISED", "R-999"));
+        List<Regression.Decided> stored = List.of(
+                new Regression.Decided(UUID.randomUUID(), 8, "approve", "R-900", raised.reversed(), input),
+                new Regression.Decided(UUID.randomUUID(), 9, "approve", "R-900", more, input));
+
+        Regression regression = Regression.of(stored, CompiledRuleSet.compile(MAPPER.toRuleSet(base)), ENGINE);
+
+        assertThat(regression.flips()).isEmpty();
+        assertThat(regression.flagsMoved()).isEqualTo(new Regression.FlagsMoved(1, Map.of("R-999", 1)));
+    }
+
+    /** CR-1, the scripted change, over its regression case file, cases-200. */
+    private static Regression scripted() {
+        JsonNode change = labeled("CR-1");
+        ObjectNode base = Fixtures.lendingV1();
+        return regression(base, patched(base, change.required("expected").required("patches")),
+                inputs(change.required("regression").required("cases").asString()));
     }
 
     /** Every input decided by the base, then the regression of the copy over those decisions. */
@@ -133,7 +185,8 @@ class RegressionTest {
         for (int i = 0; i < inputs.size(); i++) {
             Decision decision = (Decision) ENGINE.evaluate(compiled, inputs.get(i).deepCopy());
             decided.add(new Regression.Decided(UUID.randomUUID(), i + 1, decision.outcome().json(),
-                    decision.decidingRuleId(), inputs.get(i)));
+                    decision.decidingRuleId(), decision.flags().stream()
+                            .map(flag -> new Regression.Raised(flag.code(), flag.ruleId())).toList(), inputs.get(i)));
         }
         return Regression.of(decided, CompiledRuleSet.compile(MAPPER.toRuleSet(copy)), ENGINE);
     }

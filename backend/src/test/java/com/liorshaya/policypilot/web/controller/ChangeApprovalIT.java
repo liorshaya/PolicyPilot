@@ -237,6 +237,21 @@ class ChangeApprovalIT extends ApiIntegrationTest {
         assertThat(JSON.readTree((String) entry.get("details_json")).required("note").asString()).isEqualTo(NOTE);
     }
 
+    // Document 2 (2026-09-28, Register phase 4): both return the decided request with its number. Expected: 1 for the
+    // sandbox's first request, approved, and 2 for its second, rejected
+    @Test
+    void theDecidedRequestCarriesItsNumber() {
+        String first = propose(seeded, 1);
+        String second = propose(seeded, 1);
+
+        HttpResponse<String> approved = decide(APPROVE, first, null);
+        HttpResponse<String> rejected = decide(REJECT, second, null);
+
+        assertThat(JSON.readTree(approved.body()).required("number").asInt()).isEqualTo(1);
+        assertThat(JSON.readTree(rejected.body()).required("number").asInt()).isEqualTo(2);
+        assertThat(contract.violations("post", REJECT, 200, rejected.body())).isEmpty();
+    }
+
     // Document 5, no existence oracle. Expected: another sandbox's approval and rejection are 404 and change nothing
     @Test
     void anotherSandboxsRequestIsNotFound() {

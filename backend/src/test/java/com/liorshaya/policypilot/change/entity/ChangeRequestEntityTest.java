@@ -60,7 +60,7 @@ class ChangeRequestEntityTest {
     }
 
     private static ChangeRequestEntity proposed() {
-        return new ChangeRequestEntity(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "העלה את הסף",
+        return new ChangeRequestEntity(UUID.randomUUID(), UUID.randomUUID(), 1, UUID.randomUUID(), "העלה את הסף",
                 "[]", "{}", "{}", PROPOSED_AT, "sandbox");
     }
 }

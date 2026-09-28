@@ -54,7 +54,8 @@ public class ExplainController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @ApiResponse(responseCode = "404", description = "No such decision in this sandbox",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
-    @ApiResponse(responseCode = "503", description = "The model provider failed, or its answer was not an explanation",
+    @ApiResponse(responseCode = "503",
+            description = "The provider failed, the day's token budget is spent, or the answer was not an explanation",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @PostMapping(ApiPaths.DECISION_EXPLAIN)
     public ExplanationResponse explain(@PathVariable UUID id,
@@ -69,7 +70,7 @@ public class ExplainController {
         try {
             return ExplanationResponse.of(id, audience, explainer.explain(decision.decision(), audience, language));
         } catch (LlmUnavailableException e) {
-            throw new ApiException(ErrorCode.PROVIDER_UNAVAILABLE);
+            throw new ApiException(ErrorCode.unavailable(e));
         } catch (LlmMalformedOutputException e) {
             // Document 2, explain row: the provider answered, but not with an explanation; nothing reaches the reader
             log.warn("explanation malformed: {}", e.getMessage());

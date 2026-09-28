@@ -4,6 +4,7 @@ import com.liorshaya.policypilot.ai.Completion;
 import com.liorshaya.policypilot.ai.LlmGateway;
 import com.liorshaya.policypilot.ai.LlmMalformedOutputException;
 import com.liorshaya.policypilot.ai.PromptSpec;
+import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.adapter.ProviderSchemaVariant;
 import com.liorshaya.policypilot.ai.prompt.DslCheatSheet;
 import com.liorshaya.policypilot.ai.prompt.PromptDefinition;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -69,17 +69,17 @@ public class ChangeService {
      * @param base the published version the request is against
      * @param request the request as the analyst wrote it, normalized
      * @param candidates the rules candidate selection found; the model sees these and no others
-     * @param progress told when each stage begins, so the caller can stream it
+     * @param progress told when each stage begins and what each answer cost, so the caller can stream it
      * @throws LlmMalformedOutputException when no answer, repairs included, was a JSON object
      */
-    public Proposal propose(ChangeBase base, String request, Candidates candidates, Consumer<Stage> progress) {
+    public Proposal propose(ChangeBase base, String request, Candidates candidates, Progress progress) {
         PromptDefinition change = prompts.get(PROMPT);
-        progress.accept(Stage.PROPOSING);
+        progress.stage(Stage.PROPOSING);
         PromptSpec spec = specOf(change, base, request, candidates);
         List<PromptSpec> asked = new ArrayList<>(List.of(spec));
-        Answer answer = ask(spec);
+        Answer answer = ask(spec, progress);
 
-        progress.accept(Stage.VALIDATING);
+        progress.stage(Stage.VALIDATING);
         PatchValidator.Scope scope = new PatchValidator.Scope(request, Set.copyOf(candidates.ruleIds()),
                 base.retiredIds());
         PatchValidation validation = answer.validate(validator, base, scope);
@@ -89,7 +89,7 @@ public class ChangeService {
             repairs++;
             spec = spec.repairedWith(repairPrompt(answer, validation, base));
             asked.add(spec);
-            answer = ask(spec);
+            answer = ask(spec, progress);
             validation = answer.validate(validator, base, scope);
             reportFailure(spec, validation);
         }
@@ -141,8 +141,9 @@ public class ChangeService {
         }
     }
 
-    private Answer ask(PromptSpec spec) {
+    private Answer ask(PromptSpec spec, Progress progress) {
         Completion<String> answer = gateway.complete(spec, String.class);
+        progress.answered(answer.usage());
         try {
             // the provider's variant makes every optional property nullable, and a null is how the model says
             // "absent"; the canonical schema never asked for them (Document 4, Output discipline)
@@ -219,5 +220,20 @@ public class ChangeService {
     public enum Stage {
         PROPOSING,
         VALIDATING
+    }
+
+    /**
+     * What a caller is told while a proposal is made (Document 2, API Surface): each stage as it begins, and what each
+     * answer cost as it arrives, so the stream can say what each stage spent (added 2026-09-28, Register phase 4).
+     */
+    @FunctionalInterface
+    public interface Progress {
+
+        void stage(Stage stage);
+
+        /** An answer arrived in the stage under way: what it cost, nothing for one the cache served. */
+        default void answered(TokenUsage usage) {
+            // a caller that streams no spend has nothing to count
+        }
     }
 }

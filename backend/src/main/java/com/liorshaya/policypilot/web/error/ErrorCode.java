@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.web.error;
 
+import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -24,6 +25,7 @@ public enum ErrorCode {
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests; retry later."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong; quote the trace id."),
     PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "The model provider is unavailable."),
+    BUDGET_EXHAUSTED(HttpStatus.SERVICE_UNAVAILABLE, "The day's token budget is spent."),
     ANSWER_WITHHELD(HttpStatus.BAD_GATEWAY, "The answer was withheld.");
 
     private final HttpStatus status;
@@ -40,5 +42,15 @@ public enum ErrorCode {
 
     public String message() {
         return message;
+    }
+
+    /**
+     * The code of a model call that did not answer (Document 2, Error codes): the budget's own when the day's token
+     * budget stopped it (Document 5, Spend caps), the provider's for every other reason.
+     */
+    public static ErrorCode unavailable(LlmUnavailableException failure) {
+        return failure.reason() == LlmUnavailableException.Reason.BUDGET_EXHAUSTED
+                ? BUDGET_EXHAUSTED
+                : PROVIDER_UNAVAILABLE;
     }
 }

@@ -29,10 +29,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The audit routes (Document 2, {@code GET /audit?versionId=} and {@code GET /audit/export}; Document 5,
- * Authorization (sandbox)): the entries of the seeded lending version and of the sandbox's own copy, as the change
- * routes write them. Every other sandbox's proposals land on the same seeded version, so each test sees the isolation
- * rule at work: an entry about another sandbox's change request is never shown.
+ * The audit routes (Document 2, {@code GET /audit} with or without {@code versionId}, and {@code GET /audit/export};
+ * Document 5, Authorization (sandbox)): the entries of the seeded lending version and of the sandbox's own copy, as the
+ * change routes write them. Every other sandbox's proposals land on the same seeded version, so each test sees the
+ * isolation rule at work: an entry about another sandbox's change request is never shown.
  */
 @Requirement("FR-19")
 @Import(RecordedModel.class)
@@ -122,7 +122,7 @@ class AuditRoutesIT extends ApiIntegrationTest {
     }
 
     // Document 5, no existence oracle. Expected: 404 for an id no version has and for a version of the copy another
-    // sandbox made by approving a change, and 400 without a versionId
+    // sandbox made by approving a change
     @Test
     void aVersionTheSandboxCannotSeeIsNotFound() {
         String stranger = api().login("198.51.100.42");
@@ -131,13 +131,35 @@ class AuditRoutesIT extends ApiIntegrationTest {
 
         HttpResponse<String> unknown = api().get(AUDIT + "?versionId=" + UUID.randomUUID()).cookie(session).send();
         HttpResponse<String> theirs = api().get(AUDIT + "?versionId=" + copied).cookie(session).send();
-        HttpResponse<String> none = api().get(AUDIT).cookie(session).send();
 
         assertThat(unknown.statusCode()).isEqualTo(404);
         assertThat(contract.violations("get", AUDIT, 404, unknown.body())).isEmpty();
         assertThat(theirs.statusCode()).isEqualTo(404);
-        assertThat(none.statusCode()).isEqualTo(400);
-        assertThat(contract.violations("get", AUDIT, 400, none.body())).isEmpty();
+    }
+
+    // Document 2 (2026-09-28, Register phase 4): without a versionId, every entry the sandbox can see, the entries the
+    // export holds, and an entry about a change request carries its number. Expected: after an approval, the export's
+    // entries in its order, the proposal and the approval with the number 1, and no number on an entry about none
+    @Test
+    void withoutAVersionItIsEveryEntryTheSandboxCanSeeWithTheRequestsNumber() {
+        String id = propose(session);
+        api().post("/api/v1/changes/" + id + "/approve").web().cookie(session).send();
+
+        HttpResponse<String> response = api().get(AUDIT).cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", AUDIT, 200, response.body())).isEmpty();
+        assertThat(ids(response)).isEqualTo(ids(api().get(EXPORT).cookie(session).send()));
+        List<JsonNode> entries = JSON.readTree(response.body()).required("entries").valueStream().toList();
+        List<JsonNode> ofTheRequest = entries.stream().filter(entry -> !entry.required("changeRequestId").isNull()
+                && entry.required("changeRequestId").asString().equals(id)).toList();
+        assertThat(ofTheRequest.stream().map(entry -> entry.required("action").asString()))
+                .containsExactlyInAnyOrder("CHANGE_PROPOSED", "CHANGE_APPROVED");
+        assertThat(ofTheRequest).allSatisfy(entry ->
+                assertThat(entry.required("changeRequestNumber").asInt()).isEqualTo(1));
+        assertThat(entries.stream().filter(entry -> entry.required("changeRequestId").isNull()))
+                .isNotEmpty()
+                .allSatisfy(entry -> assertThat(entry.required("changeRequestNumber").isNull()).isTrue());
     }
 
     // Document 2: the audit log as CSV, formula-prefixed, with a byte order mark, as an attachment. Expected: the

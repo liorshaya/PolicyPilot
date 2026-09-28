@@ -13,7 +13,8 @@ import { lendingRuleSet } from './lending'
  * The audit trail of the scripted change, entry by entry as the API writes it (Document 2, approve and reject: "a
  * CHANGE_APPROVED audit entry on the new version holds the actor, the request text, the note, the diff and the
  * regression report"; the details are those ChangeRequestService and RulesetService store). The request, the diff and
- * the regression are the committed fixtures'.
+ * the regression are the committed fixtures'. An entry about a change request carries the request's number in its
+ * sandbox (GET /audit): the scripted request was the sandbox's first, the rejected one its second.
  */
 
 export const SEEDED_POLICY_VERSION_ID = '0f4c1c9e-0000-4000-8000-0000000000d1'
@@ -32,6 +33,7 @@ export const approvalEntry: AuditEntry = {
   action: 'CHANGE_APPROVED',
   rulesetVersionId: COPY_VERSION_ID,
   changeRequestId: PROPOSAL_ID,
+  changeRequestNumber: 1,
   details: {
     rulesetId: COPY_RULESET_ID,
     versionNo: 2,
@@ -53,6 +55,7 @@ export const copyPublishEntry: AuditEntry = {
   action: 'PUBLISH',
   rulesetVersionId: COPY_FIRST_VERSION_ID,
   changeRequestId: null,
+  changeRequestNumber: null,
   details: {
     rulesetId: COPY_RULESET_ID,
     versionNo: 1,
@@ -70,6 +73,7 @@ export const proposedEntry: AuditEntry = {
   action: 'CHANGE_PROPOSED',
   rulesetVersionId: BASE_VERSION_ID,
   changeRequestId: PROPOSAL_ID,
+  changeRequestNumber: 1,
   details: { rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b1', versionNo: 1, patches: 2 },
 }
 
@@ -80,6 +84,7 @@ export const seedPublishEntry: AuditEntry = {
   action: 'PUBLISH',
   rulesetVersionId: BASE_VERSION_ID,
   changeRequestId: null,
+  changeRequestNumber: null,
   details: {
     rulesetId: '0f4c1c9e-0000-4000-8000-0000000000b1',
     versionNo: 1,
@@ -95,6 +100,7 @@ export const rejectedEntry: AuditEntry = {
   action: 'CHANGE_REJECTED',
   rulesetVersionId: BASE_VERSION_ID,
   changeRequestId: '0f4c1c9e-0000-4000-8000-0000000000f2',
+  changeRequestNumber: 2,
   details: { requestText: scriptedRequest.text.he, note: 'לא בתקופת הבחירות' },
 }
 
@@ -105,6 +111,7 @@ export const gapEntry: AuditEntry = {
   action: 'GAP_ACKNOWLEDGED',
   rulesetVersionId: '0f4c1c9e-0000-4000-8000-0000000000c2',
   changeRequestId: null,
+  changeRequestNumber: null,
   details: {
     id: 'F-4',
     kind: 'gap',
