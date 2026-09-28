@@ -4,12 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * The Register's "don't" list as a build check (Document 9, phase 0; the spec's section 12). Component CSS writes no
- * literal colour, no px font size, no gradient, no Inter or Heebo, no uppercase outside the seal, no letter-spacing
- * outside the seal, the band and the figure's value, and none of the old --color-* aliases, which live in tokens.css
- * only; no component sets a colour or a font size in a style attribute. The two spec layers, tokens.css (every value)
- * and index.css (the base), are copied verbatim and left out: the owner's answer of 2026-09-28 to the board's question
- * 2. The figure's value keeps the spec's −0.01em: the owner's answer of 2026-09-28 to phase 3's seventh question
- * (section 12 forbids tracked-out uppercase labels, not the tightening of a large numeral).
+ * literal colour, no px font size, no gradient, no Inter or Heebo, no uppercase outside the seal and no letter-spacing
+ * outside the seal, the band and the figure's value; no component sets a colour or a font size in a style attribute;
+ * and the tokens of the product before the Register, aliased in tokens.css while their components waited for their
+ * phase, are gone from every file (Document 9, phase 5). The two spec layers, tokens.css (every value) and index.css
+ * (the base), are copied verbatim and left out of the CSS rules: the owner's answer of 2026-09-28 to the board's
+ * question 2. The figure's value keeps the spec's −0.01em: the owner's answer of 2026-09-28 to phase 3's seventh
+ * question (section 12 forbids tracked-out uppercase labels, not the tightening of a large numeral).
  */
 
 /** Vitest runs from the project root, where its configuration lives. */
@@ -54,16 +55,7 @@ const RULES: [name: string, hits: (selector: string, declarations: string) => nu
         ? 0
         : count(body, /letter-spacing\s*:/g),
   ],
-  ['old --color-* alias', (_selector, body) => count(body, /--color-[a-z0-9-]+\s*:/g)],
 ]
-
-/**
- * The hits of the components that are not ported yet, frozen on 2026-09-28 (the owner's answer to the board's
- * question 1): each file with the phase of Document 9 that ports it, and its hits by rule. The list only shrinks: a
- * new hit fails, and so does a hit that is gone while its count is still here. Phase 5 leaves it empty.
- */
-const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> =
-  {}
 
 /** Every CSS rule of a stylesheet as [selector, declarations], comments removed and at-rules opened. */
 function cssRules(css: string): [string, string][] {
@@ -90,15 +82,6 @@ function breaking(name: string): Record<string, number> {
   return found
 }
 
-/** The files the frozen list allows to break a rule, with their counts. */
-function allowed(name: string): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(NOT_YET_PORTED).flatMap(([file, { hits }]) =>
-      hits[name] === undefined ? [] : [[file, hits[name]]],
-    ),
-  )
-}
-
 /** A style attribute's property that sets a colour or a font size. */
 const COLOUR_OR_FONT_SIZE =
   /\b(?:color|background(?:Color)?|border(?:[A-Z][a-z]+)*Color|outlineColor|fill|stroke|caretColor|accentColor|textDecorationColor|fontSize|font)\s*:/
@@ -112,13 +95,27 @@ const FACES: Record<string, number[]> = {
   'frank-ruhl-libre': [400, 500],
 }
 
+/**
+ * The names of the tokens before the Register (phase 0's alias block: the --color-* family, the --space-* and
+ * --radius-* sizes, and the old frame's values), which no file may define or read now that every component is ported.
+ */
+const OLD_TOKEN =
+  /--(?:color-[a-z0-9-]+|space-\d+|radius-(?:sm|md|lg)|header-height|sidebar-width|control-height(?:-lg)?|leading-normal|pp-[a-z-]+)\b/g
+
 describe('component CSS', () => {
-  it.each(RULES.map(([name]) => name))(
-    'adds no %s beyond the frozen list of files not yet ported',
-    (name) => {
-      expect(breaking(name)).toEqual(allowed(name))
-    },
-  )
+  it.each(RULES.map(([name]) => name))('adds no %s', (name) => {
+    expect(breaking(name)).toEqual({})
+  })
+})
+
+describe('the tokens before the Register', () => {
+  it('are gone: no stylesheet, component or page defines or reads one', () => {
+    const files = [...sources('.css'), ...sources('.tsx'), ...sources('.ts'), 'index.html'].filter(
+      (file) => file !== 'src/styles/register.lint.test.ts',
+    )
+
+    expect(files.filter((file) => count(read(file), OLD_TOKEN) > 0)).toEqual([])
+  })
 })
 
 describe('components', () => {

@@ -141,23 +141,11 @@ bdi {
 }
 
 /*
- * Kept for the components not yet ported (Document 9, phase 0), and deleted with the aliases of tokens.css once the
- * last of them is: the old shell fills the window from its root, and the old headings take their sizes from here.
+ * The product's own: the shell is the window (the spec, section 08: the header stays put, the sheet and the margin
+ * scroll on their own), so it fills the window from the root down.
  */
 html,
 body,
 #root {
   height: 100%;
-}
-
-h1 {
-  font-size: var(--text-xl);
-}
-
-h2 {
-  font-size: var(--text-lg);
-}
-
-h3 {
-  font-size: var(--text-md);
 }
