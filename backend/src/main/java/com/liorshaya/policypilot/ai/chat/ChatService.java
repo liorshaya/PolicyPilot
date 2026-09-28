@@ -17,9 +17,11 @@ import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
 import com.liorshaya.policypilot.ai.service.chat.ChatHistory;
 import com.liorshaya.policypilot.ai.service.chat.ChatPrompt;
 import com.liorshaya.policypilot.ai.service.chat.ChatTurn;
+import com.liorshaya.policypilot.ai.service.chat.FixedAnswer;
 import com.liorshaya.policypilot.ai.service.chat.FixedSentences;
 import com.liorshaya.policypilot.ai.service.chat.OutputDenylist;
 import com.liorshaya.policypilot.ai.service.chat.ScriptedAnswers;
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.rag.service.NotCoveredSentences;
@@ -36,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
@@ -142,23 +145,26 @@ public class ChatService {
                 .orElseThrow(() -> new VersionStatusException("the session's version is gone"));
         if (!found.covered()) {
             sink.token(found.notCovered());
-            return finish(session, turnNo, question, found.notCovered(), List.of(), List.of(), TokenUsage.NONE, sink);
+            return finish(session, turnNo, question, found.notCovered(), List.of(), List.of(), TokenUsage.NONE,
+                    FixedAnswer.NOT_COVERED, sink);
         }
         PromptSpec spec = ChatPrompt.spec(prompts.get(PROMPT), session.versionNo(), session.domain(), language,
                 found.chunks(), ChatHistory.of(turns(earlier)), question, notCovered.of(language));
         Optional<ScriptedAnswers.Label> label = scripted.labelOf(question);
         Optional<CachedAnswer> cached = label.isPresent() ? cache.find(spec) : Optional.empty();
         if (cached.isPresent()) {
-            ChatTurn turn = turnOf(found);
+            List<ToolCallReport> held = new ArrayList<>();
+            ChatTurn turn = turnOf(found, held::add);
+            ChatEvents replaying = new ReportingFirst(held, sink);
             Optional<AnswerComposer.Answer> replayed = composer.replay(spec, cached.get(),
                     tools.forTurn(turn, prepared.version(), corpus.ruleSet(), session.sandboxId()), turn, language,
-                    notCovered.of(language), sink);
+                    notCovered.of(language), replaying);
             if (replayed.isPresent()) {
                 cache.served(spec);
-                return finish(session, turnNo, question, replayed.get(), turn, corpus, sink);
+                return finish(session, turnNo, question, replayed.get(), turn, corpus, replaying);
             }
         }
-        ChatTurn turn = turnOf(found);
+        ChatTurn turn = turnOf(found, sink::tool);
         AnswerComposer.Answer answer = composer.compose(spec,
                 tools.forTurn(turn, prepared.version(), corpus.ruleSet(), session.sandboxId()), turn, language,
                 notCovered.of(language), sink);
@@ -168,24 +174,25 @@ public class ChatService {
         return finish(session, turnNo, question, answer, turn, corpus, sink);
     }
 
-    /** A turn that may cite what retrieval found. */
-    private static ChatTurn turnOf(Retrieval found) {
-        return new ChatTurn(found.chunks().stream().map(RetrievedChunk::id).collect(Collectors.toSet()));
+    /** A turn that may cite what retrieval found, whose calls are reported as they end. */
+    private static ChatTurn turnOf(Retrieval found, Consumer<ToolCallReport> reports) {
+        return new ChatTurn(found.chunks().stream().map(RetrievedChunk::id).collect(Collectors.toSet()), reports);
     }
 
     private UUID finish(ChatSessionView session, int turnNo, String question, AnswerComposer.Answer answer,
             ChatTurn turn, EmbeddingSource corpus, ChatEvents sink) {
         return finish(session, turnNo, question, answer.text(),
                 ChatCitations.of(answer.cited(), turn, corpus.ruleSet(), corpus.paragraphs()), turn.calls(),
-                answer.usage(), sink);
+                answer.usage(), answer.fixed(), sink);
     }
 
     private UUID finish(ChatSessionView session, int turnNo, String question, String answer,
-            List<ChatCitation> citations, List<ChatTurn.ToolCallRecord> calls, TokenUsage usage, ChatEvents sink) {
+            List<ChatCitation> citations, List<ChatTurn.ToolCallRecord> calls, TokenUsage usage,
+            @Nullable FixedAnswer fixed, ChatEvents sink) {
         sink.citations(citations);
         sink.usage(usage, calls.size());
         UUID answerId = store(session.id(), turnNo, question, answer, citations, calls, usage);
-        sink.done(answerId);
+        sink.done(answerId, fixed);
         return answerId;
     }
 
@@ -230,4 +237,54 @@ public class ChatService {
 
     /** A session ready to take a question: the session, its version and the corpus retrieval searches. */
     public record Prepared(ChatSessionView session, PublishedVersion version, EmbeddingSource corpus) {}
+
+    /**
+     * The events of a replayed answer: the tool calls the replay ran again are reported only once it holds, before its
+     * first event, so an answer that falls back to the model does not report its calls twice.
+     */
+    private static final class ReportingFirst implements ChatEvents {
+
+        private final List<ToolCallReport> held;
+        private final ChatEvents sink;
+
+        ReportingFirst(List<ToolCallReport> held, ChatEvents sink) {
+            this.held = held;
+            this.sink = sink;
+        }
+
+        @Override
+        public void tool(ToolCallReport call) {
+            release();
+            sink.tool(call);
+        }
+
+        @Override
+        public void token(String text) {
+            release();
+            sink.token(text);
+        }
+
+        @Override
+        public void citations(List<ChatCitation> citations) {
+            release();
+            sink.citations(citations);
+        }
+
+        @Override
+        public void usage(TokenUsage usage, int toolCalls) {
+            release();
+            sink.usage(usage, toolCalls);
+        }
+
+        @Override
+        public void done(UUID messageId, @Nullable FixedAnswer fixed) {
+            release();
+            sink.done(messageId, fixed);
+        }
+
+        private void release() {
+            held.forEach(sink::tool);
+            held.clear();
+        }
+    }
 }

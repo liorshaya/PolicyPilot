@@ -1,8 +1,8 @@
 package com.liorshaya.policypilot.web.controller;
 
 import com.liorshaya.policypilot.audit.service.AuditCsv;
-import com.liorshaya.policypilot.audit.service.AuditEntry;
 import com.liorshaya.policypilot.change.service.AuditTrail;
+import com.liorshaya.policypilot.change.service.TrailEntry;
 import com.liorshaya.policypilot.web.error.ApiException;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorEnvelope;
@@ -25,9 +25,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The audit routes of Document 2, API Surface: {@code GET /api/v1/audit?versionId=}, the entries of a version the
- * sandbox can see, newest first, and {@code GET /api/v1/audit/export}, the same or every entry the sandbox can see as
- * JSON or CSV. Neither ever shows an entry about another sandbox's change request (Document 5).
+ * The audit routes of Document 2, API Surface: {@code GET /api/v1/audit}, every entry the sandbox can see, newest
+ * first, or with {@code versionId} the entries of one version it can see, and {@code GET /api/v1/audit/export}, the
+ * same as JSON or CSV. An entry about a change request carries its number; neither route ever shows an entry about
+ * another sandbox's change request (Document 5).
  */
 @RestController
 public class AuditController {
@@ -38,17 +39,18 @@ public class AuditController {
         this.trail = trail;
     }
 
-    @Operation(summary = "The audit entries of a rule set version, newest first")
+    @Operation(summary = "The audit entries the sandbox can see, or those of one rule set version, newest first")
     @ApiResponse(responseCode = "200", description = "The entries this sandbox may read",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = AuditEntriesResponse.class)))
-    @ApiResponse(responseCode = "400", description = "No versionId, or one that is not an id",
+    @ApiResponse(responseCode = "400", description = "A versionId that is not an id",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @ApiResponse(responseCode = "404", description = "No such rule set version in this sandbox",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @GetMapping(ApiPaths.AUDIT)
-    public AuditEntriesResponse audit(@RequestParam UUID versionId, @AuthenticationPrincipal SandboxSession session) {
-        return AuditEntriesResponse.of(ofVersion(versionId, session));
+    public AuditEntriesResponse audit(@RequestParam(required = false) @Nullable UUID versionId,
+            @AuthenticationPrincipal SandboxSession session) {
+        return AuditEntriesResponse.of(entries(versionId, session));
     }
 
     @Operation(summary = "Export the audit log as JSON or CSV (Accept header)")
@@ -63,13 +65,18 @@ public class AuditController {
     public ResponseEntity<Object> export(@RequestParam(required = false) @Nullable UUID versionId,
             @AuthenticationPrincipal SandboxSession session,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) @Nullable String accept) {
-        List<AuditEntry> entries = versionId == null ? trail.all(session.sandboxId()) : ofVersion(versionId, session);
+        List<TrailEntry> entries = entries(versionId, session);
         boolean csv = Exports.wantsCsv(accept);
         return Exports.attachment(versionId == null ? "audit" : "audit-" + versionId, csv,
-                csv ? AuditCsv.of(entries) : AuditEntriesResponse.of(entries));
+                csv ? AuditCsv.of(entries.stream().map(TrailEntry::entry).toList())
+                        : AuditEntriesResponse.of(entries));
     }
 
-    private List<AuditEntry> ofVersion(UUID versionId, SandboxSession session) {
+    /** Every entry the sandbox can see, or those of one version it can see (404 otherwise). */
+    private List<TrailEntry> entries(@Nullable UUID versionId, SandboxSession session) {
+        if (versionId == null) {
+            return trail.all(session.sandboxId());
+        }
         return trail.ofVersion(versionId, session.sandboxId()).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 }

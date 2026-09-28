@@ -23,6 +23,10 @@ public class ChangeRequestEntity {
     @Column(name = "sandbox_id", nullable = false)
     private UUID sandboxId;
 
+    /** The request's number in its sandbox, from 1 (V12). */
+    @Column(nullable = false)
+    private int number;
+
     @Column(name = "base_version_id", nullable = false)
     private UUID baseVersionId;
 
@@ -59,10 +63,11 @@ public class ChangeRequestEntity {
     protected ChangeRequestEntity() {}
 
     /** A proposal as it is first stored: PROPOSED, not decided. */
-    public ChangeRequestEntity(UUID id, UUID sandboxId, UUID baseVersionId, String requestText, String patchesJson,
-            String rationaleJson, String regressionJson, Instant createdAt, String actor) {
+    public ChangeRequestEntity(UUID id, UUID sandboxId, int number, UUID baseVersionId, String requestText,
+            String patchesJson, String rationaleJson, String regressionJson, Instant createdAt, String actor) {
         this.id = id;
         this.sandboxId = sandboxId;
+        this.number = number;
         this.baseVersionId = baseVersionId;
         this.requestText = requestText;
         this.status = "PROPOSED";
@@ -104,6 +109,10 @@ public class ChangeRequestEntity {
 
     public UUID getSandboxId() {
         return sandboxId;
+    }
+
+    public int getNumber() {
+        return number;
     }
 
     public UUID getBaseVersionId() {

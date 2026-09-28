@@ -5,6 +5,8 @@ import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.service.chat.AnswerWithheldException;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
+import com.liorshaya.policypilot.ai.service.chat.FixedAnswer;
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.ai.chat.ChatService;
 import com.liorshaya.policypilot.ruleset.service.VersionStatusException;
 import com.liorshaya.policypilot.web.error.ApiException;
@@ -25,6 +27,7 @@ import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -39,9 +42,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * The chat routes of Document 2, API Surface: {@code POST /api/v1/chat/sessions} opens a session bound to a version of
- * the caller's sandbox, and {@code POST /api/v1/chat/sessions/{id}/messages} answers a question as an event stream,
- * {@code token} events then {@code citations}, {@code usage} and {@code done}, or {@code error} in their place. A chat
- * stream is not resumable; the web app offers a retry.
+ * the caller's sandbox, and {@code POST /api/v1/chat/sessions/{id}/messages} answers a question as an event stream, a
+ * {@code tool} event for each tool call as it ends, {@code token} events, then {@code citations}, {@code usage} and
+ * {@code done} with the fixed sentence the answer is, if it is one, or {@code error} in their place. A chat stream is
+ * not resumable; the web app offers a retry.
  */
 @RestController
 public class ChatController {
@@ -84,7 +88,8 @@ public class ChatController {
     }
 
     @Operation(summary = "Ask a question in a session, answered as a stream of events")
-    @ApiResponse(responseCode = "200", description = "An event stream: token events, then citations, usage and done")
+    @ApiResponse(responseCode = "200",
+            description = "An event stream: tool events, token events, then citations, usage and done")
     @ApiResponse(responseCode = "400", description = "The question is empty, too long or has a control character",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
     @ApiResponse(responseCode = "404", description = "No such chat session in this sandbox",
@@ -115,7 +120,7 @@ public class ChatController {
     }
 
     private void run(SseEmitter emitter, StreamRegistry.Lease lease, ChatService.Prepared prepared, String question) {
-        Events events = new Events(emitter, lease);
+        Events events = new Events(emitter, lease, prepared.session().versionNo());
         try {
             chat.answer(prepared, question, events);
             emitter.complete();
@@ -125,7 +130,7 @@ public class ChatController {
         } catch (AnswerWithheldException e) {
             fail(events, emitter, ErrorCode.ANSWER_WITHHELD, e);
         } catch (LlmUnavailableException e) {
-            fail(events, emitter, ErrorCode.PROVIDER_UNAVAILABLE, e);
+            fail(events, emitter, ErrorCode.unavailable(e), e);
         } catch (RuntimeException e) {
             fail(events, emitter, ErrorCode.INTERNAL_ERROR, e);
         } finally {
@@ -148,10 +153,17 @@ public class ChatController {
 
         private final SseEmitter emitter;
         private final StreamRegistry.Lease lease;
+        private final int versionNo;
 
-        Events(SseEmitter emitter, StreamRegistry.Lease lease) {
+        Events(SseEmitter emitter, StreamRegistry.Lease lease, int versionNo) {
             this.emitter = emitter;
             this.lease = lease;
+            this.versionNo = versionNo;
+        }
+
+        @Override
+        public void tool(ToolCallReport call) {
+            send("tool", ChatEventPayloads.Tool.of(call, versionNo));
         }
 
         @Override
@@ -170,8 +182,8 @@ public class ChatController {
         }
 
         @Override
-        public void done(UUID messageId) {
-            send("done", new ChatEventPayloads.Done(messageId));
+        public void done(UUID messageId, @Nullable FixedAnswer fixed) {
+            send("done", new ChatEventPayloads.Done(messageId, fixed == null ? null : fixed.json()));
         }
 
         void send(String event, Object data) {

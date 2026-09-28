@@ -63,7 +63,7 @@ public class RetrievalController {
         } catch (VersionStatusException e) {
             throw new ApiException(ErrorCode.VERSION_STATUS_CONFLICT);
         } catch (LlmUnavailableException e) {
-            throw new ApiException(ErrorCode.PROVIDER_UNAVAILABLE);
+            throw new ApiException(ErrorCode.unavailable(e));
         }
     }
 }

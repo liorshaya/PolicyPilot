@@ -218,7 +218,7 @@
             }
           },
           "503" : {
-            "description" : "The model provider failed; the review is left FAILED",
+            "description" : "The model provider failed or the day's token budget is spent; the review is left FAILED",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -782,7 +782,7 @@
             }
           },
           "503" : {
-            "description" : "The model provider failed, or its answer was not an explanation",
+            "description" : "The provider failed, the day's token budget is spent, or the answer was not an explanation",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -879,7 +879,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "An event stream: token events, then citations, usage and done",
+            "description" : "An event stream: tool events, token events, then citations, usage and done",
             "content" : {
               "text/event-stream" : {
                 "schema" : {
@@ -1126,6 +1126,25 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ProviderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/budget" : {
+      "get" : {
+        "tags" : [ "system-controller" ],
+        "summary" : "Whether the day's token budget is spent, and when it resumes",
+        "operationId" : "budget",
+        "responses" : {
+          "200" : {
+            "description" : "Whether today's ledger has stopped, and the next midnight UTC",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BudgetResponse"
                 }
               }
             }
@@ -1424,15 +1443,61 @@
         }
       }
     },
+    "/api/v1/changes/{id}/decisions/{decisionId}/trace" : {
+      "get" : {
+        "tags" : [ "change-controller" ],
+        "summary" : "What a proposal decides for one of the sandbox's decisions on its base version",
+        "operationId" : "proposedTrace",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "decisionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The decision object of Document 3 on the patched copy, with its trace, basedOnDecisionId and the request's number; nothing is stored",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such change request or decision in this sandbox, or a decision of another version",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit" : {
       "get" : {
         "tags" : [ "audit-controller" ],
-        "summary" : "The audit entries of a rule set version, newest first",
+        "summary" : "The audit entries the sandbox can see, or those of one rule set version, newest first",
         "operationId" : "audit",
         "parameters" : [ {
           "name" : "versionId",
           "in" : "query",
-          "required" : true,
+          "required" : false,
           "schema" : {
             "type" : "string",
             "format" : "uuid"
@@ -1450,7 +1515,7 @@
             }
           },
           "400" : {
-            "description" : "No versionId, or one that is not an id",
+            "description" : "A versionId that is not an id",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2091,6 +2156,10 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "number" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "status" : {
             "type" : "string",
             "enum" : [ "APPROVED", "REJECTED" ]
@@ -2103,7 +2172,7 @@
             "$ref" : "#/components/schemas/Result"
           }
         },
-        "required" : [ "decidedAt", "id", "status" ]
+        "required" : [ "decidedAt", "id", "number", "status" ]
       },
       "Result" : {
         "type" : "object",
@@ -2174,6 +2243,19 @@
           }
         },
         "required" : [ "chatModels", "embeddingDimension", "embeddingModel", "provider" ]
+      },
+      "BudgetResponse" : {
+        "type" : "object",
+        "properties" : {
+          "spent" : {
+            "type" : "boolean"
+          },
+          "resumesAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "resumesAt", "spent" ]
       },
       "Ruleset" : {
         "type" : "object",
@@ -2465,11 +2547,15 @@
             "type" : [ "string", "null" ],
             "format" : "uuid"
           },
+          "changeRequestNumber" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
           "details" : {
             "description" : "The entry's details"
           }
         },
-        "required" : [ "action", "actor", "at", "changeRequestId", "details", "id", "rulesetVersionId" ]
+        "required" : [ "action", "actor", "at", "changeRequestId", "changeRequestNumber", "details", "id", "rulesetVersionId" ]
       }
     }
   }

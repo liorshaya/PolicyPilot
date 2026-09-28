@@ -183,8 +183,27 @@ public class DecisionService {
         List<Regression.Decided> decided = latest.stream().map(row -> new Regression.Decided(row.getId(),
                 row.getCaseId() == null ? null : caseNumbers.get(row.getCaseId()),
                 row.getOutcome() != null ? row.getOutcome() : Regression.ERROR, row.getDecidingRuleId(),
-                (ObjectNode) JSON.readTree(row.getInput()))).toList();
+                raisedOf(row), (ObjectNode) JSON.readTree(row.getInput()))).toList();
         return Regression.of(decided, CompiledRuleSet.compile(RULES.toRuleSet(copy)), engine);
+    }
+
+    /**
+     * One stored decision of this sandbox on a version, decided again by a patched copy (Document 2, {@code GET
+     * /changes/{id}/decisions/{decisionId}/trace}): the decision object the engine emits, with its trace, or a case
+     * the copy cannot validate as the engine reports it; nothing is stored. Empty for a decision of another sandbox or
+     * of another version.
+     *
+     * @param copy the patched document, which Patch validation passed
+     */
+    @Transactional(readOnly = true)
+    public Optional<ObjectNode> decidedAgain(UUID decisionId, UUID sandboxId, UUID versionId, JsonNode copy) {
+        Optional<DecisionEntity> stored = decisions.findByIdAndSandboxId(decisionId, sandboxId);
+        if (stored.isEmpty() && decisions.existsById(decisionId)) {
+            events.authorizationDenied(ENTITY, sandboxId, decisionId.toString());
+        }
+        return stored.filter(row -> row.getRulesetVersionId().equals(versionId))
+                .map(row -> DecisionJson.toJson(engine.evaluate(CompiledRuleSet.compile(RULES.toRuleSet(copy)),
+                        (ObjectNode) JSON.readTree(row.getInput()))));
     }
 
     /** This sandbox's decisions on a version: the latest of each stored case, and every case decided on its own. */
@@ -251,6 +270,14 @@ public class DecisionService {
                         row.getOutcome(), row.getDecidingRuleId(), flagsOf(row)))
                 .toList();
         return new BatchResult(aggregates(rows), summaries);
+    }
+
+    /** The flags of a stored decision with the rules that raised them; a decision that errored raised none. */
+    private static List<Regression.Raised> raisedOf(DecisionEntity row) {
+        return JSON.readTree(row.getDecision()).path("flags").valueStream()
+                .map(flag -> new Regression.Raised(flag.required("code").asString(),
+                        flag.required("ruleId").asString()))
+                .toList();
     }
 
     private static List<String> flagsOf(DecisionEntity row) {

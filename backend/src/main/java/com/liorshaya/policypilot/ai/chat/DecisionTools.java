@@ -6,6 +6,7 @@ import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ChatTurn;
 import com.liorshaya.policypilot.ai.service.chat.RuleListing;
 import com.liorshaya.policypilot.ai.service.chat.ToolArguments;
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.ai.service.chat.ToolRefusedException;
 import com.liorshaya.policypilot.ai.service.chat.ToolResults;
 import com.liorshaya.policypilot.common.SecurityEvents;
@@ -118,7 +119,7 @@ public class DecisionTools {
         ChatCitation citation = new ChatCitation("d:" + number, ChatCitation.Kind.DECISION, null,
                 decision.path("decidingRuleId").asString(null), null, number, decision.path("outcome").asString(null),
                 null);
-        turn.supply(citation);
+        turn.supply(citation, ToolCallReport.Decided.of(decision));
         return ToolResults.result(citation.id(), withSources(decision, ruleSet, turn));
     }
 
@@ -139,7 +140,7 @@ public class DecisionTools {
         ChatCitation citation = new ChatCitation("sim:d" + number + ":" + detail, ChatCitation.Kind.SIMULATION, null,
                 simulation.path("decidingRuleId").asString(null), null, number,
                 simulation.path("outcome").asString(null), detail);
-        turn.supply(citation);
+        turn.supply(citation, ToolCallReport.Decided.of(simulation));
         return ToolResults.result(citation.id(), withSources(simulation, ruleSet, turn));
     }
 

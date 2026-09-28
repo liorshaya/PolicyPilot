@@ -1,12 +1,14 @@
 package com.liorshaya.policypilot.ai.adapter;
 
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
+import com.liorshaya.policypilot.ai.TokenBudget;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.entity.TokenLedgerDayEntity;
 import com.liorshaya.policypilot.ai.repository.TokenLedgerRepository;
 import com.liorshaya.policypilot.common.SecurityEvents;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import org.springframework.stereotype.Component;
@@ -23,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * a day: the row is locked while it is counted, so two calls cannot both be the one (Document 5, Security logging).
  */
 @Component
-public class TokenBudgetGuard {
+public class TokenBudgetGuard implements TokenBudget {
 
     /** What the API does once the budget is spent: only the cache and what needs no model keep answering. */
     private static final String STOPPED_MODE = "cache-only";
@@ -85,9 +87,15 @@ public class TokenBudgetGuard {
     }
 
     /** Whether the hard stop has been reached today, which the UI shows as a banner. */
+    @Override
     @Transactional(readOnly = true)
     public boolean stopped() {
         return ledger.findById(today()).map(TokenLedgerDayEntity::hardStop).orElse(false);
+    }
+
+    @Override
+    public Instant resumesAt() {
+        return today().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     private LocalDate today() {

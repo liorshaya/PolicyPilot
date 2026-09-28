@@ -211,6 +211,66 @@ class ChatStreamIT extends ApiIntegrationTest {
         assertThat(decisionCount()).isEqualTo(decisions);
     }
 
+    // Document 2, the chat stream (2026-09-28, Register phase 4): each tool call is a tool event as it ends, before the
+    // answer's first token. Expected: Document 3's worked example, as the Python reference decides it too: application
+    // 17 referred by R-330 with no flag, on the session's version 1
+    @Test
+    void aToolCallIsAToolEventBeforeTheAnswerWithTheDecisionItRead() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("Application 17 was referred.[[d:17]]",
+                new ToolCall("getDecision", "{\"applicationNumber\":17}")));
+
+        String stream = ask(openSession(), "למה בקשה מספר 17 הופנתה לבדיקה?");
+
+        List<String> events = eventNames(stream);
+        assertThat(events.getFirst()).isEqualTo("tool");
+        assertThat(events.lastIndexOf("tool")).isLessThan(events.indexOf("token"));
+        JsonNode tool = dataOf(stream, "tool");
+        assertThat(tool.required("tool").asString()).isEqualTo("getDecision");
+        assertThat(tool.required("applicationNumber").asInt()).isEqualTo(17);
+        assertThat(tool.required("versionNo").asInt()).isEqualTo(1);
+        assertThat(tool.required("micros").asLong()).isNotNegative();
+        assertThat(tool.required("outcome").asString()).isEqualTo("refer");
+        assertThat(tool.required("decidingRuleId").asString()).isEqualTo("R-330");
+        assertThat(texts(tool.required("flags"))).isEmpty();
+        assertThat(tool.required("refused").isNull()).isTrue();
+    }
+
+    // The same for a simulation, with the overrides it ran on. Expected: the Python reference decides application 17
+    // with a guarantor as approved by R-900, flagged STABLE_INCOME_MANUAL_CHECK by R-420
+    @Test
+    void aSimulationIsAToolEventWithItsOverridesItsOutcomeAndItsFlags() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("With a guarantor it would be approved.[[sim:d17:has_guarantor=true]]",
+                new ToolCall("simulate", "{\"applicationNumber\":17,\"overrides\":{\"has_guarantor\":true}}")));
+
+        String stream = ask(openSession(), "האם בקשה 17 הייתה מאושרת אם היה ערב?");
+
+        JsonNode tool = dataOf(stream, "tool");
+        assertThat(tool.required("tool").asString()).isEqualTo("simulate");
+        assertThat(tool.required("applicationNumber").asInt()).isEqualTo(17);
+        assertThat(tool.required("overrides").asString()).isEqualTo("has_guarantor=true");
+        assertThat(tool.required("outcome").asString()).isEqualTo("approve");
+        assertThat(tool.required("decidingRuleId").asString()).isEqualTo("R-900");
+        assertThat(texts(tool.required("flags"))).containsExactly("STABLE_INCOME_MANUAL_CHECK");
+    }
+
+    // A refused call is reported with its reason (Document 5, RT-03). Expected: an application this session never
+    // decided, refused as not_found, with no outcome
+    @Test
+    void aRefusedToolCallIsAToolEventWithItsReason() {
+        decideTheFixtureSet();
+        model.willStream(Streamed.after("There is no such application.",
+                new ToolCall("getDecision", "{\"applicationNumber\":999}")));
+
+        String stream = ask(openSession(), "למה בקשה מספר 999 הופנתה לבדיקה?");
+
+        JsonNode tool = dataOf(stream, "tool");
+        assertThat(tool.required("tool").asString()).isEqualTo("getDecision");
+        assertThat(tool.required("refused").asString()).isEqualTo("not_found");
+        assertThat(tool.required("outcome").isNull()).isTrue();
+    }
+
     // Document 4, getDecisionStats: "Outcome counts, top deciding rules, flag counts for the version". Expected: the
     // counts of cases-expected.json, which the Python reference produced, in the result the model read
     @Test
@@ -405,6 +465,65 @@ class ChatStreamIT extends ApiIntegrationTest {
         assertThat(eventNames(stream)).doesNotContain("done");
         assertThat(jdbc.sql("select count(*) from chat_message where session_id = :id")
                 .param("id", UUID.fromString(chat)).query(Long.class).single()).isZero();
+    }
+
+    // Document 2, the done event (2026-09-28, Register phase 4): fixed names the fixed sentence an answer is. Expected:
+    // null for an answer the model wrote
+    @Test
+    void doneSaysAnAnswerTheModelWroteIsNoFixedSentence() {
+        model.willStream(Streamed.text("The maximum term is 84 months.[[p:2]]"));
+
+        String stream = ask(openSession(), TERM_QUESTION);
+
+        assertThat(dataOf(stream, "done").required("fixed").isNull()).isTrue();
+    }
+
+    // Expected: not_covered for Document 4's sentence of the threshold, which no model wrote
+    @Test
+    void doneNamesTheNotCoveredSentenceOfAnOffCorpusQuestion() {
+        String question = "האם יש הנחה לחיילים משוחררים? " + UUID.randomUUID();
+        embeddings.register(question, embeddings.axis(9));
+
+        String stream = ask(openSession(), question);
+
+        assertThat(tokens(stream)).isEqualTo(NOT_COVERED_HE);
+        assertThat(dataOf(stream, "done").required("fixed").asString()).isEqualTo("not_covered");
+    }
+
+    // Expected: not_covered too when the model itself answers with the sentence its prompt gives it
+    @Test
+    void doneNamesTheNotCoveredSentenceTheModelAnswers() {
+        model.willStream(Streamed.text(NOT_COVERED_HE));
+
+        String stream = ask(openSession(), TERM_QUESTION);
+
+        assertThat(dataOf(stream, "done").required("fixed").asString()).isEqualTo("not_covered");
+    }
+
+    // Expected: tool_limit for the sentence that ends a turn past the tool caps
+    @Test
+    void doneNamesTheToolLimitSentence() {
+        decideTheFixtureSet();
+        ToolCall call = new ToolCall("getDecision", "{\"applicationNumber\":17}");
+        model.willStream(Streamed.after("Application 17 was referred.[[d:17]]", call, call, call, call, call));
+
+        String stream = ask(openSession(), "למה בקשה מספר 17 הופנתה לבדיקה?");
+
+        assertThat(tokens(stream)).isEqualTo(TOOL_LIMIT_HE);
+        assertThat(dataOf(stream, "done").required("fixed").asString()).isEqualTo("tool_limit");
+    }
+
+    // Document 2 (2026-09-28): a call the day's token budget stops ends the stream with BUDGET_EXHAUSTED, the budget's
+    // own code, not the provider's. Expected: the error event's code, and no done
+    @Test
+    void aSpentBudgetEndsTheStreamWithBudgetExhausted() {
+        model.willStream(Streamed.failing(
+                new LlmUnavailableException(LlmUnavailableException.Reason.BUDGET_EXHAUSTED, "the day's budget")));
+
+        String stream = ask(openSession(), TERM_QUESTION);
+
+        assertThat(dataOf(stream, "error").required("code").asString()).isEqualTo("BUDGET_EXHAUSTED");
+        assertThat(eventNames(stream)).doesNotContain("done");
     }
 
     // Document 4, Guardrails: a provider that fails is a defined failure. Expected: an error event with
@@ -628,6 +747,10 @@ class ChatStreamIT extends ApiIntegrationTest {
             }
             Thread.onSpinWait();
         }
+    }
+
+    private static List<String> texts(JsonNode array) {
+        return array.valueStream().map(JsonNode::asString).toList();
     }
 
     private static List<String> eventNames(String stream) {

@@ -16,6 +16,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -122,6 +123,25 @@ class ChangeStreamIT extends ApiIntegrationTest {
         JsonNode stored = JSON.readTree(jdbc.sql("select regression_json::text from change_request where id = :id")
                 .param("id", UUID.fromString(proposal.required("id").asString())).query(String.class).single());
         assertThat(stored.required("flips")).hasSize(expected);
+    }
+
+    // Document 3, Regression report (2026-09-28, Register phase 4): the base outcomes, before, and the flags that
+    // moved. Expected: the Python reference over cases-200, 113 approved, 27 referred and 60 rejected, and eleven
+    // decisions whose flags moved, every one by R-410 and six by R-420
+    @Test
+    void theRegressionCountsTheBaseOutcomesAndTheFlagsThatMoved() {
+        HttpResponse<String> decided = api().post("/api/v1/rulesets/" + seeded + "/versions/1/decide").web()
+                .cookie(session).json("{\"fixtureSet\":\"cases-200\"}").send();
+        assertThat(decided.statusCode()).isEqualTo(200);
+        model.willAnswer(ChangeRequests.scriptedPatches().toString());
+
+        JsonNode regression = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body()).first("proposal")
+                .required("regression");
+
+        assertThat(regression.required("before")).isEqualTo(JSON.readTree("""
+                {"approve": 113, "refer": 27, "reject": 60}"""));
+        assertThat(regression.required("flagsMoved")).isEqualTo(JSON.readTree("""
+                {"decisions": 11, "byRule": {"R-410": 11, "R-420": 6}}"""));
     }
 
     // Document 2, change_request and audit_entry: the row holds the patches as validated with the request's id in
@@ -237,6 +257,90 @@ class ChangeStreamIT extends ApiIntegrationTest {
         assertThat(storedFor(request)).isZero();
     }
 
+    // Document 2, the change stream (2026-09-28, Register phase 4): every event after analyzing carries ended, the
+    // stage that just finished, its milliseconds and the tokens the answers to its prompts spent. Expected: the stages
+    // in Document 2's order, the recorded answer's 1,000 in and 500 out on proposing, and null where no prompt was
+    // answered
+    @Test
+    void everyEventAfterAnalyzingSaysWhichStageEndedWithItsTimeAndTokens() {
+        model.willAnswer(ChangeRequests.scriptedPatches().toString());
+
+        ServerSentEvents events = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body());
+
+        assertThat(events.first("analyzing").required("ended").isNull()).isTrue();
+        List<JsonNode> ended = Stream.of("proposing", "validating", "regression", "proposal")
+                .map(name -> events.first(name).required("ended")).toList();
+        assertThat(ended.stream().map(stage -> stage.required("stage").asString()))
+                .containsExactly("analyzing", "proposing", "validating", "regression");
+        assertThat(ended).allSatisfy(stage -> assertThat(stage.required("ms").asLong()).isNotNegative());
+        assertThat(ended.stream().map(stage -> stage.required("tokens").isNull()))
+                .containsExactly(true, false, true, true);
+        assertThat(ended.get(1).required("tokens").asInt()).isEqualTo(1_500);
+    }
+
+    // Document 4, Repair Loop: a repair is asked while validating. Expected: the repaired answer's 1,500 tokens are
+    // the validating stage's, on the regression event
+    @Test
+    void aRepairIsSpentInTheValidatingStage() {
+        model.willAnswer("{\"summary\":\"x\",\"patches\":[],\"untouched\":[],\"notes\":\"\"}");
+        model.willAnswer(ChangeRequests.scriptedPatches().toString());
+
+        ServerSentEvents events = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body());
+
+        JsonNode validating = events.first("regression").required("ended");
+        assertThat(validating.required("stage").asString()).isEqualTo("validating");
+        assertThat(validating.required("tokens").asInt()).isEqualTo(1_500);
+        assertThat(model.asked()).hasSize(2);
+    }
+
+    // Expected: the error event says which stage it ended too; a provider that fails while proposing ends proposing,
+    // with no answer and so no tokens
+    @Test
+    void anErrorSaysWhichStageItEnded() {
+        model.willFail(new LlmUnavailableException(LlmUnavailableException.Reason.TIMEOUT, "no answer"));
+
+        JsonNode ended = ServerSentEvents.parse(submit(ChangeRequests.scripted() + " " + UUID.randomUUID()).body())
+                .first("error").required("ended");
+
+        assertThat(ended.required("stage").asString()).isEqualTo("proposing");
+        assertThat(ended.required("ms").asLong()).isNotNegative();
+        assertThat(ended.required("tokens").isNull()).isTrue();
+    }
+
+    // Document 2 (2026-09-28): a call the day's token budget stops ends the stream with BUDGET_EXHAUSTED, the budget's
+    // own code, not the provider's. Expected: that code, and nothing stored
+    @Test
+    void aSpentBudgetEndsTheStreamWithBudgetExhausted() {
+        String request = ChangeRequests.scripted() + " " + UUID.randomUUID();
+        model.willFail(new LlmUnavailableException(LlmUnavailableException.Reason.BUDGET_EXHAUSTED, "spent"));
+
+        ServerSentEvents events = ServerSentEvents.parse(submit(request).body());
+
+        assertThat(events.first("error").required("code").asString()).isEqualTo("BUDGET_EXHAUSTED");
+        assertThat(storedFor(request)).isZero();
+    }
+
+    // Document 2, change_request (2026-09-28, Register phase 4): a request's number in its sandbox, from 1, which the
+    // UI writes CR-0001. Expected: 1, then 2 on the proposal and in its row, and 1 for another sandbox's first request
+    @Test
+    void aStoredRequestIsNumberedInItsSandboxFromOne() {
+        for (int i = 0; i < 3; i++) {
+            model.willAnswer(ChangeRequests.scriptedPatches().toString());
+        }
+
+        JsonNode first = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body()).first("proposal");
+        JsonNode second = ServerSentEvents.parse(submit(ChangeRequests.scripted()).body()).first("proposal");
+        JsonNode another = ServerSentEvents.parse(submit(ChangeRequests.scripted(), api().login()).body())
+                .first("proposal");
+
+        assertThat(first.required("number").asInt()).isEqualTo(1);
+        assertThat(second.required("number").asInt()).isEqualTo(2);
+        assertThat(jdbc.sql("select number from change_request where id = :id")
+                .param("id", UUID.fromString(second.required("id").asString())).query(Integer.class).single())
+                .isEqualTo(2);
+        assertThat(another.required("number").asInt()).isEqualTo(1);
+    }
+
     // Document 5, Input limits: a change request is normalized like a chat message, and a bidi override is a format
     // character, stripped. Expected: the request stored and prompted without it
     @Test
@@ -253,8 +357,12 @@ class ChangeStreamIT extends ApiIntegrationTest {
     }
 
     private HttpResponse<String> submit(String text) {
+        return submit(text, session);
+    }
+
+    private HttpResponse<String> submit(String text, String cookie) {
         HttpResponse<String> response = api().post("/api/v1/rulesets/" + seeded + "/versions/1/changes").web()
-                .cookie(session).json(JSON.createObjectNode().put("text", text).toString()).send();
+                .cookie(cookie).json(JSON.createObjectNode().put("text", text).toString()).send();
         assertThat(response.statusCode()).isEqualTo(200);
         return response;
     }

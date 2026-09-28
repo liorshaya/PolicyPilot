@@ -12,10 +12,12 @@ import tools.jackson.databind.node.ObjectNode;
  * is proposed against, the proposal as validated, with the request's id in every pending provenance, and what it
  * would change.
  *
+ * @param number the request's number in its sandbox, from 1
  * @param proposal the Patches object as stored: summary, patches, untouched and notes (Document 3, Change Patches)
  * @param candidates what candidate selection showed the model (Document 4, Prompt 5)
  * @param diff the base version against the patched copy (Document 3, Structural diff)
  * @param regression the sandbox's decisions on the base version decided again by the copy (Document 3)
  */
-public record ChangeRequestView(UUID id, UUID baseVersionId, String requestText, String status, ObjectNode proposal,
-        Candidates candidates, StructuralDiff diff, Regression regression, Instant createdAt, String actor) {}
+public record ChangeRequestView(UUID id, int number, UUID baseVersionId, String requestText, String status,
+        ObjectNode proposal, Candidates candidates, StructuralDiff diff, Regression regression, Instant createdAt,
+        String actor) {}

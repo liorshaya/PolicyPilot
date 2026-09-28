@@ -2,12 +2,14 @@ package com.liorshaya.policypilot.web.controller;
 
 import com.liorshaya.policypilot.ai.LlmMalformedOutputException;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
+import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.service.Candidates;
 import com.liorshaya.policypilot.ai.service.ChangeBase;
 import com.liorshaya.policypilot.ai.service.Proposal;
 import com.liorshaya.policypilot.change.service.ChangeDecision;
 import com.liorshaya.policypilot.change.service.ChangeProgress;
 import com.liorshaya.policypilot.change.service.ChangeRequestService;
+import com.liorshaya.policypilot.change.service.ProposedDecision;
 import com.liorshaya.policypilot.change.service.Submitted;
 import com.liorshaya.policypilot.ruleset.service.VersionStatusException;
 import com.liorshaya.policypilot.web.error.ApiException;
@@ -17,7 +19,6 @@ import com.liorshaya.policypilot.web.request.DecideChangeRequest;
 import com.liorshaya.policypilot.web.request.SubmitChangeRequest;
 import com.liorshaya.policypilot.web.response.ChangeDecisionResponse;
 import com.liorshaya.policypilot.web.response.ChangeEventPayloads;
-import com.liorshaya.policypilot.web.response.StreamFailure;
 import com.liorshaya.policypilot.web.response.VersionResponse.FindingResponse;
 import com.liorshaya.policypilot.web.security.SandboxSession;
 import com.liorshaya.policypilot.web.security.StreamRegistry;
@@ -28,6 +29,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -38,23 +40,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * {@code POST /api/v1/rulesets/{id}/versions/{no}/changes}: a change request in natural language (Document 2, API
  * Surface; Work Plan days 12 and 13), refused before any stream opens when the text is not a valid short text (400),
  * the sandbox cannot see the version (404), or the version is not PUBLISHED or not embedded (409). The answer is a
  * stream, {@code analyzing}, {@code proposing} with the candidate rules and fields, {@code validating},
- * {@code regression}, then {@code proposal} with the stored PROPOSED request, its diff and its regression report; or
- * {@code error} with the code, the findings and the model's last answer, and then nothing is stored.
+ * {@code regression}, then {@code proposal} with the stored PROPOSED request, its number, its diff and its regression
+ * report; or {@code error} with the code, the findings and the model's last answer, and then nothing is stored. Every
+ * event after {@code analyzing} says which stage it ended, with its time and what the model's answers in it cost.
  *
  * <p>{@code POST /api/v1/changes/{id}/approve} and {@code .../reject}: a person's decision on a stored proposal,
  * with an optional note (Document 2, API Surface). An approval publishes the next version in one transaction, into
  * the sandbox's own copy of the rule set when the base is protected; a rejection publishes nothing.
+ *
+ * <p>{@code GET /api/v1/changes/{id}/decisions/{decisionId}/trace}: what the proposal decides for one of the sandbox's
+ * decisions on its base version, with the trace, so each flipped case has both traces one click away (Document 2,
+ * added 2026-09-28 for Register phase 4); nothing is stored.
  */
 @RestController
 public class ChangeController {
@@ -143,6 +152,24 @@ public class ChangeController {
         return decided(() -> changes.reject(id, session.sandboxId(), note));
     }
 
+    @Operation(summary = "What a proposal decides for one of the sandbox's decisions on its base version")
+    @ApiResponse(responseCode = "200", description = "The decision object of Document 3 on the patched copy, with "
+            + "its trace, basedOnDecisionId and the request's number; nothing is stored",
+            content = @Content(mediaType = "application/json", schema = @Schema(type = "object")))
+    @ApiResponse(responseCode = "404",
+            description = "No such change request or decision in this sandbox, or a decision of another version",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @GetMapping(ApiPaths.CHANGE_DECISION_TRACE)
+    public ObjectNode proposedTrace(@PathVariable UUID id, @PathVariable UUID decisionId,
+            @AuthenticationPrincipal SandboxSession session) {
+        ProposedDecision proposed = changes.proposedDecision(id, decisionId, session.sandboxId())
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        ObjectNode response = proposed.decision().deepCopy();
+        response.put("basedOnDecisionId", proposed.basedOnDecisionId().toString());
+        response.put("changeRequestNumber", proposed.changeRequestNumber());
+        return response;
+    }
+
     private static ChangeDecisionResponse decided(Supplier<Optional<ChangeDecision>> call) {
         try {
             return call.get().map(ChangeDecisionResponse::of).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
@@ -160,15 +187,16 @@ public class ChangeController {
         try {
             switch (changes.submit(base, text, sandboxId, events)) {
                 case Submitted.Stored stored ->
-                        events.send("proposal", ChangeEventPayloads.Proposal.of(stored.request()));
-                case Submitted.NotStored notStored -> events.send("error", refusal(notStored.proposal()));
+                        events.send("proposal", ChangeEventPayloads.Proposal.of(stored.request(), events.ended()));
+                case Submitted.NotStored notStored ->
+                        events.send("error", refusal(notStored.proposal(), events.ended()));
             }
             emitter.complete();
         } catch (ClientGone e) {
             // the client hung up; a proposal stored before it did stays stored, PROPOSED
             emitter.complete();
         } catch (LlmUnavailableException e) {
-            fail(events, emitter, ErrorCode.PROVIDER_UNAVAILABLE, e);
+            fail(events, emitter, ErrorCode.unavailable(e), e);
         } catch (LlmMalformedOutputException e) {
             fail(events, emitter, ErrorCode.RULESET_INVALID, e);
         } catch (RuntimeException e) {
@@ -182,29 +210,36 @@ public class ChangeController {
      * A proposal that was not stored, as Document 2 has it: RULESET_INVALID with its problems and findings and the
      * model's last answer, whether it failed after its repairs or was refused (Document 5, RT-04).
      */
-    private static StreamFailure refusal(Proposal proposal) {
+    private static ChangeEventPayloads.Failed refusal(Proposal proposal, ChangeEventPayloads.@Nullable Ended ended) {
         List<FindingResponse> findings = Stream.concat(
                 proposal.validation().problems().stream().map(FindingResponse::of),
                 proposal.validation().findings().stream().map(FindingResponse::of)).toList();
-        return new StreamFailure(ErrorCode.RULESET_INVALID.name(), findings, proposal.answer());
+        return new ChangeEventPayloads.Failed(ErrorCode.RULESET_INVALID.name(), findings, proposal.answer(), ended);
     }
 
     private static void fail(Events events, SseEmitter emitter, ErrorCode code, RuntimeException cause) {
         LOG.atWarn().setMessage("change.failed").addKeyValue("code", code.name()).setCause(cause).log();
         try {
-            events.send("error", new StreamFailure(code.name(), List.of(), null));
+            events.send("error", new ChangeEventPayloads.Failed(code.name(), List.of(), null, events.ended()));
         } catch (ClientGone ignored) {
             // nobody is listening for the error either
         }
         emitter.complete();
     }
 
-    /** The change's progress as SSE, each event keeping the stream's lease alive. */
+    /**
+     * The change's progress as SSE, each event keeping the stream's lease alive and saying which stage it ended: its
+     * time and what the model's answers in it cost (Document 2, added 2026-09-28 for Register phase 4). The events
+     * come one after the other from the one thread the stream runs on.
+     */
     private final class Events implements ChangeProgress {
 
         private final SseEmitter emitter;
         private final StreamRegistry.Lease lease;
         private final int rules;
+        private @Nullable String stage;
+        private long startedAt;
+        private @Nullable Long tokens;
 
         Events(SseEmitter emitter, StreamRegistry.Lease lease, int rules) {
             this.emitter = emitter;
@@ -214,22 +249,43 @@ public class ChangeController {
 
         @Override
         public void analyzing() {
-            send("analyzing", new ChangeEventPayloads.Stage(rules));
+            send("analyzing", new ChangeEventPayloads.Stage(rules, begin("analyzing")));
         }
 
         @Override
         public void proposing(Candidates candidates) {
-            send("proposing", new ChangeEventPayloads.Proposing(candidates.ruleIds(), candidates.fields()));
+            send("proposing", new ChangeEventPayloads.Proposing(candidates.ruleIds(), candidates.fields(),
+                    Objects.requireNonNull(begin("proposing"))));
         }
 
         @Override
         public void validating() {
-            send("validating", new ChangeEventPayloads.Stage(rules));
+            send("validating", new ChangeEventPayloads.Stage(rules, begin("validating")));
         }
 
         @Override
         public void regression() {
-            send("regression", new ChangeEventPayloads.Stage(rules));
+            send("regression", new ChangeEventPayloads.Stage(rules, begin("regression")));
+        }
+
+        @Override
+        public void spent(TokenUsage usage) {
+            tokens = (tokens == null ? 0 : tokens) + usage.total();
+        }
+
+        /** The stage under way, as it ends with the stream's last event; null before the first stage began. */
+        ChangeEventPayloads.@Nullable Ended ended() {
+            return stage == null ? null
+                    : new ChangeEventPayloads.Ended(stage, (System.nanoTime() - startedAt) / 1_000_000, tokens);
+        }
+
+        /** Ends the stage under way and begins the next; what ended, or null for the first. */
+        private ChangeEventPayloads.@Nullable Ended begin(String next) {
+            ChangeEventPayloads.Ended ended = ended();
+            stage = next;
+            startedAt = System.nanoTime();
+            tokens = null;
+            return ended;
         }
 
         void send(String event, Object data) {

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 
 /**
@@ -20,4 +21,8 @@ public interface ChangeRequestRepository extends Repository<ChangeRequestEntity,
 
     /** Those of the given requests that are this sandbox's. */
     List<ChangeRequestEntity> findBySandboxIdAndIdIn(UUID sandboxId, Collection<UUID> ids);
+
+    /** The highest number this sandbox's requests have, 0 before its first (Document 2, change_request). */
+    @Query("select coalesce(max(c.number), 0) from ChangeRequestEntity c where c.sandboxId = :sandboxId")
+    int lastNumber(UUID sandboxId);
 }

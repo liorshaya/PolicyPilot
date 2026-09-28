@@ -52,6 +52,7 @@ export const COPY_VERSION_ID = '0f4c1c9e-0000-4000-8000-0000000000c3'
 
 export const approvedDecision: ChangeDecision = {
   id: PROPOSAL_ID,
+  number: 1,
   status: 'APPROVED',
   decidedAt: '2026-09-27T09:12:00Z',
   result: { rulesetId: COPY_RULESET_ID, versionNo: 2, versionId: COPY_VERSION_ID },
@@ -59,6 +60,7 @@ export const approvedDecision: ChangeDecision = {
 
 export const rejectedDecision: ChangeDecision = {
   id: PROPOSAL_ID,
+  number: 1,
   status: 'REJECTED',
   decidedAt: '2026-09-27T09:13:00Z',
 }

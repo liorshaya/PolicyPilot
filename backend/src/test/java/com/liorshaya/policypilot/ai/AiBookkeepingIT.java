@@ -12,6 +12,7 @@ import com.liorshaya.policypilot.ai.repository.ModelCallRepository;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,6 +118,19 @@ class AiBookkeepingIT extends ApiIntegrationTest {
         assertThat(budget.spentToday()).isZero();
         assertThat(budget.stopped()).isFalse();
         budget.requireBudget();
+    }
+
+    // Document 2, GET /system/budget (2026-09-28, Register phase 4): the ledger counts a day in UTC, so the day's
+    // count starts again at the next midnight UTC. Expected: that midnight from the day's first instant and its last
+    @Test
+    void theDayResumesAtTheNextMidnightUtc() {
+        clock.set(Instant.parse("2026-12-01T00:00:00Z"));
+        Instant fromTheFirstInstant = budget.resumesAt();
+        clock.set(Instant.parse("2026-12-01T23:59:59.999Z"));
+        Instant fromTheLast = budget.resumesAt();
+
+        assertThat(fromTheFirstInstant).isEqualTo(Instant.parse("2026-12-02T00:00:00Z"));
+        assertThat(fromTheLast).isEqualTo(Instant.parse("2026-12-02T00:00:00Z"));
     }
 
     @Test

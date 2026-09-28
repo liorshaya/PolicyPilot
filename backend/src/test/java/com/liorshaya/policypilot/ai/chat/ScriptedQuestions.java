@@ -3,6 +3,8 @@ package com.liorshaya.policypilot.ai.chat;
 import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
+import com.liorshaya.policypilot.ai.service.chat.FixedAnswer;
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.ruleset.service.PublishedVersion;
 import com.liorshaya.policypilot.ruleset.service.RulesetService;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.JsonNode;
 
@@ -95,10 +98,15 @@ final class ScriptedQuestions {
         }
     }
 
-    /** Everything one answer sent: its text as shown, the ids it cited, and the tool calls stored with it. */
+    /**
+     * Everything one answer sent: its events in the order they came, the tool calls it reported, its text as shown,
+     * the ids it cited, and the tool calls stored with it.
+     */
     static final class Asked implements ChatEvents {
 
         private final long askedAt;
+        private final List<String> events = new ArrayList<>();
+        private final List<ToolCallReport> tools = new ArrayList<>();
         private final StringBuilder text = new StringBuilder();
         private final List<String> cited = new ArrayList<>();
         private String toolCalls = "[]";
@@ -106,6 +114,15 @@ final class ScriptedQuestions {
 
         private Asked(long askedAt) {
             this.askedAt = askedAt;
+        }
+
+        /** The names of the events the client was sent, in order: tool, token, citations, usage, done. */
+        List<String> events() {
+            return List.copyOf(events);
+        }
+
+        List<ToolCallReport> tools() {
+            return List.copyOf(tools);
         }
 
         String text() {
@@ -126,7 +143,14 @@ final class ScriptedQuestions {
         }
 
         @Override
+        public void tool(ToolCallReport call) {
+            events.add("tool");
+            tools.add(call);
+        }
+
+        @Override
         public void token(String piece) {
+            events.add("token");
             if (text.isEmpty()) {
                 firstTokenAt = System.nanoTime();
             }
@@ -135,17 +159,20 @@ final class ScriptedQuestions {
 
         @Override
         public void citations(List<ChatCitation> citations) {
+            events.add("citations");
             citations.forEach(citation -> cited.add(citation.id()));
         }
 
         @Override
         public void usage(TokenUsage usage, int toolCalls) {
             // the usage is the ledger's to measure; the answer is what these tests read
+            events.add("usage");
         }
 
         @Override
-        public void done(UUID messageId) {
+        public void done(UUID messageId, @Nullable FixedAnswer fixed) {
             // the stored message is read back through the database
+            events.add("done");
         }
     }
 }

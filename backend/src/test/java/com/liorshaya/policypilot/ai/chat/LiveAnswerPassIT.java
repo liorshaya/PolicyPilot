@@ -6,6 +6,8 @@ import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.adapter.SpringAiLlmGateway;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
+import com.liorshaya.policypilot.ai.service.chat.FixedAnswer;
+import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
 import com.liorshaya.policypilot.config.PolicyPilotProperties;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.policy.service.PolicyLanguage;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -196,6 +199,11 @@ class LiveAnswerPassIT {
         private int outputTokens;
 
         @Override
+        public void tool(ToolCallReport call) {
+            // the runner scores the answer, not the calls that fed it
+        }
+
+        @Override
         public void token(String piece) {
             text.append(piece);
         }
@@ -212,7 +220,7 @@ class LiveAnswerPassIT {
         }
 
         @Override
-        public void done(UUID messageId) {
+        public void done(UUID messageId, @Nullable FixedAnswer fixed) {
             // the message is stored; nothing more is needed here
         }
     }

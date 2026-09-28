@@ -145,6 +145,20 @@ class ExplainControllerIT extends ApiIntegrationTest {
         assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("PROVIDER_UNAVAILABLE");
     }
 
+    // Document 2, Error codes (2026-09-28, Register phase 4): the day's token budget stopped the call. Expected: 503
+    // BUDGET_EXHAUSTED, the budget's own code, in the envelope the OpenAPI document declares
+    @Test
+    void aSpentBudgetMatchesTheDocumented503BudgetExhausted() {
+        String decision = caseSeventeen();
+        model.willFail(new LlmUnavailableException(LlmUnavailableException.Reason.BUDGET_EXHAUSTED, "spent"));
+
+        HttpResponse<String> response = explain(decision, "{}");
+
+        assertThat(response.statusCode()).isEqualTo(503);
+        assertThat(contract.violations("post", EXPLAIN, 503, response.body())).isEmpty();
+        assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("BUDGET_EXHAUSTED");
+    }
+
     // Document 2, explain row: an answer that is not an explanation reaches nobody. Expected: 503, nothing of it shown
     @Test
     void anAnswerThatIsNotAnExplanationIsNeverShown() {

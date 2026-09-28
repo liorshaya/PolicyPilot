@@ -1,5 +1,6 @@
 package com.liorshaya.policypilot.change.service;
 
+import com.liorshaya.policypilot.ai.TokenUsage;
 import com.liorshaya.policypilot.ai.change.ChangeAnalysis;
 import com.liorshaya.policypilot.ai.service.Candidates;
 import com.liorshaya.policypilot.ai.service.ChangeBase;
@@ -24,8 +25,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -34,10 +37,10 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Change requests (Document 2, Flow 4; Work Plan days 12 and 13): the impact analysis, the model's proposal and its
- * validation, and, only for a proposal that validated, its regression and its diff, then the stored PROPOSED request
- * with its CHANGE_PROPOSED audit entry in one transaction; then a person's approval or rejection. A proposal that fails
- * Patch validation after its repairs or is refused by the proposal validator is never stored (Document 3, Patch
- * validation).
+ * validation, and, only for a proposal that validated, its regression and its diff, then the stored PROPOSED request,
+ * numbered in its sandbox, with its CHANGE_PROPOSED audit entry in one transaction; then a person's approval or
+ * rejection, and on request what the proposal decides for one of the sandbox's decisions. A proposal that fails Patch
+ * validation after its repairs or is refused by the proposal validator is never stored (Document 3, Patch validation).
  *
  * <p>The actor is the sandbox (Document 5, Why no user accounts). The model is called outside any transaction, so a
  * slow provider holds no connection.
@@ -88,10 +91,18 @@ public class ChangeRequestService {
     public Submitted submit(ChangeBase base, String request, UUID sandboxId, ChangeProgress progress) {
         progress.analyzing();
         Candidates candidates = analysis.candidates(base, request);
-        Proposal proposal = proposer.propose(base, request, candidates, stage -> {
-            switch (stage) {
-                case PROPOSING -> progress.proposing(candidates);
-                case VALIDATING -> progress.validating();
+        Proposal proposal = proposer.propose(base, request, candidates, new ChangeService.Progress() {
+            @Override
+            public void stage(ChangeService.Stage stage) {
+                switch (stage) {
+                    case PROPOSING -> progress.proposing(candidates);
+                    case VALIDATING -> progress.validating();
+                }
+            }
+
+            @Override
+            public void answered(TokenUsage usage) {
+                progress.spent(usage);
             }
         });
         if (!proposal.valid()) {
@@ -101,8 +112,14 @@ public class ChangeRequestService {
         JsonNode copy = Objects.requireNonNull(proposal.validation().patched());
         Regression regression = decisions.regression(base.versionId(), sandboxId, copy);
         StructuralDiff diff = StructuralDiff.between(base.ruleSet(), DSL.toRuleSet(copy));
-        return new Submitted.Stored(Objects.requireNonNull(
-                transactions.execute(status -> store(base, request, proposal, diff, regression, sandboxId))));
+        TransactionCallback<ChangeRequestView> stored =
+                status -> store(base, request, proposal, diff, regression, sandboxId);
+        try {
+            return new Submitted.Stored(Objects.requireNonNull(transactions.execute(stored)));
+        } catch (DataIntegrityViolationException e) {
+            // a request of this sandbox stored at the same moment took the number; the next one is free
+            return new Submitted.Stored(Objects.requireNonNull(transactions.execute(stored)));
+        }
     }
 
     /**
@@ -140,6 +157,27 @@ public class ChangeRequestService {
     }
 
     /**
+     * What a request's patches decide for one of the sandbox's decisions on its base version (Document 2, {@code GET
+     * /changes/{id}/decisions/{decisionId}/trace}; Document 3, Regression report): the copy is rebuilt from the stored
+     * patches over the base, as the regression built it, and decides the stored input again, with its trace; nothing
+     * is stored, whatever became of the request. Empty for a request or a decision of another sandbox, and for a
+     * decision not made on the request's base version.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ProposedDecision> proposedDecision(UUID id, UUID decisionId, UUID sandboxId) {
+        Optional<ChangeRequestEntity> found = requests.findByIdAndSandboxId(id, sandboxId);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        ChangeRequestEntity request = found.get();
+        PublishedVersion base = rulesets.publishedById(request.getBaseVersionId(), sandboxId).orElseThrow();
+        JsonNode copy = Patches.apply(DSL.toJson(base.compiled().ruleSet()), JSON.readTree(request.getPatchesJson()))
+                .document();
+        return decisions.decidedAgain(decisionId, sandboxId, base.versionId(), copy)
+                .map(decision -> new ProposedDecision(request.getNumber(), decisionId, decision));
+    }
+
+    /**
      * Rejects a PROPOSED request of this sandbox (Document 2, reject): nothing is published, and a CHANGE_REJECTED
      * audit entry on the base version holds the note. Empty for a request this sandbox does not have.
      *
@@ -167,8 +205,9 @@ public class ChangeRequestService {
     }
 
     /**
-     * The row Document 2 describes: {@code patches_json} the patches as validated with the request's id in every
-     * pending provenance, {@code rationale_json} the summary, the untouched rules, the notes and the candidates.
+     * The row Document 2 describes: the request's number in its sandbox, {@code patches_json} the patches as validated
+     * with the request's id in every pending provenance, {@code rationale_json} the summary, the untouched rules, the
+     * notes and the candidates.
      */
     private ChangeRequestView store(ChangeBase base, String request, Proposal proposal, StructuralDiff diff,
             Regression regression, UUID sandboxId) {
@@ -181,16 +220,16 @@ public class ChangeRequestService {
         rationale.put("notes", stored.required("notes").asString());
         rationale.set("candidates", JSON.valueToTree(proposal.candidates()));
         String actor = sandboxId.toString();
-        ChangeRequestEntity entity = requests.save(new ChangeRequestEntity(id, sandboxId, base.versionId(), request,
-                patches.toString(), rationale.toString(), JSON.valueToTree(regression).toString(), clock.instant(),
-                actor));
+        ChangeRequestEntity entity = requests.save(new ChangeRequestEntity(id, sandboxId,
+                requests.lastNumber(sandboxId) + 1, base.versionId(), request, patches.toString(),
+                rationale.toString(), JSON.valueToTree(regression).toString(), clock.instant(), actor));
         ObjectNode details = JSON.createObjectNode()
                 .put("rulesetId", base.rulesetId().toString())
                 .put("versionNo", base.versionNo())
                 .put("patches", patches.size());
         audit.append(AuditAction.CHANGE_PROPOSED, actor, base.versionId(), id, details);
-        return new ChangeRequestView(entity.getId(), entity.getBaseVersionId(), entity.getRequestText(),
-                entity.getStatus(), stored, proposal.candidates(), diff, regression, entity.getCreatedAt(),
-                entity.getActor());
+        return new ChangeRequestView(entity.getId(), entity.getNumber(), entity.getBaseVersionId(),
+                entity.getRequestText(), entity.getStatus(), stored, proposal.candidates(), diff, regression,
+                entity.getCreatedAt(), entity.getActor());
     }
 }

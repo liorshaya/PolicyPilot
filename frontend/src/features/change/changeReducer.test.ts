@@ -30,6 +30,7 @@ const proposed = changeReducer(proposing, { type: 'proposal', proposal: scripted
 /** The version the approval published, in the sandbox's own copy of the seeded rule set (Document 3). */
 const approved: ChangeDecision = {
   id: PROPOSAL_ID,
+  number: 1,
   status: 'APPROVED',
   decidedAt: '2026-09-27T09:12:00Z',
   result: {
@@ -104,6 +105,7 @@ describe('changeReducer', () => {
   it('an approval or a rejection is recorded on the proposal it decides', () => {
     const rejected: ChangeDecision = {
       id: PROPOSAL_ID,
+      number: 1,
       status: 'REJECTED',
       decidedAt: '2026-09-27T09:13:00Z',
     }

@@ -12,19 +12,21 @@ import org.jspecify.annotations.Nullable;
  * A change request a person decided on (Document 2, approve and reject): APPROVED with the version the approval
  * published, or REJECTED without one.
  *
+ * @param number the request's number in its sandbox, from 1, which the web app writes CR-0001
  * @param result the published version, in the sandbox's own copy of the rule set when the base was protected; absent
  *     for a rejection
  */
 public record ChangeDecisionResponse(
         @JsonProperty(required = true) UUID id,
+        @JsonProperty(required = true) int number,
         @JsonProperty(required = true) @Schema(allowableValues = {"APPROVED", "REJECTED"}) String status,
         @JsonProperty(required = true) Instant decidedAt,
         @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Result result) {
 
     public static ChangeDecisionResponse of(ChangeDecision decision) {
         ChangeDecision.Result result = decision.result();
-        return new ChangeDecisionResponse(decision.id(), decision.status(), decision.decidedAt(), result == null
-                ? null : new Result(result.rulesetId(), result.versionNo(), result.versionId()));
+        return new ChangeDecisionResponse(decision.id(), decision.number(), decision.status(), decision.decidedAt(),
+                result == null ? null : new Result(result.rulesetId(), result.versionNo(), result.versionId()));
     }
 
     /** The version an approval published. */

@@ -7,7 +7,7 @@ import java.util.function.Function;
 /**
  * A chat tool held to its turn (Document 5, Tool call volume: four calls a turn, one {@code simulate}): a call past a
  * cap is refused and marks the turn overrun, a refusal of the body becomes a refusal the model reads, every refusal
- * is reported, and every call is recorded with how it ended.
+ * is reported, and every call is recorded with how it ended and how long it took.
  */
 public final class CappedTool implements ChatTool {
 
@@ -52,6 +52,7 @@ public final class CappedTool implements ChatTool {
 
     @Override
     public String call(String argumentsJson) {
+        long started = System.nanoTime();
         String result;
         try {
             if (!turn.admit(simulation)) {
@@ -62,7 +63,8 @@ public final class CappedTool implements ChatTool {
             refused.accept(name, e.reason());
             result = ToolResults.refusal(e.reason(), e.getMessage());
         }
-        turn.record(new ChatTurn.ToolCallRecord(name, argumentsJson, ToolResults.outcomeOf(result)));
+        turn.record(new ChatTurn.ToolCallRecord(name, argumentsJson, ToolResults.outcomeOf(result)),
+                (System.nanoTime() - started) / 1_000);
         return result;
     }
 }

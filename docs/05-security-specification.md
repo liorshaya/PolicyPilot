@@ -230,7 +230,7 @@ The demo must answer within seconds during the interview and survive a stranger 
 
 **Single-instance rate limits**: Bucket4j buckets are in memory, which is correct for one Railway instance and stated as a limitation; a second instance would need a shared store (PostgreSQL-backed buckets are the planned change) and the deployment section forbids horizontal scaling until then.
 
-**Degradation order under load**: rate limiting first (429 with `Retry-After`), then the token budget stop (cached responses and a banner), then the circuit breaker (503 with `PROVIDER_UNAVAILABLE`); the engine, the decision table and the audit views keep working through all three because they never touch the model, which is a demo talking point in itself.
+**Degradation order under load**: rate limiting first (429 with `Retry-After`), then the token budget stop (cached responses and a banner; the banner reads GET /system/budget, and a model call the stop refuses answers BUDGET\_EXHAUSTED, Document 2, since 2026-09-28), then the circuit breaker (503 with `PROVIDER_UNAVAILABLE`); the engine, the decision table and the audit views keep working through all three because they never touch the model, which is a demo talking point in itself.
 
 ## Supply Chain and Build Security
 
