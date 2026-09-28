@@ -312,7 +312,7 @@ For the record, not questions: the screenshots of each demo step in `docs/demo/`
 
 - [x] `e2e/register.spec.ts`: seven screens × two themes at 1376×900 as screenshots into `docs/demo/register/`; the overflow, size, contrast, uppercase, gradient and font assertions; the first paint light
 - [x] `Palette` with `e2e/palette.spec.ts` (or cut, with the README line)
-- [ ] The four demo specs green in one Playwright run
+- [x] The four demo specs green in one Playwright run
 - [ ] `docs/demo/` regenerated from the Register; `docs/README.md` lists Document 9; the README's section "The design language" merged
 - [x] The Definition of Done walk of Document 7 day 16 repeated with spec section 12; every red line fixed or listed under known limitations
 - [ ] CI stages 1 to 7 green; worklog line; pull request "Register phase 6: verification" merged
@@ -329,6 +329,8 @@ Evidence:
 - Planted, each file restored byte for byte, each named test the one that failed (19): the candidates at 0.55 opacity, the Hebrew name back in a provenance line, arrows that stop at the ends, a number matched only as written, no note before a run, a change request listed per entry, the run not kept, a cited paragraph that does not flash, the opened finding not current, a margin chip's rule without the deep link, the cited case opening only the Cases screen, the publish box's primary, Propose a primary after the proposal, no Go to, no ⌘K; and in Playwright the phone's 9px, the unified diff out of its box (which first went unseen: the check skipped everything inside a table's box, and now exempts only what scrolls), a gradient on the palette, the first paint dark.
 - CI's first run of #172 ([36485139152](https://github.com/liorshaya/PolicyPilot/actions/runs/36485139152)) was green but for stage 7: on Linux the phone walk found an answer's turn 11px past the window at step 3, where on the Mac it fitted with 11px to spare. The what-if's tool chip, "what-if · case 17 · has_guarantor=true", never wraps and set the width of the turn's column; it now breaks between its words on a line narrower than it, each word whole (`e2e/phone.spec.ts`, a turn at 360px, red first). The phone's row of screens counts as a scroll box in the check, as the owner's fifth answer made it on a narrower phone.
 - Local run on 2026-09-29: the backend untouched, its clean unit and full verify green; typecheck, lint with no warning, Prettier, 841 Vitest tests in 74 files with the coverage thresholds (95.9% of statements, 88.6% of branches), the build; Playwright, 90 passed (the 37 before, the register spec's 20, the checklist's 23, the palette's 8, the chat's new one and the phone's); the stack suite, 3 passed on the compose stack; `make check` ALL OK with the traceability matrix regenerated; Semgrep 1.177.0, 0 findings; gitleaks, no leaks.
+
+- Pull request [#172](https://github.com/liorshaya/PolicyPilot/pull/172): CI stages 1 to 7 green on run [36486558516](https://github.com/liorshaya/PolicyPilot/actions/runs/36486558516) at ec40f00, with 1,359 unit, 443 integration, 841 Vitest and 93 Playwright tests (90 on the fixtures, 3 against the stack), the API at 97.1% of lines and 94.0% of branches, the web app at 95.9% of statements and 88.6% of branches, and 100% of the mutants of `engine` and `rules` killed, neither touched. Stage 7 ran the four demo steps' specs and the presenter's run of all four in its one run, green. The worklog line of 2026-09-29 names the phase. The walk of the checklist on the cloud site, on the screens that call no model, follows the deploy.
 
 ---
 
