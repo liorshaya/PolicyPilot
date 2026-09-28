@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { serveTheChange } from './change'
+import { changeRequest, serveTheChange } from './change'
 import { serveTheChat } from './chat'
 import { step } from './panel'
 import { serveASeededRun, serveTheSeededRuleSet } from './seeded'
@@ -68,6 +68,12 @@ test.describe('the demo on a phone', () => {
       await open(page, name)
       expect(await sideways(page), name).toBeLessThanOrEqual(0)
     }
+    // and the change screen once it holds a proposal, its diff and its regression (the cloud walk found the matrix
+    // widening the page by 91px)
+    await page.getByLabel('What should change').fill(changeRequest.text.he)
+    await page.getByRole('button', { name: 'Propose the change' }).click()
+    await expect(page.getByRole('region', { name: 'Regression report' })).toBeVisible()
+    expect(await sideways(page), 'Change with a proposal').toBeLessThanOrEqual(0)
   })
 
   test('runs the steps of the guided demo from the menu, which closes on the screen each opens', async ({

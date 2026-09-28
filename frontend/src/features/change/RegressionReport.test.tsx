@@ -162,6 +162,16 @@ describe('RegressionReport', () => {
     expect(figure('Flags moved').querySelector('.figure__value')).toHaveTextContent('0')
   })
 
+  // The spec, section 10, at phone width: a table may be wider than the window only in a box of its own that scrolls
+  it('keeps each table in a box of its own that scrolls sideways, so a narrow window never widens the report', () => {
+    renderReport()
+
+    const matrix = screen.getByRole('table', { name: 'Version 1 by the proposal' })
+    expect(matrix.parentElement).toHaveClass('table-scroll')
+    const flips = screen.getByRole('table', { name: 'The decisions that flip' })
+    expect(flips.parentElement).toHaveClass('table-scroll')
+  })
+
   it('draws a report stored before its outcomes were counted without the matrix and the flags moved', () => {
     renderReport({
       decisions: report.decisions,
