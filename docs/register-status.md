@@ -10,7 +10,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
 | 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
 | 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
-| 3 | The review, the trace, the explanation, the figures | Blocked | `register/phase-3` |  | 2026-09-28 |  |
+| 3 | The review, the trace, the explanation, the figures | In progress | `register/phase-3` |  | 2026-09-28 |  |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Not started |  |  |  |  |
 | 6 | Verification and the don't list | Not started |  |  |  |  |
@@ -147,9 +147,9 @@ Evidence:
 
 ## 3 · The review, the trace, the explanation, the figures
 
-Status: Blocked
+Status: In progress
 
-Questions, 2026-09-28, for the owner (the table at the end of this file):
+Questions, 2026-09-28, answered by the owner the same day: all eight as recommended (the table at the end of this file):
 
 1. **The trace's case inputs.** Document 9 and the spec open the trace with the case's inputs, "the officer's first question", but `GET /decisions/{id}` returns the engine's decision without them: Document 2 names the route "A stored decision with its trace", and the input it stores (`input_json`) is not in the answer. The backend is not touched. Recommended: leave the section out until the route serves the input, as the owner answered phase 1's first question; each compared field still shows its value "In the case" in the steps. Alternative: return the input from `GET /decisions/{id}`, a change to the backend and to Document 2 first.
 2. **The engine's version.** The trace's provenance line reads "engine 1.0.0 · 61 µs", and no route or field names the engine's version. Recommended: "decided on v1 · engine · 61 µs · 10:14:07", the engine's mark with its time and no version. Alternative: a version in the decision's answer, the backend first.
@@ -244,11 +244,11 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 | 2026-09-28 | 1 | 1. The rail's sandbox line, reset time, person and Leave have nothing to read (recommended: the policy's name and the provider line; "Analyst" with the person mark; Leave back to the gate) | 2026-09-28: as recommended |
 | 2026-09-28 | 1 | 2. The Change count has no source (recommended: only the Rules count until a proposal outlives its screen) | 2026-09-28: as recommended |
 | 2026-09-28 | 1 | 3. Layer 4's tables and palette (recommended: left to phases 2 and 6, listed in the selector diff) | 2026-09-28: as recommended |
-| 2026-09-28 | 3 | 1. The trace's case inputs are not in `GET /decisions/{id}` (recommended: the section left out until the route serves them) |  |
-| 2026-09-28 | 3 | 2. No route names the engine's version (recommended: the provenance line without it) |  |
-| 2026-09-28 | 3 | 3. A review carries no time (recommended: the lifecycle and publish sentences without it) |  |
-| 2026-09-28 | 3 | 4. The statistics name only the top five rules (recommended: "Decided in the last run" only for a rule they name) |  |
-| 2026-09-28 | 3 | 5. Where the whole review stands in the Rules margin (recommended: the review until a rule is chosen, "All n, in the review" back) |  |
-| 2026-09-28 | 3 | 6. The trace's collapsed steps (recommended: every step listed, a rule that did not match as its head until "Show every comparison") |  |
-| 2026-09-28 | 3 | 7. `.figure__value`'s letter-spacing against the lint (recommended: as the spec writes it, allowed by section 12) |  |
-| 2026-09-28 | 3 | 8. The cloud walk of demo step 1, a model call (recommended: one walk at the end of the phase, at most about 20,000 tokens) |  |
+| 2026-09-28 | 3 | 1. The trace's case inputs are not in `GET /decisions/{id}` (recommended: the section left out until the route serves them) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 2. No route names the engine's version (recommended: the provenance line without it) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 3. A review carries no time (recommended: the lifecycle and publish sentences without it) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 4. The statistics name only the top five rules (recommended: "Decided in the last run" only for a rule they name) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 5. Where the whole review stands in the Rules margin (recommended: the review until a rule is chosen, "All n, in the review" back) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 6. The trace's collapsed steps (recommended: every step listed, a rule that did not match as its head until "Show every comparison") | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 7. `.figure__value`'s letter-spacing against the lint (recommended: as the spec writes it, allowed by section 12) | 2026-09-28: as recommended |
+| 2026-09-28 | 3 | 8. The cloud walk of demo step 1, a model call (recommended: one walk at the end of the phase, at most about 20,000 tokens) | 2026-09-28: as recommended |
