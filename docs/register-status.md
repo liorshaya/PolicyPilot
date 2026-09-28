@@ -10,7 +10,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 0 | Foundation: fonts, tokens, base, the lint | Done | `register/phase-0` | [#159](https://github.com/liorshaya/PolicyPilot/pull/159) | 2026-09-27 | 2026-09-28 |
 | 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
 | 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
-| 3 | The review, the trace, the explanation, the figures | In progress | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 |  |
+| 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Not started |  |  |  |  |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Not started |  |  |  |  |
 | 6 | Verification and the don't list | Not started |  |  |  |  |
@@ -147,7 +147,7 @@ Evidence:
 
 ## 3 · The review, the trace, the explanation, the figures
 
-Status: In progress
+Status: Done
 
 Questions, 2026-09-28, answered by the owner the same day: all eight as recommended (the table at the end of this file):
 
@@ -169,7 +169,7 @@ Not a question, for the record: phase 2 built "/", "↑ ↓" and "↵" in the ca
 - [x] `Dashboard`: the proportional bar, three figures with shares, "0 evaluation errors" as a footnote, the bar list with outcome dots, rows that filter, "Declines only"
 - [x] The Rules margin: the rule section (chip and status, label, Condition, Action with terminal, Reason for the applicant, Priority and band, Source with confidence, Decided in the last run, Since), the cited paragraph with the quoted span, the findings on the rule
 - [x] `rtlSnapshot` of the trace and of the review, reviewed
-- [ ] Demo steps 1 and 2 through the guided panel on the cloud site
+- [x] Demo steps 1 and 2 through the guided panel on the cloud site
 - [x] `e2e/cases.spec.ts`, `generate.spec.ts`, `panel.spec.ts` green
 - [x] The Cases screen in both themes beside `screen-cases-light.png` and `screen-cases-dark.png`; the Rules screen beside its two, margin included
 - [x] Worklog line; pull request "Register phase 3: review, trace, explanation, figures" merged
@@ -192,7 +192,7 @@ Evidence:
 - Screens: `docs/demo/register/cases-light.png` and `cases-dark.png` in `screen-cases-*.png`'s frame (1361×1104 at 2×), the run of the 200 cases with case 17's trace in the margin; `rules-margin-light.png` and `-dark.png` in `screen-rules-*.png`'s (1361×1619 at 2×), R-110 chosen as in the spec's Rules screen; `rules-review-light.png` and `-dark.png`, the draft's review with its publish box. All from the committed fixtures, no model called. Beside the spec's: the same sheet of figures, bar list aside (the spec's Figures pattern has it, its composed screen leaves it out), and the trace's head, strip, sections and steps; the Rules margin's three sections as the spec's.
 - Local run on 2026-09-28: typecheck, lint with no warning, 646 Vitest tests in 65 files with the coverage thresholds, Prettier and the build green; the e2e suite, 33 passed, and the stack's 3 against Docker Compose; `make check` ALL OK; Semgrep 1.177.0, 0 findings; gitleaks, no leaks.
 - Pull request [#164](https://github.com/liorshaya/PolicyPilot/pull/164): CI stages 1 to 7 green on run [36373427858](https://github.com/liorshaya/PolicyPilot/actions/runs/36373427858), with 646 Vitest and 36 Playwright tests, the web app at 95.5% of statements and 89.1% of branches and 100% of the mutants of `engine` and `rules` killed, neither touched; the snapshot diffs and the list of wording changes are in its description. The worklog line of 2026-09-28 names the phase. The last commit, which ticks this box, is merged only once its own run is green too.
-- Still open: demo steps 1 and 2 through the guided panel on the cloud site, the owner's approved walk (question 8), which only the deploy of this merge can show; its box, the Finished date and Done land in a follow-up pull request, as phase 2's cloud check did.
+- The cloud site after the merge, `main`'s run [36376369759](https://github.com/liorshaya/PolicyPilot/actions/runs/36376369759) green, Railway's deploy and Vercel's production deploy of `ef77cdb`, its bundle carrying the phase's words: demo steps 1 and 2 through the guided panel, the one walk the owner approved (question 8), at 1376×900 and in both themes by the rail's Theme; 24 checks, all passed. Step 1: the draft and its review in 1.1 s, the response cache's answer, so no author or review call was spent; "The reviewer found 7 things to check against the policy:"; the Rules margin opens on the review, "Review · 7 findings · 3 block publishing" and "Reviewed against ¶ 1–9. The draft has not changed since.", the reviewer's Hebrew claims right to left under "What to do"'s English, the publish box "Publishing version 1" with its four gates and "Publishing waits: 3 findings must be acknowledged: F-1, F-2, F-3.", the header's "Publish version 1" beside "3 findings to acknowledge"; R-110 chosen shows its three sections, the quote marked in paragraph 1. Step 2: the 200 cases in 1.8 s, 113 · 56.5%, 27 · 13.5% and 60 · 30.0% with "0 evaluation errors", R-900, R-320, R-330, R-200 and R-220 deciding most; case 17 "Manual review", "decided on v1 · engine · 178 µs · 07:16:07" in the browser's zone, the hit map "20 rules: 3 matched, 14 did not match, 3 not reached", decided by R-330, "None: the decision came before the advisory rules.", the footer of 14 and 3, and the 20 steps after "Show every comparison". No explanation was asked for. The access code was read from Railway inside the script and never printed.
 
 ## 4 · The assistant, the change request, the audit log
 
