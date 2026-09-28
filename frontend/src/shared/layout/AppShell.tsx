@@ -200,6 +200,25 @@ export function AppShell({
           </div>
           <div className="shortcuts">
             <div>
+              <span>Filter the list</span>
+              <span className="keys">
+                <Kbd>/</Kbd>
+              </span>
+            </div>
+            <div>
+              <span>Select next / previous row</span>
+              <span className="keys">
+                <Kbd>↓</Kbd>
+                <Kbd>↑</Kbd>
+              </span>
+            </div>
+            <div>
+              <span>Open the row in the margin</span>
+              <span className="keys">
+                <Kbd>↵</Kbd>
+              </span>
+            </div>
+            <div>
               <span>Go to Rules / Cases / Assistant</span>
               <span className="keys">
                 <Kbd>G</Kbd>

@@ -14,6 +14,9 @@ interface DecisionListProps {
   onSelect: (decisionId: string) => void
   /** The version the run decided on, which the footer names as the list's scope. */
   versionNo?: number
+  /** The deciding rule the list is filtered by, when the figures above it choose it; without it, the list keeps its own. */
+  decidingRule?: string | null
+  onDecidingRuleChange?: (ruleId: string | null) => void
 }
 
 type Density = 'comfortable' | 'compact'
@@ -50,10 +53,25 @@ const OUTCOMES: DecisionStatus[] = ['approve', 'reject', 'refer', 'error']
  * by case number, outcome and deciding rule; the footer states the count, the scope and the keys. Choosing a row opens
  * that decision's trace beside the list.
  */
-export function DecisionList({ results, selectedId, onSelect, versionNo }: DecisionListProps) {
+export function DecisionList({
+  results,
+  selectedId,
+  onSelect,
+  versionNo,
+  decidingRule: chosenRule,
+  onDecidingRuleChange,
+}: DecisionListProps) {
   const [caseNo, setCaseNo] = useState('')
   const [outcome, setOutcome] = useState<DecisionStatus | ''>('')
-  const [decidingRule, setDecidingRule] = useState('')
+  const [ownRule, setOwnRule] = useState('')
+  const decidingRule = chosenRule === undefined ? ownRule : (chosenRule ?? '')
+  const setDecidingRule = (ruleId: string) => {
+    if (onDecidingRuleChange) {
+      onDecidingRuleChange(ruleId === '' ? null : ruleId)
+    } else {
+      setOwnRule(ruleId)
+    }
+  }
   const [density, setDensity] = useState<Density>(storedDensity)
   const filterRef = useRef<HTMLInputElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)

@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * The Register's "don't" list as a build check (Document 9, phase 0; the spec's section 12). Component CSS writes no
- * literal colour, no px font size, no gradient, no Inter or Heebo, no uppercase or letter-spacing outside the seal and
- * the band, and none of the old --color-* aliases, which live in tokens.css only; no component sets a colour or a font
- * size in a style attribute. The two spec layers, tokens.css (every value) and index.css (the base), are copied
- * verbatim and left out: the owner's answer of 2026-09-28 to the board's question 2.
+ * literal colour, no px font size, no gradient, no Inter or Heebo, no uppercase outside the seal, no letter-spacing
+ * outside the seal, the band and the figure's value, and none of the old --color-* aliases, which live in tokens.css
+ * only; no component sets a colour or a font size in a style attribute. The two spec layers, tokens.css (every value)
+ * and index.css (the base), are copied verbatim and left out: the owner's answer of 2026-09-28 to the board's question
+ * 2. The figure's value keeps the spec's −0.01em: the owner's answer of 2026-09-28 to phase 3's seventh question
+ * (section 12 forbids tracked-out uppercase labels, not the tightening of a large numeral).
  */
 
 /** Vitest runs from the project root, where its configuration lives. */
@@ -31,6 +33,8 @@ const count = (text: string, pattern: RegExp) => [...text.matchAll(pattern)].len
 /** A selector of the seal or of a band, with their BEM elements and modifiers, keeps its capitals and its spacing. */
 const SEAL = /\.seal(?:__|--|\b)/
 const BAND = /\.t-band(?:__|--|\b)/
+/** The figure's numeral, and the share inside it, keep the spec's letter-spacing. */
+const FIGURE = /\.figure__value\b/
 
 /** Each rule of the list, and how many times one CSS rule (its selector and declarations) breaks it. */
 const RULES: [name: string, hits: (selector: string, declarations: string) => number][] = [
@@ -44,9 +48,11 @@ const RULES: [name: string, hits: (selector: string, declarations: string) => nu
   ['gradient', (_selector, body) => count(body, /gradient\(/g)],
   ['Inter or Heebo', (_selector, body) => count(body, /\b(?:Inter|Heebo)\b/g)],
   [
-    'letter-spacing outside .seal and .t-band',
+    'letter-spacing outside .seal, .t-band and .figure__value',
     (selector, body) =>
-      SEAL.test(selector) || BAND.test(selector) ? 0 : count(body, /letter-spacing\s*:/g),
+      SEAL.test(selector) || BAND.test(selector) || FIGURE.test(selector)
+        ? 0
+        : count(body, /letter-spacing\s*:/g),
   ],
   ['old --color-* alias', (_selector, body) => count(body, /--color-[a-z0-9-]+\s*:/g)],
 ]
@@ -57,33 +63,26 @@ const RULES: [name: string, hits: (selector: string, declarations: string) => nu
  * new hit fails, and so does a hit that is gone while its count is still here. Phase 5 leaves it empty.
  */
 const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<string, number> }> = {
-  'src/features/cases/Dashboard.css': {
-    phase: 3,
-    hits: { 'uppercase outside .seal': 2, 'letter-spacing outside .seal and .t-band': 2 },
-  },
-  'src/features/cases/ExplainPanel.css': {
-    phase: 3,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
-  },
-  'src/features/cases/TraceView.css': {
-    phase: 3,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
-  },
   'src/features/change/DiffView.css': {
     phase: 4,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+    hits: {
+      'uppercase outside .seal': 1,
+      'letter-spacing outside .seal, .t-band and .figure__value': 1,
+    },
   },
   'src/features/change/RegressionReport.css': {
     phase: 4,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+    hits: {
+      'uppercase outside .seal': 1,
+      'letter-spacing outside .seal, .t-band and .figure__value': 1,
+    },
   },
   'src/features/policy/PoliciesScreen.css': {
     phase: 5,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
-  },
-  'src/features/rules/RuleDrawer.css': {
-    phase: 3,
-    hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
+    hits: {
+      'uppercase outside .seal': 1,
+      'letter-spacing outside .seal, .t-band and .figure__value': 1,
+    },
   },
 }
 

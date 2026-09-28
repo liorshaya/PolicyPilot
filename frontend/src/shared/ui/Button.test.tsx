@@ -43,6 +43,22 @@ describe('Button', () => {
     expect(rule(css, '.btn--danger').color).toBe('var(--decline-text)')
   })
 
+  it('draws an action the spec writes as a link in the colour of a link, with no box of its own', () => {
+    // the spec draws "Show every comparison", "Declines only" and "Open the policy" as links; each is an action here
+    render(<Button variant="link">Show every comparison</Button>)
+
+    expect(screen.getByRole('button', { name: 'Show every comparison' })).toHaveClass(
+      'btn',
+      'btn--link',
+    )
+    expect(rule(css, '.btn--link')).toMatchObject({
+      height: 'auto',
+      padding: '0',
+      border: '0',
+      color: 'var(--accent-text)',
+    })
+  })
+
   it('keeps its width while busy: the label stays, hidden under the spinner, and a click does nothing', async () => {
     const onClick = vi.fn()
     render(

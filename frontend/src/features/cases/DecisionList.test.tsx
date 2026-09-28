@@ -166,6 +166,23 @@ describe('DecisionList, the filters and the density', () => {
     ).toHaveTextContent('Any deciding rule')
   })
 
+  it('follows the deciding rule the figures above it choose, and reports a choice of its own', async () => {
+    // the spec, section 09: the rows of "Rules that decided most often" filter the case list
+    const user = userEvent.setup()
+    const onDecidingRuleChange = vi.fn()
+    renderList({ decidingRule: 'R-330', onDecidingRuleChange })
+
+    const select = screen.getByRole('combobox', { name: 'Deciding rule' })
+    expect(select).toHaveValue('R-330')
+    expect(document.querySelector('.sheet__foot')).toHaveTextContent(
+      `Cases 1–${decidedBy('R-330')} of 200 · one run on v1`,
+    )
+    await user.selectOptions(select, 'R-900')
+    expect(onDecidingRuleChange).toHaveBeenLastCalledWith('R-900')
+    await user.selectOptions(select, '')
+    expect(onDecidingRuleChange).toHaveBeenLastCalledWith(null)
+  })
+
   it('offers the outcomes in the words of the tags', () => {
     renderList()
 

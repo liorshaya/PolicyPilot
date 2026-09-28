@@ -4,41 +4,44 @@ exports[`CasesScreen in both directions (NFR-5) > LTR: an English trace stays le
 "
 page -           Case
 page -           17
-page -           ·
-page -           Decided in 412 µs by the engine
+page -           Manual review
 page -           Close
+page -           decided on
+page -           v
+page -           1
+page -           engine ·
+page -           412 µs
+page -           09:05:00
+page -           matched
+page -           did not match
+page -           not reached
+page -           disabled
+page -           decided, ringed in its outcome
 page -           Explain for an officer
 page -           Explain for the applicant
-page -           Manual review
+page -           Export
+page -           JSON
+page -           ·
+page -           CSV
+page -           Decided by
+page -           R-330
+ltr  en          Referral: one credit event without a guarantor
+page -           Reason for the applicant
 ltr  en          One adverse credit event requires a guarantor
 page -           Derived by the engine
 page -           monthly_installment
-page -           1,493.1
+page -           1,493.1 ₪
 page -           debt_to_income
 page -           0.2835
+page -           Flags
+page -           None.
 page -           Steps, in the order the engine walked them
-page -           1
 page -           R-170
-auto -           Reject: net income below 7,000
+ltr  en          Reject: net income below 7,000
 page -           Did not match
-page -           What step
-page -           1
-page -           compared
-page -           Field
-page -           Expected
-page -           In the case
-page -           Result
-page -           monthly_income
-page -           < 7,000
-page -           9,500
-page -           not met
-page -           2
 page -           R-330
-auto -           Referral: one credit event without a guarantor
-page -           Matched
-page -           What step
-page -           2
-page -           compared
+ltr  en          Referral: one credit event without a guarantor
+page -           Matched · decided
 page -           Field
 page -           Expected
 page -           In the case
@@ -51,10 +54,10 @@ page -           has_guarantor
 page -           = false
 page -           false
 page -           met
-page -           3
-page -           R-900
-auto -           Approve: every condition is met
-page -           Not reached
+page -           decide · Manual review · terminal
+page -           1 rule that did not match is collapsed to its head · 1 not reached after the decision
+page -           ·
+page -           Show every comparison
 "
 `;
 
@@ -62,41 +65,44 @@ exports[`CasesScreen in both directions (NFR-5) > RTL: the trace of case 17 read
 "
 page -           Case
 page -           17
-page -           ·
-page -           Decided in 412 µs by the engine
+page -           Manual review
 page -           Close
+page -           decided on
+page -           v
+page -           1
+page -           engine ·
+page -           412 µs
+page -           09:05:00
+page -           matched
+page -           did not match
+page -           not reached
+page -           disabled
+page -           decided, ringed in its outcome
 page -           Explain for an officer
 page -           Explain for the applicant
-page -           Manual review
+page -           Export
+page -           JSON
+page -           ·
+page -           CSV
+page -           Decided by
+page -           R-330
+rtl  he          בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           Reason for the applicant
 rtl  he          נדרש ערב בשל אירוע אשראי אחד ב-24 החודשים האחרונים
 page -           Derived by the engine
 page -           monthly_installment
-page -           1,493.1
+page -           1,493.1 ₪
 page -           debt_to_income
 page -           0.2835
+page -           Flags
+page -           None.
 page -           Steps, in the order the engine walked them
-page -           1
 page -           R-170
-auto -           דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+rtl  he          דחייה: הכנסה חודשית נטו נמוכה מ-8,000
 page -           Did not match
-page -           What step
-page -           1
-page -           compared
-page -           Field
-page -           Expected
-page -           In the case
-page -           Result
-page -           monthly_income
-page -           < 8,000
-page -           9,500
-page -           not met
-page -           2
 page -           R-330
-auto -           בדיקת חתם: אירוע אשראי אחד ללא ערב
-page -           Matched
-page -           What step
-page -           2
-page -           compared
+rtl  he          בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           Matched · decided
 page -           Field
 page -           Expected
 page -           In the case
@@ -109,9 +115,9 @@ page -           has_guarantor
 page -           = false
 page -           false
 page -           met
-page -           3
-page -           R-900
-auto -           אישור כשכל התנאים מתקיימים
-page -           Not reached
+page -           decide · Manual review · terminal
+page -           1 rule that did not match is collapsed to its head · 1 not reached after the decision
+page -           ·
+page -           Show every comparison
 "
 `;

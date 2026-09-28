@@ -139,6 +139,21 @@ describe('AppShell', () => {
     expect(screen.queryByRole('dialog', { name: 'Help' })).not.toBeInTheDocument()
   })
 
+  it('lists each shortcut the product answers, in the order of the spec', async () => {
+    // the spec, section 04: a shortcut joins the sheet with the phase that builds it; phase 2 built /, ↓ ↑ and ↵
+    renderShell()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Help' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Help' }).querySelector('.shortcuts')!
+    expect([...sheet.children].map((row) => row.textContent)).toStrictEqual([
+      'Filter the list/',
+      'Select next / previous row↓↑',
+      'Open the row in the margin↵',
+      'Go to Rules / Cases / AssistantGR C A',
+    ])
+  })
+
   it('goes to Rules, Cases or the Assistant with G and the screen letter, but not while typing', async () => {
     const onNavigate = vi.fn()
     renderShell({ onNavigate, children: <input aria-label="Question" /> })

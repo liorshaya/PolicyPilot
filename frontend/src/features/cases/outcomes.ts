@@ -6,8 +6,11 @@ import type { DecisionStatus } from '../../shared/ui/decisionLabels'
  * The aggregates come from the engine; this module only puts them in the order a person reads them.
  */
 
-/** The three outcomes in the order the policy decides them, so the strip never reorders between two runs. */
-export const OUTCOME_ORDER: Outcome[] = ['approve', 'reject', 'refer']
+/**
+ * The three outcomes in the order the figures read them (the spec, section 09: Approved, Manual review, Declined), so
+ * the bar and the figures never reorder between two runs.
+ */
+export const OUTCOME_ORDER: Outcome[] = ['approve', 'refer', 'reject']
 
 export interface OutcomeCount {
   outcome: DecisionStatus
@@ -35,11 +38,12 @@ export function outcomeCounts(aggregates: Aggregates): OutcomeCount[] {
 }
 
 /**
- * A share as a whole percentage, for a strip that reads at a glance. The product is rounded to six decimals first,
- * so a share that is exactly a half of a percent (113 of 200) is not dragged down by binary representation.
+ * A share as a percentage with one decimal, as the figures write it (the spec, section 09: "56.5%", "30.0%"). The
+ * product is rounded to six decimals first, so a share that ends in a half is not dragged down by binary
+ * representation.
  */
 export function percent(share: number): string {
-  return `${String(Math.round(Number((share * 100).toFixed(6))))}%`
+  return `${Number((share * 100).toFixed(6)).toFixed(1)}%`
 }
 
 /**

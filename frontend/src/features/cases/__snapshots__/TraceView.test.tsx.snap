@@ -1,0 +1,112 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TraceView in both directions (NFR-5) > RTL: case 17's Hebrew labels and reason read right to left beside Latin ids, fields and numbers (snapshot) 1`] = `
+"
+page -           Case
+page -           17
+page -           Manual review
+page -           decided on
+page -           v
+page -           1
+page -           engine ·
+page -           61 µs
+page -           10:14:07
+page -           matched
+page -           did not match
+page -           not reached
+page -           disabled
+page -           decided, ringed in its outcome
+page -           Explain for an officer
+page -           Explain for the applicant
+page -           Export
+page -           JSON
+page -           ·
+page -           CSV
+page -           Decided by
+page -           R-330
+rtl  he          בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           Reason for the applicant
+rtl  he          נדרש ערב בשל אירוע אשראי אחד ב-24 החודשים האחרונים
+page -           Derived by the engine
+page -           monthly_installment
+page -           1,493.1 ₪
+page -           debt_to_income
+page -           0.2835
+page -           Flags
+page -           None: the decision came before the advisory rules.
+page -           Steps, in the order the engine walked them
+page -           R-010
+rtl  he          חישוב ההחזר החודשי לפי לוח שפיצר בריבית שנתית של 9%
+page -           Matched
+page -           set monthly_installment · null → 1,493.1
+page -           R-020
+rtl  he          חישוב יחס החוב להכנסה
+page -           Matched
+page -           Field
+page -           Expected
+page -           In the case
+page -           Result
+page -           monthly_income
+page -           > 0
+page -           9,500
+page -           met
+page -           set debt_to_income · null → 0.2835
+page -           R-100
+rtl  he          דחייה: גיל נמוך מ-21
+page -           Did not match
+page -           R-110
+rtl  he          דחייה: גיל מעל 70 (למעט גמלאים)
+page -           Did not match
+page -           R-115
+rtl  he          דחייה: גמלאי מעל גיל 75
+page -           Did not match
+page -           R-116
+rtl  he          דחייה: תקופת ההחזר של גמלאי מסתיימת בגיל 78 או אחריו
+page -           Did not match
+page -           R-120
+rtl  he          דחייה: סכום ההלוואה מחוץ לטווח 10,000 עד 150,000
+page -           Did not match
+page -           R-130
+rtl  he          דחייה: תקופת ההחזר מחוץ לטווח 12 עד 84 חודשים
+page -           Did not match
+page -           R-140
+rtl  he          דחייה: מבקש מובטל
+page -           Did not match
+page -           R-150
+rtl  he          דחייה: שכיר עם ותק נמוך מ-6 חודשים
+page -           Did not match
+page -           R-160
+rtl  he          דחייה: עצמאי הפועל פחות מ-24 חודשים
+page -           Did not match
+page -           R-170
+rtl  he          דחייה: הכנסה חודשית נטו נמוכה מ-8,000
+page -           Did not match
+page -           R-200
+rtl  he          דחייה: יחס חוב להכנסה מעל 40%
+page -           Did not match
+page -           R-220
+rtl  he          דחייה: שני אירועי אשראי שליליים או יותר
+page -           Did not match
+page -           R-310
+rtl  he          בדיקה ידנית: ותק לא דווח
+page -           Did not match
+page -           R-320
+rtl  he          בדיקת חתם: יחס חוב להכנסה בין 35% ל-40%
+page -           Did not match
+page -           R-330
+rtl  he          בדיקת חתם: אירוע אשראי אחד ללא ערב
+page -           Matched · decided
+page -           credit_events_24m
+page -           = 1
+page -           1
+page -           met
+page -           has_guarantor
+page -           = false
+page -           false
+page -           met
+page -           decide · Manual review · terminal
+page -           14 rules that did not match are collapsed to their head · 3 not reached after the decision
+page -           ·
+page -           Show every comparison
+"
+`;

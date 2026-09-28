@@ -1,93 +1,64 @@
-/* One column that never grows past the panel, so the wide rule JSON scrolls inside itself. */
-.drawer {
+/*
+ * The Rules margin with a rule chosen (the Register spec, section 10, the Rules screen): the label-over-value lists of
+ * layer 5 of docs/design/register.css, as the spec writes them.
+ */
+.kv {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-  margin: 0;
-}
-
-.drawer dt {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.drawer dd {
-  margin: var(--space-1) 0 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.drawer__pair {
-  display: contents;
-}
-
-.drawer__source {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.drawer__paragraph {
-  color: var(--color-text-muted);
+  gap: 8px;
   font-size: var(--text-sm);
 }
-
-.drawer__quote {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  border-inline-start: 3px solid var(--color-selected-bar);
-  background: var(--color-accent-wash);
-  border-radius: var(--radius-sm);
-  line-height: 1.7;
-}
-
-.drawer__full {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: 1.7;
-}
-
-.drawer__findings {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.drawer__finding {
+.kv > div {
   display: grid;
   gap: 2px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-inline-start-width: 3px;
-  border-radius: var(--radius-sm);
+}
+.kv dt {
+  color: var(--ink-3);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+}
+.kv dd {
+  min-width: 0;
+}
+.kv .actor {
+  white-space: normal;
+}
+.kv--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
+ * (Document 9, "The CSS port"): the rule's Hebrew label in the size of a panel title, its condition in mono at the
+ * regular weight, the quiet "terminal" and the reason's size; a finding in the margin has no padding of its own, its
+ * claim at the size of the margin, a finding of the validator in the chrome's own direction, and a link in a title row
+ * or under a finding in the caption size.
+ */
+.rule__label {
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+.rule__condition {
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.rule__terminal {
+  font-size: var(--text-xs);
+}
+.rule__reason {
   font-size: var(--text-sm);
 }
-
-.drawer__finding--error {
-  border-inline-start-color: var(--color-declined-text);
+.margin__section > .finding {
+  padding: 0;
 }
-
-.drawer__finding--warning {
-  border-inline-start-color: var(--color-review-text);
+.margin__section .finding__claim {
+  font-size: var(--text-sm);
 }
-
-.drawer__finding--info {
-  border-inline-start-color: var(--color-accent);
+.rule__finding {
+  grid-column: 2;
+  font-size: var(--text-sm);
 }
-
-.drawer__json {
-  margin: 0;
-  padding: var(--space-3);
-  max-height: 22rem;
-  overflow: auto;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+.margin__title .btn--link,
+.finding__actions .btn--link {
   font-size: var(--text-xs);
-  line-height: 1.6;
-  white-space: pre;
+  font-weight: 400;
 }

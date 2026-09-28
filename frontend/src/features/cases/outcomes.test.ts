@@ -21,11 +21,12 @@ const seeded: Aggregates = {
 }
 
 describe('outcomeCounts', () => {
-  it('keeps the three outcomes in the order the policy decides them, then the errors', () => {
+  it('keeps the three outcomes in the order the figures read them, then the errors', () => {
+    // the spec, section 09: Approved, Manual review, Declined, and the errors as a footnote
     expect(outcomeCounts(seeded).map((count) => count.outcome)).toEqual([
       'approve',
-      'reject',
       'refer',
+      'reject',
       'error',
     ])
   })
@@ -33,7 +34,7 @@ describe('outcomeCounts', () => {
   it('counts the 200 seeded cases as the engine decided them', () => {
     const counts = outcomeCounts(seeded)
 
-    expect(counts.map((count) => count.count)).toEqual([113, 60, 27, 0])
+    expect(counts.map((count) => count.count)).toEqual([113, 27, 60, 0])
     expect(counts.reduce((sum, count) => sum + count.count, 0)).toBe(seeded.decisions)
   })
 
@@ -41,8 +42,8 @@ describe('outcomeCounts', () => {
     const counts = outcomeCounts(seeded)
 
     expect(counts[0]?.share).toBeCloseTo(0.565, 3)
-    expect(counts[1]?.share).toBeCloseTo(0.3, 3)
-    expect(counts[2]?.share).toBeCloseTo(0.135, 3)
+    expect(counts[1]?.share).toBeCloseTo(0.135, 3)
+    expect(counts[2]?.share).toBeCloseTo(0.3, 3)
   })
 
   it('reads an outcome the engine did not report as none of it', () => {
@@ -71,10 +72,13 @@ describe('outcomeCounts', () => {
 })
 
 describe('percent and engine time', () => {
-  it('writes a share as a whole percentage', () => {
-    expect(percent(0.565)).toBe('57%')
-    expect(percent(0)).toBe('0%')
-    expect(percent(1)).toBe('100%')
+  it('writes a share with one decimal, as the figures do', () => {
+    // the spec, section 09: "113 56.5%", "27 13.5%", "60 30.0%"
+    expect(percent(113 / 200)).toBe('56.5%')
+    expect(percent(27 / 200)).toBe('13.5%')
+    expect(percent(60 / 200)).toBe('30.0%')
+    expect(percent(0)).toBe('0.0%')
+    expect(percent(1)).toBe('100.0%')
   })
 
   // The engine decides one lending case in 4 to 113 microseconds on the live site (2026-09-22); one decimal of a

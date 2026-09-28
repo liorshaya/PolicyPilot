@@ -142,6 +142,22 @@
   z-index: 1;
 }
 
+/* The product's own: an action the spec draws as a link in running text ("Show every comparison", "Declines only")
+   is a button that reads as the base layer's link, with no box of its own. */
+.btn--link {
+  height: auto;
+  padding: 0;
+  border: 0;
+  color: var(--accent-text);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.btn--link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* The reason a control is disabled is text beside it, never a tooltip. */
 .reason {
   font-size: var(--text-xs);

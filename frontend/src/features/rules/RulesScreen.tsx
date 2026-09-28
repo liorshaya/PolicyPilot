@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
+import { latestPublished } from '../../api/published'
 import {
   useAcknowledge,
+  useDiff,
   usePolicy,
   usePublish,
   useReplaceRules,
   useRulesets,
   useRunReview,
+  useStats,
   useVersion,
 } from '../../api/queries'
-import type { RuleSetDocument, VersionResponse } from '../../api/types'
+import type { GapResolution, RuleSetDocument, VersionResponse } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
@@ -21,10 +24,10 @@ import { VersionTag } from '../../shared/ui/StatusTag'
 import { PolicyText } from '../policy/PolicyText'
 import { DecisionTable } from './DecisionTable'
 import { RulesetSwitcher, VersionPicker } from './Pickers'
-import { publishBlockers } from './findings'
-import { ReviewPanel } from './ReviewPanel'
+import { publishBlockers, publishGates } from './findings'
+import { PublishBox, ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
-import { tagsOf, withLeaf } from './tableModel'
+import { sinceOf, tagsOf, withEnabled, withLeaf } from './tableModel'
 import type { Leaf } from './cellGrammar'
 import './RulesScreen.css'
 
@@ -41,9 +44,11 @@ interface RulesScreenProps {
 }
 
 /**
- * The rule set screen (Work Plan day 6): the decision table with the cell grammar, the raw JSON view, the 422
- * pointers shown on the cells they name, and publish. A rule, its source paragraph and its findings are shown
- * together, because that pairing is what makes a published version auditable.
+ * The rule set screen (Work Plan day 6; the spec, section 10, the Rules screen): the decision table with the cell
+ * grammar, the 422 pointers shown on the cells they name, and in the margin the review with its publish box until a
+ * rule is chosen, then the chosen rule, the paragraph it cites and the findings that name it (the owner's answer of
+ * 2026-09-28 to phase 3's fifth question), the policy or the JSON the engine runs. A rule, its source and its findings
+ * are shown together, because that pairing is what makes a published version auditable.
  */
 export function RulesScreen({
   onOpenCases,
@@ -80,7 +85,10 @@ export function RulesScreen({
   const acknowledge = useAcknowledge(target)
   const [chosenRuleId, setChosenRuleId] = useState<string | null>(null)
   const selectedRuleId = chosenRuleId ?? focusRuleId
-  const [panel, setPanel] = useState<SidePanel>('source')
+  // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review
+  const [panel, setPanel] = useState<SidePanel | null>(null)
+  // "All n, in the review" goes back to the review over a chosen rule, until another rule is chosen
+  const [reviewing, setReviewing] = useState(false)
   const [asked, setAsked] = useState<number | null>(null)
   const document = shown?.ruleSet as RuleSetDocument | undefined
   const tags = document ? tagsOf(document) : []
@@ -107,6 +115,35 @@ export function RulesScreen({
   const draft = shown?.status === 'DRAFT'
   const review = shown?.review
   const blockers = draft ? publishBlockers(review) : []
+  const gates = shown ? publishGates(shown, review, findings) : []
+  const toAcknowledge = review?.findings.filter((finding) => finding.blocking).length ?? 0
+  const view: SidePanel = panel ?? (draft || review ? 'rule' : 'source')
+  const showsRule = view === 'rule' && selectedRule !== undefined && !reviewing
+  const showsReview = view === 'rule' && !showsRule && (draft || review !== undefined)
+  // what the rule decided in the last run on this rule set's published version, when the statistics name it
+  const publishedNo = chosen ? latestPublished(chosen) : undefined
+  const stats = useStats(
+    chosen && publishedNo !== undefined ? { id: chosen.id, versionNo: publishedNo } : null,
+  )
+  const topRule = stats.data?.topDecidingRules.find((one) => one.ruleId === selectedRule?.id)
+  // "Since": the version before the one on the screen, and the diff between them
+  const previousNo = chosen?.versions
+    .map((one) => one.versionNo)
+    .filter((no) => no < (shown?.versionNo ?? 0))
+    .pop()
+  const diff = useDiff(
+    chosen && shown && previousNo !== undefined
+      ? { rulesetId: chosen.id, from: previousNo, to: shown.versionNo }
+      : null,
+  )
+  const since =
+    selectedRule && shown
+      ? previousNo === undefined
+        ? sinceOf(selectedRule.id, shown.versionNo, null)
+        : diff.data
+          ? sinceOf(selectedRule.id, shown.versionNo, { versionNo: previousNo, diff: diff.data })
+          : undefined
+      : undefined
 
   function editCell(ruleId: string, previous: Leaf, next: Leaf) {
     if (!document) {
@@ -118,10 +155,20 @@ export function RulesScreen({
   function selectRule(ruleId: string) {
     setChosenRuleId(ruleId)
     setAsked(null)
-    if (panel === 'json') {
+    setReviewing(false)
+    if (view === 'json') {
       setPanel('rule')
     }
   }
+
+  function showParagraph(index: number) {
+    setAsked(index)
+    setPanel('source')
+  }
+
+  const acknowledging = acknowledge.isPending ? (acknowledge.variables.findingId ?? null) : null
+  const onAcknowledge = (findingId: string, resolution?: GapResolution, note?: string) =>
+    acknowledge.mutate({ findingId, resolution, note }, { onSuccess: setLatest })
 
   return (
     <>
@@ -151,11 +198,13 @@ export function RulesScreen({
         secondary={shown ? <Button onClick={onOpenCases}>Run cases</Button> : null}
         reason={
           shown
-            ? draft
-              ? blockers.length > 0
-                ? blockers.join(' ')
-                : undefined
-              : 'Only a draft is published'
+            ? !draft
+              ? 'Only a draft is published'
+              : review?.status === 'DONE' && toAcknowledge > 0
+                ? `${String(toAcknowledge)} finding${toAcknowledge === 1 ? '' : 's'} to acknowledge`
+                : blockers.length > 0
+                  ? blockers.join(' ')
+                  : undefined
             : null
         }
         primary={
@@ -163,55 +212,24 @@ export function RulesScreen({
             <Button
               variant="primary"
               busy={publish.isPending}
-              disabled={
-                !draft ||
-                findings.some((finding) => finding.severity === 'error') ||
-                blockers.length > 0
-              }
+              disabled={gates.some((gate) => gate.state !== 'ok')}
               onClick={() => publish.mutate(undefined, { onSuccess: setLatest })}
             >
-              Publish version
+              Publish version {shown.versionNo}
             </Button>
           ) : null
         }
       />
       <SplitView
         sideOpen
+        fill
+        sideSheet={showsReview}
         main={
           <>
             {refusal ? <RefusedEdit error={refusal} /> : null}
             {publishRefusal ? <RefusedEdit error={publishRefusal} /> : null}
             {reviewRefusal ? <RefusedEdit error={reviewRefusal} /> : null}
             {acknowledgeRefusal ? <RefusedEdit error={acknowledgeRefusal} /> : null}
-            {draft || review ? (
-              <Section
-                title="Review"
-                subtitle="What the reviewer found against the policy; a person decides what stands"
-                flush
-              >
-                <ReviewPanel
-                  review={review}
-                  language={language}
-                  draft={draft}
-                  running={runReview.isPending}
-                  onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
-                  acknowledging={
-                    acknowledge.isPending ? (acknowledge.variables.findingId ?? null) : null
-                  }
-                  onAcknowledge={(findingId, resolution, note) =>
-                    acknowledge.mutate({ findingId, resolution, note }, { onSuccess: setLatest })
-                  }
-                  onSelectRule={(ruleId) => {
-                    selectRule(ruleId)
-                    setPanel('rule')
-                  }}
-                  onShowParagraph={(index) => {
-                    setAsked(index)
-                    setPanel('source')
-                  }}
-                />
-              </Section>
-            ) : null}
             <Section
               title="Decision table"
               subtitle={
@@ -266,8 +284,11 @@ export function RulesScreen({
                         key={id}
                         variant="secondary"
                         size="sm"
-                        aria-pressed={panel === id}
-                        onClick={() => setPanel(id)}
+                        aria-pressed={view === id}
+                        onClick={() => {
+                          setPanel(id)
+                          setReviewing(false)
+                        }}
                       >
                         {id === 'source' ? 'Policy' : id === 'rule' ? 'Rule' : 'JSON'}
                       </Button>
@@ -309,7 +330,7 @@ export function RulesScreen({
           </>
         }
         side={
-          panel === 'json' ? (
+          view === 'json' ? (
             <Section
               title="Rule set JSON"
               subtitle="The document the engine runs, exactly as it is stored"
@@ -317,13 +338,81 @@ export function RulesScreen({
             >
               <pre className="rules__json mono">{JSON.stringify(document ?? {}, null, 2)}</pre>
             </Section>
-          ) : panel === 'rule' && selectedRule ? (
+          ) : showsReview && shown ? (
+            <>
+              <div className="sheet">
+                <div className="sheet__scroll">
+                  <ReviewPanel
+                    review={review}
+                    language={language}
+                    draft={draft}
+                    running={runReview.isPending}
+                    onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
+                    acknowledging={acknowledging}
+                    onAcknowledge={onAcknowledge}
+                    onSelectRule={(ruleId) => {
+                      selectRule(ruleId)
+                      setPanel('rule')
+                    }}
+                    onShowParagraph={showParagraph}
+                  />
+                </div>
+              </div>
+              <PublishBox
+                version={shown}
+                review={review}
+                findings={findings}
+                publishing={publish.isPending}
+                onPublish={() => publish.mutate(undefined, { onSuccess: setLatest })}
+                running={runReview.isPending}
+                onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
+                justPublished={publish.isSuccess}
+              />
+            </>
+          ) : showsRule && document && shown ? (
             <RuleDrawer
               rule={selectedRule}
               language={language}
+              versionStatus={shown.status as VersionStatus}
               paragraph={citedParagraph}
+              citedBy={document.rules
+                .filter(
+                  (rule) =>
+                    rule.provenance.kind === 'quoted' && rule.provenance.paragraph === citedIndex,
+                )
+                .map((rule) => rule.id)}
               findings={findings.filter((finding) => finding.ruleIds.includes(selectedRule.id))}
-              onClose={() => setPanel('source')}
+              reviewFindings={(review?.findings ?? []).filter((finding) =>
+                finding.ruleIds.includes(selectedRule.id),
+              )}
+              reviewTotal={review?.findings.length ?? 0}
+              editable={draft}
+              acknowledging={acknowledging}
+              onAcknowledge={onAcknowledge}
+              onSelectRule={selectRule}
+              onShowParagraph={showParagraph}
+              decided={
+                topRule && stats.data
+                  ? { count: topRule.count, decisions: stats.data.decisions }
+                  : undefined
+              }
+              since={since}
+              onOpenReview={
+                review
+                  ? () => {
+                      setReviewing(true)
+                      setPanel('rule')
+                    }
+                  : undefined
+              }
+              onToggleEnabled={
+                draft
+                  ? (enabled) =>
+                      replaceRules.mutate(withEnabled(document, selectedRule.id, enabled), {
+                        onSuccess: setLatest,
+                      })
+                  : undefined
+              }
             />
           ) : (
             <Section

@@ -162,11 +162,12 @@ describe('RulesScreen', () => {
     expect(within(tag).getAllByRole('option')[0]).toHaveTextContent('All tags')
     const margin = screen.getByRole('group', { name: 'Show in the margin' })
     expect(margin).toHaveClass('segment')
-    expect(within(margin).getByRole('button', { name: 'Policy' })).toHaveAttribute(
+    // a draft's margin opens on the review of its rules (the owner's answer of 2026-09-28 to phase 3's fifth question)
+    expect(within(margin).getByRole('button', { name: 'Rule' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    expect(within(margin).getByRole('button', { name: 'Rule' })).toHaveAttribute(
+    expect(within(margin).getByRole('button', { name: 'Policy' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
@@ -191,7 +192,9 @@ describe('RulesScreen', () => {
     expect(await screen.findByText('Version 1')).toBeInTheDocument()
     expect(screen.getByText('Published')).toBeInTheDocument()
     expect(screen.getByText('Seeded, read-only')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Publish version' })).toBeDisabled()
+    // the spec, section 10: the primary names the version it would publish
+    expect(screen.getByRole('button', { name: 'Publish version 1' })).toBeDisabled()
+    expect(screen.getByText('Only a draft is published')).toHaveClass('reason')
   })
 
   it('opens the paragraph a rule cites when its row is selected', async () => {
@@ -233,10 +236,13 @@ describe('RulesScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Rule' }))
 
     const panel = within(await screen.findByRole('complementary'))
-    expect(panel.getByText('330')).toBeInTheDocument()
-    expect(panel.getByText('Manual review')).toBeInTheDocument()
+    // the spec, section 10: the rule stacked label over value, its priority with its band
+    expect(panel.getByText('Priority').nextElementSibling).toHaveTextContent(
+      '330 · Referral conditions',
+    )
+    expect(panel.getByText('Manual review')).toHaveClass('tag', 'tag--refer')
     // the confidence the model gave the quotation (fixtures/policies/consumer-lending/ruleset.v1.json)
-    expect(panel.getByText('0.88')).toBeInTheDocument()
+    expect(panel.getByText('model · confidence 0.88')).toHaveClass('actor', 'actor--model')
     expect(panel.getByText('DSL-311')).toBeInTheDocument()
     expect(panel.getByText('the rule is unreachable')).toBeInTheDocument()
   })
@@ -285,6 +291,29 @@ describe('RulesScreen', () => {
       op: 'lt',
       value: 23,
     })
+    expect(document.rules).toHaveLength(lendingRuleSet.rules.length)
+  })
+
+  it('switches a rule of a draft off in the margin and sends the whole document with it skipped', async () => {
+    // Document 3, Rules: a rule whose enabled is false is skipped by the engine; Document 9 puts the control here
+    const user = userEvent.setup()
+    let sent: RuleSetDocument | null = null
+    serveDraft()
+    server.use(
+      http.put(`${BASE}/rulesets/:id/versions/:no/rules`, async ({ request }) => {
+        sent = (await request.json()) as RuleSetDocument
+        return HttpResponse.json({ ...draftVersion, ruleSet: sent })
+      }),
+    )
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: /R-310/ }))
+    await user.click(screen.getByRole('checkbox', { name: 'Enabled' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    const document = sent as unknown as RuleSetDocument
+    expect(document.rules.find((rule) => rule.id === 'R-310')?.enabled).toBe(false)
+    expect(document.rules.filter((rule) => rule.enabled === false)).toHaveLength(1)
     expect(document.rules).toHaveLength(lendingRuleSet.rules.length)
   })
 
@@ -360,9 +389,17 @@ describe('RulesScreen', () => {
     )
     renderScreen()
 
-    await user.click(await screen.findByRole('button', { name: 'Publish version' }))
+    // the draft's review found nothing, so the margin shows the review and its publish box
+    const margin = within(await screen.findByRole('complementary'))
+    await user.click(await margin.findByRole('button', { name: 'Publish version 2' }))
 
-    expect(await screen.findByText('Published')).toBeInTheDocument()
+    expect(
+      await margin.findByText('Version 2 decides cases from now on. Version 1 stays readable.'),
+    ).toBeInTheDocument()
+    expect(within(screen.getByRole('heading', { level: 1 })).getByText('Published')).toHaveClass(
+      'vstatus',
+      'vstatus--published',
+    )
     expect(screen.queryByLabelText('R-100, age')).not.toBeInTheDocument()
   })
 
@@ -388,7 +425,15 @@ describe('RulesScreen', () => {
     renderScreen()
 
     expect(await screen.findByText('Draft')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Publish version' })).toBeDisabled()
+    // the header's primary and the publish box's button: one action, disabled in both places
+    const publish = screen.getAllByRole('button', { name: 'Publish version 2' })
+    expect(publish).toHaveLength(2)
+    for (const button of publish) {
+      expect(button).toBeDisabled()
+    }
+    expect(
+      screen.getByText('Schema and semantics valid').closest('.publish-box__row'),
+    ).toHaveTextContent('1 problem')
   })
 
   it('reports a rule set that could not be read', async () => {
@@ -563,11 +608,46 @@ describe('RulesScreen, the review of a draft', () => {
     serveReviewed()
     renderScreen()
 
-    expect(
-      await screen.findByText('Publishing waits: 2 findings must be acknowledged: F-2, F-3.'),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Publish version' })).toBeDisabled()
+    // the ids are kept whole on their line, so the sentence is read from its row
+    await waitFor(() =>
+      expect(
+        document.querySelector('.publish-box__row--action .publish-box__reason'),
+      ).toHaveTextContent('Publishing waits: 2 findings must be acknowledged: F-2, F-3.'),
+    )
+    // the spec, section 10: the header's primary names the version, and says why it waits beside it
+    expect(screen.getByText('2 findings to acknowledge')).toHaveClass('reason')
+    for (const button of screen.getAllByRole('button', { name: 'Publish version 2' })) {
+      expect(button).toBeDisabled()
+    }
     expect(screen.getAllByText('Blocks publishing')).toHaveLength(2)
+  })
+
+  it('shows the review in the margin of a draft until a rule is chosen, and goes back to it', async () => {
+    // the owner's answer of 2026-09-28 to phase 3's fifth question
+    const user = userEvent.setup()
+    serveReviewed()
+    renderScreen()
+
+    const margin = within(await screen.findByRole('complementary'))
+    expect(await margin.findByRole('region', { name: 'Review of the draft' })).toBeInTheDocument()
+    expect(margin.getByText('Publishing version 2')).toHaveClass('publish-box__row--head')
+    expect(screen.getByRole('button', { name: 'Rule' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(within(rowOf('R-110')).getByRole('button', { name: /R-110/ }))
+
+    // the chosen rule's three sections: the rule, the paragraph it cites, the findings that name it
+    expect(margin.queryByRole('region', { name: 'Review of the draft' })).not.toBeInTheDocument()
+    expect(
+      [...document.querySelectorAll('aside .margin__title')].map((title) => title.textContent),
+    ).toStrictEqual([
+      'Rule R-110Draft',
+      'Policy ¶\u00a01Open the policy',
+      'Findings on this rule1 of 3',
+    ])
+
+    await user.click(margin.getByRole('button', { name: 'All 3, in the review' }))
+
+    expect(margin.getByRole('region', { name: 'Review of the draft' })).toBeInTheDocument()
   })
 
   it('acknowledges a gap only with a resolution, and sends the one chosen', async () => {
@@ -607,9 +687,9 @@ describe('RulesScreen, the review of a draft', () => {
     await user.click(within(gap).getByLabelText('A manual-check flag surfaces it'))
     await user.click(record)
 
-    expect(
-      await within(gap).findByText('Acknowledged: A manual-check flag surfaces it'),
-    ).toBeInTheDocument()
+    // the acknowledged finding is the inline seal, the resolution chosen under it
+    expect(await within(gap).findByText('A manual-check flag surfaces it')).toBeInTheDocument()
+    expect(gap.querySelector('.seal')).toHaveTextContent('Acknowledged09:00 · Analyst')
     expect(sent).toEqual([{ finding: 'F-3', body: { resolution: 'flag_added' } }])
   })
 
