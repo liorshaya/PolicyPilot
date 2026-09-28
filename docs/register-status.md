@@ -11,7 +11,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 1 | The shell | Done | `register/phase-1` | [#160](https://github.com/liorshaya/PolicyPilot/pull/160) | 2026-09-28 | 2026-09-28 |
 | 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
-| 4 | The assistant, the change request, the audit log | Blocked | `register/phase-4` |  | 2026-09-28 |  |
+| 4 | The assistant, the change request, the audit log | In progress | `register/phase-4` |  | 2026-09-28 |  |
 | 5 | Policies, composition, Decide a case, Fields, every state, the phone | Not started |  |  |  |  |
 | 6 | Verification and the don't list | Not started |  |  |  |  |
 
@@ -196,9 +196,9 @@ Evidence:
 
 ## 4 · The assistant, the change request, the audit log
 
-Status: Blocked
+Status: In progress
 
-Questions, 2026-09-28, for the owner (the table at the end of this file). Read against the product files the phase lists, the API they call (Document 2) and the backend that serves it, which the phase does not touch:
+Questions, 2026-09-28, answered by the owner the same day: the first seven by the API, each the alternative below, "everything the spec asks, the API supporting it too"; the eighth, a paid walk, is confirmed with the owner before it runs (the table at the end of this file). The API's additions land first, in a pull request of their own with Documents 2 to 5 and Document 9's third rule changed first; the phase then builds on them:
 
 1. **Tool calls as steps.** The spec draws each tool call as a step line above the answer: the tool chip, what it ran on, the timing and the outcome as a decision tag ("what-if · case 17 · has_guarantor=true · ran on v1 · 58 µs · Approved · flag STABLE_INCOME_MANUAL_CHECK"). The chat stream (Document 2) sends `token`, `citations`, `usage` with the count of tool calls, and `done`; the calls themselves are stored (`tool_calls_json`) but neither sent nor served by any route. The citations name each decision looked up (`d:17`, with the engine's outcome) and each simulation run (`sim:d17:has_guarantor=true`, with its outcome). Recommended: a step line above the answer for each decision and simulation it cites, read from the citation: the tool chip (what-if, or the case), what it ran on, the session's version and the outcome as a decision tag; no timing and no flags, which the stream does not carry; the line appears with the citations, after the answer's last token. Alternative: the tool calls in the stream, which changes the backend and Document 2 first.
 2. **The fixed sentences.** The spec draws the "not covered" answer with the system's mark and "No source · a fixed sentence, not the model's". The stream sends it as ordinary tokens with empty citations, with nothing to tell it from a model's answer (Document 4: the API returns it without a model call, and the model's own prompt ends in it too); the tool-limit sentence of Document 4 is the same kind. Recommended: an answer whose text is one of Document 4's fixed sentences, in Hebrew or English (`prompts/answer/not-covered.yml`, `prompts/answer/tool-limit.yml`), is drawn as the system's; the frontend holds the sentences, and a test reads the two prompt files so they cannot drift apart. Alternative: a flag in the stream, the backend and Document 2 first.
@@ -283,11 +283,11 @@ Written by the agent when a phase is Blocked; answered here by the owner, then t
 | 2026-09-28 | 3 | 6. The trace's collapsed steps (recommended: every step listed, a rule that did not match as its head until "Show every comparison") | 2026-09-28: as recommended |
 | 2026-09-28 | 3 | 7. `.figure__value`'s letter-spacing against the lint (recommended: as the spec writes it, allowed by section 12) | 2026-09-28: as recommended |
 | 2026-09-28 | 3 | 8. The cloud walk of demo step 1, a model call (recommended: one walk at the end of the phase, at most about 20,000 tokens) | 2026-09-28: as recommended |
-| 2026-09-28 | 4 | 1. Tool calls as steps: the stream sends only their count (recommended: a step line per cited decision and simulation, from its citation, no timing or flags) |  |
-| 2026-09-28 | 4 | 2. The fixed sentences carry no flag in the stream (recommended: an answer that is one of Document 4's fixed sentences drawn as the system's, the sentences checked against the prompt files) |  |
-| 2026-09-28 | 4 | 3. No route reports the spent budget (recommended: no budget note; it reads as the provider's note, the composer enabled) |  |
-| 2026-09-28 | 4 | 4. The stage timings and tokens are not in the change stream (recommended: the wait timed in the browser, no tokens) |  |
-| 2026-09-28 | 4 | 5. A change request has no number (recommended: "CR-" and the first four characters of its id) |  |
-| 2026-09-28 | 4 | 6. The regression report has no flags, no proposed trace and no base counts (recommended: no flags figure, the base trace only, the diagonal from the base statistics) |  |
-| 2026-09-28 | 4 | 7. `GET /audit` serves one version (recommended: "All versions" merges each version's entries) |  |
-| 2026-09-28 | 4 | 8. The cloud walk of demo steps 3 and 4, embeddings and model calls (recommended: one walk at the end of the phase, about 5,000 tokens, at most about 25,000) |  |
+| 2026-09-28 | 4 | 1. Tool calls as steps: the stream sends only their count (recommended: a step line per cited decision and simulation, from its citation, no timing or flags) | 2026-09-28: the API serves the tool calls (a `tool` event) |
+| 2026-09-28 | 4 | 2. The fixed sentences carry no flag in the stream (recommended: an answer that is one of Document 4's fixed sentences drawn as the system's, the sentences checked against the prompt files) | 2026-09-28: the API marks a fixed sentence |
+| 2026-09-28 | 4 | 3. No route reports the spent budget (recommended: no budget note; it reads as the provider's note, the composer enabled) | 2026-09-28: the API reports the budget state |
+| 2026-09-28 | 4 | 4. The stage timings and tokens are not in the change stream (recommended: the wait timed in the browser, no tokens) | 2026-09-28: the API sends each stage's time and tokens |
+| 2026-09-28 | 4 | 5. A change request has no number (recommended: "CR-" and the first four characters of its id) | 2026-09-28: the API numbers change requests |
+| 2026-09-28 | 4 | 6. The regression report has no flags, no proposed trace and no base counts (recommended: no flags figure, the base trace only, the diagonal from the base statistics) | 2026-09-28: the report carries the three, a route serves the proposed trace |
+| 2026-09-28 | 4 | 7. `GET /audit` serves one version (recommended: "All versions" merges each version's entries) | 2026-09-28: `GET /audit` without a version |
+| 2026-09-28 | 4 | 8. The cloud walk of demo steps 3 and 4, embeddings and model calls (recommended: one walk at the end of the phase, about 5,000 tokens, at most about 25,000) | 2026-09-28: confirmed with the owner before it runs |
