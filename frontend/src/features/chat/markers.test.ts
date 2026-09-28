@@ -75,6 +75,25 @@ describe('placed', () => {
     ])
   })
 
+  // Document 4's answer prompt writes a sentence's sources one after another with a space between them, as in
+  // "[[d:17]] [[r:R-330]] [[p:7]]": they are still one claim, whose first source is the chip inline (the spec, section
+  // 09: "one per claim inline; the sources strip repeats them all")
+  it('holds markers written with a space between them as one claim, as the answer prompt writes them', () => {
+    expect(placed(segments('ולא היה לו ערב. [[d:17]] [[r:R-330]] [[p:7]] לכן'))).toEqual([
+      { kind: 'text', at: 0, text: 'ולא היה לו ערב. ' },
+      { kind: 'markers', at: 16, ids: ['d:17', 'r:R-330', 'p:7'] },
+      { kind: 'text', at: 44, text: ' לכן' },
+    ])
+  })
+
+  it('moves the punctuation after such a run back to its sentence, with no space left before it', () => {
+    expect(placed(segments('תקופת ההחזר היא 84 חודשים [[p:2]] [[r:R-130]]. More'))).toEqual([
+      { kind: 'text', at: 0, text: 'תקופת ההחזר היא 84 חודשים.' },
+      { kind: 'markers', at: 26, ids: ['p:2', 'r:R-130'] },
+      { kind: 'text', at: 46, text: ' More' },
+    ])
+  })
+
   it('gives the punctuation a text of its own when the answer starts with a marker', () => {
     expect(placed(segments('[[p:1]]. More'))).toEqual([
       { kind: 'text', at: 7, text: '.' },
