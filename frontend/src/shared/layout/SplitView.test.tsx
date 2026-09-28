@@ -24,6 +24,19 @@ describe('SplitView', () => {
     expect(rule(css, '.ws-body')['grid-template-columns']).toBe('minmax(0, 1fr) var(--margin-w)')
   })
 
+  it('names the margin by what it holds, so a reader finds it among the landmarks', () => {
+    const { getByRole } = render(
+      <SplitView
+        main={<p>The thread</p>}
+        side={<p>The paragraph</p>}
+        sideOpen
+        sideLabel="Paragraph 2"
+      />,
+    )
+
+    expect(getByRole('complementary', { name: 'Paragraph 2' })).toHaveTextContent('The paragraph')
+  })
+
   it('widens the margin for a trace, and gives the sheet the whole width when the margin is closed', () => {
     const { container, rerender } = render(
       <SplitView main={<p>The cases</p>} side={<p>The trace</p>} sideOpen wide />,

@@ -28,17 +28,21 @@ test.describe('the change screen', () => {
     await page.getByLabel('What should change').fill(RT_04_TEXT)
     await page.getByRole('button', { name: 'Propose the change' }).click()
 
+    // the refusal block of the spec's section 08: the code, a row per refused patch, and the closing fact
     const refusal = page.getByRole('alert')
-    await expect(refusal).toContainText(
-      'The proposal was refused (RULESET_INVALID). Nothing was stored.',
+    await expect(refusal.locator('.refusal__head')).toHaveText(
+      'RULESET_INVALIDThe proposal was refused.',
     )
     // every rule of version 1 that rejects, R-170 aside, and the defaults: 11 removes and 1 set_defaults refused
-    await expect(
-      refusal.getByRole('list', { name: 'Why it was refused' }).getByRole('listitem'),
-    ).toHaveCount(12)
-    const attempted = refusal.getByRole('list', { name: 'What the model proposed' })
+    await expect(refusal.getByRole('term')).toHaveCount(12)
+    await expect(refusal.locator('.refusal__foot')).toContainText('Nothing was stored.')
+
+    // what the model attempted stays behind a link until the analyst asks for it
+    await refusal.getByRole('button', { name: 'What the model proposed' }).click()
+
+    const attempted = page.getByRole('list', { name: 'What the model proposed' })
     await expect(attempted).toContainText('Remove R-100')
     await expect(attempted.getByRole('listitem').last()).toHaveText('Set the defaults to Approved')
-    await expect(page.getByRole('button', { name: 'Approve and publish' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Approve and publish/ })).toHaveCount(0)
   })
 })

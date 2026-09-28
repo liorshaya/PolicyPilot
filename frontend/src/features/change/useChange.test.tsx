@@ -13,7 +13,7 @@ import {
   scriptedProposalEvent,
   scriptedRequest,
 } from '../../test/fixtures/change'
-import { eventStream } from '../../test/fixtures/changeRequest'
+import { eventStream, SCRIPTED_TIMINGS } from '../../test/fixtures/changeRequest'
 import { SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { useChange } from './useChange'
@@ -70,6 +70,8 @@ describe('useChange', () => {
         candidates: ['R-170', 'R-410', 'R-020', 'R-200', 'R-320'],
         fields: ['monthly_income'],
       },
+      // Document 2: every event after analyzing says which stage it ended, the proposal the regression
+      timings: SCRIPTED_TIMINGS,
       proposal: scriptedProposalEvent,
     })
   })
@@ -96,6 +98,7 @@ describe('useChange', () => {
       expect(result.current.state).toStrictEqual({
         status: 'failed',
         candidates: null,
+        timings: [],
         failure: { code: 'VERSION_STATUS_CONFLICT', findings: [], document: null },
       }),
     )

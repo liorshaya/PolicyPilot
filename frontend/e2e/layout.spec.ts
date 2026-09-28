@@ -91,6 +91,7 @@ test.describe('on a laptop', () => {
     page,
   }) => {
     await proposeTheScriptedChange(page)
+    await page.getByRole('button', { name: 'Side by side' }).click()
 
     // R-170's action as proposed: the outcome and the reason, marked as inserted
     const inserted = page
@@ -160,6 +161,7 @@ test.describe('on a phone', () => {
     page,
   }) => {
     await proposeTheScriptedChange(page)
+    await page.getByRole('button', { name: 'Side by side' }).click()
 
     // the label of R-170 as proposed (change-request-1.json), the widest value of the diff's first row
     const replacement = changeRequest.expected.patches.find(
@@ -180,7 +182,7 @@ test.describe('on a phone', () => {
     await page.getByRole('button', { name: 'Approve and publish' }).click()
     await page.getByRole('button', { name: 'Open the audit log' }).click()
 
-    const to = page.getByRole('combobox', { name: 'To' })
+    const to = page.getByRole('combobox', { name: 'to', exact: true })
     await to.scrollIntoViewIfNeeded()
     await expect(to).toBeInViewport({ ratio: 1 })
   })

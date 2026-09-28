@@ -1,4 +1,4 @@
-import type { Decision, TraceAction, TraceComparison, TraceStep } from '../../api/types'
+import type { EngineDecision, TraceAction, TraceComparison, TraceStep } from '../../api/types'
 import { ACTION_LABELS } from '../../shared/ui/decisionLabels'
 import { literalText, renderCell, type Leaf } from '../rules/cellGrammar'
 import { bandOf } from '../rules/tableModel'
@@ -78,7 +78,7 @@ export interface HitCell {
 }
 
 /** The hit map (the spec, section 09): one cell per rule, in the order the engine walked them. */
-export function hitMap(decision: Decision): HitCell[] {
+export function hitMap(decision: EngineDecision): HitCell[] {
   return decision.trace.map((step) => ({
     ruleId: step.ruleId,
     status: step.status,
@@ -106,7 +106,10 @@ export function hitMapLabel(cells: HitCell[]): string {
 }
 
 /** What the collapsed trace leaves to its last row: the rules that did not match and those not reached. */
-export function collapsedCounts(decision: Decision): { didNotMatch: number; notReached: number } {
+export function collapsedCounts(decision: EngineDecision): {
+  didNotMatch: number
+  notReached: number
+} {
   return {
     didNotMatch: decision.trace.filter((step) => step.status === 'not_fired').length,
     notReached: decision.trace.filter((step) => step.status === 'skipped').length,
@@ -117,7 +120,7 @@ export function collapsedCounts(decision: Decision): { didNotMatch: number; notR
  * The Flags section when the engine raised none (the spec, section 09: present even when empty): when the advisory
  * rules, the band that flags, were not reached, the decision came before them, and the sentence says so.
  */
-export function noFlags(decision: Decision): string {
+export function noFlags(decision: EngineDecision): string {
   const beforeAdvisory = decision.trace.some(
     (step) => step.status === 'skipped' && bandOf(step.priority).name === 'Advisory',
   )

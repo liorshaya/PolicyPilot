@@ -6,6 +6,7 @@ import {
   scriptedProposalEvent,
   scriptedRequest,
 } from '../../test/fixtures/change'
+import { SCRIPTED_TIMINGS } from '../../test/fixtures/changeRequest'
 import { changeReducer, IDLE, type ChangeAction, type ChangeState } from './changeReducer'
 import { CHANGE_STAGES } from './types'
 
@@ -15,16 +16,25 @@ import { CHANGE_STAGES } from './types'
 
 /**
  * A change request as the screen holds it (Document 2, the change stream: `analyzing`, `proposing` with the candidate
- * rules and fields, `validating`, `regression`, then `proposal` or `error`; Work Plan day 14: the change reducer). The
- * candidates, the proposal and the RT-04 refusal are built from the committed fixtures (src/test/fixtures/change.ts).
+ * rules and fields, `validating`, `regression`, then `proposal` or `error`, every event after the first with the stage
+ * it ended; Work Plan day 14: the change reducer). The candidates, the times, the proposal and the RT-04 refusal are
+ * built from the committed fixtures (src/test/fixtures/change.ts).
  */
 
+const [analyzed, written, checked] = SCRIPTED_TIMINGS
 const running = changeReducer(IDLE, { type: 'submitted' })
 const candidates = {
   candidates: scriptedRequest.expected.candidates,
   fields: scriptedRequest.expected.candidateFields,
 }
-const proposing = changeReducer(running, { type: 'proposing', candidates })
+const proposing = changeReducer(
+  changeReducer(running, { type: 'stage', stage: 'analyzing', ended: null }),
+  {
+    type: 'proposing',
+    candidates,
+    ended: analyzed!,
+  },
+)
 const proposed = changeReducer(proposing, { type: 'proposal', proposal: scriptedProposalEvent })
 
 /** The version the approval published, in the sandbox's own copy of the seeded rule set (Document 3). */
@@ -46,14 +56,27 @@ describe('changeReducer', () => {
       status: 'running',
       stage: null,
       candidates: null,
+      timings: [],
     })
   })
 
-  it('the four stages arrive in order and the progress follows them', () => {
-    const analyzing = changeReducer(running, { type: 'stage', stage: 'analyzing' })
-    const afterProposing = changeReducer(analyzing, { type: 'proposing', candidates })
-    const validating = changeReducer(afterProposing, { type: 'stage', stage: 'validating' })
-    const regression = changeReducer(validating, { type: 'stage', stage: 'regression' })
+  it('the four stages arrive in order and the progress follows them, each with the time and tokens of the one it ended', () => {
+    const analyzing = changeReducer(running, { type: 'stage', stage: 'analyzing', ended: null })
+    const afterProposing = changeReducer(analyzing, {
+      type: 'proposing',
+      candidates,
+      ended: analyzed!,
+    })
+    const validating = changeReducer(afterProposing, {
+      type: 'stage',
+      stage: 'validating',
+      ended: written!,
+    })
+    const regression = changeReducer(validating, {
+      type: 'stage',
+      stage: 'regression',
+      ended: checked!,
+    })
 
     expect(CHANGE_STAGES).toStrictEqual(['analyzing', 'proposing', 'validating', 'regression'])
     expect(
@@ -61,6 +84,7 @@ describe('changeReducer', () => {
         state.status === 'running' ? state.stage : state.status,
       ),
     ).toStrictEqual(['analyzing', 'proposing', 'validating', 'regression'])
+    expect(regression).toMatchObject({ timings: [analyzed, written, checked] })
   })
 
   it('proposing records the candidate rules and fields the model is shown', () => {
@@ -72,13 +96,15 @@ describe('changeReducer', () => {
         candidates: ['R-170', 'R-410', 'R-020', 'R-200', 'R-320'],
         fields: ['monthly_income'],
       },
+      timings: [analyzed],
     })
   })
 
-  it('a proposal ends the run with its patches, its diff and its regression report', () => {
+  it('a proposal ends the run with its patches, its diff and its regression report, and the regression stage timed', () => {
     expect(proposed).toStrictEqual({
       status: 'proposed',
       candidates,
+      timings: [analyzed, scriptedProposalEvent.ended],
       proposal: scriptedProposalEvent,
     })
   })
@@ -88,6 +114,7 @@ describe('changeReducer', () => {
     expect(changeReducer(proposing, { type: 'failed', failure: rt04 })).toStrictEqual({
       status: 'failed',
       candidates,
+      timings: [analyzed, rt04.ended],
       failure: rt04,
     })
   })
@@ -98,6 +125,7 @@ describe('changeReducer', () => {
     expect(changeReducer(running, { type: 'failed', failure })).toStrictEqual({
       status: 'failed',
       candidates: null,
+      timings: [],
       failure,
     })
   })
@@ -112,10 +140,12 @@ describe('changeReducer', () => {
 
     expect(changeReducer(proposed, { type: 'decided', decision: approved })).toStrictEqual({
       status: 'decided',
+      candidates,
+      timings: [analyzed, scriptedProposalEvent.ended],
       proposal: scriptedProposalEvent,
       decision: approved,
     })
-    expect(changeReducer(proposed, { type: 'decided', decision: rejected })).toStrictEqual({
+    expect(changeReducer(proposed, { type: 'decided', decision: rejected })).toMatchObject({
       status: 'decided',
       proposal: scriptedProposalEvent,
       decision: rejected,
@@ -125,8 +155,8 @@ describe('changeReducer', () => {
 
   it('events after the run has ended change nothing', () => {
     const late: ChangeAction[] = [
-      { type: 'stage', stage: 'validating' },
-      { type: 'proposing', candidates },
+      { type: 'stage', stage: 'validating', ended: written! },
+      { type: 'proposing', candidates, ended: analyzed! },
       { type: 'proposal', proposal: scriptedProposalEvent },
       { type: 'failed', failure: rt04 },
     ]

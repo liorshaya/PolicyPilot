@@ -123,6 +123,30 @@ export const gapEntry: AuditEntry = {
   },
 }
 
+/**
+ * A reset, as the nightly job writes it (Document 2, POST /admin/reset): the system's entry, on no version at all, so
+ * the API never lists it to a sandbox; the log still draws one should it appear (the spec's states table). Its version
+ * here only satisfies the type.
+ */
+export const resetEntry: AuditEntry = {
+  id: '0f4c1c9e-0000-4000-8000-00000000e107',
+  at: '2026-09-21T00:00:00Z',
+  actor: 'nightly-reset',
+  action: 'RESET',
+  rulesetVersionId: BASE_VERSION_ID,
+  changeRequestId: null,
+  changeRequestNumber: null,
+  details: { trigger: 'nightly', sandboxesDeleted: 3, reseeded: true },
+}
+
+/** Every entry the scripted change leaves, newest first, as `GET /audit` without a version lists them. */
+export const everyEntry: AuditEntry[] = [
+  approvalEntry,
+  copyPublishEntry,
+  proposedEntry,
+  seedPublishEntry,
+]
+
 /** The sandbox's own copy of the seeded rule set after the approval: version 1 as published, version 2 the change. */
 export const copyRuleset: RulesetSummary = {
   id: COPY_RULESET_ID,

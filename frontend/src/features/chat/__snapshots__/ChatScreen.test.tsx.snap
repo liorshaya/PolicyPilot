@@ -1,22 +1,38 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`ChatScreen in both directions (NFR-5) > LTR: an English answer stays left to right (snapshot) 1`] = `
+exports[`ChatScreen in both directions (NFR-5) > LTR: an English thread stays left to right (snapshot) 1`] = `
 "
-auto -           What is the minimum age for a personal loan?
+ltr  en          What is the minimum age for a personal loan?
 ltr  en          The minimum age is 21.
-ltr  en          ¶ 1
-page -           Question
-page -           Ask
+ltr  en          ¶
+ltr  en          1
+ltr  en          Cited
+ltr  en          ¶
+ltr  en          1
 "
 `;
 
-exports[`ChatScreen in both directions (NFR-5) > RTL: a Hebrew answer reads right to left with its citation chips left to right (snapshot) 1`] = `
+exports[`ChatScreen in both directions (NFR-5) > RTL: a Hebrew thread reads right to left, its steps, chips and numbers left to right (snapshot) 1`] = `
 "
-auto -           מהי תקופת ההחזר המקסימלית להלוואה?
-rtl  he          בקשה 17 הופנתה לבדיקת חתם.
-ltr  he          Application 17
-ltr  he          ¶ 7
-page -           Question
-page -           Ask
+rtl  he          למה בקשה מספר
+ltr  he          17
+rtl  he          הופנתה לבדיקה?
+rtl  he          case 17
+rtl  he          ran on
+rtl  he          v
+rtl  he          1
+rtl  he          ·
+rtl  he          1.2 ms
+rtl  he          Manual review
+rtl  he          בקשה
+ltr  he          17
+rtl  he          הופנתה לבדיקת חתם.
+rtl  he          Case 17
+rtl  he          Cited
+rtl  he          Case 17
+rtl  he          ¶
+rtl  he          7
+rtl  he          the outcome is the engine's, on v
+rtl  he          1
 "
 `;

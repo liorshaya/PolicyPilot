@@ -4,7 +4,7 @@ import { useDecideChange } from '../../api/queries'
 import { openSse } from '../../api/sse'
 import type { ChangeDecision } from '../../api/types'
 import { changeReducer, IDLE, type ChangeState } from './changeReducer'
-import type { Candidates, Proposal, StreamFailure } from './types'
+import type { Candidates, Proposal, StageEnded, StreamFailure } from './types'
 
 /**
  * A change request and its stream (Document 2, API Surface: POST /rulesets/{id}/versions/{no}/changes answers
@@ -67,10 +67,13 @@ export function useChange(target: ChangeTarget | null): ChangeRun {
             { body: { text }, signal: controller.signal },
           )) {
             const data: unknown = JSON.parse(event.data)
+            // every event after the first says which stage it ended (Document 2)
+            const ended = (data as { ended?: StageEnded | null }).ended ?? null
             if (STAGES.has(event.event)) {
-              dispatch({ type: 'stage', stage: event.event as PlainStage })
+              dispatch({ type: 'stage', stage: event.event as PlainStage, ended })
             } else if (event.event === 'proposing') {
-              dispatch({ type: 'proposing', candidates: data as Candidates })
+              const { candidates, fields } = data as Candidates
+              dispatch({ type: 'proposing', candidates: { candidates, fields }, ended })
             } else if (event.event === 'proposal') {
               dispatch({ type: 'proposal', proposal: data as Proposal })
             } else if (event.event === 'error') {

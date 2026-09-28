@@ -17,6 +17,7 @@ import { Dashboard } from './Dashboard'
  */
 
 const css = stylesheet('features/cases/Dashboard.css')
+const figuresCss = stylesheet('shared/ui/Figures.css')
 
 function renderFigures(
   props: Partial<Parameters<typeof Dashboard>[0]> = {},
@@ -73,7 +74,7 @@ describe('Dashboard, the outcome row', () => {
       expect(screen.getByText(label).querySelector('.dot')).toHaveClass(dot)
     }
     // the owner's answer of 2026-09-28 to phase 3's seventh question: the figure's letter-spacing as the spec writes it
-    expect(rule(css, '.figure__value')['letter-spacing']).toBe('-0.01em')
+    expect(rule(figuresCss, '.figure__value')['letter-spacing']).toBe('-0.01em')
   })
 
   it('writes the evaluation errors as a footnote, not a quarter of the row', () => {
@@ -164,10 +165,12 @@ describe('Dashboard, the rules that decided most often', () => {
 })
 
 describe('Dashboard.css', () => {
-  it("carries every rule of the spec's figures and bar list, with the spec's declarations", () => {
-    const figures = specRules('/* Figures */', '/* Policy document and its list */')
+  it("carries every rule of the spec's outcome bar, with the spec's declarations", () => {
+    const outcome = specRules('/* Figures */', '/* Policy document and its list */').filter(
+      ([selector]) => selector.startsWith('.outcome'),
+    )
 
-    expect(figures).toHaveLength(23)
-    expect(unported(css, figures)).toEqual([])
+    expect(outcome).toHaveLength(6)
+    expect(unported(css, outcome)).toEqual([])
   })
 })

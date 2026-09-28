@@ -31,20 +31,29 @@ test.describe('the guided demo panel', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible()
     // the panel fills the first question in; a presenter presses Ask and types nothing
-    await expect(page.getByLabel('Question')).toHaveValue(question('Q-01').question)
+    await expect(page.getByLabel('Question', { exact: true })).toHaveValue(
+      question('Q-01').question,
+    )
     // the question it fills in is Hebrew, so the composer has to turn around with it (Document 5, Hebrew pitfalls)
-    await expect(page.getByLabel('Question')).toHaveAttribute('dir', 'auto')
+    await expect(page.getByLabel('Question', { exact: true })).toHaveAttribute('dir', 'auto')
     await page.getByRole('button', { name: 'Ask' }).click()
-    await expect(page.getByRole('button', { name: 'Application 17' })).toBeVisible()
+    await expect(
+      page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: 'Case 17' }),
+    ).toBeVisible()
 
-    await page.getByLabel('Question').fill(question('Q-02').question)
+    await page.getByLabel('Question', { exact: true }).fill(question('Q-02').question)
     await page.getByRole('button', { name: 'Ask' }).click()
     await expect(page.getByText('עם ערב הבקשה הייתה מאושרת')).toBeVisible()
 
-    await page.getByLabel('Question').fill(question('Q-03').question)
+    await page.getByLabel('Question', { exact: true }).fill(question('Q-03').question)
     await page.getByRole('button', { name: 'Ask' }).click()
     await expect(page.getByText('84 חודשים')).toBeVisible()
-    await expect(page.getByRole('button', { name: '¶ 2' })).toBeVisible()
+    await expect(
+      page
+        .getByRole('group', { name: 'Sources' })
+        .last()
+        .getByRole('button', { name: 'Paragraph 2' }),
+    ).toBeVisible()
   })
 
   test('step 1 opens the policy form already holding the sample policy', async ({ page }) => {
@@ -80,42 +89,53 @@ test.describe('the guided demo panel', () => {
     await expect(page.getByLabel('What should change')).toHaveValue(changeRequest.text.he)
     await page.getByRole('button', { name: 'Propose the change' }).click()
 
-    // the two rules the change touches, each with its rationale (Brief, demo step 4)
-    const rules = page.getByRole('list', { name: 'Rules to change' }).getByRole('listitem')
-    await expect(rules).toHaveCount(2)
-    await expect(rules.nth(0)).toContainText('Replace R-170')
-    await expect(rules.nth(1)).toContainText('Replace R-410')
-    // the diff at the pointer that changed, not the whole rule (Document 3, Structural diff)
-    await expect(page.getByRole('list', { name: 'What changed in R-170' })).toContainText(
-      '/condition/value 8,000 → 9,000',
-    )
-    // the 200 cases decided again: 12 decisions flip, listed by id (cases-expected.json, regression)
+    // the two rules the change touches, each patch with its operation and its rationale (Brief, demo step 4)
+    const patches = page.getByRole('list', { name: 'Patches' }).getByRole('listitem')
+    await expect(patches).toHaveCount(2)
+    await expect(patches.nth(0).locator('.patch__op')).toHaveText('Replace')
+    await expect(patches.nth(0).getByText('R-170', { exact: true })).toBeVisible()
+    await expect(patches.nth(1).getByText('R-410', { exact: true })).toBeVisible()
+    // one row per changed cell: R-170's threshold, 8,000 struck and 9,000 inserted (Document 3, Structural diff)
+    const threshold = page
+      .getByRole('region', { name: 'Changes from Published v1 to Proposed' })
+      .locator('.udiff__row')
+      .filter({ hasText: 'R-170' })
+      .filter({ hasText: 'monthly_income' })
+    await expect(threshold.locator('.del')).toHaveText('8,000')
+    await expect(threshold.locator('.add')).toHaveText('9,000')
+    // the 200 cases decided again: 12 decisions flip, listed by case (cases-expected.json, regression)
     const report = page.getByRole('region', { name: 'Regression report' })
-    await expect(report).toContainText('12 of the 200 decisions made on version 1 flip.')
-    await expect(report.locator('tbody tr td:first-child')).toHaveText(
-      casesExpected.regression.flips.map((flip) => String(flip.id)),
-    )
+    await expect(report.locator('.figure').first()).toContainText('126.0% of 200')
+    await report.getByRole('button', { name: 'Show all 12' }).click()
+    await expect(
+      report
+        .getByRole('table', { name: 'The decisions that flip' })
+        .locator('tbody tr td:first-child'),
+    ).toHaveText(casesExpected.regression.flips.map((flip) => String(flip.id)))
 
     await page.getByLabel('Note for the audit log').fill(note)
-    await page.getByRole('button', { name: 'Approve and publish' }).click()
+    await page.getByRole('button', { name: 'Approve and publish v2' }).click()
 
     await expect(
       page.getByText(
-        "Approved. Version 2 is published in this sandbox's own copy of the seeded rule set; version 1 is unchanged.",
+        "Approved. Version 2 is published in this sandbox's own copy of the rule set; the cases decide on it from now on.",
       ),
     ).toBeVisible()
+    await expect(page.locator('.seal .seal__line')).toHaveText('CR-0001 · 2026-09-27 09:12')
     // the workspace follows the approval to version 2 of the sandbox's copy
     await expect(page.getByText('Version 2', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Open the audit log' }).click()
 
     await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible()
-    const entry = page.getByRole('list', { name: 'Entries' }).getByRole('article').first()
-    await expect(entry.getByRole('heading')).toHaveText('Change approved')
-    await expect(entry).toContainText(changeRequest.text.he)
+    const entry = page.getByRole('region', { name: 'Audit log' }).getByRole('listitem').first()
+    await expect(entry.locator('.event__verb')).toHaveText('Change approved')
+    await expect(entry).toContainText('CR-0001')
     await expect(entry).toContainText(note)
-    await expect(
-      entry.getByRole('region', { name: 'Changes from Version 1 to Version 2' }),
-    ).toContainText('2 rules modified')
+
+    await entry.getByText('Show the request, the diff and the regression').click()
+
+    await expect(entry.locator('.event__more')).toContainText(changeRequest.text.he)
+    await expect(entry.getByRole('region', { name: 'Changes from v1 to v2' })).toBeVisible()
   })
 })

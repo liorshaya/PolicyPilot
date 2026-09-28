@@ -17,6 +17,19 @@ describe('Chip', () => {
     expect(rule(css, '.chip--id')['font-family']).toBe('var(--font-mono)')
   })
 
+  it('marks an identifier a change considered and left as it was, which the change screen fades', () => {
+    render(
+      <>
+        <Chip unchanged>R-020</Chip>
+        <Chip>R-170</Chip>
+      </>,
+    )
+
+    // the spec, section 09: `.candidates .chip--id[data-state='unchanged']`
+    expect(screen.getByText('R-020')).toHaveAttribute('data-state', 'unchanged')
+    expect(screen.getByText('R-170')).not.toHaveAttribute('data-state')
+  })
+
   it('draws a paragraph as the serif pill: ¶, a non-breaking space and its number', () => {
     render(<Chip kind="para">7</Chip>)
     const chip = document.querySelector('.chip--para')!

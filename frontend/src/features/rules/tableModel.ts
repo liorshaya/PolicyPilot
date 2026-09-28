@@ -1,4 +1,4 @@
-import type { Diff, FieldSchema, Rule, RuleSetDocument } from '../../api/types'
+import type { Diff, FieldSchema, Rule, RuleAction, RuleSetDocument } from '../../api/types'
 import { ACTION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
 import {
   cellParts,
@@ -65,7 +65,12 @@ export function bandOf(priority: number): Band {
 
 /** The action column in words: the words of a rule's action column for a decision, the action itself otherwise. */
 export function actionText(rule: Rule): string {
-  return rule.actions
+  return actionsText(rule.actions)
+}
+
+/** A rule's actions in words, as its action column writes them; the diff writes a changed action with them. */
+export function actionsText(actions: RuleAction[]): string {
+  return actions
     .map((action) => {
       if (action.type === 'decide') {
         const label = ACTION_LABELS[action.outcome ?? 'refer']

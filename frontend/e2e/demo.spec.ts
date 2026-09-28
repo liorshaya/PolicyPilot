@@ -169,13 +169,22 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
 
   // Step 3, Ask: the three scripted questions, then the rate question the documents do not cover
   await step(page, 'Ask').click()
-  await expect(page.getByLabel('Question')).toHaveValue(question('Q-01').question)
+  await expect(page.getByLabel('Question', { exact: true })).toHaveValue(question('Q-01').question)
   await page.getByRole('button', { name: 'Ask' }).click()
-  await expect(page.getByRole('button', { name: 'Application 17' })).toBeVisible()
+  await expect(
+    page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: 'Case 17' }),
+  ).toBeVisible()
   await ask(page, question('Q-02').question)
-  await expect(page.getByText('What if has_guarantor=true', { exact: true })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Tool calls' }).last()).toContainText(
+    'what-if · case 17 · has_guarantor=true',
+  )
   await ask(page, question('Q-03').question)
-  await expect(page.getByRole('button', { name: '¶ 2' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('group', { name: 'Sources' })
+      .last()
+      .getByRole('button', { name: 'Paragraph 2' }),
+  ).toBeVisible()
   await ask(page, question('Q-04').question)
   // the Hebrew answers are laid out right to left inside the English chrome (NFR-5)
   await expect(
@@ -187,15 +196,18 @@ test('the presenter runs the gate, then steps 1 to 4 through the guided panel, i
   await expect(page.getByLabel('What should change')).toHaveValue(changeRequest.text.he)
   await page.getByRole('button', { name: 'Propose the change' }).click()
   const report = page.getByRole('region', { name: 'Regression report' })
-  await expect(report).toContainText('12 of the 200 decisions made on version 1 flip.')
-  await expect(report.locator('tbody tr td:first-child')).toHaveText(
-    casesExpected.regression.flips.map((flip) => String(flip.id)),
-  )
+  await expect(report.locator('.figure').first()).toContainText('126.0% of 200')
+  await report.getByRole('button', { name: 'Show all 12' }).click()
+  await expect(
+    report
+      .getByRole('table', { name: 'The decisions that flip' })
+      .locator('tbody tr td:first-child'),
+  ).toHaveText(casesExpected.regression.flips.map((flip) => String(flip.id)))
   await page.getByLabel('Note for the audit log').fill(NOTE)
-  await page.getByRole('button', { name: 'Approve and publish' }).click()
+  await page.getByRole('button', { name: 'Approve and publish v2' }).click()
   await expect(page.getByText('Version 2', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Open the audit log' }).click()
-  const entry = page.getByRole('list', { name: 'Entries' }).getByRole('article').first()
-  await expect(entry.getByRole('heading')).toHaveText('Change approved')
+  const entry = page.getByRole('region', { name: 'Audit log' }).getByRole('listitem').first()
+  await expect(entry.locator('.event__verb')).toHaveText('Change approved')
   await expect(entry).toContainText(NOTE)
 })

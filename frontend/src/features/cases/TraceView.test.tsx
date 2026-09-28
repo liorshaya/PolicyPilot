@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Decision } from '../../api/types'
 import { rule, specRules, stylesheet, unported } from '../../test/css'
+import { proposedSampleDecision } from '../../test/fixtures/change'
 import { lendingRuleSet, sampleDecision } from '../../test/fixtures/lending'
 import { server } from '../../test/msw/server'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
@@ -294,6 +295,60 @@ describe('TraceView, an evaluation error', () => {
     expect(within(screen.getByRole('list', { name: STEPS })).getAllByRole('listitem')).toHaveLength(
       2,
     )
+  })
+})
+
+describe('TraceView, what a proposal decides', () => {
+  /** Case 17 decided by the scripted proposal's patched copy, as the change request's trace route answers it. */
+  function renderProposed() {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return render(
+      <QueryClientProvider client={client}>
+        <TraceView
+          decision={proposedSampleDecision}
+          caseNo={17}
+          language="he"
+          fields={lendingRuleSet.fields}
+        />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('heads it with the case, the outcome and the request it was decided on, not stored', () => {
+    renderProposed()
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Case 17' })).toBeInTheDocument()
+    const head = document.querySelector<HTMLElement>('.trace__head')!
+    expect(within(head).getByText('Manual review')).toHaveClass('tag', 'tag--refer')
+    // Document 2: the copy decides the stored input again and nothing is stored, so there is no time to give; the
+    // request's number names the copy (CR-0001, the UI's way of writing number 1)
+    expect(
+      [...head.querySelectorAll('.prov > *')].map((segment) => segment.textContent),
+    ).toStrictEqual(['decided on CR-0001', 'engine', 'not stored'])
+    expect(head.querySelector('.prov .actor--engine')).not.toBeNull()
+    expect(head.querySelector('time')).toBeNull()
+  })
+
+  it('offers neither an explanation nor an export: no stored decision stands behind it', () => {
+    renderProposed()
+
+    expect(screen.queryByRole('button', { name: /^Explain for/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'JSON' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'CSV' })).not.toBeInTheDocument()
+  })
+
+  it("walks the copy's steps: R-170 under its patched label, comparing with 9,000", async () => {
+    const user = userEvent.setup()
+    renderProposed()
+
+    await user.click(screen.getByRole('button', { name: 'Show every comparison' }))
+
+    const r170 = stepOf('R-170')
+    expect(within(r170).getByText('דחייה: הכנסה חודשית נטו נמוכה מ-9,000')).toHaveClass(
+      'step__label',
+    )
+    expect(within(r170).getByText('< 9,000')).toHaveClass('cmp__cond')
+    expect(within(stepOf('R-330')).getByText('Matched · decided')).toBeInTheDocument()
   })
 })
 

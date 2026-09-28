@@ -4,6 +4,7 @@ import { Button } from '../../shared/ui/Button'
 import { DECISION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
 import { decisionOf } from '../rules/tableModel'
 import { outcomeCounts, percent } from './outcomes'
+import '../../shared/ui/Figures.css'
 import './Dashboard.css'
 
 /** The spec's class for each outcome: its segment, its dot. */

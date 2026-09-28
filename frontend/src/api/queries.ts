@@ -5,11 +5,13 @@ import type {
   Audience,
   AuditEntry,
   BatchResult,
+  BudgetResponse,
   Decision,
   Diff,
   GapResolution,
   PolicyResponse,
   PolicySummary,
+  ProposedDecision,
   ProviderResponse,
   RulesetSummary,
   VersionResponse,
@@ -23,12 +25,15 @@ import type {
 
 export const keys = {
   provider: ['provider'] as const,
+  budget: ['budget'] as const,
   policies: ['policies'] as const,
   policy: (policyId: string) => ['policy', policyId] as const,
   rulesets: ['rulesets'] as const,
   version: (rulesetId: string, versionNo: number) => ['version', rulesetId, versionNo] as const,
   stats: (rulesetId: string, versionNo: number) => ['stats', rulesetId, versionNo] as const,
   decision: (decisionId: string) => ['decision', decisionId] as const,
+  proposedDecision: (changeId: string, decisionId: string) =>
+    ['proposed-decision', changeId, decisionId] as const,
   audit: (versionId: string) => ['audit', versionId] as const,
   diff: (rulesetId: string, from: number, to: number) => ['diff', rulesetId, from, to] as const,
 }
@@ -36,6 +41,14 @@ export const keys = {
 /** The provider the API runs on (Document 2, GET /system/provider); it changes only with a deployment. */
 export function useProvider(): UseQueryResult<ProviderResponse> {
   return useQuery({ queryKey: keys.provider, queryFn: () => api.provider(), staleTime: Infinity })
+}
+
+/**
+ * The day's token budget (Document 2, GET /system/budget; Document 5, the banner of the degradation order). It is read
+ * when a screen that calls a model opens, and again when a call finds it spent (BUDGET_EXHAUSTED).
+ */
+export function useBudget(): UseQueryResult<BudgetResponse> {
+  return useQuery({ queryKey: keys.budget, queryFn: () => api.budget() })
 }
 
 export function usePolicies(): UseQueryResult<PolicySummary[]> {
@@ -142,11 +155,12 @@ export function useAcknowledge(ruleset: { id: string; versionNo: number }) {
 
 /**
  * The explanation of one decision for one reader (Document 4, Prompt 3). It is asked for, not loaded with the trace:
- * the trace is the engine's, the explanation is a model's reading of it, and the reader chooses to see it.
+ * the trace is the engine's, the explanation is a model's reading of it, and the reader chooses to see it. A decision
+ * that was never stored, such as what a proposal decides, has none to ask for.
  */
-export function useExplain(decisionId: string) {
+export function useExplain(decisionId: string | null) {
   return useMutation({
-    mutationFn: (audience: Audience) => api.explain(decisionId, audience),
+    mutationFn: (audience: Audience) => api.explain(decisionId ?? '', audience),
   })
 }
 
@@ -171,6 +185,21 @@ export function useDecision(decisionId: string | null): UseQueryResult<Decision>
 }
 
 /**
+ * What a proposal decides for one of the sandbox's stored decisions, with the trace (Document 2, the proposed side of a
+ * flipped case). The request's stored patches never change, so neither does the answer.
+ */
+export function useProposedDecision(
+  flipped: { changeId: string; decisionId: string } | null,
+): UseQueryResult<ProposedDecision> {
+  return useQuery({
+    queryKey: keys.proposedDecision(flipped?.changeId ?? 'none', flipped?.decisionId ?? 'none'),
+    queryFn: () => api.proposedDecision(flipped?.changeId ?? '', flipped?.decisionId ?? ''),
+    enabled: flipped !== null,
+    staleTime: Infinity,
+  })
+}
+
+/**
  * A person's decision on a proposed change (Document 2, approve and reject). An approval publishes the next version,
  * into the sandbox's own copy when the base is protected, so the rule set list is read again either way.
  */
@@ -187,12 +216,15 @@ export function useDecideChange() {
   })
 }
 
-/** The audit log of one version, newest first (Document 2, GET /audit). */
-export function useAudit(versionId: string | null): UseQueryResult<AuditEntry[]> {
+/**
+ * The audit log, newest first (Document 2, GET /audit): one version's entries, or, without a version, every entry the
+ * sandbox can see; null while the version to read is not known yet.
+ */
+export function useAudit(scope: { versionId: string | null } | null): UseQueryResult<AuditEntry[]> {
   return useQuery({
-    queryKey: keys.audit(versionId ?? 'none'),
-    queryFn: async () => (await api.audit(versionId ?? '')).entries,
-    enabled: versionId !== null,
+    queryKey: keys.audit(scope === null ? 'none' : (scope.versionId ?? 'all')),
+    queryFn: async () => (await api.audit(scope?.versionId ?? null)).entries,
+    enabled: scope !== null,
   })
 }
 

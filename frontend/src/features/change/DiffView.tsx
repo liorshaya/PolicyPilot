@@ -1,14 +1,28 @@
-import { createElement, type ReactNode } from 'react'
-import type { Diff, DiffChange, FieldSchema, Rule, RuleAction } from '../../api/types'
+import { createElement, useState, type ReactNode } from 'react'
+import type { Diff, DiffChange, FieldSchema, Provenance, Rule, RuleAction } from '../../api/types'
 import {
   contentAttributes,
   directionOfText,
+  isolated,
   type ContentLanguage,
 } from '../../shared/i18n/direction'
+import { Button } from '../../shared/ui/Button'
+import { Chip } from '../../shared/ui/Chip'
 import { DecisionTag } from '../../shared/ui/StatusTag'
 import { conditionText, literalText } from '../rules/cellGrammar'
-import { actionText } from '../rules/tableModel'
-import { changedAttributes, diffRows, diffSummary, type DiffRow } from './diffRows'
+import { actionsText } from '../rules/tableModel'
+import {
+  changedAttributes,
+  diffRows,
+  diffSummary,
+  labelChange,
+  SIGNS,
+  unifiedRows,
+  valueText,
+  type DiffRow,
+  type LabelSide,
+  type UnifiedRow,
+} from './diffRows'
 import './DiffView.css'
 
 interface DiffViewProps {
@@ -17,9 +31,33 @@ interface DiffViewProps {
   language: ContentLanguage
   /** The rule set's fields, for the units of the numbers; without them a number is written bare. */
   fields?: FieldSchema[]
-  /** What the two sides are called: "Version 1" and "Proposed", or two version numbers. */
+  /** The earlier version's rules, so the rules that did not change collapse into one row with their count. */
+  rules?: Rule[]
+  /** What the two sides are called: "Published v1" and "Proposed", or two version numbers. */
   beforeLabel: string
   afterLabel: string
+}
+
+type View = 'unified' | 'side-by-side'
+
+/** The view the reader chose, remembered in this browser (the spec, section 09: "remembered per person"). */
+const VIEW_KEY = 'pp-diff-view'
+
+function storedView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'side-by-side' ? 'side-by-side' : 'unified'
+  } catch {
+    // a browser that refuses its storage starts on the unified view
+    return 'unified'
+  }
+}
+
+function rememberView(view: View): void {
+  try {
+    localStorage.setItem(VIEW_KEY, view)
+  } catch {
+    // the choice then lasts as long as the page
+  }
 }
 
 const KIND_LABELS: Record<DiffRow['kind'], string> = {
@@ -29,23 +67,348 @@ const KIND_LABELS: Record<DiffRow['kind'], string> = {
 }
 
 /**
- * The side-by-side diff of two versions (Document 2, Frontend Architecture: "diff view (side by side, rule level)";
- * Document 3, Structural diff). One row per field, rule or the defaults: an added one only after, a removed one only
- * before, a modified one on both sides with its changed attributes struck out on the left and inserted on the right,
- * and under it each change by its JSON pointer, so `/condition/value 8,000 → 9,000` reads without the whole rule. It
- * renders the diff's JSON as the API or an audit entry gives it, and computes nothing of its own.
+ * The diff of two versions (the spec, section 09, "The change request": "one row per changed cell (rule · field ·
+ * before → after) with the changed value tinted, the whole rule struck when removed; unchanged rules collapse;
+ * side-by-side is the alternative, remembered per person"; Document 3, Structural diff). It renders the diff's JSON as
+ * the API or an audit entry gives it, and computes nothing of its own beyond laying it out.
  */
-export function DiffView({ diff, language, fields = [], beforeLabel, afterLabel }: DiffViewProps) {
+export function DiffView({
+  diff,
+  language,
+  fields = [],
+  rules,
+  beforeLabel,
+  afterLabel,
+}: DiffViewProps) {
+  const [view, setView] = useState<View>(storedView)
   const rows = diffRows(diff)
-  const units = new Map(fields.map((field) => [field.name, field]))
   if (rows.length === 0) {
     return (
       <p className="diff__same">{`${beforeLabel} and ${afterLabel} have the same rules, fields and defaults.`}</p>
     )
   }
+  const choose = (next: View) => {
+    setView(next)
+    rememberView(next)
+  }
   return (
     <section className="diff" aria-label={`Changes from ${beforeLabel} to ${afterLabel}`}>
-      <p className="diff__summary">{diffSummary(rows)}</p>
+      {view === 'unified' ? (
+        <Unified
+          diff={diff}
+          language={language}
+          rules={rules}
+          beforeLabel={beforeLabel}
+          afterLabel={afterLabel}
+          onSideBySide={() => choose('side-by-side')}
+        />
+      ) : (
+        <SideBySide
+          rows={rows}
+          language={language}
+          fields={fields}
+          beforeLabel={beforeLabel}
+          afterLabel={afterLabel}
+          onUnified={() => choose('unified')}
+        />
+      )}
+    </section>
+  )
+}
+
+/** The unified view: a row per changed cell, then the rules that did not change, collapsed to their count. */
+function Unified({
+  diff,
+  language,
+  rules,
+  beforeLabel,
+  afterLabel,
+  onSideBySide,
+}: {
+  diff: Diff
+  language: ContentLanguage
+  rules?: Rule[]
+  beforeLabel: string
+  afterLabel: string
+  onSideBySide: () => void
+}) {
+  const [showUnchanged, setShowUnchanged] = useState(false)
+  const changed = new Set([
+    ...diff.rules.modified.map((rule) => rule.id),
+    ...diff.rules.removed.map((rule) => (rule as Rule).id),
+  ])
+  const unchanged = (rules ?? []).filter((rule) => !changed.has(rule.id))
+  return (
+    <div className="udiff">
+      <div className="udiff__row udiff__row--head">
+        <span>Rule</span>
+        <span>Field</span>
+        <span>{beforeLabel}</span>
+        <span />
+        <span>{afterLabel}</span>
+      </div>
+      {unifiedRows(diff).map((row) => (
+        <UnifiedRowView key={`${row.key}:${row.field}:${row.kind}`} row={row} language={language} />
+      ))}
+      {showUnchanged
+        ? unchanged.map((rule) => (
+            <div key={rule.id} className="udiff__row udiff__row--he">
+              <Chip>{rule.id}</Chip>
+              <span className="udiff__kind">unchanged</span>
+              <span className="step__label" {...contentAttributes(language)}>
+                {isolated(rule.label, language)}
+              </span>
+            </div>
+          ))
+        : null}
+      <div className="udiff__row udiff__row--collapsed">
+        {unchanged.length > 0 ? (
+          <>
+            {`${String(unchanged.length)} unchanged rule${unchanged.length === 1 ? '' : 's'}`} ·{' '}
+            <Button variant="link" onClick={() => setShowUnchanged(!showUnchanged)}>
+              {showUnchanged ? 'Hide' : 'Show'}
+            </Button>{' '}
+            ·{' '}
+          </>
+        ) : null}
+        <Button variant="link" onClick={onSideBySide}>
+          Side by side
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** One changed cell: the rule or the field, what changed in it, and its two values with the change tinted. */
+function UnifiedRowView({ row, language }: { row: UnifiedRow; language: ContentLanguage }) {
+  const who =
+    row.section === 'rule' ? (
+      <Chip>{row.key}</Chip>
+    ) : row.section === 'field' ? (
+      <Chip kind="field">{row.key}</Chip>
+    ) : (
+      <span>Defaults</span>
+    )
+  if (row.kind === 'added' || row.kind === 'removed') {
+    const item = (row.kind === 'added' ? row.after : row.before) as Rule | FieldSchema
+    const words =
+      row.section === 'rule' ? (
+        <span className="step__label" {...contentAttributes(language)}>
+          {isolated((item as Rule).label, language)}
+        </span>
+      ) : (
+        <span className="mono">{(item as FieldSchema).type}</span>
+      )
+    return (
+      <div
+        className={`udiff__row udiff__row--he${row.kind === 'removed' ? ' udiff__row--removed' : ''}`}
+      >
+        {who}
+        <span className="udiff__kind">{row.kind === 'added' ? 'Added' : 'Removed'}</span>
+        {row.kind === 'added' ? <span className="add">{words}</span> : words}
+      </div>
+    )
+  }
+  const [before, after] = sides(row, language)
+  return (
+    <div className="udiff__row">
+      {who}
+      <span className="t-field">{row.field}</span>
+      {before}
+      <span className="udiff__arrow">→</span>
+      {after}
+    </div>
+  )
+}
+
+/** The two values of a changed cell, each with what changed in it tinted: removed on the left, added on the right. */
+function sides(row: UnifiedRow, language: ContentLanguage): [ReactNode, ReactNode] {
+  switch (row.kind) {
+    case 'condition':
+      return [
+        <Comparison key="before" leaf={row.before} other={row.after} mark="del" />,
+        <Comparison key="after" leaf={row.after} other={row.before} mark="add" />,
+      ]
+    case 'label': {
+      // a rule's label is a string on both sides of the diff
+      const change = labelChange(
+        typeof row.before === 'string' ? row.before : '',
+        typeof row.after === 'string' ? row.after : '',
+      )
+      return [
+        <Changed key="before" side={change.before} mark="del" language={language} />,
+        <Changed key="after" side={change.after} mark="add" language={language} />,
+      ]
+    }
+    case 'action':
+      return actionSides(row.before as RuleAction[], row.after as RuleAction[], language)
+    case 'source':
+      return [
+        <Source key="before" provenance={row.before as Provenance} />,
+        <Source key="after" provenance={row.after as Provenance} />,
+      ]
+    case 'defaults': {
+      const [from, to] = [row.before, row.after] as { outcome: 'approve' | 'reject' | 'refer' }[]
+      return [
+        <span key="before" className="del">
+          <DecisionTag status={from!.outcome} quiet />
+        </span>,
+        <span key="after" className="add">
+          <DecisionTag status={to!.outcome} quiet />
+        </span>,
+      ]
+    }
+    default:
+      return [
+        <span key="before" className="del">
+          {valueText(row.before)}
+        </span>,
+        <span key="after" className="add">
+          {valueText(row.after)}
+        </span>,
+      ]
+  }
+}
+
+/** A comparison as the rules table writes it, "< 8,000" or "[8,000 .. 9,000]", each part that changed tinted. */
+function Comparison({ leaf, other, mark }: { leaf: unknown; other: unknown; mark: 'del' | 'add' }) {
+  const node = leaf as { op?: string; value?: unknown } | undefined
+  const against = other as { op?: string; value?: unknown } | undefined
+  if (node?.op === undefined) {
+    return <span className="t-cmp">{node === undefined ? '' : conditionText(node, new Map())}</span>
+  }
+  const tinted = (text: string, changed: boolean) => (
+    <span className={changed ? mark : undefined}>{text}</span>
+  )
+  if (node.op === 'between' && Array.isArray(node.value)) {
+    const [low, high] = node.value as [unknown, unknown]
+    const [otherLow, otherHigh] = Array.isArray(against?.value) ? (against.value as unknown[]) : []
+    return (
+      <span className="t-cmp">
+        <span className="val">
+          [{tinted(literalText(low), low !== otherLow)} ..{' '}
+          {tinted(literalText(high), high !== otherHigh)}]
+        </span>
+      </span>
+    )
+  }
+  const sign = SIGNS[node.op] ?? node.op
+  const valueChanged = JSON.stringify(node.value) !== JSON.stringify(against?.value)
+  return (
+    <span className="t-cmp">
+      <span className={`op${node.op !== against?.op ? ` ${mark}` : ''}`}>{sign}</span>
+      <span className={`val${valueChanged ? ` ${mark}` : ''}`}>{valueText(node.value)}</span>
+    </span>
+  )
+}
+
+/** A label or a reason that changed: the words around the change kept, the rest cut, and the change tinted. */
+function Changed({
+  side,
+  mark,
+  language,
+}: {
+  side: LabelSide
+  mark: 'del' | 'add'
+  language: ContentLanguage
+}) {
+  return (
+    <span className="step__label" {...contentAttributes(language)}>
+      {side.cut ? '…' : ''}
+      {isolated(side.head, language)}
+      <span className={mark}>{isolated(side.changed, language)}</span>
+      {isolated(side.tail, language)}
+      {side.cutEnd ? '…' : ''}
+    </span>
+  )
+}
+
+/** A changed action: the reason's change when the action still decides the same, or the actions whole otherwise. */
+function actionSides(
+  before: RuleAction[],
+  after: RuleAction[],
+  language: ContentLanguage,
+): [ReactNode, ReactNode] {
+  const [from] = before
+  const [to] = after
+  const sameAction =
+    before.length === 1 &&
+    after.length === 1 &&
+    from!.type === to!.type &&
+    from!.outcome === to!.outcome &&
+    from!.reason !== undefined &&
+    to!.reason !== undefined
+  if (sameAction) {
+    const change = labelChange(from!.reason!, to!.reason!)
+    return [
+      <span key="before" className="udiff__action">
+        {actionsText(before)} <Changed side={change.before} mark="del" language={language} />
+      </span>,
+      <span key="after" className="udiff__action">
+        {actionsText(after)} <Changed side={change.after} mark="add" language={language} />
+      </span>,
+    ]
+  }
+  return [
+    <span key="before" className="del">
+      {actionsText(before)}
+    </span>,
+    <span key="after" className="add">
+      {actionsText(after)}
+    </span>,
+  ]
+}
+
+/** Where a rule comes from (Document 3, Provenance): the paragraph it quotes, the analyst, or Pending. */
+function Source({ provenance }: { provenance: Provenance | undefined }) {
+  switch (provenance?.kind) {
+    case 'quoted':
+      return (
+        <span className="t-cmp">
+          <span className="val">
+            <Chip kind="para">{provenance.paragraph}</Chip>
+          </span>
+        </span>
+      )
+    case 'analyst':
+      return <span>Analyst</span>
+    case 'pending':
+      return <span className="vstatus vstatus--pending">Pending</span>
+    default:
+      return <span />
+  }
+}
+
+/**
+ * The side-by-side view (Document 2, Frontend Architecture: "diff view (side by side, rule level)"; Document 3,
+ * Structural diff): one row per field, rule or the defaults, an added one only after, a removed one only before, a
+ * modified one on both sides with its changed attributes struck out on the left and inserted on the right, and under
+ * it each change by its JSON pointer.
+ */
+function SideBySide({
+  rows,
+  language,
+  fields,
+  beforeLabel,
+  afterLabel,
+  onUnified,
+}: {
+  rows: DiffRow[]
+  language: ContentLanguage
+  fields: FieldSchema[]
+  beforeLabel: string
+  afterLabel: string
+  onUnified: () => void
+}) {
+  const units = new Map(fields.map((field) => [field.name, field]))
+  return (
+    <>
+      <p className="diff__summary">
+        <span>{diffSummary(rows)}</span> ·{' '}
+        <Button variant="link" onClick={onUnified}>
+          Unified
+        </Button>
+      </p>
       <div className="diff__scroll">
         <table className="diff__table">
           <thead>
@@ -71,7 +434,7 @@ export function DiffView({ diff, language, fields = [], beforeLabel, afterLabel 
           </tbody>
         </table>
       </div>
-    </section>
+    </>
   )
 }
 
@@ -242,7 +605,7 @@ function ActionsOf({ rule, language }: { rule: Rule; language: ContentLanguage }
     .filter((text): text is string => text !== undefined)
   return (
     <span className="diff__actions">
-      <span>{actionText(rule)}</span>
+      <span>{actionsText(rule.actions)}</span>
       {said.map((text) => (
         <span key={text} className="diff__said" {...contentAttributes(language)}>
           {text}

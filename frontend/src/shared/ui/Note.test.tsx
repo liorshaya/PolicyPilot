@@ -30,4 +30,16 @@ describe('Note', () => {
     expect(rule(css, '.note').background).toBeUndefined()
     expect(rule(css, '.note--proposal')['border-left-style']).toBe('dashed')
   })
+
+  it('names a note a screen keeps in place, so it is found by what it is about', () => {
+    const { getByRole } = render(
+      <Note tone="warning" label="Budget">
+        Today's model budget is spent until 00:00.
+      </Note>,
+    )
+
+    expect(getByRole('note', { name: 'Budget' })).toHaveTextContent(
+      "Today's model budget is spent until 00:00.",
+    )
+  })
 })

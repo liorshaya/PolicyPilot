@@ -1,98 +1,173 @@
-.diff {
+/*
+ * The diff of two versions (the Register spec, section 09, "The change request"): the "Diff, unified" block of layer 5
+ * of docs/design/register.css, as the spec writes it, then the side-by-side view the spec names as the alternative and
+ * leaves to the product, in the Register's tokens.
+ */
+.udiff {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-3);
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+.udiff__row {
   display: grid;
-  gap: var(--space-3);
+  grid-template-columns: 90px 150px 1fr 20px 1fr;
+  gap: 0 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.udiff__row:last-child {
+  border-bottom: 0;
+}
+.udiff__row--head {
+  background: var(--paper);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.udiff__row--collapsed {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  background: var(--paper);
+  text-align: center;
+}
+.udiff .chip {
+  justify-self: start;
+}
+.udiff__row--he {
+  grid-template-columns: 90px 150px 1fr;
+}
+.udiff__arrow {
+  color: var(--ink-3);
+  text-align: center;
+}
+.udiff .t-cmp {
+  direction: ltr;
+}
+.del {
+  background: var(--diff-del-bg);
+  text-decoration: line-through;
+  text-decoration-color: var(--decline-text);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+.add {
+  background: var(--diff-add-bg);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+.udiff__row--removed .t-rule__id,
+.udiff__row--removed .step__label {
+  text-decoration: line-through;
+  text-decoration-color: var(--decline-text);
+}
+.udiff__kind {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
 }
 
+/* The product's own. A changed action keeps its words beside the reason whose change is tinted. */
+.udiff__action {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+/* The links of the collapsed row sit in its sentence, as the spec writes them. */
+.udiff__row--collapsed .btn--link {
+  font-size: inherit;
+}
+
+/* The diff's own line of words: the summary over the side-by-side view, and two versions that are the same. */
+.diff {
+  display: grid;
+  gap: 12px;
+}
 .diff__summary,
 .diff__same {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
 }
 
+/*
+ * The side by side view: a table of the two versions, an item's name in its row header, the changed attributes struck
+ * on the left and inserted on the right, and under a modified item its changes by JSON pointer. The spec leaves its
+ * drawing to the product; it takes the spec's table header, hairlines and diff colours.
+ */
 .diff__scroll {
   overflow-x: auto;
 }
-
 .diff__table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: var(--text-sm);
 }
-
 .diff__table th[scope='col'] {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink-3);
+  font-size: var(--text-2xs);
+  font-weight: 500;
   text-align: start;
-  text-transform: uppercase;
 }
-
 .diff__key-head {
   width: 8rem;
 }
-
 .diff__row {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--hairline);
 }
-
 .diff__key {
-  padding: var(--space-3);
-  font-weight: 600;
+  padding: 12px;
+  font-weight: 500;
   text-align: start;
   vertical-align: top;
 }
-
 .diff__kind {
   display: block;
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
+  margin-top: 4px;
+  color: var(--ink-3);
   font-size: var(--text-xs);
   font-weight: 500;
 }
-
 .diff__side {
-  padding: var(--space-3);
-  border-inline-start: 1px solid var(--color-border);
+  padding: 12px;
+  border-inline-start: 1px solid var(--hairline);
   vertical-align: top;
 }
-
 .diff__item {
   display: grid;
-  gap: var(--space-2);
+  gap: 8px;
   margin: 0;
 }
-
 .diff__attribute {
   display: grid;
   grid-template-columns: 5.5rem minmax(0, 1fr);
-  gap: var(--space-2);
+  gap: 8px;
 }
-
 .diff__attribute dt {
-  color: var(--color-text-muted);
+  color: var(--ink-3);
   font-size: var(--text-xs);
 }
-
 .diff__attribute dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
-
 .diff__actions,
 .diff__source {
   display: grid;
-  gap: var(--space-1);
+  gap: 4px;
 }
-
 .diff__absent,
 .diff__whole,
 .diff__none {
-  color: var(--color-text-muted);
+  color: var(--ink-3);
   font-style: italic;
 }
 
@@ -101,47 +176,39 @@
 .diff__mark {
   display: inline-block;
   max-width: 100%;
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-sm);
+  padding: 0 4px;
+  border-radius: var(--r-1);
   vertical-align: top;
+  color: var(--ink);
 }
 
-/* What the later version no longer has: struck out on the sunken surface, in the secondary text colour. */
-
+/* The spec's diff colours on the changed value only: removed struck on its red, added on its green. */
 del.diff__mark {
-  background: var(--color-surface-sunken);
-  color: var(--color-text-muted);
+  background: var(--diff-del-bg);
   text-decoration: line-through;
+  text-decoration-color: var(--decline-text);
 }
-
-/* What it has instead: the accent wash with the selection bar at its start, never a decision's green. */
 ins.diff__mark {
-  background: var(--color-accent-wash);
-  box-shadow: inset 2px 0 0 var(--color-selected-bar);
-  color: var(--color-text);
+  background: var(--diff-add-bg);
   text-decoration: none;
 }
-
 .diff__mark--whole {
   display: block;
-  padding: var(--space-2);
+  padding: 8px;
 }
-
 .diff__changes-row td {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 12px 12px;
 }
-
 .diff__changes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: 8px 16px;
   margin: 0;
   padding: 0;
-  color: var(--color-text-muted);
+  color: var(--ink-3);
   font-size: var(--text-xs);
   list-style: none;
 }
-
 .diff__pointer {
   font-family: var(--font-mono);
 }
@@ -152,11 +219,9 @@ ins.diff__mark {
   .diff__table {
     min-width: 34rem;
   }
-
   .diff__key-head {
     width: 5rem;
   }
-
   .diff__attribute {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;

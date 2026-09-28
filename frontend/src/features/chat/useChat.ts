@@ -3,12 +3,13 @@ import { api, ApiError } from '../../api/client'
 import { openSse } from '../../api/sse'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { chatReducer } from './chatReducer'
-import type { ChatCitation, ChatExchange } from './types'
+import type { ChatCitation, ChatExchange, ChatToolCall, FixedAnswer } from './types'
 
 /**
  * A chat session and its streams (Document 2: POST /chat/sessions opens one bound to a version; each question is an
- * event stream). The hook opens the session for the version it is given, asks one question at a time, and turns
- * each event into the conversation's state. A chat stream is not resumable, so a failed answer is asked again.
+ * event stream of tool calls, tokens, citations and the end). The hook opens the session for the version it is given,
+ * asks one question at a time, and turns each event into the conversation's state. A chat stream is not resumable, so
+ * a failed answer is asked again.
  */
 
 export interface ChatTarget {
@@ -70,12 +71,14 @@ export function useChat(target: ChatTarget): Chat {
             signal: controller.signal,
           })) {
             const data = JSON.parse(event.data) as Record<string, unknown>
-            if (event.event === 'token') {
+            if (event.event === 'tool') {
+              dispatch({ type: 'tool', call: data as unknown as ChatToolCall })
+            } else if (event.event === 'token') {
               dispatch({ type: 'token', text: data.text as string })
             } else if (event.event === 'citations') {
               dispatch({ type: 'citations', citations: data.citations as ChatCitation[] })
             } else if (event.event === 'done') {
-              dispatch({ type: 'done' })
+              dispatch({ type: 'done', fixed: (data.fixed ?? null) as FixedAnswer })
             } else if (event.event === 'error') {
               dispatch({ type: 'failed', code: data.code as string })
             }

@@ -11,6 +11,13 @@ export type Segment =
 /** The four kinds of Document 4 and their ids. */
 const MARKER = /\[\[(p:\d{1,4}|r:R-\d{2,4}|d:\d{1,9}|sim:d\d{1,9}:[^\]\s]+)]]/g
 
+/** A run of markers written one after the other: one claim's sources, the first of them the chip inline. */
+export interface MarkerRun {
+  kind: 'markers'
+  at: number
+  ids: string[]
+}
+
 /** The answer as text and markers, in the order they are written. */
 export function segments(text: string): Segment[] {
   const parts: Segment[] = []
@@ -28,7 +35,55 @@ export function segments(text: string): Segment[] {
   return parts
 }
 
-/** What a chip says: a paragraph by its number, a rule by its id, an application, or a simulation's change. */
+/** The punctuation a chip follows rather than precedes (the spec, section 03, the bidi law, clause 6). */
+const PUNCTUATION = /^[.,;:!?]+/
+
+/**
+ * Where the chips stand (the spec, section 03, the bidi law, clause 6): after the sentence's punctuation, so a marker
+ * the model wrote before a period moves behind it; and a run of markers is one claim, whose first source is the chip
+ * inline and whose others are left to the sources strip.
+ */
+export function placed(parts: Segment[]): ((Segment & { kind: 'text' }) | MarkerRun)[] {
+  const result: ((Segment & { kind: 'text' }) | MarkerRun)[] = []
+  let index = 0
+  while (index < parts.length) {
+    const part = parts[index]!
+    if (part.kind === 'text') {
+      result.push(part)
+      index++
+      continue
+    }
+    const run: MarkerRun = { kind: 'markers', at: part.at, ids: [] }
+    while (parts[index]?.kind === 'marker') {
+      run.ids.push((parts[index] as Segment & { kind: 'marker' }).id)
+      index++
+    }
+    const next = parts[index]
+    const punctuation = next?.kind === 'text' ? (PUNCTUATION.exec(next.text)?.[0] ?? '') : ''
+    if (next?.kind === 'text' && punctuation !== '') {
+      const previous = result[result.length - 1]
+      if (previous?.kind === 'text') {
+        result[result.length - 1] = { ...previous, text: previous.text + punctuation }
+      } else {
+        result.push({ kind: 'text', at: next.at, text: punctuation })
+      }
+      result.push(run)
+      const rest = next.text.slice(punctuation.length)
+      if (rest !== '') {
+        result.push({ kind: 'text', at: next.at + punctuation.length, text: rest })
+      }
+      index++
+    } else {
+      result.push(run)
+    }
+  }
+  return result
+}
+
+/**
+ * What a chip says: a paragraph by its number, a rule by its id, a case by its number (the spec's glossary: Case, never
+ * Application, in the chrome), and a simulation as the tool chip's "what-if", which its title spells out.
+ */
 export function markerLabel(id: string): string {
   const [kind, ...rest] = id.split(':')
   const value = rest.join(':')
@@ -36,9 +91,9 @@ export function markerLabel(id: string): string {
     case 'p':
       return `¶ ${value}`
     case 'd':
-      return `Application ${value}`
+      return `Case ${value}`
     case 'sim':
-      return `What if ${rest.slice(1).join(':')}`
+      return 'what-if'
     default:
       return value
   }

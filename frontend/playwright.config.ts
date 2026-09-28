@@ -15,6 +15,8 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: 'http://localhost:5173',
+    // a time is shown in the reader's zone; the tests read it in UTC, as the component tests do (src/test/setup.ts)
+    timezoneId: 'UTC',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

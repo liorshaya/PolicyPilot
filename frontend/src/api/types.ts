@@ -38,6 +38,8 @@ export type AuditEntriesResponse = components['schemas']['AuditEntriesResponse']
 export type ChangeDecision = components['schemas']['ChangeDecisionResponse']
 /** The model provider the API runs on, as the active profile names it (Document 2, GET /system/provider). */
 export type ProviderResponse = components['schemas']['ProviderResponse']
+/** Whether the day's token budget is spent, and when it resumes (Document 2, GET /system/budget). */
+export type BudgetResponse = components['schemas']['BudgetResponse']
 
 /** The outcomes of the engine (Document 3, Actions and Rules). */
 export type Outcome = 'approve' | 'reject' | 'refer'
@@ -74,8 +76,8 @@ export interface TraceStep {
   provenance?: Provenance
 }
 
-/** A decision as the engine emits it, with the four things the API adds (Document 3, Decision object). */
-export interface Decision {
+/** A decision object as the engine emits it (Document 3, Decision object). */
+export interface EngineDecision {
   status: 'OK' | 'ERROR'
   outcome?: Outcome
   reason?: string
@@ -87,6 +89,10 @@ export interface Decision {
   trace: TraceStep[]
   errorCode?: string
   errorRuleId?: string
+}
+
+/** A decision as the engine emits it, with the four things the API adds (Document 3, Decision object). */
+export interface Decision extends EngineDecision {
   simulation?: true
   basedOnDecisionId?: string
   overrides?: Record<string, unknown>
@@ -95,6 +101,16 @@ export interface Decision {
   rulesetVersion: { id: string; versionNo: number; versionId: string }
   decidedAt: string
   durationMicros: number
+}
+
+/**
+ * What a proposal decides for one of the sandbox's decisions on its base version (Document 2, GET
+ * /changes/{id}/decisions/{decisionId}/trace): the engine's decision object on the patched copy, the stored decision it
+ * is based on and the request's number. Nothing of it is stored, so it has no id, no time and no case of its own.
+ */
+export interface ProposedDecision extends EngineDecision {
+  basedOnDecisionId: string
+  changeRequestNumber: number
 }
 
 /** One line of a batch (Document 2, decide: aggregates plus a summary per case). */
