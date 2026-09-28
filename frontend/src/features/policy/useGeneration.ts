@@ -37,8 +37,6 @@ export interface Generation {
   policyId: string | null
   /** The stages the stream reported, in order; while it is open, the last is the one running. */
   stages: Stage[]
-  /** The stage running now, or null when nothing runs. */
-  stage: Stage | null
   running: boolean
   /** The policy's paragraphs, as the first stage reported them. */
   paragraphs: number | null
@@ -48,7 +46,6 @@ export interface Generation {
   refusal: GenerationRefusal | null
   /** Starts a run for one policy; a run already open is abandoned. */
   start: (policyId: string, hints?: string) => void
-  cancel: () => void
 }
 
 /** The payload of a progress event (Document 2): what the stage is working on. */
@@ -66,12 +63,6 @@ export function useGeneration(): Generation {
   const [refusal, setRefusal] = useState<GenerationRefusal | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const client = useQueryClient()
-
-  const cancel = useCallback(() => {
-    abortRef.current?.abort()
-    abortRef.current = null
-    setRunning(false)
-  }, [])
 
   const start = useCallback(
     (policy: string, hints?: string) => {
@@ -143,6 +134,5 @@ export function useGeneration(): Generation {
     [client],
   )
 
-  const stage = running ? (stages[stages.length - 1] ?? null) : null
-  return { policyId, stages, stage, running, paragraphs, took, draft, refusal, start, cancel }
+  return { policyId, stages, running, paragraphs, took, draft, refusal, start }
 }
