@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import {
   approvedDecision,
   PROPOSAL_ID,
@@ -40,6 +40,7 @@ import { ChangeScreen } from './ChangeScreen'
 
 const BASE = 'http://localhost:8080/api/v1'
 const TEXT = scriptedRequest.text.he
+const css = stylesheet('features/change/ChangeScreen.css')
 
 const streamed = (events: [string, unknown][]) =>
   new HttpResponse(eventStream(events), { headers: { 'Content-Type': 'text/event-stream' } })
@@ -130,6 +131,9 @@ describe('ChangeScreen, the request', () => {
     expect(field).toHaveClass('textarea', 'textarea--he')
     expect(field).toHaveAttribute('dir', 'auto')
     expect(field).toHaveAttribute('maxlength', '1000')
+    // the spec's frame: <textarea class="textarea textarea--he" style="min-height: 60px">
+    expect(field).toHaveClass('change__request')
+    expect(rule(css, '.change__request')['min-height']).toBe('60px')
     expect(
       screen.getByText(
         "In the policy's own terms. The model proposes; the engine decides this sandbox's cases again; a person approves.",
@@ -417,6 +421,9 @@ describe('ChangeScreen, the decision', () => {
     expect(note).toHaveClass('textarea', 'textarea--he')
     expect(note).toHaveAttribute('dir', 'auto')
     expect(note).toHaveAttribute('maxlength', '1000')
+    // the spec's frame: <textarea class="textarea textarea--he" style="min-height: 52px">
+    expect(note).toHaveClass('change__note')
+    expect(rule(css, '.change__note')['min-height']).toBe('52px')
     expect(screen.getByRole('button', { name: 'Reject' })).toHaveClass('btn--danger')
     const approve = screen.getByRole('button', { name: 'Approve and publish v2' })
     expect(approve).toHaveClass('btn--primary')
@@ -630,6 +637,6 @@ describe('ChangeScreen.css', () => {
     const change = specRules('.candidates {', '/* Diff, unified')
 
     expect(change).toHaveLength(6)
-    expect(unported(stylesheet('features/change/ChangeScreen.css'), change)).toEqual([])
+    expect(unported(css, change)).toEqual([])
   })
 })

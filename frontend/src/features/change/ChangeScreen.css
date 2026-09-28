@@ -58,6 +58,14 @@
   gap: 8px;
 }
 
+/* The request and the note are as tall as the spec's frames draw them, shorter than a field's default. */
+.change__request {
+  min-height: 60px;
+}
+.change__note {
+  min-height: 52px;
+}
+
 /* The rationale of an English policy reads left to right in the interface's face; the spec draws the Hebrew one. */
 .patch__rationale[dir='ltr'] {
   direction: ltr;

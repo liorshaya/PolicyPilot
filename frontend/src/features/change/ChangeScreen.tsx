@@ -203,7 +203,7 @@ export function ChangeScreen({
                   >
                     <textarea
                       id="change-request"
-                      className="textarea textarea--he"
+                      className="textarea textarea--he change__request"
                       dir="auto"
                       rows={2}
                       maxLength={TEXT_LIMIT}
@@ -265,7 +265,7 @@ export function ChangeScreen({
                       <Field label="Note for the audit log" htmlFor="change-note">
                         <textarea
                           id="change-note"
-                          className="textarea textarea--he"
+                          className="textarea textarea--he change__note"
                           dir="auto"
                           rows={2}
                           maxLength={TEXT_LIMIT}
