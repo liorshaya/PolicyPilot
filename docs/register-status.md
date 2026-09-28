@@ -12,7 +12,7 @@ States: **Not started** · **In progress** (branch, date) · **Blocked** (the qu
 | 2 | The tables | Done | `register/phase-2` | [#162](https://github.com/liorshaya/PolicyPilot/pull/162) | 2026-09-28 | 2026-09-28 |
 | 3 | The review, the trace, the explanation, the figures | Done | `register/phase-3` | [#164](https://github.com/liorshaya/PolicyPilot/pull/164) | 2026-09-28 | 2026-09-28 |
 | 4 | The assistant, the change request, the audit log | Done | `register/phase-4` | [#167](https://github.com/liorshaya/PolicyPilot/pull/167), [#168](https://github.com/liorshaya/PolicyPilot/pull/168) | 2026-09-28 | 2026-09-28 |
-| 5 | Policies, composition, Decide a case, Fields, every state, the phone | In progress | `register/phase-5` |  | 2026-09-28 |  |
+| 5 | Policies, composition, Decide a case, Fields, every state, the phone | Done | `register/phase-5` | [#169](https://github.com/liorshaya/PolicyPilot/pull/169), [#170](https://github.com/liorshaya/PolicyPilot/pull/170) | 2026-09-28 | 2026-09-28 |
 | 6 | Verification and the don't list | Not started |  |  |  |  |
 
 A phase starts only when the one above it is Done. Cuts follow the order at the end of Document 9 and nowhere else.
@@ -246,7 +246,7 @@ Evidence:
 
 ## 5 · Policies, composition, Decide a case, Fields, every state, the phone
 
-Status: In progress
+Status: Done
 
 Questions, 2026-09-28, before the tests are written, answered by the owner the same day, each as recommended; the spec's lines (sections 05, 08, 10 and 11) and Document 9's test list are changed first, in this phase's pull request. Document 9's third rule keeps the backend untouched in this phase, so where the spec asks for what the API does not serve, or two documents disagree, the owner decides:
 
@@ -264,8 +264,8 @@ For the record, not questions: "Go to ⌘K" in the headers waits for the palette
 - [x] One test per cell of the states matrix (section 11) not covered before, each named "<surface> · <state>", each with its MSW fixture, all green
 - [x] The phone: the top bar below 720px, the screens row, the margin as the next section; `e2e/phone.spec.ts` at 390×844 with no horizontal scroll and 44px rows
 - [x] The `--color-*` alias block removed from `tokens.css` with every reference; `register.lint.test.ts` green without the allowance
-- [ ] The Policies screen in both themes beside `screen-policies-light.png` and `screen-policies-dark.png`; the four demo steps through the panel on a desktop and on a phone
-- [ ] Worklog line; pull request "Register phase 5: Policies, composition, states, phone" merged
+- [x] The Policies screen in both themes beside `screen-policies-light.png` and `screen-policies-dark.png`; the four demo steps through the panel on a desktop and on a phone
+- [x] Worklog line; pull request "Register phase 5: Policies, composition, states, phone" merged
 
 Evidence:
 
@@ -283,6 +283,9 @@ Evidence:
 - Screens, from the committed fixtures and no model: `docs/demo/register/policies-light.png` and `-dark.png` in `screen-policies-*.png`'s frame (1361×1153 at 2×): the same header, sheet, marks, note, documents, stages and summary as the spec's, with the fixture's review of five findings, an English second document, the run's time of a stream served whole, and the rail as phase 1's answers left it; `decide-a-case-*.png` beside `pattern-decide-a-case.png`, case 17 typed in; `rules-fields-*.png`; `phone-cases-*.png` at 390 wide, the trace under the list.
 - Local run on 2026-09-28: the backend untouched, its clean unit and full verify green; typecheck, lint with no warning, Prettier, 798 Vitest tests in 70 files with the coverage thresholds (96.0% of statements, 88.9% of branches), the build; Playwright, 37 passed (the 33 before and the phone's 4); `make check` ALL OK with the traceability matrix regenerated; Semgrep 1.177.0, 0 findings; gitleaks, no leaks.
 - Pull request [#169](https://github.com/liorshaya/PolicyPilot/pull/169): CI stages 1 to 7 green on run [36456158087](https://github.com/liorshaya/PolicyPilot/actions/runs/36456158087) at 65de52a, with 1,359 unit, 443 integration, 798 Vitest and 40 Playwright tests (37 on the fixtures, 3 against the stack), the API at 97.1% of lines and 94.0% of branches, the web app at 96.1% of statements and 88.8% of branches, and 100% of the mutants of `engine` and `rules` killed, neither touched. The worklog line of 2026-09-28 names the phase. The pull request is merged only once the run of its last commit is green too; the cloud walk of the four steps, on a desktop and on a phone, follows the deploy, as the owner approved.
+- Merged as `0ce6266`; `main`'s run [36458643157](https://github.com/liorshaya/PolicyPilot/actions/runs/36458643157) green, Railway's deploy healthy, and Vercel's production bundle carrying the phase's words ("Decide a case", "Generate rules from the policy", "seeded first, then this sandbox's", "fields compared", "Checking", the budget's note).
+- The cloud walk on a desktop, the walk the owner approved (about 10,000 tokens for both, at most about 90,000): the four steps through the guided panel at 1376×900, both themes by the rail's Theme, then Decide a case; 18 checks, all passed. Step 1 pasted the sample, added it and generated its rules through the response cache: the stages "9 ¶", "21 rules", "0 problems", "9 findings", "done · 0.9 s" beside the title, the dashed note "21 rules, version 1", "The reviewer found 9 things to check · 4 block publishing", 21 rule chips under the paragraphs; Review the draft opened "Draft v1" with the switch Policy · Rule · Fields · JSON and "10 case fields, 3 derived", the model's draft declaring a field and a derivation more than the seeded rule set. Step 2 decided the 200 cases in 2.4 s; step 3 answered Q-01 with its sources in 5.7 s; step 4 proposed the scripted change, "12 flipped · 6.0% of 200" in 2.3 s, and sealed it, "CR-0001 · 2026-09-28 20:41 by Analyst". Then case 17 typed into Decide a case was decided by v2 of the sandbox's copy, Manual review, its trace in the margin. No 5xx on any API call.
+- The cloud walk on a phone, at 390×844, first found what no test had: steps 1 to 3 and step 4's proposal passed, and Approve could not be pressed. Once the change screen held a proposal it was 481px wide, the regression report's matrix and flips table standing outside a scroll box, so the page scrolled sideways and the mobile browser zoomed out; the phone spec had measured the change screen before any proposal. [#170](https://github.com/liorshaya/PolicyPilot/pull/170) put each table in a scroll box of its own and made the phone spec propose before it measures, both tests red first, green on run [36461556240](https://github.com/liorshaya/PolicyPilot/actions/runs/36461556240). Merged as `2ab4a8f`, `main`'s run [36462752194](https://github.com/liorshaya/PolicyPilot/actions/runs/36462752194) green and deployed; the phone walk again, in a new sandbox: 20 checks, all passed. The top bar in the rail's place; step 1 with the same counts in 1.3 s, "done · 0.4 s"; the 200 cases with a 44px case row; Q-01 in 4.2 s; the 12 flips and the seal "CR-0001 · 2026-09-28 21:15 by Analyst"; nothing scrolling sideways on any of the four screens; no 5xx. The generations, Q-01's answer and the proposals came from the response cache; what the walks spent was embeddings, Q-01's question and each approval's copy, counted only in the database's ledger, which the logs do not show. The access code was read from Railway inside the script and never printed.
 
 ## 6 · Verification and the don't list
 
