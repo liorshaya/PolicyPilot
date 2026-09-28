@@ -26,7 +26,12 @@ describe('SplitView', () => {
 
   it('names the margin by what it holds, so a reader finds it among the landmarks', () => {
     const { getByRole } = render(
-      <SplitView main={<p>The thread</p>} side={<p>The paragraph</p>} sideOpen sideLabel="Paragraph 2" />,
+      <SplitView
+        main={<p>The thread</p>}
+        side={<p>The paragraph</p>}
+        sideOpen
+        sideLabel="Paragraph 2"
+      />,
     )
 
     expect(getByRole('complementary', { name: 'Paragraph 2' })).toHaveTextContent('The paragraph')

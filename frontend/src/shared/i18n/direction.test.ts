@@ -168,7 +168,9 @@ describe('isolated', () => {
   })
 
   it('never emits a bare <bdi>', () => {
-    const { isolates } = tokensOf(`R-170 דוחה כאשר ההכנסה נמוכה מ-8,000 ₪; ${minus}12; 2026-09-22; v1; 9%`)
+    const { isolates } = tokensOf(
+      `R-170 דוחה כאשר ההכנסה נמוכה מ-8,000 ₪; ${minus}12; 2026-09-22; v1; 9%`,
+    )
 
     expect(isolates.length).toBeGreaterThan(0)
     expect(isolates.every((token) => token.dir === 'ltr')).toBe(true)

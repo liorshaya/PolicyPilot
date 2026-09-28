@@ -59,6 +59,10 @@ export const seededRuleset = {
 export async function serveTheSeededRuleSet(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/code', (route) => route.fulfill({ status: 204 }))
   await page.route('**/api/v1/system/provider', (route) => route.fulfill({ json: openAiProvider }))
+  // the day's budget is not spent (Document 2, GET /system/budget), so no screen says it is
+  await page.route('**/api/v1/system/budget', (route) =>
+    route.fulfill({ json: { spent: false, resumesAt: '2026-09-29T00:00:00Z' } }),
+  )
   await page.route('**/api/v1/policies', (route) =>
     route.fulfill({
       json: {

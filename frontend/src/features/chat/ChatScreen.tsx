@@ -259,7 +259,10 @@ function Conversation({
                 {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
               </Note>
             ) : null}
-            {failure !== undefined && failure !== null && failure !== BUDGET && failure !== WITHHELD ? (
+            {failure !== undefined &&
+            failure !== null &&
+            failure !== BUDGET &&
+            failure !== WITHHELD ? (
               <Note tone="error">
                 {failureText(failure)}
                 {last?.status === 'failed' ? (
@@ -385,7 +388,12 @@ function Answer({
               <>
                 <span>Cited</span>
                 {citations.map((citation) => (
-                  <CitationChip key={citation.id} id={citation.id} citation={citation} opens={opens} />
+                  <CitationChip
+                    key={citation.id}
+                    id={citation.id}
+                    citation={citation}
+                    opens={opens}
+                  />
                 ))}
               </>
             )}
@@ -428,7 +436,8 @@ function StepLine({ step }: { step: ChatToolCall }) {
 
 /** What the tool chip names: the what-if with its case and change, the case read, the statistics, the rule listing. */
 function toolText(step: ChatToolCall): string {
-  const theCase = step.applicationNumber === null ? 'case' : `case ${String(step.applicationNumber)}`
+  const theCase =
+    step.applicationNumber === null ? 'case' : `case ${String(step.applicationNumber)}`
   switch (step.tool) {
     case 'simulate':
       return ['what-if', theCase, step.overrides].filter(Boolean).join(' · ')
@@ -478,7 +487,10 @@ function CitationChip({
   }
   if (citation?.kind === 'DECISION') {
     return (
-      <Chip title={`${label} · ${outcomeWords(citation)}, as the engine decided`} onClick={opens.onOpenCases}>
+      <Chip
+        title={`${label} · ${outcomeWords(citation)}, as the engine decided`}
+        onClick={opens.onOpenCases}
+      >
         {label}
       </Chip>
     )
@@ -494,7 +506,11 @@ function CitationChip({
     )
   }
   // a marker whose citation has not arrived yet: its label, and nothing to open until the API vouches for it
-  return <Chip kind={id.startsWith('sim:') ? 'tool' : id.startsWith('p:') ? 'para' : 'id'}>{chipText(id)}</Chip>
+  return (
+    <Chip kind={id.startsWith('sim:') ? 'tool' : id.startsWith('p:') ? 'para' : 'id'}>
+      {chipText(id)}
+    </Chip>
+  )
 }
 
 /** A chip's text before its citation arrives: a paragraph pill writes its number, which the pill's ¶ precedes. */

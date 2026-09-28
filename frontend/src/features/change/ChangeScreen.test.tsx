@@ -10,10 +10,11 @@ import {
   proposedSampleDecision,
   rt04Events,
   scriptedEvents,
+  scriptedProposalEvent,
   scriptedRequest,
 } from '../../test/fixtures/change'
 import { eventStream, RT_04_PLANTED } from '../../test/fixtures/changeRequest'
-import { decisionIdOf, sampleDecision } from '../../test/fixtures/lending'
+import { decisionIdOf, lendingRuleSet, sampleDecision } from '../../test/fixtures/lending'
 import {
   publishedVersion,
   rulesets,
@@ -279,6 +280,43 @@ describe('ChangeScreen, the proposal', () => {
     ])
   })
 
+  it("writes each operation in the spec's words: a removed rule under its label, a new field by its name", async () => {
+    // a proposal the scripted request never makes, to show the operations it does not use (the spec, section 09)
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/changes`, () =>
+        streamed([
+          ...scriptedEvents.slice(0, 4),
+          [
+            'proposal',
+            {
+              ...scriptedProposalEvent,
+              patches: [
+                { op: 'remove', ruleId: 'R-100', rationale: 'הכלל מבוטל לפי הבקשה' },
+                {
+                  op: 'add_field',
+                  field: { name: 'has_collateral', type: 'boolean' },
+                  rationale: 'שדה חדש לבטוחה',
+                },
+              ],
+            },
+          ],
+        ]),
+      ),
+    )
+    renderScreen()
+    await proposalShown()
+
+    const patches = within(screen.getByRole('list', { name: 'Patches' })).getAllByRole('listitem')
+    expect(patches.map((patch) => patch.querySelector('.patch__op')?.textContent)).toStrictEqual([
+      'Remove',
+      'Add the field',
+    ])
+    // a removed rule is named as version 1 has it (fixtures/.../ruleset.v1.json)
+    const removed = lendingRuleSet.rules.find((rule) => rule.id === 'R-100')!
+    expect(patches[0]!.querySelector('.patch__head .step__label')).toHaveTextContent(removed.label)
+    expect(within(patches[1]!).getByText('has_collateral')).toHaveClass('chip', 'chip--field')
+  })
+
   it('shows the diff, one row per changed cell of Published v1 beside the proposal, the other rules collapsed', async () => {
     renderScreen()
     await proposalShown()
@@ -344,6 +382,29 @@ describe('ChangeScreen, the proposal', () => {
     await user.click(within(margin).getByRole('button', { name: 'Close' }))
 
     expect(screen.queryByRole('complementary', { name: 'Both traces' })).not.toBeInTheDocument()
+  })
+
+  it('says so in the margin when what the proposal decides cannot be read, and offers to try again', async () => {
+    server.use(
+      http.get(`${BASE}/changes/:id/decisions/:decisionId/trace`, () =>
+        HttpResponse.json(
+          { code: 'NOT_FOUND', message: 'no such decision', details: [], traceId: 't' },
+          { status: 404 },
+        ),
+      ),
+    )
+    renderScreen()
+    const user = await proposalShown()
+    const flips = within(screen.getByRole('table', { name: 'The decisions that flip' }))
+
+    await user.click(flips.getAllByRole('button', { name: 'Both traces' })[0]!)
+
+    const margin = await screen.findByRole('complementary', { name: 'Both traces' })
+    expect(
+      await within(margin).findByText('What the proposal decides could not be read.'),
+    ).toBeVisible()
+    expect(within(margin).getByText('NOT_FOUND')).toHaveClass('mono')
+    expect(within(margin).getByRole('button', { name: 'Try again' })).toBeVisible()
   })
 })
 

@@ -55,7 +55,8 @@ const MINUS_SIGN = String.fromCodePoint(0x2212)
  * with as many decimals as it was written with when that is given ("1,493.10" keeps its zero).
  */
 function grouped(value: number, fractionDigits?: number): string {
-  const written = fractionDigits === undefined ? String(Math.abs(value)) : Math.abs(value).toFixed(fractionDigits)
+  const written =
+    fractionDigits === undefined ? String(Math.abs(value)) : Math.abs(value).toFixed(fractionDigits)
   const [whole, fraction] = written.split('.')
   const digits = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return fraction === undefined ? digits : `${digits}.${fraction}`
@@ -153,7 +154,11 @@ export function isolated(text: string, language: ContentLanguage): ReactNode[] {
         createElement(
           'bdi',
           { key, dir: 'ltr' },
-          unit === undefined ? range : unit === '%' ? `${range}%` : `${range}${NO_BREAK_SPACE}${unit}`,
+          unit === undefined
+            ? range
+            : unit === '%'
+              ? `${range}%`
+              : `${range}${NO_BREAK_SPACE}${unit}`,
         ),
       )
     } else if (groups.number !== undefined) {

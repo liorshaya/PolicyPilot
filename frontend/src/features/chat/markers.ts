@@ -43,8 +43,8 @@ const PUNCTUATION = /^[.,;:!?]+/
  * the model wrote before a period moves behind it; and a run of markers is one claim, whose first source is the chip
  * inline and whose others are left to the sources strip.
  */
-export function placed(parts: Segment[]): (Segment & { kind: 'text' } | MarkerRun)[] {
-  const result: (Segment & { kind: 'text' } | MarkerRun)[] = []
+export function placed(parts: Segment[]): ((Segment & { kind: 'text' }) | MarkerRun)[] {
+  const result: ((Segment & { kind: 'text' }) | MarkerRun)[] = []
   let index = 0
   while (index < parts.length) {
     const part = parts[index]!

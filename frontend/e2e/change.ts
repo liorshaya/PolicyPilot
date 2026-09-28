@@ -5,6 +5,7 @@ import {
   eventStream,
   RT_04_PLANTED,
   rt04Failure,
+  SCRIPTED_TIMINGS,
   scriptedProposal,
   type CasesExpectedFixture,
   type ChangeRequestFixture,
@@ -48,20 +49,25 @@ const proposal = scriptedProposal(ruleSet, changeRequest, casesExpected, {
   decisionOf: (caseNo) => `0f4c1c9e-0000-4000-8000-${String(caseNo).padStart(12, '0')}`,
 })
 
-const stage = (name: string): [string, unknown] => [name, { rules: ruleSet.rules.length }]
+/** A stage that works on the whole version, with the stage its event ended (Document 2: null for the first). */
+const stage = (name: string, ended: unknown): [string, unknown] => [
+  name,
+  { rules: ruleSet.rules.length, ended },
+]
 
-/** The scripted request: the four stages, then the proposal. */
+/** The scripted request: the four stages, each event with the stage it ended, then the proposal. */
 const proposed: [string, unknown][] = [
-  stage('analyzing'),
+  stage('analyzing', null),
   [
     'proposing',
     {
       candidates: changeRequest.expected.candidates,
       fields: changeRequest.expected.candidateFields,
+      ended: SCRIPTED_TIMINGS[0],
     },
   ],
-  stage('validating'),
-  stage('regression'),
+  stage('validating', SCRIPTED_TIMINGS[1]),
+  stage('regression', SCRIPTED_TIMINGS[2]),
   ['proposal', proposal],
 ]
 
@@ -114,6 +120,7 @@ function copyVersion(versionNo: 1 | 2) {
  * the approval the sandbox lists its copy, whose version 2 holds the CHANGE_APPROVED entry with the note that was sent.
  */
 export async function serveTheChange(page: Page): Promise<void> {
+  let approved = false
   let note: string | null = null
   await page.route('**/api/v1/rulesets/*/versions/*/changes', (route) => {
     const { text } = route.request().postDataJSON() as { text: string }
@@ -127,10 +134,12 @@ export async function serveTheChange(page: Page): Promise<void> {
         })
   })
   await page.route(`**/api/v1/changes/${PROPOSAL_ID}/approve`, (route) => {
+    approved = true
     note = (route.request().postDataJSON() as { note?: string }).note ?? null
     return route.fulfill({
       json: {
         id: PROPOSAL_ID,
+        number: 1,
         status: 'APPROVED',
         decidedAt: '2026-09-27T09:12:00Z',
         result: { rulesetId: COPY_ID, versionNo: 2, versionId: COPY_VERSION_IDS[2] },
@@ -140,7 +149,7 @@ export async function serveTheChange(page: Page): Promise<void> {
   // registered after the seeded routes, so these answer first (Playwright tries the last route that matches)
   await page.route('**/api/v1/rulesets', (route) =>
     route.fulfill({
-      json: { rulesets: note === null ? [seededRuleset] : [seededRuleset, sandboxCopy] },
+      json: { rulesets: approved ? [seededRuleset, sandboxCopy] : [seededRuleset] },
     }),
   )
   await page.route(`**/api/v1/rulesets/${COPY_ID}/versions/*`, (route) =>
@@ -152,9 +161,10 @@ export async function serveTheChange(page: Page): Promise<void> {
   await page.route(
     (url) => url.pathname === '/api/v1/audit',
     (route) => {
+      // the whole log, or version 2's, holds the approval once it happened (Document 2, GET /audit)
       const versionId = new URL(route.request().url()).searchParams.get('versionId')
       const entries =
-        versionId === COPY_VERSION_IDS[2]
+        approved && (versionId === null || versionId === COPY_VERSION_IDS[2])
           ? [
               {
                 id: '0f4c1c9e-0000-4000-8000-00000000e101',
@@ -163,6 +173,7 @@ export async function serveTheChange(page: Page): Promise<void> {
                 action: 'CHANGE_APPROVED',
                 rulesetVersionId: COPY_VERSION_IDS[2],
                 changeRequestId: PROPOSAL_ID,
+                changeRequestNumber: 1,
                 details: {
                   rulesetId: COPY_ID,
                   versionNo: 2,

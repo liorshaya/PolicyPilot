@@ -31,7 +31,7 @@ const BASE = 'http://localhost:8080/api/v1'
 const SESSION = '0f4c1c9e-0000-4000-8000-0000000000d1'
 const TERM_QUESTION = 'מהי תקופת ההחזר המקסימלית להלוואה?'
 
-/** Application 17 as getDecision reads it: referred by R-330, no flag (Document 3's worked example). */
+/** Case 17 as getDecision reads it: referred by R-330, no flag (Document 3's worked example). */
 const lookup: ChatToolCall = {
   tool: 'getDecision',
   applicationNumber: 17,
@@ -45,7 +45,7 @@ const lookup: ChatToolCall = {
   refused: null,
 }
 
-/** Application 17 with a guarantor, as simulate decides it: approved by R-900, flagged by R-420. */
+/** Case 17 with a guarantor, as simulate decides it: approved by R-900, flagged by R-420. */
 const whatIf: ChatToolCall = {
   ...lookup,
   tool: 'simulate',
@@ -136,7 +136,11 @@ async function lastAnswer(): Promise<HTMLElement> {
 describe('ChatScreen · the thread', () => {
   it('is a right-to-left container inside the English chrome, the marks on the reading-start side', async () => {
     serveSession()
-    serveAnswer(answered('תקופת ההחזר היא עד 84 חודשים.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    serveAnswer(
+      answered('תקופת ההחזר היא עד 84 חודשים.[[p:2]]', [
+        { id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 },
+      ]),
+    )
     renderScreen()
 
     await ask(TERM_QUESTION)
@@ -144,7 +148,9 @@ describe('ChatScreen · the thread', () => {
     const answer = await lastAnswer()
     expect(thread()).toHaveAttribute('dir', 'rtl')
     expect(thread()).toHaveAttribute('lang', 'he')
-    expect(screen.getByRole('heading', { level: 1, name: 'Assistant' }).closest('[dir="rtl"]')).toBeNull()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Assistant' }).closest('[dir="rtl"]'),
+    ).toBeNull()
     const [question] = turns()
     // in a right-to-left container the first child stands on the right, where a Hebrew reader starts
     expect(question!.firstElementChild).toHaveClass('turn__who')
@@ -155,7 +161,11 @@ describe('ChatScreen · the thread', () => {
 
   it('writes a question as a Hebrew block and an answer as a document block, each number isolated', async () => {
     serveSession()
-    serveAnswer(answered('תקופת ההחזר היא עד 84 חודשים.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    serveAnswer(
+      answered('תקופת ההחזר היא עד 84 חודשים.[[p:2]]', [
+        { id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 },
+      ]),
+    )
     renderScreen()
 
     await ask(TERM_QUESTION)
@@ -178,14 +188,17 @@ describe('ChatScreen · the thread', () => {
     await ask('מה קורה כשההפרש הוא −12 וההכנסה 8,000 ₪?')
 
     const question = turns()[0]!.querySelector('.turn__body')!
-    const isolates = [...question.querySelectorAll('bdi')].map((bdi) => [bdi.textContent, bdi.getAttribute('dir')])
+    const isolates = [...question.querySelectorAll('bdi')].map((bdi) => [
+      bdi.textContent,
+      bdi.getAttribute('dir'),
+    ])
     expect(isolates).toEqual([
       [`${String.fromCodePoint(0x2212)}12`, 'ltr'],
       [`8,000${String.fromCodePoint(0x00a0)}₪`, 'ltr'],
     ])
   })
 
-  it('puts a citation chip after the sentence’s punctuation, one per claim, and the sources strip repeats them all', async () => {
+  it("puts a citation chip after the sentence's punctuation, one per claim, and the sources strip repeats them all", async () => {
     serveSession()
     serveAnswer(
       answered('בקשה 17 הופנתה לבדיקת חתם[[d:17]][[p:7]].', [
@@ -214,7 +227,9 @@ describe('ChatScreen · the thread', () => {
     renderScreen()
     const user = await ask(TERM_QUESTION)
 
-    const [inline] = await within(await lastAnswer()).findAllByRole('button', { name: 'Paragraph 2' })
+    const [inline] = await within(await lastAnswer()).findAllByRole('button', {
+      name: 'Paragraph 2',
+    })
     await user.click(inline!)
 
     const source = screen.getByRole('complementary', { name: 'Paragraph 2' })
@@ -276,9 +291,13 @@ describe('ChatScreen · tool calls', () => {
   it('draws each tool call as a step line above its answer: the tool chip, what it ran on, the time and the outcome', async () => {
     serveSession()
     serveAnswer(
-      answered('כן, עם ערב הבקשה הייתה מאושרת.[[r:R-900]]', [{ id: 'r:R-900', kind: 'RULE', ruleId: 'R-900' }], {
-        steps: [whatIf],
-      }),
+      answered(
+        'כן, עם ערב הבקשה הייתה מאושרת.[[r:R-900]]',
+        [{ id: 'r:R-900', kind: 'RULE', ruleId: 'R-900' }],
+        {
+          steps: [whatIf],
+        },
+      ),
     )
     renderScreen()
 
@@ -287,27 +306,47 @@ describe('ChatScreen · tool calls', () => {
     const answer = await lastAnswer()
     const steps = within(answer).getByRole('list', { name: 'Tool calls' })
     const [step] = within(steps).getAllByRole('listitem')
-    expect(step!.querySelector('.chip--tool')).toHaveTextContent('what-if · case 17 · has_guarantor=true')
+    expect(step!.querySelector('.chip--tool')).toHaveTextContent(
+      'what-if · case 17 · has_guarantor=true',
+    )
     expect(step).toHaveTextContent('ran on v1 · 58 µs')
     expect(within(step!).getByText('Approved')).toHaveClass('tag--approve')
     expect(step).toHaveTextContent('flag STABLE_INCOME_MANUAL_CHECK')
     // the step line stands above the answer that used it
     const body = answer.querySelector('.turn__body')!
-    expect([...body.children].indexOf(steps)).toBeLessThan([...body.children].indexOf(body.querySelector('p.answer')!))
+    expect([...body.children].indexOf(steps)).toBeLessThan(
+      [...body.children].indexOf(body.querySelector('p.answer')!),
+    )
   })
 
   it('names a case it looked up, the decision it read, and a call it refused', async () => {
     serveSession()
     serveAnswer(
-      answered('בקשה 17 הופנתה לבדיקה.[[d:17]]', [{ id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer' }], {
-        steps: [lookup, { ...lookup, applicationNumber: 999, micros: 310, outcome: null, decidingRuleId: null, refused: 'not_found' }],
-      }),
+      answered(
+        'בקשה 17 הופנתה לבדיקה.[[d:17]]',
+        [{ id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer' }],
+        {
+          steps: [
+            lookup,
+            {
+              ...lookup,
+              applicationNumber: 999,
+              micros: 310,
+              outcome: null,
+              decidingRuleId: null,
+              refused: 'not_found',
+            },
+          ],
+        },
+      ),
     )
     renderScreen()
 
     await ask('למה בקשה מספר 17 הופנתה לבדיקה?')
 
-    const [read, refused] = within(within(await lastAnswer()).getByRole('list', { name: 'Tool calls' })).getAllByRole('listitem')
+    const [read, refused] = within(
+      within(await lastAnswer()).getByRole('list', { name: 'Tool calls' }),
+    ).getAllByRole('listitem')
     expect(read!.querySelector('.chip--tool')).toHaveTextContent('case 17')
     expect(read).toHaveTextContent('ran on v1 · 1.2 ms')
     expect(within(read!).getByText('Manual review')).toHaveClass('tag--refer')
@@ -318,7 +357,7 @@ describe('ChatScreen · tool calls', () => {
 })
 
 describe('ChatScreen · the system speaks', () => {
-  it('marks the fixed not-covered sentence as the system’s, with no source', async () => {
+  it("marks the fixed not-covered sentence as the system's, with no source", async () => {
     serveSession()
     serveAnswer(answered(notCovered('he'), [], { fixed: 'not_covered' }))
     renderScreen()
@@ -329,22 +368,31 @@ describe('ChatScreen · the system speaks', () => {
     expect(answer.querySelector('.turn__who .actor--system')).not.toBeNull()
     expect(answer.querySelector('.turn__who .actor--model')).toBeNull()
     expect(answer.querySelector('p.answer')).toHaveClass('answer--fixed')
-    expect(within(answer).getByText("No source · a fixed sentence, not the model's")).toBeInTheDocument()
+    expect(
+      within(answer).getByText("No source · a fixed sentence, not the model's"),
+    ).toBeInTheDocument()
   })
 
-  it('marks the tool-limit sentence as the system’s too', async () => {
+  it("marks the tool-limit sentence as the system's too", async () => {
     serveSession()
-    serveAnswer(answered('השאלה דורשת יותר בדיקות ממה שתשובה אחת רשאית לבצע.', [], { steps: [lookup], fixed: 'tool_limit' }))
+    serveAnswer(
+      answered('השאלה דורשת יותר בדיקות ממה שתשובה אחת רשאית לבצע.', [], {
+        steps: [lookup],
+        fixed: 'tool_limit',
+      }),
+    )
     renderScreen()
 
     await ask('למה בקשה מספר 17 הופנתה לבדיקה?')
 
     const answer = await lastAnswer()
     expect(answer.querySelector('.turn__who .actor--system')).not.toBeNull()
-    expect(within(answer).getByText("No source · a fixed sentence, not the model's")).toBeInTheDocument()
+    expect(
+      within(answer).getByText("No source · a fixed sentence, not the model's"),
+    ).toBeInTheDocument()
   })
 
-  it('shows a withheld answer as the amber note with the system’s mark', async () => {
+  it("shows a withheld answer as the amber note with the system's mark", async () => {
     serveSession()
     serveAnswer([['error', { code: 'ANSWER_WITHHELD' }]])
     renderScreen()
@@ -354,7 +402,9 @@ describe('ChatScreen · the system speaks', () => {
     const answer = await lastAnswer()
     expect(answer.querySelector('.turn__who .actor--system')).not.toBeNull()
     const note = answer.querySelector('.note--warning')!
-    expect(note).toHaveTextContent('The answer was withheld because it contained something that must not be shown.')
+    expect(note).toHaveTextContent(
+      'The answer was withheld because it contained something that must not be shown.',
+    )
   })
 
   it('shows the caret while an answer streams', async () => {
@@ -364,9 +414,13 @@ describe('ChatScreen · the system speaks', () => {
         const encoder = new TextEncoder()
         const body = new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(encoder.encode(`event:token\ndata:${JSON.stringify({ text: 'תקופת ההחזר' })}\n\n`))
+            controller.enqueue(
+              encoder.encode(`event:token\ndata:${JSON.stringify({ text: 'תקופת ההחזר' })}\n\n`),
+            )
             // the answer is still coming; the stream ends only when the screen goes away
-            request.signal.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')))
+            request.signal.addEventListener('abort', () =>
+              controller.error(new DOMException('aborted', 'AbortError')),
+            )
           },
         })
         return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
@@ -430,9 +484,15 @@ describe('ChatScreen · the notes under the composer', () => {
 
   // the owner's answer of 2026-09-28 (the board, phase 4, question 9): the composer stays open while the budget is
   // spent, because the scripted questions are still answered from the cache
-  it('says the day’s budget is spent and when it resumes, and the composer stays open', async () => {
+  it("says the day's budget is spent and when it resumes, and the composer stays open for a scripted question", async () => {
     serveSession()
     server.use(http.get(`${BASE}/system/budget`, () => HttpResponse.json(budgetSpent)))
+    // the response cache answers a scripted question while the budget is spent (Document 2, GET /system/budget)
+    serveAnswer(
+      answered('תקופת ההחזר היא עד 84 חודשים.[[p:2]]', [
+        { id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 },
+      ]),
+    )
     renderScreen()
 
     const note = await screen.findByRole('note', { name: 'Budget' })
@@ -440,16 +500,16 @@ describe('ChatScreen · the notes under the composer', () => {
     expect(note).toHaveTextContent(
       "Today's model budget is spent until 00:00. The demo's questions are still answered from the cache.",
     )
-    expect(screen.getByLabelText('Question')).toBeEnabled()
+    // the owner's answer of 2026-09-28: the composer stays enabled, so the question can still be asked
+    await ask(TERM_QUESTION)
+    expect(await screen.findByText(/תקופת ההחזר היא עד/)).toBeVisible()
   })
 
   it('reads the budget again when a question finds it spent', async () => {
     serveSession()
     let spent = false
     server.use(
-      http.get(`${BASE}/system/budget`, () =>
-        HttpResponse.json({ ...budgetSpent, spent }),
-      ),
+      http.get(`${BASE}/system/budget`, () => HttpResponse.json({ ...budgetSpent, spent })),
       http.post(`${BASE}/chat/sessions/${SESSION}/messages`, () => {
         spent = true
         return streamOf([['error', { code: 'BUDGET_EXHAUSTED' }]])
@@ -473,15 +533,21 @@ describe('ChatScreen · the notes under the composer', () => {
         calls++
         return calls === 1
           ? streamOf([['error', { code: 'PROVIDER_UNAVAILABLE' }]])
-          : streamOf(answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+          : streamOf(
+              answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]),
+            )
       }),
     )
     renderScreen()
     const user = await ask(TERM_QUESTION)
 
-    await user.click(within(await screen.findByRole('alert')).getByRole('button', { name: 'Try again' }))
+    await user.click(
+      within(await screen.findByRole('alert')).getByRole('button', { name: 'Try again' }),
+    )
 
-    await waitFor(() => expect((turns().at(-1)!).querySelector('p.answer')).toHaveTextContent('84 months.'))
+    await waitFor(() =>
+      expect(turns().at(-1)!.querySelector('p.answer')).toHaveTextContent('84 months.'),
+    )
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(calls).toBe(2)
   })
@@ -583,7 +649,13 @@ describe('ChatScreen in both directions (NFR-5)', () => {
       answered(
         'בקשה 17 הופנתה לבדיקת חתם.[[d:17]][[p:7]]',
         [
-          { id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer', ruleId: 'R-330' },
+          {
+            id: 'd:17',
+            kind: 'DECISION',
+            applicationNumber: 17,
+            outcome: 'refer',
+            ruleId: 'R-330',
+          },
           { id: 'p:7', kind: 'PARAGRAPH', paragraph: 7 },
         ],
         { steps: [lookup] },
@@ -600,7 +672,9 @@ describe('ChatScreen in both directions (NFR-5)', () => {
 
   it('LTR: an English thread stays left to right (snapshot)', async () => {
     serveSession('en')
-    serveAnswer(answered('The minimum age is 21.[[p:1]]', [{ id: 'p:1', kind: 'PARAGRAPH', paragraph: 1 }]))
+    serveAnswer(
+      answered('The minimum age is 21.[[p:1]]', [{ id: 'p:1', kind: 'PARAGRAPH', paragraph: 1 }]),
+    )
     renderScreen()
 
     await ask(MINIMUM_AGE)
