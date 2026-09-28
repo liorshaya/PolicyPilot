@@ -2,19 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { lendingRuleSet } from '../../test/fixtures/lending'
 import type { FieldSchema, Rule } from '../../api/types'
 import {
+  cellParts,
+  cellText,
   conditionText,
+  decimalsOf,
   expressionText,
   isEditable,
   literalText,
   parseCell,
   renderCell,
+  unitLabel,
   type Leaf,
 } from './cellGrammar'
 
 /**
  * The cell grammar (Document 3, Decision Table Rendering; Document 6, Frontend Test Design: "cell grammar round-trip
  * with Hebrew labels", 100% coverage). Every leaf of the committed lending rule set is rendered and read back, so
- * the table is proven to be a lossless view of the document the engine runs.
+ * the table is proven to be a lossless view of the document the engine runs. The cells are Document 3's own examples
+ * and the Register's (the spec, section 07): the operator and the operand, the unit left to the column's header.
  */
 
 const fields = new Map(lendingRuleSet.fields.map((field) => [field.name, field]))
@@ -38,6 +43,149 @@ function leavesOf(rule: Rule): Leaf[] {
   return typeof condition.field === 'string' ? [condition as unknown as Leaf] : []
 }
 
+/** The expression operand of R-116: 78 − term_months / 12 (Document 3, Conditions). */
+function ageLimitOfR116(): Leaf {
+  const rule = lendingRuleSet.rules.find((candidate) => candidate.id === 'R-116')
+  const leaf = leavesOf(rule!).find((candidate) => typeof candidate.value === 'object')
+  return leaf!
+}
+
+describe('cellParts and cellText', () => {
+  // Document 3, the Layout table and the cell grammar: ≥ 21, ∈ {salaried, self_employed}, [10,000 .. 150,000], absent
+  it.each([
+    [{ field: 'age', op: 'lt', value: 21 }, '<', '21'],
+    [{ field: 'age', op: 'gte', value: 21 }, '≥', '21'],
+    [{ field: 'age', op: 'lte', value: 70 }, '≤', '70'],
+    [{ field: 'age', op: 'gt', value: 70 }, '>', '70'],
+    [{ field: 'credit_events_24m', op: 'eq', value: 1 }, '=', '1'],
+    [
+      { field: 'requested_amount', op: 'between', value: [10000, 150000] },
+      undefined,
+      '[10,000 .. 150,000]',
+    ],
+    [{ field: 'employment_months', op: 'absent' }, undefined, 'absent'],
+    [{ field: 'employment_months', op: 'present' }, undefined, 'present'],
+  ])('writes %o with the operator apart from the operand, and no unit', (leaf, op, value) => {
+    const parts = cellParts(leaf)
+
+    expect(parts?.op).toBe(op)
+    expect(parts?.value).toBe(value)
+    expect(parts?.token).toBe(false)
+  })
+
+  it('writes enum values and booleans as machine tokens, a set of them as one that may wrap', () => {
+    // the spec, section 07: "enum values in mono"; R-110's ≠ retired, R-330's = false, R-310's ∈ {…}
+    expect(cellParts({ field: 'employment_type', op: 'ne', value: 'retired' })).toMatchObject({
+      op: '≠',
+      value: 'retired',
+      token: true,
+      set: false,
+    })
+    expect(cellParts({ field: 'has_guarantor', op: 'eq', value: false })).toMatchObject({
+      op: '=',
+      value: 'false',
+      token: true,
+    })
+    expect(
+      cellParts({ field: 'employment_type', op: 'in', value: ['salaried', 'self_employed'] }),
+    ).toMatchObject({ op: '∈', value: '{salaried, self_employed}', token: true, set: true })
+    expect(cellParts({ field: 'employment_type', op: 'not_in', value: ['retired'] })).toMatchObject(
+      {
+        op: '∉',
+        value: '{retired}',
+      },
+    )
+  })
+
+  it('writes an expression operand in its infix form and marks it as one', () => {
+    // Document 3, the cell grammar: "≥ 78 − term_months / 12"
+    expect(cellParts(ageLimitOfR116())).toMatchObject({
+      op: '≥',
+      value: '78 − term_months / 12',
+      expression: true,
+    })
+  })
+
+  // the spec, section 07: a not around one comparison shows in that field's column with the negated sign
+  it('writes a negated range, equality and set with the negated sign', () => {
+    const negated = { negated: true }
+
+    expect(
+      cellText(
+        cellParts({ field: 'requested_amount', op: 'between', value: [10000, 150000] }, negated)!,
+      ),
+    ).toBe('∉ [10,000 .. 150,000]')
+    expect(
+      cellText(cellParts({ field: 'employment_type', op: 'eq', value: 'retired' }, negated)!),
+    ).toBe('≠ retired')
+    expect(
+      cellText(
+        cellParts({ field: 'employment_type', op: 'in', value: ['salaried', 'retired'] }, negated)!,
+      ),
+    ).toBe('∉ {salaried, retired}')
+  })
+
+  it('has no negated form for any other comparison', () => {
+    expect(cellParts({ field: 'age', op: 'gt', value: 70 }, { negated: true })).toBeNull()
+    expect(cellParts({ field: 'employment_months', op: 'absent' }, { negated: true })).toBeNull()
+  })
+
+  it('writes every number of a column in the column precision', () => {
+    // the spec, section 07: R-200 reads "> 0.40" and R-320 "[0.35 .. 0.40]" beside it, one precision per column
+    expect(
+      cellParts({ field: 'debt_to_income', op: 'gt', value: 0.4 }, { precision: 2 })?.value,
+    ).toBe('0.40')
+    expect(
+      cellParts(
+        { field: 'debt_to_income', op: 'between', value: [0.35, 0.4] },
+        {
+          precision: 2,
+        },
+      )?.value,
+    ).toBe('[0.35 .. 0.40]')
+  })
+
+  it('writes a pattern between slashes, and an operator it does not know as its own name', () => {
+    expect(cellParts({ field: 'iban', op: 'matches', value: '^IL[0-9]{2}' })).toMatchObject({
+      op: '~',
+      value: '/^IL[0-9]{2}/',
+    })
+    expect(cellParts({ field: 'age', op: 'unknown_op', value: 3 })).toMatchObject({
+      op: 'unknown_op',
+      value: '3',
+    })
+    expect(
+      cellParts({ field: 'age', op: 'unknown_op', value: { field: 'term_months' } }),
+    ).toMatchObject({ op: 'unknown_op', value: 'term_months', expression: true })
+    // a comparison that carries no operand writes it as it is, and is no expression
+    expect(cellParts({ field: 'age', op: 'gt' })).toMatchObject({
+      op: '>',
+      value: 'undefined',
+      expression: false,
+    })
+  })
+
+  it('reads the decimals of a number for its column, a small one included', () => {
+    expect(decimalsOf(0.35)).toBe(2)
+    expect(decimalsOf(21)).toBe(0)
+    expect(decimalsOf('retired')).toBe(0)
+    // Document 3: numbers carry up to 12 decimal places; 0.0000001 is written 1e-7 by its own string
+    expect(decimalsOf(0.0000001)).toBe(7)
+    expect(decimalsOf(0.1 + 0.2)).toBe(1)
+    // below the twelfth place a number has no decimals the DSL keeps
+    expect(decimalsOf(1e-13)).toBe(0)
+  })
+
+  it('writes the operator and the operand on one line, a word or a range alone', () => {
+    expect(cellText({ op: '<', value: '21', token: false, set: false, expression: false })).toBe(
+      '< 21',
+    )
+    expect(cellText({ value: 'absent', token: false, set: false, expression: false })).toBe(
+      'absent',
+    )
+  })
+})
+
 describe('renderCell', () => {
   it.each([
     [{ field: 'age', op: 'lt', value: 21 }, '< 21 years'],
@@ -58,9 +206,12 @@ describe('renderCell', () => {
     [{ field: 'employment_months', op: 'absent' }, 'absent'],
     [{ field: 'employment_months', op: 'present' }, 'present'],
     [{ field: 'has_guarantor', op: 'eq', value: false }, '= false'],
-  ])('writes %o as its cell', (leaf, expected) => {
-    expect(renderCell(leaf as Leaf, fields.get((leaf as Leaf).field))).toBe(expected)
-  })
+  ])(
+    'writes %o with the unit of its field, for a view with no column to carry it',
+    (leaf, expected) => {
+      expect(renderCell(leaf as Leaf, fields.get((leaf as Leaf).field))).toBe(expected)
+    },
+  )
 
   it('writes a regular expression between slashes', () => {
     expect(renderCell({ field: 'iban', op: 'matches', value: '^IL[0-9]{2}' })).toBe(
@@ -69,10 +220,7 @@ describe('renderCell', () => {
   })
 
   it('writes an expression operand in its infix form, as Document 3 does', () => {
-    const rule = lendingRuleSet.rules.find((candidate) => candidate.id === 'R-116')
-    const leaf = leavesOf(rule!).find((candidate) => typeof candidate.value === 'object')
-
-    expect(renderCell(leaf!, field('age'))).toBe('≥ (78 − (term_months / 12))')
+    expect(renderCell(ageLimitOfR116(), field('age'))).toBe('≥ 78 − term_months / 12')
   })
 
   it('writes an operator it does not know as its own name', () => {
@@ -83,13 +231,13 @@ describe('renderCell', () => {
 })
 
 describe('parseCell', () => {
-  it('reads back every leaf of the committed lending rule set', () => {
+  it('reads back every leaf of the committed lending rule set from its cell', () => {
     const editable = lendingRuleSet.rules.flatMap(leavesOf).filter(isEditable)
 
     expect(editable.length).toBeGreaterThan(10)
     for (const leaf of editable) {
       const column = field(leaf.field)
-      const parsed = parseCell(renderCell(leaf, column), column)
+      const parsed = parseCell(cellText(cellParts(leaf)!), column)
       expect(parsed.ok, `${leaf.field} ${leaf.op}`).toBe(true)
       if (parsed.ok) {
         expect(parsed.leaf).toEqual({
@@ -101,12 +249,30 @@ describe('parseCell', () => {
     }
   })
 
-  it('reads a number back without its grouping and its unit', () => {
-    const parsed = parseCell('≥ 10,000 ILS', field('requested_amount'))
-
-    expect(parsed).toEqual({
+  it('reads a number back without its grouping, and a padded decimal as its value', () => {
+    expect(parseCell('≥ 10,000', field('requested_amount'))).toEqual({
       ok: true,
       leaf: { field: 'requested_amount', op: 'gte', value: 10000 },
+    })
+    expect(parseCell('> 0.40', field('debt_to_income'))).toEqual({
+      ok: true,
+      leaf: { field: 'debt_to_income', op: 'gt', value: 0.4 },
+    })
+  })
+
+  // the spec, section 07: the error bubble says what to write instead ("Write the number alone; the column is in ₪.")
+  it('refuses a number written with its unit, and says the column carries it', () => {
+    expect(parseCell('< 8,000 ₪', field('monthly_income'))).toEqual({
+      ok: false,
+      problem: 'Write the number alone; the column is in ₪.',
+    })
+    expect(parseCell('< 8,000 ILS', field('monthly_income'))).toEqual({
+      ok: false,
+      problem: 'Write the number alone; the column is in ₪.',
+    })
+    expect(parseCell('< 21 years', field('age'))).toEqual({
+      ok: false,
+      problem: 'Write the number alone; the column is in years.',
     })
   })
 
@@ -169,11 +335,16 @@ describe('parseCell', () => {
 
 describe('isEditable', () => {
   it('leaves an expression to the rule drawer', () => {
-    const rule = lendingRuleSet.rules.find((candidate) => candidate.id === 'R-116')
-    const expression = leavesOf(rule!).find((candidate) => typeof candidate.value === 'object')
-
-    expect(isEditable(expression!)).toBe(false)
+    expect(isEditable(ageLimitOfR116())).toBe(false)
     expect(isEditable({ field: 'age', op: 'gte', value: 21 })).toBe(true)
+  })
+})
+
+describe('unitLabel', () => {
+  it('writes the shekel sign for ILS and any other unit as the rule set names it', () => {
+    // the spec, section 07: requested_amount ₪, age years
+    expect(unitLabel('ILS')).toBe('₪')
+    expect(unitLabel('years')).toBe('years')
   })
 })
 
@@ -182,6 +353,33 @@ describe('literalText and expressionText', () => {
     expect(literalText('salaried')).toBe('salaried')
     expect(literalText(9500, field('monthly_income'))).toBe('9,500 ILS')
     expect(literalText(true)).toBe('true')
+  })
+
+  it('writes an expression without the brackets its operators do not need', () => {
+    const term = { field: 'term_months' }
+    // Document 3: 78 − term_months / 12, and R-020's (existing_monthly_debt + monthly_installment) / monthly_income
+    expect(expressionText({ fn: 'sub', args: [78, { fn: 'div', args: [term, 12] }] })).toBe(
+      '78 − term_months / 12',
+    )
+    expect(
+      expressionText({
+        fn: 'div',
+        args: [
+          {
+            fn: 'add',
+            args: [{ field: 'existing_monthly_debt' }, { field: 'monthly_installment' }],
+          },
+          { field: 'monthly_income' },
+        ],
+      }),
+    ).toBe('(existing_monthly_debt + monthly_installment) / monthly_income')
+    // a difference on the right of a difference keeps its brackets: a − (b − c) is not a − b − c
+    expect(expressionText({ fn: 'sub', args: [1, { fn: 'sub', args: [2, 3] }] })).toBe(
+      '1 − (2 − 3)',
+    )
+    expect(expressionText({ fn: 'mul', args: [{ fn: 'add', args: [1, 2] }, 3] })).toBe(
+      '(1 + 2) × 3',
+    )
   })
 
   it('writes a function the infix form does not cover as a call', () => {
@@ -222,7 +420,7 @@ describe('conditionText', () => {
 
   it('writes an expression operand in its infix form', () => {
     expect(conditionText(conditionOf('R-116'), fields)).toBe(
-      'employment_type = retired AND age ≥ (78 − (term_months / 12))',
+      'employment_type = retired AND age ≥ 78 − term_months / 12',
     )
   })
 

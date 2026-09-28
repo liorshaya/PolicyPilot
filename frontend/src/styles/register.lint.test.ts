@@ -81,15 +81,6 @@ const NOT_YET_PORTED: Record<string, { phase: 1 | 2 | 3 | 4 | 5; hits: Record<st
     phase: 5,
     hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },
   },
-  'src/features/rules/DecisionTable.css': {
-    phase: 2,
-    hits: {
-      'rgb( colour': 4,
-      'uppercase outside .seal': 2,
-      gradient: 1,
-      'letter-spacing outside .seal and .t-band': 3,
-    },
-  },
   'src/features/rules/RuleDrawer.css': {
     phase: 3,
     hits: { 'uppercase outside .seal': 1, 'letter-spacing outside .seal and .t-band': 1 },

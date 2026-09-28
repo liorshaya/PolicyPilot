@@ -1,0 +1,437 @@
+/*
+ * The two tables the product is made of, the base table (the case list) and the decision table (the Register spec,
+ * section 07): the tables of layer 4 of docs/design/register.css, as the spec writes them.
+ */
+.table-scroll {
+  overflow: auto;
+}
+.table-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 3px solid var(--sheet);
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: var(--sheet);
+}
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+}
+.table caption {
+  text-align: start;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--paper);
+  text-align: start;
+  font-weight: 500;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  padding: 0 10px;
+  height: 32px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table th:first-child {
+  padding-inline-start: 16px;
+}
+.table td {
+  padding: 0 10px;
+  height: var(--row-h);
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.table td:first-child {
+  padding-inline-start: 16px;
+}
+.table tbody tr:hover > td {
+  background: var(--well);
+}
+.table--compact td {
+  height: var(--row-h-compact);
+}
+.table--last-borderless tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table th.t-num,
+.t-num {
+  text-align: end;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+  direction: ltr;
+}
+.t-id {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.92em;
+  white-space: nowrap;
+  font-variant-numeric: slashed-zero;
+}
+.t-he {
+  direction: rtl;
+  font-family: var(--font-he);
+  text-align: start;
+}
+.t-empty {
+  color: var(--mark-quiet);
+}
+.t-empty::before {
+  content: '—';
+}
+.t-selected > td {
+  background: var(--accent-wash) !important;
+}
+.t-selected > td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.t-disabled > td {
+  color: var(--ink-3);
+}
+.th-sortable {
+  cursor: pointer;
+}
+.th-sortable::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-inline-start: 6px;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-bottom: 5px solid var(--border-strong);
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.th-sortable:hover::after {
+  opacity: 0.6;
+}
+.th-sortable[aria-sort='ascending']::after {
+  opacity: 1;
+  border-bottom-color: var(--ink);
+}
+.th-sortable[aria-sort='descending']::after {
+  opacity: 1;
+  border-bottom: 0;
+  border-top: 5px solid var(--ink);
+}
+.th-sortable[aria-sort] {
+  color: var(--ink);
+}
+/* Frozen columns */
+.t-frozen {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  background: var(--sheet);
+}
+.t-frozen--shadow {
+  box-shadow:
+    1px 0 0 var(--hairline),
+    var(--shadow-frozen);
+}
+.t-frozen-end {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 2;
+  background: var(--sheet);
+  box-shadow:
+    -1px 0 0 var(--hairline),
+    var(--shadow-frozen-end);
+}
+tr:hover .t-frozen,
+tr:hover .t-frozen-end {
+  background: var(--well);
+}
+.t-selected .t-frozen,
+.t-selected .t-frozen-end {
+  background: var(--accent-wash);
+}
+th.t-frozen,
+th.t-frozen-end {
+  background: var(--paper);
+  z-index: 3;
+}
+
+/* The decision table */
+.table--decision th,
+.table--decision td {
+  padding-inline: 6px;
+}
+.table--decision td:first-child,
+.table--decision th:first-child {
+  padding-inline-start: 6px;
+}
+.table--decision tbody tr:not(.t-band) > td {
+  height: var(--row-h-rule);
+}
+.t-band th {
+  position: static;
+  height: 34px;
+  padding-top: 8px;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--sheet);
+  border-bottom: 1px solid var(--hairline);
+}
+.t-band th .t-band__count {
+  font-family: var(--font-mono);
+  margin-inline-start: 8px;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.t-gutter {
+  width: 20px;
+  padding: 0 !important;
+  text-align: center;
+}
+.t-gutter .sev {
+  display: inline-flex;
+}
+.t-gutter .sev::before {
+  margin: 0;
+  width: 10px;
+  height: 10px;
+}
+.t-group {
+  text-align: start !important;
+  height: 26px !important;
+  color: var(--ink-2) !important;
+  font-size: var(--text-2xs) !important;
+  background: var(--paper);
+  border-bottom: 1px solid var(--hairline) !important;
+}
+.table--decision thead tr:nth-child(2) th {
+  top: 26px;
+  vertical-align: bottom;
+  padding-bottom: 6px;
+  line-height: 1.2;
+}
+.table th.t-head2 {
+  vertical-align: bottom;
+  padding-bottom: 6px;
+  line-height: 1.2;
+}
+.t-field {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  white-space: normal !important;
+  line-height: 1.2;
+  min-width: 72px;
+  vertical-align: bottom;
+  padding-bottom: 6px !important;
+}
+.t-field .unit {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-inline-start: 4px;
+}
+.t-field .derived {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 0 4px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.t-prio {
+  width: 40px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  text-align: end;
+}
+td.t-prio {
+  font-family: var(--font-mono);
+}
+.t-cmp {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  direction: ltr;
+}
+.t-cmp .op {
+  color: var(--ink-3);
+  margin-inline-end: 3px;
+}
+.t-cmp .val {
+  color: var(--ink);
+}
+.t-cmp .enum {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+.t-cmp .enum--set {
+  white-space: normal;
+  display: inline-block;
+  max-width: 132px;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+.t-cmp--complex {
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}
+.t-cmp--complex .fx-expr {
+  display: inline-block;
+  white-space: normal;
+  width: 102px;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+.t-cmp--complex .fx {
+  font-family: var(--font-mono);
+  font-style: italic;
+  color: var(--ink-3);
+  margin-inline-end: 4px;
+}
+/* A rule cell: the Hebrew label first, the id under it. Numbers inside the label never truncate: the cell is wide and the label wraps to two lines. */
+.t-rule {
+  display: grid;
+  gap: 2px;
+  padding: 5px 0;
+  min-width: 0;
+  max-width: 100%;
+}
+.t-rule__label {
+  direction: rtl;
+  font-family: var(--font-he);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: 1.35;
+  unicode-bidi: isolate;
+  text-align: start;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.t-rule__id {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: slashed-zero;
+}
+.t-disabled .t-rule__label {
+  color: var(--ink-3);
+}
+.t-action {
+  display: inline-block;
+  width: 138px;
+  white-space: normal;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+.t-cell-edit {
+  position: relative;
+}
+.t-cell-edit .input {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 6px;
+}
+.t-cell-invalid .input {
+  border-color: var(--decline-mark);
+}
+.t-cell-problem {
+  position: absolute;
+  z-index: 4;
+  top: 100%;
+  inset-inline-start: 0;
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: var(--sheet);
+  border: 1px solid var(--decline-line);
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-xs);
+  color: var(--decline-text);
+  white-space: nowrap;
+}
+.t-underline-warn {
+  box-shadow: inset 0 -2px 0 var(--refer-mark);
+}
+.t-underline-err {
+  box-shadow: inset 0 -2px 0 var(--decline-mark);
+}
+.table__strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  background: var(--sheet);
+}
+.table__strip b {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.table__strip .spacer {
+  flex: 1;
+}
+.table__more {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes (Document
+ * 9, The CSS port): the rule column's least width, a mono action in ink-2, the small "inactive". Each of several actions
+ * stands on its own line; the rule cell is a button, so a keyboard reaches the rule, drawn as the cell it fills; a label
+ * of an English rule set keeps its own direction.
+ */
+.t-rulehead {
+  min-width: 192px;
+}
+.t-action--code {
+  color: var(--ink-2);
+}
+.t-inactive {
+  font-size: var(--text-2xs);
+}
+.t-action-line {
+  display: block;
+}
+.t-action-line + .t-action-line {
+  margin-top: 4px;
+}
+button.t-rule {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.t-rule__label[dir='ltr'] {
+  direction: ltr;
+}
+/* A draft's cell reads as text, as the spec's draft does, and shows its input on hover and focus: the affordance a
+   published version lacks. The input is as wide as the comparison it holds. */
+.t-cell-edit .input {
+  width: auto;
+}
+.t-cell-edit:not(.t-cell-invalid) .input:not(:hover):not(:focus) {
+  border-color: transparent;
+  background: transparent;
+}

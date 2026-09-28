@@ -1,5 +1,5 @@
-import type { Review, ReviewFinding } from '../../api/types'
-import { KIND_LABELS } from '../../shared/ui/findingKinds'
+import type { Finding, Review, ReviewFinding } from '../../api/types'
+import { KIND_LABELS, KIND_MARKS, type FindingMark } from '../../shared/ui/findingKinds'
 
 /**
  * The reviewer's findings as the screens show them (Document 4, Prompt 2: Review; Document 2, Flow 1). The kinds are
@@ -17,15 +17,78 @@ export const RESOLUTION_LABELS = {
   interpretation: 'An existing rule already covers it',
 } as const
 
-/** The findings that name each rule, so a row of the decision table can carry them. */
-export function findingsByRule(review: Review | undefined): Map<string, ReviewFinding[]> {
-  const byRule = new Map<string, ReviewFinding[]>()
-  for (const finding of review?.findings ?? []) {
-    for (const ruleId of finding.ruleIds) {
-      byRule.set(ruleId, [...(byRule.get(ruleId) ?? []), finding])
+/** A finding's mark on a row of the decision table, and what it says on hover: "F-1 Conflict". */
+export interface TableMark {
+  mark: FindingMark
+  label: string
+}
+
+/** The reviewer's findings still open: an acknowledged one neither blocks nor warns. */
+const open = (review: Review | undefined) =>
+  (review?.findings ?? []).filter((finding) => finding.acknowledgement === undefined)
+
+/**
+ * The marks of the decision table's gutter, by rule (the spec, section 07; Document 3, Layout: "validation and reviewer
+ * findings anchored to the rule"): each open finding of the review on every rule it names, marked by its kind, and each
+ * finding of the validator, a square for an error and a triangle for a warning.
+ */
+export function tableMarks(
+  review: Review | undefined,
+  findings: Finding[],
+): Map<string, TableMark[]> {
+  const marks = new Map<string, TableMark[]>()
+  const put = (ruleIds: string[], mark: TableMark) => {
+    for (const ruleId of ruleIds) {
+      marks.set(ruleId, [...(marks.get(ruleId) ?? []), mark])
     }
   }
-  return byRule
+  for (const finding of open(review)) {
+    put(finding.ruleIds, {
+      mark: KIND_MARKS[finding.kind],
+      label: `${finding.id} ${KIND_LABELS[finding.kind]}`,
+    })
+  }
+  for (const finding of findings) {
+    put(finding.ruleIds, {
+      mark: finding.severity === 'error' ? 'error' : 'warning',
+      label: `${finding.code} ${finding.message}`,
+    })
+  }
+  return marks
+}
+
+/**
+ * The strip's counts above the table: the findings that block publishing, as the API marks them and as every error
+ * of the validator does, and the open ones that only warn.
+ */
+export function tableCounts(
+  review: Review | undefined,
+  findings: Finding[],
+): { block: number; warn: number } {
+  const reviewed = open(review)
+  const errors = findings.filter((finding) => finding.severity === 'error').length
+  return {
+    block: reviewed.filter((finding) => finding.blocking).length + errors,
+    warn: reviewed.filter((finding) => !finding.blocking).length + findings.length - errors,
+  }
+}
+
+/** The cells a finding of the validator names, by rule and field: an error underlines over a warning. */
+export function underlinedCells(findings: Finding[]): Map<string, Map<string, 'err' | 'warn'>> {
+  const cells = new Map<string, Map<string, 'err' | 'warn'>>()
+  for (const finding of findings) {
+    for (const ruleId of finding.ruleIds) {
+      for (const field of finding.fieldNames) {
+        const fields = cells.get(ruleId) ?? new Map<string, 'err' | 'warn'>()
+        fields.set(
+          field,
+          finding.severity === 'error' || fields.get(field) === 'err' ? 'err' : 'warn',
+        )
+        cells.set(ruleId, fields)
+      }
+    }
+  }
+  return cells
 }
 
 /** Why a draft cannot be published yet, as sentences; empty when its review allows it (Document 2, Flow 1). */

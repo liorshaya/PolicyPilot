@@ -31,6 +31,22 @@ describe('DecisionTag', () => {
     expect(rule(css, '.tag--error').color).toBe('var(--ink-2)')
   })
 
+  it("writes a rule's action in the words of the action column, with the same colour and glyph", () => {
+    // the spec's glossary: Approve · Decline · Manual review in a rule's Action column
+    render(
+      <>
+        <DecisionTag status="approve" action />
+        <DecisionTag status="reject" action />
+        <DecisionTag status="refer" action />
+      </>,
+    )
+
+    expect(screen.getByText('Approve')).toHaveClass('tag', 'tag--approve')
+    expect(screen.getByText('Decline')).toHaveClass('tag', 'tag--decline')
+    expect(screen.getByText('Decline').querySelector('svg')?.dataset.icon).toBe('cross')
+    expect(screen.getByText('Manual review')).toHaveClass('tag--refer')
+  })
+
   it('renders the dot form when quiet, without a glyph', () => {
     render(<DecisionTag status="refer" quiet />)
     const tag = screen.getByText('Manual review')

@@ -1,5 +1,6 @@
 import './StatusTag.css'
 import {
+  ACTION_LABELS,
   DECISION_LABELS,
   VERSION_LABELS,
   type DecisionStatus,
@@ -19,18 +20,20 @@ interface DecisionTagProps {
   status: DecisionStatus
   /** The dot form, for a dense cell where the row already carries the emphasis. */
   quiet?: boolean
+  /** A rule's action rather than a case's outcome: Approve · Decline · Manual review (the spec's glossary). */
+  action?: boolean
 }
 
 /**
  * A decision, the only coloured word in the product (the spec, section 06): Approved is a check, Declined a cross,
  * Manual review a person, and Evaluation error stays in ink. The colour never stands alone: the word is always there.
  */
-export function DecisionTag({ status, quiet = false }: DecisionTagProps) {
+export function DecisionTag({ status, quiet = false, action = false }: DecisionTagProps) {
   const { tag, glyph } = DECISION_TAGS[status]
   return (
     <span className={`tag tag--${tag}${quiet ? ' tag--quiet tag--dot' : ''}`}>
       {!quiet && glyph ? <Icon name={glyph} /> : null}
-      {DECISION_LABELS[status]}
+      {action && status !== 'error' ? ACTION_LABELS[status] : DECISION_LABELS[status]}
     </span>
   )
 }

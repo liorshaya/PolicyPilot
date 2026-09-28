@@ -26,8 +26,8 @@ test.describe('the rule set screen', () => {
     // one row per rule, plus the head and the band of Document 3 each group sits under
     await expect(page.getByRole('rowheader')).toHaveCount(ruleSet.rules.length)
     await expect(page.getByRole('columnheader', { name: 'Referral conditions' })).toBeVisible()
-    // the decision a rule makes, in the words a person reads
-    await expect(page.getByRole('cell', { name: 'Approved' })).toBeVisible()
+    // the decision a rule makes, in the words of a rule's action column (the spec's glossary)
+    await expect(page.getByRole('cell', { name: 'Approve', exact: true })).toBeVisible()
     // a published version is read, never edited
     await expect(page.getByRole('textbox')).toHaveCount(0)
   })
