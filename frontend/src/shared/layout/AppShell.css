@@ -230,14 +230,18 @@ button.rail__link {
  * scrolls as one. The screens' row scrolls sideways when it is wider than the window, as the block's comment says; the
  * pressed screen stands on the well, the lockup and the version beside the menu, the third figure across the row, as
  * the specimen's style attributes set them. The header keeps its title, one segment of its provenance and the primary
- * at 28px (section 10). Rows are touch targets of 44px, a toolbar wraps its controls rather than widen the page, and the
- * menu holds the rail's lines in a column of its own.
+ * at 28px (section 10). The body's one column never grows past the window, so a wide table scrolls in its own box
+ * rather than widen the page; rows are touch targets of 44px, a toolbar wraps its controls, and the menu holds the
+ * rail's lines in a column of its own.
  */
 .phone {
   min-height: 100%;
   background: var(--paper);
   --row-h: var(--row-h-touch);
   --row-h-compact: var(--row-h-touch);
+}
+.phone__body {
+  grid-template-columns: minmax(0, 1fr);
 }
 .phone__side {
   display: flex;

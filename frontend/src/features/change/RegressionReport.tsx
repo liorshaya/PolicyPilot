@@ -107,55 +107,57 @@ export function RegressionReport({
           </button>
         ))}
       </div>
-      <table
-        className="table table--compact table--last-borderless regression__flips"
-        aria-label="The decisions that flip"
-      >
-        <thead>
-          <tr>
-            <th className="t-num">Case</th>
-            <th>{`v${String(baseVersionNo)}`}</th>
-            <th>Proposed</th>
-            <th>Decided by</th>
-            <th>
-              <span className="sr-only">Traces</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((flip) => (
-            <tr key={flip.decisionId}>
-              <td className="t-num">{flip.caseNo ?? 'Own case'}</td>
-              <td>
-                <DecisionTag status={flip.before} quiet />
-              </td>
-              <td>
-                <DecisionTag status={flip.after} quiet />
-              </td>
-              <td className="t-id">{`${flip.decidingRuleBefore ?? 'none'} → ${flip.decidingRuleAfter ?? 'none'}`}</td>
-              <td>
-                {onBothTraces ? (
-                  <Button variant="link" onClick={() => onBothTraces(flip)}>
-                    Both traces
-                  </Button>
-                ) : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        {listed.length > shown.length ? (
-          <tfoot>
+      <div className="table-scroll">
+        <table
+          className="table table--compact table--last-borderless regression__flips"
+          aria-label="The decisions that flip"
+        >
+          <thead>
             <tr>
-              <td colSpan={5} className="muted">
-                {`${String(listed.length - shown.length)} more`} ·{' '}
-                <Button variant="link" onClick={() => setAll(true)}>
-                  {`Show all ${String(listed.length)}`}
-                </Button>
-              </td>
+              <th className="t-num">Case</th>
+              <th>{`v${String(baseVersionNo)}`}</th>
+              <th>Proposed</th>
+              <th>Decided by</th>
+              <th>
+                <span className="sr-only">Traces</span>
+              </th>
             </tr>
-          </tfoot>
-        ) : null}
-      </table>
+          </thead>
+          <tbody>
+            {shown.map((flip) => (
+              <tr key={flip.decisionId}>
+                <td className="t-num">{flip.caseNo ?? 'Own case'}</td>
+                <td>
+                  <DecisionTag status={flip.before} quiet />
+                </td>
+                <td>
+                  <DecisionTag status={flip.after} quiet />
+                </td>
+                <td className="t-id">{`${flip.decidingRuleBefore ?? 'none'} → ${flip.decidingRuleAfter ?? 'none'}`}</td>
+                <td>
+                  {onBothTraces ? (
+                    <Button variant="link" onClick={() => onBothTraces(flip)}>
+                      Both traces
+                    </Button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {listed.length > shown.length ? (
+            <tfoot>
+              <tr>
+                <td colSpan={5} className="muted">
+                  {`${String(listed.length - shown.length)} more`} ·{' '}
+                  <Button variant="link" onClick={() => setAll(true)}>
+                    {`Show all ${String(listed.length)}`}
+                  </Button>
+                </td>
+              </tr>
+            </tfoot>
+          ) : null}
+        </table>
+      </div>
     </section>
   )
 }
@@ -188,44 +190,47 @@ function Matrix({
           .reduce((sum, other) => sum + moved(from, other), 0)
       : moved(from, to)
   return (
-    <table className="matrix" aria-label={`Version ${String(baseVersionNo)} by the proposal`}>
-      <thead>
-        <tr>
-          <th className="rowhead">{`v${String(baseVersionNo)} → proposed`}</th>
-          {outcomes.map((outcome) => (
-            <th key={outcome}>{DECISION_LABELS[outcome]}</th>
+    // a table may be wider than the window only in a box of its own that scrolls (the spec, section 10, the phone)
+    <div className="table-scroll">
+      <table className="matrix" aria-label={`Version ${String(baseVersionNo)} by the proposal`}>
+        <thead>
+          <tr>
+            <th className="rowhead">{`v${String(baseVersionNo)} → proposed`}</th>
+            {outcomes.map((outcome) => (
+              <th key={outcome}>{DECISION_LABELS[outcome]}</th>
+            ))}
+            <th className="total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {outcomes.map((from) => (
+            <tr key={from}>
+              <th className="rowhead">
+                <DecisionTag status={from} quiet />
+              </th>
+              {outcomes.map((to) => (
+                <td
+                  key={to}
+                  className={from === to ? 'same' : cell(from, to) > 0 ? 'hot' : undefined}
+                >
+                  {cell(from, to)}
+                </td>
+              ))}
+              <td className="total">{before[from] ?? 0}</td>
+            </tr>
           ))}
-          <th className="total">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {outcomes.map((from) => (
-          <tr key={from}>
-            <th className="rowhead">
-              <DecisionTag status={from} quiet />
-            </th>
+          <tr>
+            <th className="rowhead total">Total</th>
             {outcomes.map((to) => (
-              <td
-                key={to}
-                className={from === to ? 'same' : cell(from, to) > 0 ? 'hot' : undefined}
-              >
-                {cell(from, to)}
+              <td key={to} className="total">
+                {outcomes.reduce((sum, from) => sum + cell(from, to), 0)}
               </td>
             ))}
-            <td className="total">{before[from] ?? 0}</td>
+            <td className="total">{regression.decisions}</td>
           </tr>
-        ))}
-        <tr>
-          <th className="rowhead total">Total</th>
-          {outcomes.map((to) => (
-            <td key={to} className="total">
-              {outcomes.reduce((sum, from) => sum + cell(from, to), 0)}
-            </td>
-          ))}
-          <td className="total">{regression.decisions}</td>
-        </tr>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   )
 }
 
