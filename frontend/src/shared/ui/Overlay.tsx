@@ -40,15 +40,18 @@ interface PopoverProps {
   anchor: HTMLElement
   /** What it is, for a screen reader. */
   label: string
+  /** The edge of the control it lines up with: its start, or its end for a control at the window's end edge. */
+  align?: 'start' | 'end'
   onClose: () => void
   children: ReactNode
 }
 
 /**
  * A popover (the spec, section 08), placed from the control that opened it: under it in the upper half of the window,
- * over it in the lower half, at its start edge; the gap is the CSS's. Escape closes it and gives the focus back.
+ * over it in the lower half, at its start edge, or at its end edge for a control at the window's end; the gap is the
+ * CSS's. Escape closes it and gives the focus back.
  */
-export function Popover({ anchor, label, onClose, children }: PopoverProps) {
+export function Popover({ anchor, label, align = 'start', onClose, children }: PopoverProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   const rect = anchor.getBoundingClientRect()
   const below = rect.top < window.innerHeight / 2
@@ -83,11 +86,12 @@ export function Popover({ anchor, label, onClose, children }: PopoverProps) {
       aria-label={label}
       tabIndex={-1}
       data-side={below ? 'below' : 'above'}
-      style={
-        below
-          ? { left: rect.left, top: rect.bottom }
-          : { left: rect.left, bottom: window.innerHeight - rect.top }
-      }
+      style={{
+        ...(align === 'start'
+          ? { left: rect.left }
+          : { right: document.documentElement.clientWidth - rect.right }),
+        ...(below ? { top: rect.bottom } : { bottom: window.innerHeight - rect.top }),
+      }}
     >
       {children}
     </div>

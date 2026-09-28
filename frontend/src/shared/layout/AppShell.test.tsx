@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ollamaProvider } from '../../test/fixtures/provider'
 import { server } from '../../test/msw/server'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import { specRules, stylesheet, unported } from '../../test/css'
 import { AppShell } from './AppShell'
 
 // @requirement FR-21
@@ -191,5 +192,115 @@ describe('AppShell', () => {
     await within(rail()).findByText('Provider OpenAI · cloud')
 
     expect(rtlSnapshot(rail())).toMatchSnapshot()
+  })
+})
+
+/**
+ * The phone (the spec, section 10, "Cases at phone width"; section 08: "below 720px the rail becomes a top bar"): the
+ * lockup, the version and the menu, with the six screens as a row of quiet buttons; the menu holds what the rail held
+ * besides the screens. jsdom has no matchMedia, so each test says how wide the window is.
+ */
+describe('AppShell below 720px', () => {
+  function windowOf(phone: boolean) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: phone && query === '(max-width: 720px)',
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("draws the top bar in the rail's place: the lockup, the version and the menu", () => {
+    windowOf(true)
+    renderShell({ version: { status: 'PUBLISHED', versionNo: 1 } })
+
+    expect(document.querySelector('.rail')).toBeNull()
+    const top = document.querySelector<HTMLElement>('.phone__top')!
+    expect(within(top).getByRole('img', { name: 'PolicyPilot' })).toBeInTheDocument()
+    // the spec's bar writes the version alone, "v1", in its state's pill; the state's word is its title
+    const version = within(top).getByText('v1')
+    expect(version).toHaveClass('vstatus', 'vstatus--published')
+    expect(version).toHaveAttribute('title', 'Published v1')
+    expect(within(top).getByRole('button', { name: 'Menu' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
+  it('lists the six screens as a row of quiet buttons, the current one pressed', async () => {
+    windowOf(true)
+    const onNavigate = vi.fn()
+    renderShell({ onNavigate })
+
+    const row = screen.getByRole('navigation', { name: 'Workspace' })
+    expect(row).toHaveClass('phone__screens')
+    const buttons = within(row).getAllByRole('button')
+    expect(buttons.map((button) => button.textContent)).toStrictEqual([
+      'Policies',
+      'Rules 7',
+      'Cases',
+      'Assistant',
+      'Change',
+      'Audit log',
+    ])
+    const rules = buttons[1]!
+    expect(rules).toHaveClass('btn', 'btn--secondary')
+    expect(rules).toHaveAttribute('aria-pressed', 'true')
+    expect(buttons[0]).toHaveClass('btn', 'btn--quiet')
+    expect(buttons[0]).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(buttons[2]!)
+    expect(onNavigate).toHaveBeenCalledWith('cases')
+  })
+
+  it('opens the menu with what the rail held besides the screens: the workspace, the demo, Leave, Help and Theme', async () => {
+    windowOf(true)
+    const onLeave = vi.fn()
+    renderShell({ onLeave })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }))
+
+    const menu = screen.getByRole('dialog', { name: 'Menu' })
+    expect(within(menu).getByText(POLICY.title)).toHaveAttribute('dir', 'rtl')
+    expect(within(menu).getByRole('region', { name: 'Guided demo' })).toBeInTheDocument()
+    expect(within(menu).getByText('Analyst')).toBeInTheDocument()
+    expect(within(menu).getByRole('button', { name: 'Help' })).toBeInTheDocument()
+    expect(within(menu).getByRole('button', { name: 'Theme' })).toBeInTheDocument()
+    await userEvent.click(within(menu).getByRole('button', { name: 'Leave' }))
+    expect(onLeave).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the rail from 721px up', () => {
+    windowOf(false)
+    renderShell()
+
+    expect(document.querySelector('.rail')).not.toBeNull()
+    expect(document.querySelector('.phone__top')).toBeNull()
+  })
+})
+
+describe('AppShell.css, the phone', () => {
+  // The spec's phone block, but for the frame it draws the phone in: the product's phone is the window itself
+  it("carries the spec's phone rules, with the spec's declarations", () => {
+    const phone = specRules('/* Phone (', '/* decide a case').filter(
+      ([selector]) => selector !== '.phone',
+    )
+
+    expect(phone.map(([selector]) => selector)).toEqual([
+      '.phone__top',
+      '.phone__top svg',
+      '.phone__screens',
+      '.phone__screens .btn',
+      '.phone__body',
+      '.phone .sheet',
+      '.phone .ws-header',
+      '.phone .figures',
+      '.phone .figure:nth-child(2)',
+      '.phone .figure',
+    ])
+    expect(unported(stylesheet('shared/layout/AppShell.css'), phone)).toEqual([])
   })
 })

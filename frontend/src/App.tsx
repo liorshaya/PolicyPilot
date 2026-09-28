@@ -25,7 +25,7 @@ function screenFromHash(): ScreenId {
 function WorkspaceShell({
   rulesetId,
   ...shell
-}: Omit<ComponentProps<typeof AppShell>, 'policy' | 'findingsToAcknowledge'> & {
+}: Omit<ComponentProps<typeof AppShell>, 'policy' | 'findingsToAcknowledge' | 'version'> & {
   rulesetId: string | null
 }) {
   const workspace = useWorkspace(rulesetId)
@@ -34,6 +34,7 @@ function WorkspaceShell({
       {...shell}
       policy={workspace.policy}
       findingsToAcknowledge={workspace.findingsToAcknowledge}
+      version={workspace.version}
     />
   )
 }

@@ -173,6 +173,14 @@
 }
 
 /*
+ * A value the spec states in words, made a token (Document 9's second rule): a row at phone width is a touch target of
+ * 44px (section 10, "Cases at phone width").
+ */
+:root {
+  --row-h-touch: 44px;
+}
+
+/*
  * Aliases for the components that are not ported yet (Document 9, phase 0, build item 6, and the owner's answer of
  * 2026-09-28 to the board's question 4). An old colour names the Register token with its role, so it follows the
  * theme; an old size names the Register token of the same value, or keeps its old value where the Register has none.

@@ -177,33 +177,109 @@ button.rail__link {
   background: var(--sheet);
 }
 
-/* Until phase 5 draws the phone's top bar (the spec, section 10), a narrow window stacks the rail over the workspace as
-   one scrolling row, as the shell before the Register did; the workspace block and the demo strip wait for a wider one. */
-@media (max-width: 900px) {
-  .shell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    height: auto;
-    min-height: 100%;
-  }
-  .rail {
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    border-inline-end: 0;
-    border-bottom: 1px solid var(--hairline);
-  }
-  .rail__nav {
-    grid-auto-flow: column;
-  }
-  .rail__workspace,
-  .rail .demo {
-    display: none;
-  }
-  .rail__foot {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
-    grid-auto-flow: column;
-  }
+/* Phone (≤ 720px): the rail becomes a top bar; screens are a scrollable row; the margin becomes the next section. */
+.phone__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.phone__top svg {
+  height: 20px;
+  width: auto;
+}
+.phone__screens {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--hairline);
+}
+.phone__screens .btn {
+  height: 26px;
+  padding: 0 9px;
+  font-size: var(--text-xs);
+}
+.phone__body {
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+.phone .sheet {
+  margin: 0;
+}
+.phone .ws-header {
+  padding: 6px 2px 8px;
+  min-height: 0;
+  border: 0;
+}
+.phone .figures {
+  grid-template-columns: 1fr 1fr;
+}
+.phone .figure:nth-child(2) {
+  border-inline-end: 0;
+}
+.phone .figure {
+  padding: 6px 12px 6px 0;
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The spec's .phone is the
+ * device frame it draws a phone in (390px, a border, rounded corners); the product's phone is the window, and the page
+ * scrolls as one. The screens' row scrolls sideways when it is wider than the window, as the block's comment says; the
+ * pressed screen stands on the well, the lockup and the version beside the menu, the third figure across the row, as
+ * the specimen's style attributes set them. The header keeps its title, one segment of its provenance and the primary
+ * at 28px (section 10). Rows are touch targets of 44px, a toolbar wraps its controls rather than widen the page, and the
+ * menu holds the rail's lines in a column of its own.
+ */
+.phone {
+  min-height: 100%;
+  background: var(--paper);
+  --row-h: var(--row-h-touch);
+  --row-h-compact: var(--row-h-touch);
+}
+.phone__side {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.phone__screens {
+  overflow-x: auto;
+}
+.phone__screens .btn {
+  flex: none;
+}
+.phone__screens .btn[aria-pressed='true'] {
+  background: var(--well-2);
+}
+.phone .figure:nth-child(3) {
+  grid-column: 1 / -1;
+  border-inline-end: 0;
+  padding-inline-start: 0;
+}
+.phone .ws-header {
+  flex-wrap: wrap;
+}
+.phone .ws-header__side > .btn:not(.btn--primary) {
+  display: none;
+}
+.phone .ws-header__side .btn--primary {
+  height: var(--control-h-sm);
+  padding: 0 10px;
+  font-size: var(--text-xs);
+}
+.phone .prov > :nth-child(n + 2) {
+  display: none;
+}
+.phone .toolbar {
+  flex-wrap: wrap;
+}
+.phone__menu {
+  display: grid;
+  gap: 12px;
+  min-width: 240px;
+}
+.phone__menu .rail__foot {
+  margin-top: 0;
 }

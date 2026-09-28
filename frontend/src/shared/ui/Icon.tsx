@@ -14,6 +14,7 @@ export type IconName =
   | 'external'
   | 'search'
   | 'help'
+  | 'menu'
   | 'moon'
   | 'sun'
 
@@ -125,6 +126,17 @@ const GLYPHS: Record<IconName, { viewBox: string; body: ReactElement }> = {
           strokeLinecap="round"
         />
       </>
+    ),
+  },
+  menu: {
+    viewBox: '0 0 14 14',
+    body: (
+      <path
+        d="M2 4h10M2 7h10M2 10h10"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     ),
   },
   help: {

@@ -138,3 +138,30 @@
     width: var(--margin-w-wide);
   }
 }
+
+/* Below 720px the margin is the next section of the page, under the sheet, as the phone's composed screen draws the trace
+   under the list (the spec, section 10); the page scrolls as one, so neither the sheet nor the margin scrolls alone. */
+@media (max-width: 720px) {
+  .ws-body,
+  .ws-body--wide-margin {
+    gap: 12px;
+  }
+  .margin,
+  .margin--sheet {
+    position: static;
+    width: auto;
+    padding: 0;
+    overflow: visible;
+    border-inline-start: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .ws-body--wide-margin > .margin {
+    width: auto;
+  }
+  .sheet,
+  .sheet__scroll,
+  .sheet--fill > section {
+    overflow: visible;
+  }
+}
