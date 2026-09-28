@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { changeRequest, serveTheChange } from './change'
-import { serveTheChat } from './chat'
+import { ask, question, serveTheChat } from './chat'
+import { inspect } from './checklist'
 import { step } from './panel'
 import { serveASeededRun, serveTheSeededRuleSet } from './seeded'
 
@@ -110,5 +111,24 @@ test.describe('the demo on a phone', () => {
     const traceBox = await trace.boundingBox()
     expect(traceBox!.y).toBeGreaterThan(box!.y)
     expect(await sideways(page)).toBeLessThanOrEqual(0)
+  })
+})
+
+test.describe('on a narrower phone', () => {
+  test.use({ viewport: { width: 360, height: 780 } })
+
+  // the step line of a what-if is the widest thing an answer holds; on a narrow line its chip breaks between its words,
+  // each word whole, instead of widening the turn past the window (CI stage 7 of #172 found it 11px past at 390)
+  test("keeps the assistant's turns inside the window, a tool call's chip breaking between its words", async ({
+    page,
+  }) => {
+    await enter(page)
+    await open(page, 'Assistant')
+    await ask(page, question('Q-02').question)
+    await expect(page.getByRole('list', { name: 'Tool calls' })).toContainText(
+      'what-if · case 17 · has_guarantor=true',
+    )
+
+    expect((await inspect(page)).overflow).toEqual([])
   })
 })

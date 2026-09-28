@@ -83,9 +83,10 @@ const BLEEDS = '.para--cited, button.doc-row'
 
 /**
  * What scrolls or clips on purpose: a table's box, whose table may be wider than it (what stands inside the table still
- * fits its own container), and the provenance line, whose segments drop from its end.
+ * fits its own container), the phone's row of screens, which scrolls on a phone narrower than its six (the owner's
+ * answer to phase 6's fifth question), and the provenance line, whose segments drop from its end.
  */
-const SCROLLS = { box: '.table-scroll', clips: '.prov' }
+const SCROLLS = { box: '.table-scroll, .phone__screens', clips: '.prov' }
 
 /** The faces the product loads (the spec, section 03): IBM Plex and Frank Ruhl Libre, nothing else. */
 const FONTS = [
