@@ -221,12 +221,17 @@ function numberText(value: unknown, precision?: number): string {
   }).format(value)
 }
 
-/** The decimals a number is written with, for the precision of its column. */
+/**
+ * The decimals a number is written with, for the precision of its column: at most the DSL's twelve (Document 3, Types),
+ * read from the fixed form, since a small number's own string is an exponent (0.0000001 is "1e-7").
+ */
 export function decimalsOf(value: unknown): number {
   if (typeof value !== 'number' || Number.isInteger(value)) {
     return 0
   }
-  return String(value).split('.')[1]?.length ?? 0
+  // a fixed form always has its point; the zeros after the last digit are no decimals
+  const fixed = value.toFixed(12).replace(/0+$/, '')
+  return fixed.length - fixed.indexOf('.') - 1
 }
 
 /** What went wrong with an edited cell, in the words the cell shows under itself. */

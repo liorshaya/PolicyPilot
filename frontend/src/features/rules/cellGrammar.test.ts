@@ -5,6 +5,7 @@ import {
   cellParts,
   cellText,
   conditionText,
+  decimalsOf,
   expressionText,
   isEditable,
   literalText,
@@ -142,6 +143,37 @@ describe('cellParts and cellText', () => {
         },
       )?.value,
     ).toBe('[0.35 .. 0.40]')
+  })
+
+  it('writes a pattern between slashes, and an operator it does not know as its own name', () => {
+    expect(cellParts({ field: 'iban', op: 'matches', value: '^IL[0-9]{2}' })).toMatchObject({
+      op: '~',
+      value: '/^IL[0-9]{2}/',
+    })
+    expect(cellParts({ field: 'age', op: 'unknown_op', value: 3 })).toMatchObject({
+      op: 'unknown_op',
+      value: '3',
+    })
+    expect(
+      cellParts({ field: 'age', op: 'unknown_op', value: { field: 'term_months' } }),
+    ).toMatchObject({ op: 'unknown_op', value: 'term_months', expression: true })
+    // a comparison that carries no operand writes it as it is, and is no expression
+    expect(cellParts({ field: 'age', op: 'gt' })).toMatchObject({
+      op: '>',
+      value: 'undefined',
+      expression: false,
+    })
+  })
+
+  it('reads the decimals of a number for its column, a small one included', () => {
+    expect(decimalsOf(0.35)).toBe(2)
+    expect(decimalsOf(21)).toBe(0)
+    expect(decimalsOf('retired')).toBe(0)
+    // Document 3: numbers carry up to 12 decimal places; 0.0000001 is written 1e-7 by its own string
+    expect(decimalsOf(0.0000001)).toBe(7)
+    expect(decimalsOf(0.1 + 0.2)).toBe(1)
+    // below the twelfth place a number has no decimals the DSL keeps
+    expect(decimalsOf(1e-13)).toBe(0)
   })
 
   it('writes the operator and the operand on one line, a word or a range alone', () => {
