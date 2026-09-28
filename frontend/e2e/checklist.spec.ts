@@ -142,6 +142,13 @@ const PLANTS: Plant[] = [
     says: 'no centred numbers',
   },
   {
+    fault: 'a second primary action',
+    // the gate's Enter is the first
+    html: '<button type="button" class="btn btn--primary">Run 200 cases</button>',
+    check: 'primary',
+    says: '2 primary actions',
+  },
+  {
     fault: 'proportional figures in a column',
     html: '<table><tbody><tr><td style="font-variant-numeric: proportional-nums">1,234</td></tr></tbody></table>',
     check: 'dont',

@@ -430,8 +430,8 @@ export function PublishBox({
             Run the review again
           </Button>
         ) : (
+          // the header carries the screen's one primary, the same Publish (sections 08 and 12)
           <Button
-            variant="primary"
             busy={publishing}
             disabled={gates.some((gate) => gate.state !== 'ok')}
             onClick={onPublish}

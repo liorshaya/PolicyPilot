@@ -218,8 +218,9 @@ export function ChangeScreen({
                         On <span className="mono">Published v{base.versionNo}</span>
                       </span>
                     ) : null}
+                    {/* one primary per screen (sections 08 and 12): once a proposal stands, its approval is it */}
                     <Button
-                      variant="primary"
+                      variant={proposal === null ? 'primary' : 'secondary'}
                       type="submit"
                       busy={running}
                       disabled={base === null || version.data === undefined || text.trim() === ''}

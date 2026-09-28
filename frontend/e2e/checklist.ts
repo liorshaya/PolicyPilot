@@ -109,10 +109,16 @@ export interface Findings {
   fonts: string[]
   /** The rest of the don't column a browser can see, each line named by the item it breaks. */
   dont: string[]
+  /** More than one primary action on the screen ("One primary action per screen, in ink"). */
+  primary: string[]
 }
 
-/** Checks the screen as it stands against the checklist. */
+/** Checks the screen as it stands against the checklist, once the faces it asked for have loaded. */
 export async function inspect(page: Page): Promise<Findings> {
+  await page.evaluate(async () => {
+    await (globalThis as unknown as { document: { fonts: { ready: Promise<unknown> } } }).document
+      .fonts.ready
+  })
   return page.evaluate(check, {
     floor: FLOOR_SELECTORS.join(', '),
     relative: RELATIVE_RULES,
@@ -192,6 +198,7 @@ function check({
     gradient: [],
     fonts: [],
     dont: [],
+    primary: [],
   }
 
   type Rgba = [number, number, number, number]
@@ -576,6 +583,14 @@ function check({
       const target = animation.effect.target
       dont('nothing animates on its own', target === null ? 'an animation' : name(target))
     }
+  }
+
+  // One primary action per screen, in ink: a disabled one counts, since it stands there all the same
+  const primaries = all.filter((element) => element.matches('.btn--primary'))
+  if (primaries.length > 1) {
+    found.primary.push(
+      `${String(primaries.length)} primary actions: ${primaries.map((one) => quoted(ownText(one))).join(', ')}`,
+    )
   }
 
   // one line per finding, in the order found

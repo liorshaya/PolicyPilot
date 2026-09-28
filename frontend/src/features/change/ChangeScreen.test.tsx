@@ -184,6 +184,24 @@ describe('ChangeScreen, the request', () => {
   })
 })
 
+describe('ChangeScreen, the one primary', () => {
+  // the spec, sections 08 and 12: one primary action per screen; the request's frame and the decision's each draw one,
+  // so once a proposal stands its approval is the one (the owner's answer to phase 6's seventh question)
+  it('proposes with the primary, then hands the primary to the approval once the proposal stands', async () => {
+    renderScreen()
+    const propose = await screen.findByRole('button', { name: 'Propose the change' })
+    expect(propose).toHaveClass('btn--primary')
+
+    await proposalShown()
+
+    expect(screen.getByRole('button', { name: 'Propose the change' })).toHaveClass('btn--secondary')
+    expect(screen.getByRole('button', { name: /^Approve and publish v\d+$/ })).toHaveClass(
+      'btn--primary',
+    )
+    expect(document.querySelectorAll('.btn--primary')).toHaveLength(1)
+  })
+})
+
 describe('ChangeScreen, the four stages', () => {
   it('shows each stage as it runs, then done with its time and its tokens, and the rules considered under the first', async () => {
     const encoder = new TextEncoder()

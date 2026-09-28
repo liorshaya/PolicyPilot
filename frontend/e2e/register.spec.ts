@@ -88,6 +88,7 @@ async function keepsTheChecklist(page: Page): Promise<void> {
   expect.soft(found.gradient, 'no gradient anywhere').toEqual([])
   expect.soft(found.fonts, 'Plex and Frank Ruhl Libre only').toEqual([])
   expect.soft(found.dont, "the rest of the don't column").toEqual([])
+  expect.soft(found.primary, 'one primary action per screen').toEqual([])
 }
 
 async function generate(page: Page): Promise<void> {
