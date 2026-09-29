@@ -5,24 +5,57 @@
  */
 .thread {
   direction: rtl;
-  display: grid;
-  max-width: 760px;
-  margin-inline-start: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .thread * {
   text-align: start;
 }
+.thread__scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 160px;
+  overflow: auto;
+  padding: 8px 24px 20px;
+}
+.thread__log,
+.thread__opening,
+.thread__foot > * {
+  width: 100%;
+  max-width: 880px;
+  margin-inline: auto;
+}
 .turn {
   display: grid;
   grid-template-columns: 20px 1fr;
-  gap: 8px 12px;
-  padding: 14px 0;
+  gap: 6px 12px;
+  padding: 16px 0 18px;
   border-bottom: 1px solid var(--hairline);
 }
 .turn__who {
-  padding-top: 3px;
+  padding-top: 2px;
+}
+.turn__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.turn__head b {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.turn__head > * + *::before {
+  content: '·';
+  color: var(--border-strong);
+  margin-inline-end: 8px;
 }
 .turn__body {
+  grid-column: 2;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -50,6 +83,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   font-size: var(--text-xs);
   color: var(--ink-3);
@@ -67,16 +101,112 @@
 }
 .sources .end {
   margin-inline-start: auto;
+  direction: ltr;
+}
+.thread__opening {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  margin-block: auto;
+  padding: 24px 0 8px;
+  padding-inline-start: 32px;
+}
+.thread__opening .name {
+  font-family: var(--font-he);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.thread__opening .prov {
+  direction: ltr;
+  text-align: end;
+}
+.starters {
+  margin-top: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-3);
+  overflow: hidden;
+}
+.starters__head {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.starters .btn {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  height: auto;
+  padding: 10px 14px;
+  border-radius: 0;
+  font-family: var(--font-he);
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: var(--leading-he);
+  white-space: normal;
+}
+.starters .btn + .btn {
+  border-top: 1px solid var(--hairline);
+}
+.starters__n {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.thread__foot {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--hairline);
+  background: var(--paper);
 }
 .composer {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: end;
-  padding-top: 14px;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+.composer:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .composer .textarea {
-  min-height: 44px;
+  min-height: 52px;
+  max-height: 180px;
+  padding: 12px 14px 4px;
+  border: 0;
+  background: transparent;
+  resize: none;
+}
+.composer .textarea:focus {
+  box-shadow: none;
+}
+.composer__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 8px 14px;
+  direction: ltr;
+}
+.composer__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.composer__bar .counter {
+  margin-inline-start: auto;
 }
 .streaming::after {
   content: '';
@@ -94,20 +224,21 @@
   }
 }
 
-/* The product's own. The sheet's padding around the thread, as around every sheet's content (the spec, section 08). */
-.thread {
-  padding: 16px 20px;
-}
-
-/* An English version's thread reads left to right (NFR-5): the spec draws the Hebrew one and is silent on the other. */
+/* The product's own. An English version's thread reads left to right (NFR-5): the spec draws the Hebrew one and is
+   silent on the other; its step lines then keep to its own start edge, the left. */
 .thread[dir='ltr'] {
   direction: ltr;
+}
+.thread[dir='ltr'] .steps {
+  justify-content: flex-start;
+}
+.thread[dir='ltr'] .thread__opening .prov {
+  text-align: start;
 }
 
 /* The notes of the thread are the product's English sentences; the spec writes them left to right (style="direction: ltr"). */
 .thread .note {
   direction: ltr;
-  margin-top: 10px;
 }
 
 /* A what-if's tool chip names three words, the tool, the case and the change; on a line narrower than it, as on a phone,
@@ -131,10 +262,23 @@
   list-style: none;
 }
 
-/* Before the first question, the demo's three questions as quiet buttons that fill the composer (the spec, section 11). */
-.thread__starters {
-  display: grid;
-  justify-items: start;
-  gap: 2px;
-  padding-top: 14px;
+/* Below 720px the page scrolls as one (the spec, section 10; SplitView.css): the log does not scroll on its own, the
+   opening stands at the top of the sheet rather than in the middle of a column, and the foot follows the thread. */
+@media (max-width: 720px) {
+  .thread__scroll {
+    overflow: visible;
+    min-height: 0;
+    padding: 4px 12px 16px;
+  }
+  .thread__opening {
+    margin-block: 0;
+    padding-inline-start: 0;
+  }
+  .thread__foot {
+    padding: 12px 12px 14px;
+  }
+  /* a phone has no Enter key to explain */
+  .composer__hint {
+    display: none;
+  }
 }

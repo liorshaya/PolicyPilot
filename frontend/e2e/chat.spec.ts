@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { ask, notCovered, question, serveTheChat } from './chat'
-import { serveASeededRun, serveTheSeededRuleSet } from './seeded'
+import { paragraphs, ruleSet, serveASeededRun, serveTheSeededRuleSet } from './seeded'
 
 /**
  * Demo step 3 in a real browser (Document 1, Demo script; Document 6, End to end): the three scripted questions are
@@ -84,6 +84,32 @@ test.describe('the assistant', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Rules' })).toBeVisible()
     await expect(page.getByText('Paragraph 9 is the source of R-900')).toBeVisible()
+  })
+
+  // the Register spec, section 09 (v3.3): the composer is the sheet's foot and the log scrolls under it, following the
+  // newest answer; the opening stands before the first question and goes with it
+  test("opens on the demo's questions, and keeps the newest answer in view above the composer", async ({
+    page,
+  }) => {
+    const opening = page.getByRole('region', { name: 'Before the first question' })
+    await expect(opening.getByRole('group', { name: "The demo's questions" })).toBeVisible()
+    // the version's line, its separators drawn by the stylesheet; the counts are what the stubs serve
+    await expect(opening.locator('.prov > *')).toHaveText([
+      'Published v1',
+      `${String(paragraphs.length)} paragraphs`,
+      `${String(ruleSet.rules.length)} rules`,
+    ])
+
+    for (const id of ['Q-01', 'Q-02', 'Q-03', 'Q-04']) {
+      await ask(page, question(id).question)
+    }
+
+    await expect(opening).toHaveCount(0)
+    const newest = page.getByText(notCovered('he'))
+    await expect(newest).toBeVisible()
+    await expect(newest).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Ask' })).toBeInViewport()
+    await expect(page.getByRole('log').locator('.turn').first()).not.toBeInViewport()
   })
 
   test('answers the term question from paragraph 2, then refuses the rate question with the fixed sentence', async ({

@@ -6,10 +6,11 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { budgetSpent } from '../../test/fixtures/budget'
 import { notCovered } from '../../test/fixtures/english'
-import { lendingParagraphs } from '../../test/fixtures/lending'
+import { lendingParagraphs, lendingRuleSet } from '../../test/fixtures/lending'
+import { PERSON } from '../../shared/ui/Actor'
 import { batch, decision, SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
 import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { ChatScreen } from './ChatScreen'
@@ -158,6 +159,58 @@ describe('ChatScreen · the thread', () => {
     expect(question!.firstElementChild!.querySelector('.actor--person')).not.toBeNull()
     expect(answer.firstElementChild).toHaveClass('turn__who')
     expect(answer.firstElementChild!.querySelector('.actor--model')).not.toBeNull()
+  })
+
+  // the spec, section 09 (v3.3): the word beside the mark, and what the answer did, on a head line above each turn
+  it('names who speaks on a head line above each turn: the analyst, the model with its tool calls, the system', async () => {
+    serveSession()
+    serveAnswer(
+      answered(
+        'בקשה 17 הופנתה לבדיקה.[[d:17]]',
+        [{ id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer' }],
+        { steps: [lookup, whatIf] },
+      ),
+    )
+    renderScreen()
+
+    await ask('למה בקשה מספר 17 הופנתה לבדיקה?')
+
+    const answer = await lastAnswer()
+    const [question] = turns()
+    const heads = (turn: HTMLElement) =>
+      [...turn.querySelector('.turn__head')!.children].map((segment) => segment.textContent)
+    expect(heads(question!)).toEqual([PERSON])
+    expect(heads(answer)).toEqual(['Model', '2 tool calls'])
+    // a count leads the phrase, which the bidi law isolates left to right inside the Hebrew thread (section 03)
+    expect(answer.querySelector('.turn__head bdi')).toHaveAttribute('dir', 'ltr')
+    // the head stands between the mark and the body, so the mark keeps the reading-start side
+    expect(question!.children[1]).toHaveClass('turn__head')
+    expect(answer.children[1]).toHaveClass('turn__head')
+    expect(answer.children[2]).toHaveClass('turn__body')
+  })
+
+  it('names one tool call in the singular, and none at all when the answer made none', async () => {
+    serveSession()
+    serveAnswer(
+      answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }], {
+        steps: [lookup],
+      }),
+    )
+    renderScreen()
+
+    await ask(TERM_QUESTION)
+
+    const answer = await lastAnswer()
+    expect(answer.querySelector('.turn__head')).toHaveTextContent(/^Model1 tool call$/)
+    cleanup()
+
+    serveSession()
+    serveAnswer(answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    renderScreen()
+
+    await ask(TERM_QUESTION)
+
+    expect((await lastAnswer()).querySelector('.turn__head')).toHaveTextContent(/^Model$/)
   })
 
   it('writes a question as a Hebrew block and an answer as a document block, each number isolated', async () => {
@@ -454,6 +507,7 @@ describe('ChatScreen · the system speaks', () => {
     const answer = await lastAnswer()
     expect(answer.querySelector('.turn__who .actor--system')).not.toBeNull()
     expect(answer.querySelector('.turn__who .actor--model')).toBeNull()
+    expect(answer.querySelector('.turn__head')).toHaveTextContent(/^System$/)
     expect(answer.querySelector('p.answer')).toHaveClass('answer--fixed')
     expect(
       within(answer).getByText("No source · a fixed sentence, not the model's"),
@@ -649,9 +703,114 @@ describe('ChatScreen · before and around the conversation', () => {
     await user.click(await screen.findByRole('button', { name: SCRIPTED_QUESTIONS[1] }))
 
     expect(screen.getByLabelText('Question')).toHaveValue(SCRIPTED_QUESTIONS[1])
+    const group = screen.getByRole('group', { name: "The demo's questions" })
     for (const question of SCRIPTED_QUESTIONS) {
-      expect(screen.getByRole('button', { name: question })).toHaveClass('btn--quiet')
+      expect(within(group).getByRole('button', { name: question })).toHaveClass('btn--quiet')
     }
+    // numbered in the demo's order, the number for the eye alone
+    expect(
+      [...group.querySelectorAll('.starters__n')].map((number) => [
+        number.textContent,
+        number.getAttribute('aria-hidden'),
+      ]),
+    ).toEqual([
+      ['1', 'true'],
+      ['2', 'true'],
+      ['3', 'true'],
+    ])
+  })
+
+  // the spec, section 09 (v3.3): the opening names what the questions are about, in its own language, with the
+  // version's line under it; the counts are the committed fixtures', which the API serves (Document 6)
+  it("opens on the rule set's name, the published version with its paragraphs and rules, and the demo's questions", async () => {
+    serveSession()
+    renderScreen()
+
+    const opening = await screen.findByRole('region', { name: 'Before the first question' })
+
+    const name = within(opening).getByText('מדיניות אשראי צרכני')
+    expect(name).toHaveAttribute('lang', 'he')
+    expect(name).toHaveAttribute('dir', 'rtl')
+    await waitFor(() =>
+      expect(
+        [...opening.querySelector('.prov')!.children].map((segment) => segment.textContent),
+      ).toEqual([
+        'Published v1',
+        `${String(lendingParagraphs.length)} paragraphs`,
+        `${String(lendingRuleSet.rules.length)} rules`,
+      ]),
+    )
+    expect(opening.querySelector('.vstatus')).toHaveClass('vstatus--published')
+    expect(within(opening).getByRole('group', { name: "The demo's questions" })).toBeInTheDocument()
+    expect(opening.closest('[role="log"]')).toBeNull()
+  })
+
+  // the spec, section 09 (v3.3): the log scrolls under the foot, so the newest turn is brought into view when a question is
+  // asked and as its answer arrives
+  it('brings the newest turn into view when a question is asked and as its answer streams', async () => {
+    serveSession()
+    serveAnswer(answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    renderScreen()
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+
+    await ask(TERM_QUESTION)
+
+    const answer = await lastAnswer()
+    await waitFor(() => expect(answer.querySelector('p.answer')).toHaveTextContent('84 months.'))
+    expect(scrolled.mock.contexts).toContain(answer)
+    expect(
+      scrolled.mock.calls.every(
+        ([options]) => options === undefined || (options as { block?: string }).block === 'end',
+      ),
+    ).toBe(true)
+    scrolled.mockRestore()
+  })
+
+  it('takes the opening away once a question is asked, and the thread stands in its place', async () => {
+    serveSession()
+    serveAnswer(answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    renderScreen()
+    await screen.findByRole('region', { name: 'Before the first question' })
+
+    await ask(TERM_QUESTION)
+
+    await lastAnswer()
+    expect(
+      screen.queryByRole('region', { name: 'Before the first question' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: "The demo's questions" })).not.toBeInTheDocument()
+  })
+
+  // the spec, section 09 (v3.3): the composer is the sheet's foot, the question in a box with its keys and its count
+  it("keeps the composer at the sheet's foot, with the keys that ask and the count against the API's limit", async () => {
+    serveSession()
+    renderScreen()
+    const user = userEvent.setup()
+
+    const input = await screen.findByLabelText('Question')
+
+    const thread = input.closest('.thread')!
+    expect(thread.parentElement).toHaveClass('sheet--fill')
+    const foot = thread.lastElementChild!
+    expect(foot).toHaveClass('thread__foot')
+    const composer = foot.querySelector('.composer')!
+    expect(composer).toContainElement(input)
+    expect(within(composer as HTMLElement).getByRole('button', { name: 'Ask' })).toHaveClass(
+      'btn--primary',
+    )
+    expect(composer.querySelector('.composer__hint')).toHaveTextContent(
+      /^↵ asks · ⇧ ↵ breaks the line$/,
+    )
+    expect([...composer.querySelectorAll('.kbd')].map((key) => key.textContent)).toEqual([
+      '↵',
+      '⇧ ↵',
+    ])
+    expect(within(composer as HTMLElement).getByText('0 / 1,000')).toHaveClass('counter')
+    expect(input).toHaveAttribute('maxLength', '1000')
+
+    await user.type(input, 'מה הריבית?')
+
+    expect(within(composer as HTMLElement).getByText('10 / 1,000')).toHaveClass('counter')
   })
 
   it('offers nothing to ask when no version is published', async () => {
@@ -799,8 +958,26 @@ describe('ChatScreen.css', () => {
       ([selector]) => selector !== 'to',
     )
 
-    expect(thread).toHaveLength(14)
+    expect(thread).toHaveLength(35)
     expect(unported(stylesheet('features/chat/ChatScreen.css'), thread)).toEqual([])
     expect(stylesheet('features/chat/ChatScreen.css')).toContain('@keyframes blink')
+  })
+
+  // the spec (v3.3): the log scrolls under the foot, and the thread's column is centred at the measure it sets
+  it('scrolls the log on its own under the foot, the column centred, and the foot on paper', () => {
+    const css = stylesheet('features/chat/ChatScreen.css')
+
+    expect(rule(css, '.thread__scroll')).toMatchObject({ flex: '1', overflow: 'auto' })
+    expect(rule(css, '.thread__foot')).toMatchObject({
+      'margin-top': 'auto',
+      background: 'var(--paper)',
+    })
+    expect(rule(css, '.thread__log')).toMatchObject({
+      'max-width': '880px',
+      'margin-inline': 'auto',
+    })
+    expect(rule(css, '.composer:focus-within')['border-color']).toBe('var(--focus)')
+    // an English thread keeps its step lines at its own start edge (NFR-5)
+    expect(rule(css, ".thread[dir='ltr'] .steps")['justify-content']).toBe('flex-start')
   })
 })

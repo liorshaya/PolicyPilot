@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { useDemoStep } from '../demo/useDemoStep'
 import { Paragraph } from '../policy/Paragraph'
 import { publishedTarget } from '../../api/published'
-import { useBudget, useLastRun, usePolicy, useRulesets } from '../../api/queries'
-import type { RulesetSummary } from '../../api/types'
+import { useBudget, useLastRun, usePolicy, useRulesets, useVersion } from '../../api/queries'
+import type { RuleSetDocument, RulesetSummary } from '../../api/types'
 import {
   contentAttributes,
   directionOfText,
@@ -14,12 +14,15 @@ import {
 import { durationText, timeOf } from '../../shared/i18n/time'
 import { SplitView } from '../../shared/layout/SplitView'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
-import { Actor } from '../../shared/ui/Actor'
+import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
+import { Counter } from '../../shared/ui/Field'
+import { Kbd } from '../../shared/ui/Kbd'
 import { Note } from '../../shared/ui/Note'
+import { Provenance } from '../../shared/ui/Provenance'
 import { EmptyState, LoadingRows } from '../../shared/ui/States'
-import { DecisionTag } from '../../shared/ui/StatusTag'
+import { DecisionTag, VersionTag } from '../../shared/ui/StatusTag'
 import { DECISION_LABELS } from '../../shared/ui/decisionLabels'
 import { failureText } from './failures'
 import { markerLabel, placed, segments } from './markers'
@@ -43,6 +46,9 @@ const REFUSALS: Record<NonNullable<ChatToolCall['refused']>, string> = {
 /** A failure that the stream reports in place of the answer, where the thread shows it; the rest go under the composer. */
 const WITHHELD = 'ANSWER_WITHHELD'
 const BUDGET = 'BUDGET_EXHAUSTED'
+
+/** The length of a question the API takes (Document 5, Input limits), which the composer counts against. */
+const QUESTION_LIMIT = 1000
 
 /**
  * The assistant (Document 2, Flow 3; the Register spec, section 09, "The assistant: a paper trail, read right to left").
@@ -133,6 +139,23 @@ function Conversation({
   onDemoHandled?: () => void
 }) {
   const chat = useChat(target)
+  // the log follows the newest turn: a question asked, and its answer as it arrives, unless the reader has scrolled up
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
+  const seenRef = useRef(0)
+  useEffect(() => {
+    const scroller = scrollRef.current
+    const newest = logRef.current?.lastElementChild
+    if (scroller === null || !(newest instanceof HTMLElement)) {
+      return
+    }
+    const asked = chat.exchanges.length !== seenRef.current
+    seenRef.current = chat.exchanges.length
+    const following = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120
+    if (asked || following) {
+      newest.scrollIntoView({ block: 'end' })
+    }
+  }, [chat.exchanges])
   // this session's run on the version the answers are about, whose cases a cited case chip opens
   const run = useLastRun({ id: target.rulesetId, versionNo: target.versionNo })
   const budget = useBudget()
@@ -189,6 +212,7 @@ function Conversation({
         version={<span className="tabular">Version {target.versionNo}</span>}
       />
       <SplitView
+        fill
         sideOpen={shownParagraph !== undefined}
         sideLabel={shownParagraph ? `Paragraph ${String(shownParagraph.index)}` : undefined}
         side={
@@ -215,90 +239,185 @@ function Conversation({
           ) : undefined
         }
         main={
-          <div className="thread" dir={chat.language === 'he' ? 'rtl' : 'ltr'}>
-            {elsewhere ? (
-              <Note>
-                The rule set on the workspace has no published version yet; the questions are about
-                the seeded one.
-              </Note>
-            ) : null}
-            <div
-              className="thread__log"
-              role="log"
-              aria-label="Conversation"
-              aria-live="polite"
-              {...contentAttributes(chat.language)}
-            >
-              {chat.exchanges.map((exchange) => (
-                <Exchange
-                  key={exchange.id}
-                  exchange={exchange}
-                  language={chat.language}
-                  versionNo={target.versionNo}
-                  opens={opens}
-                />
-              ))}
-            </div>
-            {chat.exchanges.length === 0 && !chat.openFailure ? (
-              <div className="thread__starters" aria-label="The demo's questions" role="group">
-                {SCRIPTED_QUESTIONS.map((scripted) => (
-                  <Button key={scripted} variant="quiet" onClick={() => setQuestion(scripted)}>
-                    {scripted}
-                  </Button>
+          <section className="thread" dir={chat.language === 'he' ? 'rtl' : 'ltr'}>
+            <div className="thread__scroll" ref={scrollRef}>
+              {elsewhere ? (
+                <Note>
+                  The rule set on the workspace has no published version yet; the questions are
+                  about the seeded one.
+                </Note>
+              ) : null}
+              <div
+                ref={logRef}
+                className="thread__log"
+                role="log"
+                aria-label="Conversation"
+                aria-live="polite"
+                {...contentAttributes(chat.language)}
+              >
+                {chat.exchanges.map((exchange) => (
+                  <Exchange
+                    key={exchange.id}
+                    exchange={exchange}
+                    language={chat.language}
+                    versionNo={target.versionNo}
+                    opens={opens}
+                  />
                 ))}
               </div>
-            ) : null}
-            <form className="composer" onSubmit={submit}>
-              <textarea
-                className="textarea textarea--he"
-                dir="auto"
-                aria-label="Question"
-                placeholder={PLACEHOLDERS[chat.language]}
-                rows={2}
-                maxLength={1000}
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    submit(event)
-                  }
-                }}
-              />
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
+              {chat.exchanges.length === 0 && !chat.openFailure ? (
+                <Opening
+                  ruleset={ruleset}
+                  target={target}
+                  paragraphs={policy.data === undefined ? null : paragraphs.length}
+                  onChoose={setQuestion}
+                />
+              ) : null}
+            </div>
+            <div className="thread__foot">
+              <Composer
+                question={question}
+                language={chat.language}
                 busy={chat.streaming}
                 disabled={!chat.ready || chat.streaming || question.trim() === ''}
-              >
-                Ask
-              </Button>
-            </form>
-            {budget.data?.spent || spentNow ? (
-              <Note tone="warning" label="Budget">
-                {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
-              </Note>
-            ) : null}
-            {failure !== undefined &&
-            failure !== null &&
-            failure !== BUDGET &&
-            failure !== WITHHELD ? (
-              <Note tone="error">
-                {failureText(failure)}
-                {last?.status === 'failed' ? (
-                  <>
-                    {' '}
-                    <Button variant="link" onClick={chat.retry}>
-                      Try again
-                    </Button>
-                  </>
-                ) : null}
-              </Note>
-            ) : null}
-          </div>
+                onChange={setQuestion}
+                onSubmit={submit}
+              />
+              {budget.data?.spent || spentNow ? (
+                <Note tone="warning" label="Budget">
+                  {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
+                </Note>
+              ) : null}
+              {failure !== undefined &&
+              failure !== null &&
+              failure !== BUDGET &&
+              failure !== WITHHELD ? (
+                <Note tone="error">
+                  {failureText(failure)}
+                  {last?.status === 'failed' ? (
+                    <>
+                      {' '}
+                      <Button variant="link" onClick={chat.retry}>
+                        Try again
+                      </Button>
+                    </>
+                  ) : null}
+                </Note>
+              ) : null}
+            </div>
+          </section>
         }
       />
     </>
+  )
+}
+
+/**
+ * Before the first question (the spec, section 09, v3.3): what the questions are about, the rule set's name in its own
+ * language with the published version's line under it, and the demo's three questions as quiet buttons on ruled rows,
+ * numbered in the demo's order, each filling the composer. The counts are the API's: the policy's paragraphs and the
+ * version's rules, each left out until it has been read.
+ */
+function Opening({
+  ruleset,
+  target,
+  paragraphs,
+  onChoose,
+}: {
+  ruleset: RulesetSummary
+  target: ChatTarget
+  paragraphs: number | null
+  onChoose: (question: string) => void
+}) {
+  const version = useVersion({ id: target.rulesetId, versionNo: target.versionNo })
+  const rules = (version.data?.ruleSet as RuleSetDocument | undefined)?.rules.length
+  const named: ContentLanguage = directionOfText(ruleset.name) === 'rtl' ? 'he' : 'en'
+  return (
+    <section className="thread__opening" aria-label="Before the first question">
+      <p className="name" {...contentAttributes(named)}>
+        {ruleset.name}
+      </p>
+      <Provenance
+        segments={[
+          <VersionTag key="version" status="PUBLISHED" versionNo={target.versionNo} />,
+          ...(paragraphs === null ? [] : [`${String(paragraphs)} paragraphs`]),
+          ...(rules === undefined ? [] : [`${String(rules)} rules`]),
+        ]}
+      />
+      <div className="starters" role="group" aria-labelledby="starters-head">
+        <div className="starters__head" id="starters-head">
+          The demo&apos;s questions
+        </div>
+        {SCRIPTED_QUESTIONS.map((scripted, at) => (
+          <Button key={scripted} variant="quiet" onClick={() => onChoose(scripted)}>
+            <span className="starters__n" aria-hidden="true">
+              {at + 1}
+            </span>
+            <span {...contentAttributes('he')}>{scripted}</span>
+          </Button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The composer, the sheet's foot (the spec, section 09, v3.3): one box that holds the question, which grows with it to
+ * a few lines, the keys that ask it, the count against the API's limit and the one primary action of the screen.
+ * Enter asks; Shift+Enter breaks the line.
+ */
+function Composer({
+  question,
+  language,
+  busy,
+  disabled,
+  onChange,
+  onSubmit,
+}: {
+  question: string
+  language: ContentLanguage
+  busy: boolean
+  disabled: boolean
+  onChange: (question: string) => void
+  onSubmit: (event: FormEvent) => void
+}) {
+  const fieldRef = useRef<HTMLTextAreaElement>(null)
+  // the box grows with the question and shrinks back, up to the height the stylesheet caps it at
+  useLayoutEffect(() => {
+    const element = fieldRef.current
+    if (element !== null) {
+      element.style.height = 'auto'
+      element.style.height = `${String(element.scrollHeight)}px`
+    }
+  }, [question])
+  return (
+    <form className="composer" onSubmit={onSubmit}>
+      <textarea
+        ref={fieldRef}
+        className="textarea textarea--he"
+        dir="auto"
+        aria-label="Question"
+        placeholder={PLACEHOLDERS[language]}
+        rows={1}
+        maxLength={QUESTION_LIMIT}
+        value={question}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            onSubmit(event)
+          }
+        }}
+      />
+      <div className="composer__bar">
+        <span className="composer__hint">
+          <Kbd>↵</Kbd> asks · <Kbd>⇧ ↵</Kbd> breaks the line
+        </span>
+        <Counter value={question.length} max={QUESTION_LIMIT} />
+        <Button type="submit" variant="primary" busy={busy} disabled={disabled}>
+          Ask
+        </Button>
+      </div>
+    </form>
   )
 }
 
@@ -322,6 +441,9 @@ function Exchange({
         <span className="turn__who">
           <Actor kind="person" large title="The question" />
         </span>
+        <span className="turn__head">
+          <b>{PERSON}</b>
+        </span>
         <p className="turn__body" {...contentAttributes(asked)}>
           {isolated(exchange.question, asked)}
         </p>
@@ -330,6 +452,9 @@ function Exchange({
         <div className="turn turn--a">
           <span className="turn__who">
             <Actor kind="system" large title="The system" />
+          </span>
+          <span className="turn__head">
+            <b>System</b>
           </span>
           <div className="turn__body">
             <div className="note note--warning">
@@ -359,6 +484,7 @@ function Answer({
   const streaming = exchange.status === 'streaming'
   const citations = exchange.citations
   const classes = ['answer', fixed ? 'answer--fixed' : '', streaming ? 'streaming' : '']
+  const calls = exchange.steps.length
   return (
     <div className="turn turn--a">
       <span className="turn__who">
@@ -367,6 +493,15 @@ function Answer({
         ) : (
           <Actor kind="model" large title="The model's answer" />
         )}
+      </span>
+      <span className="turn__head">
+        <b>{fixed ? 'System' : 'Model'}</b>
+        {!fixed && calls > 0 ? (
+          // a count leads the phrase, so the phrase is isolated left to right inside the Hebrew thread
+          <span>
+            <bdi dir="ltr">{`${String(calls)} tool call${calls === 1 ? '' : 's'}`}</bdi>
+          </span>
+        ) : null}
       </span>
       <div className="turn__body">
         {exchange.steps.length > 0 ? (

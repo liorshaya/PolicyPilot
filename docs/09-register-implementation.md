@@ -2,7 +2,7 @@
 
 2026-09-26 · Lior Shaya · Document 9 of the PolicyPilot set
 
-Document 9 turns the Register design language (`docs/design/register.html`, v3.2) into a phased plan for `frontend/`. It follows the rules of Documents 6 and 7: the tests of a phase are listed before its code, every phase ends at a gate checked on the cloud site, and nothing in it changes a route, a validator code, a fixture or a line of the backend. The spec is the source of truth for every visual value and every word on a screen; this document is the source of truth for scope, order, files and tests.
+Document 9 turns the Register design language (`docs/design/register.html`, v3.2; its v3.3 of 2026-09-29 revised the assistant's thread and the rail's lockup and type after the phases, the spec first) into a phased plan for `frontend/`. It follows the rules of Documents 6 and 7: the tests of a phase are listed before its code, every phase ends at a gate checked on the cloud site, and nothing in it changes a route, a validator code, a fixture or a line of the backend. The spec is the source of truth for every visual value and every word on a screen; this document is the source of truth for scope, order, files and tests.
 
 ## How to read this document
 

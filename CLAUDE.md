@@ -154,6 +154,9 @@ that ticks the last box of its cut (`scripts/ci/check_readme_limitations.py`).
   lineup, the strong model's output at 12 USD per million, that is 4.80 USD, under the owner's 5 USD a day.
 - `backend/pom.xml` overrides `tomcat.version` (11.0.26): Spring Boot 4.0.8 manages Tomcat 11.0.24, which has
   three critical CVEs. Remove the override once a Spring Boot 4.0.x release manages 11.0.25 or later.
+- `backend/pom.xml` overrides `jackson-2-bom.version` (2.21.6) and `jackson-bom.version` (3.1.6): Spring Boot 4.0.8
+  manages jackson-databind 2.21.5 and 3.1.5, which carry CVE-2026-68497 (high, 2026-09-29). Remove both once a Spring
+  Boot 4.0.x release manages the fixed versions.
 
 ## Register: the design language (Document 9)
 

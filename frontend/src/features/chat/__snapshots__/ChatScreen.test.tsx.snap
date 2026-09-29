@@ -2,7 +2,9 @@
 
 exports[`ChatScreen in both directions (NFR-5) > LTR: an English thread stays left to right (snapshot) 1`] = `
 "
+ltr  en          Analyst
 ltr  en          What is the minimum age for a personal loan?
+ltr  en          Model
 ltr  en          The minimum age is 21.
 ltr  en          ¶
 ltr  en          1
@@ -14,9 +16,12 @@ ltr  en          1
 
 exports[`ChatScreen in both directions (NFR-5) > RTL: a Hebrew thread reads right to left, its steps, chips and numbers left to right (snapshot) 1`] = `
 "
+rtl  he          Analyst
 rtl  he          למה בקשה מספר
 ltr  he          17
 rtl  he          הופנתה לבדיקה?
+rtl  he          Model
+ltr  he          1 tool call
 rtl  he          case 17
 rtl  he          ran on
 rtl  he          v
