@@ -42,15 +42,123 @@
   color: var(--ink-2);
   unicode-bidi: isolate;
 }
-
-/* The product's own. The request and the decision stand as the spec's frames space them: the field, then the reason
-   and the buttons at the end of their row. */
-.change,
-.change__form {
-  display: grid;
-  gap: 12px;
+.change {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
-.change__actions {
+.change__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.walk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+}
+.walk__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  text-align: start;
+}
+.walk__step + .walk__step {
+  border-inline-start: 1px solid var(--hairline);
+}
+.walk__n {
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.walk__step .actor {
+  font-size: inherit;
+  color: inherit;
+}
+.walk__step--done {
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.walk__step--done:hover {
+  background: var(--well);
+  color: var(--ink);
+}
+.walk__step--now {
+  color: var(--ink);
+  font-weight: 500;
+  background: var(--accent-wash);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.walk__meta {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.request {
+  display: grid;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+.request:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.request__label {
+  padding: 10px 14px 0;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.request .textarea {
+  border: 0;
+  background: transparent;
+  padding: 6px 14px 4px;
+  resize: none;
+}
+.request .textarea:focus {
+  box-shadow: none;
+}
+.request__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 8px 8px 14px;
+}
+.request__bar .field__hint {
+  flex: 1 1 280px;
+}
+.request__bar .counter {
+  margin-inline-start: auto;
+}
+.change__foot {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--hairline);
+  background: var(--paper);
+}
+.decision {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 8px 16px;
+  align-items: end;
+}
+.decision__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -58,12 +166,37 @@
   gap: 8px;
 }
 
-/* The request and the note are as tall as the spec's frames draw them, shorter than a field's default. */
+/* The product's own. The request's part stands as the spec's frame spaces it: the box, the demo's request, the
+   progress, a refusal; the request and the note are as tall as the spec's frames draw them. */
+.change__entry {
+  display: grid;
+  gap: 12px;
+}
 .change__request {
   min-height: 60px;
 }
 .change__note {
   min-height: 52px;
+}
+
+/* The demo's request, offered under the box as the assistant offers its questions: a kicker, then the request as a
+   quiet button in its own language. */
+.change__starter {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.change__starter .btn {
+  font-family: var(--font-he);
+  font-weight: 400;
+}
+
+/* The walk's step that is a button keeps the step's face, and the mark inside the strip keeps its size. */
+button.walk__step {
+  font: inherit;
+  font-size: var(--text-xs);
 }
 
 /* The rationale of an English policy reads left to right in the interface's face; the spec draws the Hebrew one. */
@@ -83,7 +216,7 @@
   padding: 12px 16px 16px;
 }
 
-/* The seal and the product's sentence, side by side as the spec's last frame draws them. */
+/* The seal and the product's sentence, side by side as the spec's last frame draws them, in the foot. */
 .change__decided {
   display: flex;
   flex-wrap: wrap;
@@ -93,6 +226,11 @@
 .change__sentence {
   font-size: var(--text-sm);
   color: var(--ink-2);
+}
+
+/* A refused decision, under the note and the buttons, spans the foot. */
+.decision > .refusal {
+  grid-column: 1 / -1;
 }
 
 /* What the model proposed, once the refusal's link opens it: its patches by operation, in the refusal's small type. */
@@ -107,4 +245,16 @@
   padding-inline-start: 20px;
   font-size: var(--text-xs);
   color: var(--ink-2);
+}
+
+/* Below 720px the page scrolls as one (the spec, section 10; SplitView.css): the parts do not scroll on their own, and
+   the decision's note and buttons stack. */
+@media (max-width: 720px) {
+  .change__scroll {
+    overflow: visible;
+    min-height: 0;
+  }
+  .decision {
+    grid-template-columns: 1fr;
+  }
 }

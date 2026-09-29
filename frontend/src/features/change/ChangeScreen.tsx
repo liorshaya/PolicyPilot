@@ -1,4 +1,4 @@
-import { Fragment, useId, useState, type FormEvent } from 'react'
+import { Fragment, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { publishedTarget } from '../../api/published'
 import { useRulesets, useStats, useVersion } from '../../api/queries'
 import type { ChangeDecision, RuleSetDocument } from '../../api/types'
@@ -10,7 +10,7 @@ import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
-import { Field } from '../../shared/ui/Field'
+import { Counter } from '../../shared/ui/Field'
 import { Note } from '../../shared/ui/Note'
 import { Refusal } from '../../shared/ui/Refusal'
 import { findingRows } from '../../shared/ui/refusalRows'
@@ -144,6 +144,19 @@ export function ChangeScreen({
     })
   }
 
+  const decided = state.status === 'decided' ? state.decision : null
+  // the parts of the sheet a step of the walk brings into view
+  const requestRef = useRef<HTMLDivElement>(null)
+  const proposalRef = useRef<HTMLDivElement>(null)
+  const regressionRef = useRef<HTMLDivElement>(null)
+  const decisionRef = useRef<HTMLDivElement>(null)
+  const partOf: Record<StepKey, RefObject<HTMLDivElement | null>> = {
+    request: requestRef,
+    proposal: proposalRef,
+    regression: regressionRef,
+    decision: decisionRef,
+  }
+
   return (
     <>
       <WorkspaceHeader
@@ -170,6 +183,7 @@ export function ChangeScreen({
       <SplitView
         wide
         sideSheet
+        fill
         sideOpen={traced !== null && proposal !== null}
         sideLabel="Both traces"
         side={
@@ -185,132 +199,288 @@ export function ChangeScreen({
           ) : null
         }
         main={
-          <>
-            <Section title="Change request">
-              <div className="change">
-                {target?.elsewhere ? (
-                  <Note>
-                    The rule set on the workspace has no published version yet; the change is
-                    proposed on the seeded one.
-                  </Note>
-                ) : null}
-                <form className="change__form" onSubmit={submit}>
-                  <Field
-                    label="What should change"
-                    htmlFor="change-request"
-                    hint="In the policy's own terms. The model proposes; the engine decides this sandbox's cases again; a person approves."
-                    counter={{ value: text.length, max: TEXT_LIMIT }}
-                  >
-                    <textarea
-                      id="change-request"
-                      className="textarea textarea--he change__request"
-                      dir="auto"
-                      rows={2}
-                      maxLength={TEXT_LIMIT}
-                      aria-describedby="change-request-hint"
-                      value={text}
-                      onChange={(event) => setText(event.target.value)}
-                    />
-                  </Field>
-                  <div className="change__actions">
-                    {base ? (
-                      <span className="reason">
-                        On <span className="mono">Published v{base.versionNo}</span>
-                      </span>
+          <section className="change">
+            <Walk
+              state={state}
+              proposedOn={proposedOn}
+              decided={decided}
+              onGo={(step) => partOf[step].current?.scrollIntoView({ block: 'start' })}
+            />
+            <div className="change__scroll">
+              <div className="change__part" ref={requestRef}>
+                <Section title="Change request">
+                  <div className="change__entry">
+                    {target?.elsewhere ? (
+                      <Note>
+                        The rule set on the workspace has no published version yet; the change is
+                        proposed on the seeded one.
+                      </Note>
                     ) : null}
-                    {/* one primary per screen (sections 08 and 12): once a proposal stands, its approval is it */}
-                    <Button
-                      variant={proposal === null ? 'primary' : 'secondary'}
-                      type="submit"
-                      busy={running}
-                      disabled={base === null || version.data === undefined || text.trim() === ''}
-                    >
-                      Propose the change
-                    </Button>
-                  </div>
-                </form>
-                {started(state) ? (
-                  <Progress state={state} decisions={stats.data?.decisions} />
-                ) : null}
-                {state.status === 'failed' ? <Refused failure={state.failure} /> : null}
-              </div>
-            </Section>
-            {proposal && proposedOn ? (
-              <>
-                <ProposalSection
-                  proposal={proposal}
-                  proposedOn={proposedOn}
-                  language={language}
-                  document={document}
-                />
-                <Section
-                  title="Regression"
-                  actions={<Actor kind="engine">{engineLine(proposal, proposedOn)}</Actor>}
-                >
-                  <RegressionReport
-                    regression={proposal.regression}
-                    baseVersionNo={proposedOn.versionNo}
-                    onBothTraces={setTraced}
-                  />
-                </Section>
-                <Section title="Decision">
-                  {state.status === 'decided' ? (
-                    <Decided
-                      decision={state.decision}
-                      proposedOn={proposedOn}
-                      onOpenRules={onOpenRules}
-                      onOpenAudit={onOpenAudit}
-                    />
-                  ) : (
-                    <form className="change__form" onSubmit={(event) => event.preventDefault()}>
-                      <Field label="Note for the audit log" htmlFor="change-note">
-                        <textarea
-                          id="change-note"
-                          className="textarea textarea--he change__note"
-                          dir="auto"
-                          rows={2}
-                          maxLength={TEXT_LIMIT}
-                          value={note}
-                          onChange={(event) => setNote(event.target.value)}
-                        />
-                      </Field>
-                      <div className="change__actions">
-                        <span className="reason">{publishesText(proposedOn)}</span>
+                    <form className="request" onSubmit={submit}>
+                      <label className="request__label" htmlFor="change-request">
+                        What should change
+                      </label>
+                      <textarea
+                        id="change-request"
+                        className="textarea textarea--he change__request"
+                        dir="auto"
+                        rows={2}
+                        maxLength={TEXT_LIMIT}
+                        aria-describedby="change-request-hint"
+                        value={text}
+                        onChange={(event) => setText(event.target.value)}
+                      />
+                      <div className="request__bar">
+                        <span className="field__hint" id="change-request-hint">
+                          In the policy&apos;s own terms. The model proposes; the engine decides
+                          this sandbox&apos;s cases again; a person approves.
+                        </span>
+                        <Counter value={text.length} max={TEXT_LIMIT} />
+                        {base ? (
+                          <span className="reason">
+                            On <span className="mono">Published v{base.versionNo}</span>
+                          </span>
+                        ) : null}
+                        {/* one primary per screen (sections 08 and 12): once a proposal stands, its approval is it */}
                         <Button
-                          variant="danger"
-                          busy={change.deciding && verdict === 'reject'}
-                          disabled={change.deciding}
-                          onClick={() => decide('reject')}
+                          variant={proposal === null ? 'primary' : 'secondary'}
+                          type="submit"
+                          busy={running}
+                          disabled={
+                            base === null || version.data === undefined || text.trim() === ''
+                          }
                         >
-                          Reject
-                        </Button>
-                        <Button
-                          variant="primary"
-                          busy={change.deciding && verdict === 'approve'}
-                          disabled={change.deciding}
-                          onClick={() => decide('approve')}
-                        >
-                          {`Approve and publish v${String(nextVersion(proposedOn))}`}
+                          Propose the change
                         </Button>
                       </div>
-                      {change.decisionError ? (
-                        <Refusal
-                          code={change.decisionError.code}
-                          title={`The ${verdict === 'approve' ? 'approval' : 'rejection'} was refused.`}
-                          rows={[]}
-                          explanation={decisionFailureText(change.decisionError.code)}
-                        />
-                      ) : null}
                     </form>
-                  )}
+                    {state.status === 'idle' ? (
+                      <div className="change__starter">
+                        <span>The demo&apos;s request</span>
+                        <Button variant="quiet" onClick={() => setText(SCRIPTED_CHANGE_REQUEST)}>
+                          <span {...contentAttributes('he')}>{SCRIPTED_CHANGE_REQUEST}</span>
+                        </Button>
+                      </div>
+                    ) : null}
+                    {started(state) ? (
+                      <Progress state={state} decisions={stats.data?.decisions} />
+                    ) : null}
+                    {state.status === 'failed' ? <Refused failure={state.failure} /> : null}
+                  </div>
                 </Section>
-              </>
+              </div>
+              {proposal && proposedOn ? (
+                <>
+                  <div className="change__part" ref={proposalRef}>
+                    <ProposalSection
+                      proposal={proposal}
+                      proposedOn={proposedOn}
+                      language={language}
+                      document={document}
+                    />
+                  </div>
+                  <div className="change__part" ref={regressionRef}>
+                    <Section
+                      title="Regression"
+                      actions={<Actor kind="engine">{engineLine(proposal, proposedOn)}</Actor>}
+                    >
+                      <RegressionReport
+                        regression={proposal.regression}
+                        baseVersionNo={proposedOn.versionNo}
+                        onBothTraces={setTraced}
+                      />
+                    </Section>
+                  </div>
+                </>
+              ) : null}
+            </div>
+            {proposal && proposedOn ? (
+              <div className="change__foot" role="region" aria-label="Decision" ref={decisionRef}>
+                {decided ? (
+                  <Decided
+                    decision={decided}
+                    proposedOn={proposedOn}
+                    onOpenRules={onOpenRules}
+                    onOpenAudit={onOpenAudit}
+                  />
+                ) : (
+                  <form className="decision" onSubmit={(event) => event.preventDefault()}>
+                    <div className="field">
+                      <label className="field__label" htmlFor="change-note">
+                        Note for the audit log
+                      </label>
+                      <textarea
+                        id="change-note"
+                        className="textarea textarea--he change__note"
+                        dir="auto"
+                        rows={1}
+                        maxLength={TEXT_LIMIT}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                      />
+                    </div>
+                    <div className="decision__actions">
+                      <span className="reason">{publishesText(proposedOn)}</span>
+                      <Button
+                        variant="danger"
+                        busy={change.deciding && verdict === 'reject'}
+                        disabled={change.deciding}
+                        onClick={() => decide('reject')}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        variant="primary"
+                        busy={change.deciding && verdict === 'approve'}
+                        disabled={change.deciding}
+                        onClick={() => decide('approve')}
+                      >
+                        {`Approve and publish v${String(nextVersion(proposedOn))}`}
+                      </Button>
+                    </div>
+                    {change.decisionError ? (
+                      <Refusal
+                        code={change.decisionError.code}
+                        title={`The ${verdict === 'approve' ? 'approval' : 'rejection'} was refused.`}
+                        rows={[]}
+                        explanation={decisionFailureText(change.decisionError.code)}
+                      />
+                    ) : null}
+                  </form>
+                )}
+              </div>
             ) : null}
-          </>
+          </section>
         }
       />
     </>
   )
+}
+
+/** The four steps of a change and who takes each (the spec, section 09, v3.4). */
+const STEPS = [
+  { key: 'request', label: 'Request', actor: 'person' },
+  { key: 'proposal', label: 'Proposal', actor: 'model' },
+  { key: 'regression', label: 'Regression', actor: 'engine' },
+  { key: 'decision', label: 'Decision', actor: 'person' },
+] as const
+
+type StepKey = (typeof STEPS)[number]['key']
+
+/** Where a step stands: taken, the one the screen is at, or still to come. */
+interface StepState {
+  state: 'done' | 'now' | 'pending'
+  /** What the step settled, in the mono: "Published v1", "2 patches", "12 flipped of 200", "Approved · v2". */
+  meta: string | null
+}
+
+/**
+ * The walk (the spec, section 09, v3.4): the four steps at the top of the sheet, each with the mark and the word of who
+ * takes it, the current one on the accent wash, a step taken a button that brings its part into view with what it
+ * settled beside it, a step to come neither.
+ */
+function Walk({
+  state,
+  proposedOn,
+  decided,
+  onGo,
+}: {
+  state: ChangeState
+  proposedOn: ProposedOn | null
+  decided: ChangeDecision | null
+  /** Brings a step's part into view. */
+  onGo: (step: StepKey) => void
+}) {
+  const steps = stepsOf(state, proposedOn, decided)
+  return (
+    <nav className="walk" aria-label="The change's walk">
+      {STEPS.map((step, at) => {
+        const { state: standing, meta } = steps[step.key]
+        // the spaces are for the step's name, which a screen reader says; a flex row draws none of them
+        const inside = (
+          <>
+            <span className="walk__n">{at + 1}</span> <Actor kind={step.actor}>{step.label}</Actor>
+            {meta === null ? null : (
+              <>
+                {' '}
+                <span className="walk__meta">{meta}</span>
+              </>
+            )}
+          </>
+        )
+        if (standing === 'done') {
+          return (
+            <button
+              key={step.key}
+              type="button"
+              className="walk__step walk__step--done"
+              onClick={() => onGo(step.key)}
+            >
+              {inside}
+            </button>
+          )
+        }
+        return (
+          <span
+            key={step.key}
+            className={standing === 'now' ? 'walk__step walk__step--now' : 'walk__step'}
+            aria-current={standing === 'now' ? 'step' : undefined}
+          >
+            {inside}
+          </span>
+        )
+      })}
+    </nav>
+  )
+}
+
+/** Each step's standing and what it settled, from the change's state. */
+function stepsOf(
+  state: ChangeState,
+  proposedOn: ProposedOn | null,
+  decided: ChangeDecision | null,
+): Record<StepKey, StepState> {
+  const proposal = state.status === 'proposed' || state.status === 'decided' ? state.proposal : null
+  if (proposal === null || proposedOn === null) {
+    const running = state.status === 'running' ? state.stage : null
+    return {
+      request: { state: 'now', meta: null },
+      proposal: {
+        state: running === null ? 'pending' : 'now',
+        meta:
+          running === null
+            ? state.status === 'failed'
+              ? 'refused'
+              : null
+            : `stage ${String(CHANGE_STAGES.indexOf(running) + 1)} of ${String(CHANGE_STAGES.length)}`,
+      },
+      regression: { state: 'pending', meta: null },
+      decision: { state: 'pending', meta: null },
+    }
+  }
+  const { decisions, flips } = proposal.regression
+  const patches = proposal.patches.length
+  return {
+    request: { state: 'done', meta: `Published v${String(proposedOn.versionNo)}` },
+    proposal: { state: 'done', meta: `${String(patches)} ${patches === 1 ? 'patch' : 'patches'}` },
+    regression: {
+      state: 'done',
+      meta:
+        decisions === 0
+          ? 'no case to decide again'
+          : `${String(flips.length)} flipped of ${COUNT.format(decisions)}`,
+    },
+    decision:
+      decided === null
+        ? { state: 'now', meta: 'Approve or reject' }
+        : {
+            state: 'done',
+            meta:
+              decided.status === 'APPROVED'
+                ? `Approved · v${String(decided.result?.versionNo ?? nextVersion(proposedOn))}`
+                : 'Rejected',
+          },
+  }
 }
 
 /**

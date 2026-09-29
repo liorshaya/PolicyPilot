@@ -100,6 +100,128 @@ function segmentsOf(line: Element): string[] {
   return [...line.children].map((segment) => segment.textContent ?? '')
 }
 
+/**
+ * The walk (the spec, section 09, v3.4): the four steps at the top of the sheet, Request, Proposal, Regression and
+ * Decision, each with who takes it, the current one marked, a step taken opening its section; the request as one box
+ * with the demo's request offered under it; the decision as the sheet's foot once a proposal stands.
+ */
+describe('ChangeScreen, the walk', () => {
+  /** The walk's steps as [text, who takes it, current], in order. */
+  function steps(): [string, string, boolean][] {
+    const walk = screen.getByRole('navigation', { name: "The change's walk" })
+    return [...walk.querySelectorAll<HTMLElement>('.walk__step')].map((step) => [
+      step.textContent.replace(/\s+/g, ' ').trim(),
+      step.querySelector('.actor')!.className.replace('actor ', ''),
+      step.getAttribute('aria-current') === 'step',
+    ])
+  }
+
+  it('walks the change in four steps, each with who takes it, the current one marked and the ones to come no buttons yet', async () => {
+    renderScreen()
+    await screen.findByLabelText('What should change')
+
+    expect(steps()).toEqual([
+      ['1 Request', 'actor--person', true],
+      ['2 Proposal', 'actor--model', false],
+      ['3 Regression', 'actor--engine', false],
+      ['4 Decision', 'actor--person', false],
+    ])
+    const walk = screen.getByRole('navigation', { name: "The change's walk" })
+    expect(within(walk).queryAllByRole('button')).toHaveLength(0)
+
+    await proposalShown()
+
+    expect(steps()).toEqual([
+      ['1 Request Published v1', 'actor--person', false],
+      ['2 Proposal 2 patches', 'actor--model', false],
+      ['3 Regression 12 flipped of 200', 'actor--engine', false],
+      ['4 Decision Approve or reject', 'actor--person', true],
+    ])
+    expect(
+      within(walk)
+        .getAllByRole('button')
+        .map((step) => step.textContent),
+    ).toHaveLength(3)
+  })
+
+  it('names the decision on its step once it is taken: the version approved, or the rejection', async () => {
+    renderScreen()
+    const user = await proposalShown()
+
+    await user.click(screen.getByRole('button', { name: 'Approve and publish v2' }))
+
+    await screen.findByText(/^Approved\. Version 2 is published/)
+    expect(steps()[3]).toEqual(['4 Decision Approved · v2', 'actor--person', false])
+  })
+
+  it("brings a step's section into view from the walk", async () => {
+    renderScreen()
+    const user = await proposalShown()
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView')
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: "The change's walk" })).getByRole('button', {
+        name: /^2 Proposal/,
+      }),
+    )
+
+    const part = screen.getByRole('region', { name: 'Proposal' }).closest('.change__part')
+    expect(scrolled.mock.contexts).toContain(part)
+    scrolled.mockRestore()
+  })
+
+  it("offers the demo's request as a quiet row that fills the field, until a proposal stands", async () => {
+    renderScreen()
+    const user = userEvent.setup()
+    await screen.findByLabelText('What should change')
+
+    const starter = screen.getByRole('button', { name: TEXT })
+    expect(starter).toHaveClass('btn--quiet')
+    expect(starter.closest('.change__starter')).toHaveTextContent("The demo's request")
+    await user.click(starter)
+
+    expect(screen.getByLabelText('What should change')).toHaveValue(TEXT)
+    await proposalShown()
+    expect(screen.queryByRole('button', { name: TEXT })).not.toBeInTheDocument()
+  })
+
+  it('keeps the request in one box, the hint, the count and the base version in its bar before the primary', async () => {
+    renderScreen()
+    const field = await screen.findByLabelText('What should change')
+    await screen.findByText('Published v1')
+
+    const box = field.closest('.request')!
+    expect(box.firstElementChild).toHaveClass('request__label')
+    const bar = box.querySelector('.request__bar')!
+    expect([...bar.children].map((child) => child.className)).toEqual([
+      'field__hint',
+      'counter',
+      'reason',
+      'btn btn--primary',
+    ])
+  })
+
+  it("keeps the decision at the sheet's foot once a proposal stands, the note and the two buttons in it", async () => {
+    renderScreen()
+    await screen.findByLabelText('What should change')
+    expect(document.querySelector('.change__foot')).toBeNull()
+
+    await proposalShown()
+
+    const sheet = document.querySelector('.sheet--fill > .change')!
+    const foot = sheet.lastElementChild!
+    expect(foot).toHaveClass('change__foot')
+    expect(foot).toContainElement(screen.getByLabelText('Note for the audit log'))
+    expect(foot).toContainElement(screen.getByRole('button', { name: 'Reject' }))
+    expect(foot).toContainElement(screen.getByRole('button', { name: 'Approve and publish v2' }))
+    // the proposal and the regression scroll under the walk, above the foot
+    expect(sheet.firstElementChild).toHaveClass('walk')
+    expect(sheet.querySelector('.change__scroll')).toContainElement(
+      screen.getByRole('region', { name: 'Regression' }),
+    )
+  })
+})
+
 describe('ChangeScreen, the request', () => {
   it('proposes on the latest published version of the rule set, falling back to the seeded one', async () => {
     const sent: string[] = []
@@ -674,7 +796,17 @@ describe('ChangeScreen.css', () => {
   it("carries every rule of the spec's change request, with the spec's declarations", () => {
     const change = specRules('.candidates {', '/* Diff, unified')
 
-    expect(change).toHaveLength(6)
+    expect(change).toHaveLength(28)
     expect(unported(css, change)).toEqual([])
+  })
+
+  // the spec (v3.4): the sheet is a column, the walk over the scrolling parts and the decision at the foot
+  it('scrolls the parts under the walk and keeps the foot on paper', () => {
+    expect(rule(css, '.change__scroll')).toMatchObject({ flex: '1', overflow: 'auto' })
+    expect(rule(css, '.change__foot')).toMatchObject({
+      'margin-top': 'auto',
+      background: 'var(--paper)',
+    })
+    expect(rule(css, '.request:focus-within')['border-color']).toBe('var(--focus)')
   })
 })

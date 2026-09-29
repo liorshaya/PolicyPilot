@@ -672,6 +672,32 @@ td.t-prio { font-family: var(--font-mono); }
 .patch__head { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
 .patch__op { font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 500; color: var(--ink-2); border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; }
 .patch__rationale { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; }
+/* The sheet is a column: the walk over the parts that scroll, the decision at the foot (v3.4). */
+.change { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.change__scroll { flex: 1; min-height: 0; overflow: auto; }
+/* The walk: the four steps of a change, each with who takes it; the current one marked, a step taken opens its part. */
+.walk { display: flex; flex-wrap: wrap; align-items: stretch; padding: 0 8px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
+.walk__step { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink-3); font-size: var(--text-xs); text-align: start; }
+.walk__step + .walk__step { border-inline-start: 1px solid var(--hairline); }
+.walk__n { font-family: var(--font-mono); color: var(--ink-3); }
+.walk__step .actor { font-size: inherit; color: inherit; }
+.walk__step--done { color: var(--ink-2); cursor: pointer; }
+.walk__step--done:hover { background: var(--well); color: var(--ink); }
+.walk__step--now { color: var(--ink); font-weight: 500; background: var(--accent-wash); box-shadow: inset 0 -2px 0 var(--accent); }
+.walk__meta { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); }
+/* The request, one box: its label, the field, then the hint, the count, the base version and the primary in its bar. */
+.request { display: grid; background: var(--sheet); border: 1px solid var(--border); border-radius: var(--r-3); transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+.request:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--focus-ring); }
+.request__label { padding: 10px 14px 0; font-size: var(--text-xs); font-weight: 500; color: var(--ink-2); }
+.request .textarea { border: 0; background: transparent; padding: 6px 14px 4px; resize: none; }
+.request .textarea:focus { box-shadow: none; }
+.request__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 8px 8px 14px; }
+.request__bar .field__hint { flex: 1 1 280px; }
+.request__bar .counter { margin-inline-start: auto; }
+/* The decision, the sheet's foot: the note for the audit log, what approving does, Reject and the primary; the seal once decided. */
+.change__foot { display: grid; gap: 10px; margin-top: auto; padding: 12px 16px 14px; border-top: 1px solid var(--hairline); background: var(--paper); }
+.decision { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 8px 16px; align-items: end; }
+.decision__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
 /* Diff, unified: one row per changed cell */
 .udiff { border: 1px solid var(--hairline); border-radius: var(--r-3); overflow: hidden; font-size: var(--text-sm); }
 .udiff__row { display: grid; grid-template-columns: 90px 150px 1fr 20px 1fr; gap: 0 10px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--hairline); }
@@ -909,7 +935,7 @@ td.t-prio { font-family: var(--font-mono); }
   <header class="spec-top">
     <div class="spec-top__brand">
       <svg style="color: var(--ink); --brand-mark: var(--accent)"><use href="#pp-logo"/></svg>
-      <span>Register · design language · v3.3 · 2026-09-29</span>
+      <span>Register · design language · v3.4 · 2026-09-29</span>
     </div>
     <nav class="spec-top__nav" aria-label="Sections">
       <a href="#concept">Concept</a>
@@ -1963,18 +1989,23 @@ td.t-prio { font-family: var(--font-mono); }
     </ul>
 
     <h3>The change request: entry, proposal, diff, regression, decision</h3>
-    <p class="spec-p">A change is proposed by the model (dashed), measured by the engine (solid), approved by a person (sealed). The screen walks that order: the request, the four stages with the rules considered, the proposal as patches with the model's rationale, the diff as one row per changed cell, the regression led by the count that matters, and the decision with its note for the audit log.</p>
+    <p class="spec-p">A change is proposed by the model (dashed), measured by the engine (solid), approved by a person (sealed). The screen walks that order, and says so: a walk of four steps at the top of the sheet, Request, Proposal, Regression and Decision, each with the mark of who takes it, the current one on the accent wash, a step taken a button that brings its part into view. Under it: the request as one box with the demo's request offered beneath it, the four stages with the rules considered, the proposal as patches with the model's rationale, the diff as one row per changed cell, the regression led by the count that matters; and, once a proposal stands, the decision as the sheet's foot on paper, in view while the proposal and the regression scroll above it, with its note for the audit log.</p>
     <div class="spec-cols" style="grid-template-columns: 1fr 1fr">
       <div style="display: grid; gap: 16px; align-content: start">
         <div class="spec-frame spec-frame--flush">
+          <nav class="walk" aria-label="The change's walk">
+            <button type="button" class="walk__step walk__step--done"><span class="walk__n">1</span><span class="actor actor--person"><span class="actor__mark"></span>Request</span><span class="walk__meta">Published v1</span></button>
+            <span class="walk__step walk__step--now" aria-current="step"><span class="walk__n">2</span><span class="actor actor--model"><span class="actor__mark"></span>Proposal</span><span class="walk__meta">stage 4 of 4</span></span>
+            <span class="walk__step"><span class="walk__n">3</span><span class="actor actor--engine"><span class="actor__mark"></span>Regression</span></span>
+            <span class="walk__step"><span class="walk__n">4</span><span class="actor actor--person"><span class="actor__mark"></span>Decision</span></span>
+          </nav>
           <div class="sec"><div class="sec__title">Change request</div></div>
           <div class="sheet__body" style="display: grid; gap: 12px">
-            <div class="field">
-              <label class="field__label" for="cr-text">What should change</label>
+            <div class="request">
+              <label class="request__label" for="cr-text">What should change</label>
               <textarea class="textarea textarea--he" id="cr-text" dir="auto" style="min-height: 60px">העלה את ההכנסה החודשית המינימלית ל-9,000</textarea>
-              <div style="display: flex; justify-content: space-between"><span class="field__hint">In the policy's own terms. The model proposes; the engine decides this sandbox's cases again; a person approves.</span><span class="counter">41 / 1,000</span></div>
+              <div class="request__bar"><span class="field__hint">In the policy's own terms. The model proposes; the engine decides this sandbox's cases again; a person approves.</span><span class="counter">41 / 1,000</span><span class="reason">On <span class="mono">Published v1</span></span><button class="btn btn--primary">Propose the change</button></div>
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center"><span class="reason">On <span class="mono">Published v1</span></span><button class="btn btn--primary">Propose the change</button></div>
             <div class="progress">
               <div class="progress__step progress__step--done"><span class="progress__mark"></span>Finding the rules the request touches<span class="progress__meta">0.8 s</span></div>
               <div class="progress__sub"><span class="candidates"><span>Rules considered</span><span class="chip chip--id">R-170</span><span class="chip chip--id">R-410</span><span class="chip chip--id" data-state="unchanged">R-020</span><span class="chip chip--id" data-state="unchanged">R-200</span><span class="chip chip--id" data-state="unchanged">R-320</span></span></div>
@@ -2038,31 +2069,34 @@ td.t-prio { font-family: var(--font-mono); }
           </div>
         </div>
         <div class="spec-frame spec-frame--flush">
-          <div class="sec"><div class="sec__title">Decision</div></div>
-          <div class="sheet__body" style="display: grid; gap: 12px">
-            <div class="field">
-              <label class="field__label" for="cr-note">Note for the audit log</label>
-              <textarea class="textarea textarea--he" id="cr-note" dir="auto" style="min-height: 52px">מדיניות מעודכנת של הוועדה מ-1.9; פסקה 4 תתוקן בגרסת המסמך הבאה</textarea>
+          <div class="change__foot" role="region" aria-label="Decision">
+            <div class="decision">
+              <div class="field">
+                <label class="field__label" for="cr-note">Note for the audit log</label>
+                <textarea class="textarea textarea--he" id="cr-note" dir="auto" style="min-height: 52px">מדיניות מעודכנת של הוועדה מ-1.9; פסקה 4 תתוקן בגרסת המסמך הבאה</textarea>
+              </div>
+              <div class="decision__actions"><span class="reason">Approving publishes v2 in this sandbox's copy.</span><button class="btn btn--danger">Reject</button><button class="btn btn--primary">Approve and publish v2</button></div>
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center"><span class="reason">Approving publishes v2 in this sandbox's copy.</span><button class="btn btn--danger">Reject</button><button class="btn btn--primary">Approve and publish v2</button></div>
           </div>
         </div>
         <div class="spec-frame spec-frame--flush">
-          <div class="sec"><div class="sec__title">Decision</div></div>
-          <div class="sheet__body" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
-            <div class="seal seal--stamp"><span class="seal__kicker">Approved</span><span class="seal__line">CR-0001 · 2026-09-24 16:19</span><span class="seal__by">by Lior Shaya</span></div>
-            <span style="font-size: var(--text-sm); color: var(--ink-2)">Approved. Version 2 is published in this sandbox's own copy of the rule set; the cases decide on it from now on. <a href="#">Open the rules</a></span>
+          <div class="change__foot" role="region" aria-label="Decision">
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+              <div class="seal seal--stamp"><span class="seal__kicker">Approved</span><span class="seal__line">CR-0001 · 2026-09-24 16:19</span><span class="seal__by">by Lior Shaya</span></div>
+              <span style="font-size: var(--text-sm); color: var(--ink-2)">Approved. Version 2 is published in this sandbox's own copy of the rule set; the cases decide on it from now on. <a href="#">Open the rules</a></span>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <ul class="spec-list">
-      <li><strong>Entry:</strong> the request in Hebrew with its counter, the base version stated beside the primary; a refusal (<span class="mono">VERSION_STATUS_CONFLICT</span>, <span class="mono">RATE_LIMITED</span>, <span class="mono">RULESET_INVALID</span>) renders as the refusal block of section 08 with "What the model proposed" behind a link.</li>
+      <li><strong>The walk:</strong> Request, Proposal, Regression, Decision, numbered, each with the mark and the word of who takes it (the person, the model, the engine, the person), in one strip on paper at the top of the sheet. The current step stands on the accent wash with the accent line under it; a step taken is a button that brings its part into view and carries what it settled in the mono ("Published v1", "2 patches", "12 flipped of 200", "Approved · v2"); a step to come is neither.</li>
+      <li><strong>Entry:</strong> the request in Hebrew, in one box: its label, the field, then its bar with the hint, the counter, the base version and the primary; the demo's request offered under the box as a quiet row until a proposal stands; a refusal (<span class="mono">VERSION_STATUS_CONFLICT</span>, <span class="mono">RATE_LIMITED</span>, <span class="mono">RULESET_INVALID</span>) renders as the refusal block of section 08 with "What the model proposed" behind a link.</li>
       <li><strong>Progress</strong> shows the four stages and, under the first, the rules considered: the touched ones solid, the ones left unchanged faded, so the model's reach is visible before its result.</li>
       <li><strong>Proposal:</strong> patches by operation (Add · Replace · Remove · Add the field · Set the defaults), each with the model's rationale in Hebrew, then "Considered and left unchanged".</li>
       <li><strong>Diff:</strong> one row per changed cell (rule · field · before → after) with the changed value tinted, the whole rule struck when removed; unchanged rules collapse; side-by-side is the alternative, remembered per person.</li>
       <li><strong>Regression</strong> leads with "12 flipped · 6.0% of 200", then the matrix with totals and the unchanged diagonal in ink-3, the hot cells in the selection wash (never the amber of Manual review), flips by cause as a one-hue bar that filters the list, flags moved as their own figure, and each flipped case with both traces one click away.</li>
-      <li><strong>Decision:</strong> the note for the audit log, Reject in the danger style, "Approve and publish v2" as the primary with what approving does stated beside it; then the seal and the product's sentence. A rejected change shows the red seal and "Rejected. Nothing was published."</li>
+      <li><strong>Decision:</strong> the sheet's foot on paper once a proposal stands, in view while the proposal and the regression scroll above it: the note for the audit log, Reject in the danger style, "Approve and publish v2" as the primary with what approving does stated beside it; then the seal and the product's sentence in the same foot. A rejected change shows the red seal and "Rejected. Nothing was published."</li>
     </ul>
 
     <h3>Audit log</h3>
@@ -2489,7 +2523,7 @@ td.t-prio { font-family: var(--font-mono); }
         <tr><td>Rules</td><td>Still rows; "Loading the rule set"</td><td>"No rule set yet" · Generate rules from the policy</td><td>Edit a cell (draft) · Review the draft / Run the review again · Acknowledge with a reason or a resolution · Publish version n</td><td>422 on a cell: the bubble under the cell; VERSION_STATUS_CONFLICT: "Only a draft is published"</td><td>Published or seeded: no cell affordance, "Seeded, read-only"; stale review: "The draft was edited after its review; run the review again."</td></tr>
         <tr><td>Cases</td><td>Still rows; the figures show dashes</td><td>"Nothing decided yet." · Run 200 cases</td><td>Run → the outcome row and the list refresh; open a row → the trace; Explain for an officer / the applicant, Copy for the letter; Decide a case → its trace; Export a trace</td><td>Evaluation error rows in ink, their code in the trace they open; "No explanation was written; the trace below is the whole of the decision."; a case the schema refuses is refused whole (<span class="mono">CASE_INVALID</span>), the field named under its input, nothing stored</td><td>"This rule set has no published version yet; the cases ran on the seeded one."</td></tr>
         <tr><td>Assistant</td><td>The caret; tool steps appear as they run</td><td>The opening: the rule set's name, the version's line, the three scripted questions as quiet buttons on ruled rows; the composer at the foot; the conversations in the margin, New conversation first</td><td>Ask → streamed answer with citations → sources strip</td><td>The fixed not-covered sentence (system mark) · "The answer was withheld because it contained something that must not be shown." · RATE_LIMITED · PROVIDER_UNAVAILABLE · budget spent: the note says when it resumes, the composer stays enabled and a scripted question is answered from the cache</td><td>"This version is still being indexed for questions. Try again in a moment."</td></tr>
-        <tr><td>Change</td><td>Four stages; rules considered under the first</td><td>The request field and Propose the change</td><td>Proposal → diff → regression → note → Approve and publish vn / Reject → the seal and the sentence</td><td>RULESET_INVALID with "What the model proposed" · VERSION_STATUS_CONFLICT ("Only a published version that has finished indexing takes a change.") · decision refused: "The version it was proposed on is no longer the latest…"</td><td>A change on the seeded rule set publishes into the sandbox's copy, and the screen says so beside the primary</td></tr>
+        <tr><td>Change</td><td>Four stages; rules considered under the first</td><td>The walk over the request box, the demo's request as a quiet row, Propose the change</td><td>Proposal → diff → regression → note → Approve and publish vn / Reject → the seal and the sentence</td><td>RULESET_INVALID with "What the model proposed" · VERSION_STATUS_CONFLICT ("Only a published version that has finished indexing takes a change.") · decision refused: "The version it was proposed on is no longer the latest…"</td><td>A change on the seeded rule set publishes into the sandbox's copy, and the screen says so beside the primary</td></tr>
         <tr><td>Audit log</td><td>Still rows</td><td>"Nothing recorded yet" on the ruled lines</td><td>Filter by version; expand an approval; Compare two versions</td><td>—</td><td>Reset entries with the system mark; "Choose two different versions."</td></tr>
       </tbody>
     </table>
@@ -2535,7 +2569,7 @@ td.t-prio { font-family: var(--font-mono); }
         </ul>
       </div>
     </div>
-    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.3 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
+    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.4 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first; v3.4, the same day, the change request's walk, box and foot) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
   </section>
 </div>
 
