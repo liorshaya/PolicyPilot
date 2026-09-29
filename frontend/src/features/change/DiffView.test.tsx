@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Diff } from '../../api/types'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { scriptedProposalEvent } from '../../test/fixtures/change'
 import { lendingRuleSet } from '../../test/fixtures/lending'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
@@ -276,7 +276,16 @@ describe('DiffView.css', () => {
   it("carries every rule of the spec's unified diff, with the spec's declarations", () => {
     const unified = specRules('/* Diff, unified: one row per changed cell */', '.matrix {')
 
-    expect(unified).toHaveLength(14)
+    expect(unified).toHaveLength(15)
     expect(unported(stylesheet('features/change/DiffView.css'), unified)).toEqual([])
+  })
+
+  // the spec (v3.5): a Hebrew value stands at its cell's start and reads right to left inside, as a chip does; the
+  // owner found a label's excerpt hugging the arrow at the far end of a wide cell
+  it("stands a Hebrew cell at its row's start, reading right to left inside", () => {
+    expect(rule(stylesheet('features/change/DiffView.css'), '.udiff .step__label')).toMatchObject({
+      'justify-self': 'start',
+    })
+    expect(rule(stylesheet('features/cases/TraceView.css'), '.step__label').direction).toBe('rtl')
   })
 })

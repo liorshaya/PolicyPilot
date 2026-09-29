@@ -36,6 +36,9 @@
 .udiff .chip {
   justify-self: start;
 }
+.udiff .step__label {
+  justify-self: start;
+}
 .udiff__row--he {
   grid-template-columns: 90px 150px 1fr;
 }
