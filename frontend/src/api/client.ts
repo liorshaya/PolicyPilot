@@ -7,7 +7,9 @@ import type {
   BudgetResponse,
   ChangeDecision,
   Diff,
+  ChatConversationResponse,
   ChatSessionResponse,
+  ChatSessionsResponse,
   Decision,
   ErrorEnvelope,
   Explanation,
@@ -199,6 +201,13 @@ export const api = {
     request<ChatSessionResponse>('POST', '/api/v1/chat/sessions', {
       body: { rulesetId, versionNo },
     }),
+
+  /** The sandbox's conversations, newest first (Document 2, GET /chat/sessions). */
+  chatSessions: () => request<ChatSessionsResponse>('GET', '/api/v1/chat/sessions'),
+
+  /** A conversation as it was shown, to open it again (Document 2, GET /chat/sessions/{id}). */
+  chatSession: (id: string) =>
+    request<ChatConversationResponse>('GET', `/api/v1/chat/sessions/${id}`),
 
   stats: (rulesetId: string, versionNo: number) =>
     request<Aggregates>('GET', `/api/v1/rulesets/${rulesetId}/versions/${versionNo}/stats`),

@@ -17,12 +17,16 @@ import tools.jackson.databind.node.ObjectNode;
  * @param applicationNumber the application the model named, or null
  * @param overrides a simulation's overrides as its citation id writes them, {@code has_guarantor=true}, or null
  * @param tag the tag a rule listing was asked for, or null
+ * @param arguments the call's arguments as the model wrote them, kept for the audit
+ * @param cited the id the call's result may be cited by, {@code d:17} or {@code sim:d17:has_guarantor=true}, or null
+ *     for a refused call or a call that answers nothing citable
  * @param micros how long the call took, its lookup included
  * @param decided what the engine decided, for a decision or a simulation that answered; null otherwise
  * @param refused the reason of a refused call, {@code not_found}, {@code invalid_arguments} or {@code limit}, or null
  */
 public record ToolCallReport(String tool, @Nullable Integer applicationNumber, @Nullable String overrides,
-        @Nullable String tag, long micros, @Nullable Decided decided, @Nullable String refused) {
+        @Nullable String tag, String arguments, @Nullable String cited, long micros, @Nullable Decided decided,
+        @Nullable String refused) {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String REFUSED = "refused:";
@@ -58,7 +62,9 @@ public record ToolCallReport(String tool, @Nullable Integer applicationNumber, @
         return new ToolCallReport(call.tool(),
                 number.isIntegralNumber() && number.canConvertToInt() ? number.intValue() : null,
                 overrides instanceof ObjectNode object && !object.isEmpty() ? ToolResults.overridesText(object) : null,
-                tag.isString() ? tag.asString() : null, micros, refused == null ? decided : null, refused);
+                tag.isString() ? tag.asString() : null, call.arguments(),
+                refused == null && !call.outcome().isEmpty() ? call.outcome() : null, micros,
+                refused == null ? decided : null, refused);
     }
 
     private static JsonNode parsed(String arguments) {

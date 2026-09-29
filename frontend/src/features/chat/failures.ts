@@ -9,6 +9,8 @@ export function failureText(code: string | undefined): string {
       return 'The answer was withheld because it contained something that must not be shown.'
     case 'PROVIDER_UNAVAILABLE':
       return 'The model did not answer in time. Try again.'
+    case 'NOT_FOUND':
+      return 'This conversation is no longer available. Start a new one.'
     default:
       return 'The question could not be answered. Try again.'
   }

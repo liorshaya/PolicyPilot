@@ -112,6 +112,52 @@ test.describe('the assistant', () => {
     await expect(page.getByRole('log').locator('.turn').first()).not.toBeInViewport()
   })
 
+  // Document 2, GET /chat/sessions and GET /chat/sessions/{id} (2026-09-29); the spec, section 09: the conversations
+  // beside the thread, an earlier one opened as it was shown and asked on, a new one started empty
+  test('keeps every conversation: an earlier one opens as it was shown and asks on, a new one starts empty', async ({
+    page,
+  }) => {
+    await ask(page, question('Q-01').question)
+    await expect(
+      page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: 'Case 17' }),
+    ).toBeVisible()
+    const list = page.getByRole('complementary', { name: 'Conversations' })
+    const rows = list.locator('.conversation:not(.conversation--new)')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toHaveAttribute('aria-current', 'true')
+    await expect(rows.first().locator('.conversation__meta')).toHaveText(
+      /^v1 · 1 question · 2026-09-29 09:\d\d$/,
+    )
+
+    await list.getByRole('button', { name: 'New conversation' }).click()
+
+    await expect(page.getByRole('region', { name: 'Before the first question' })).toBeVisible()
+    await ask(page, question('Q-03').question)
+    await expect(
+      page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: 'Paragraph 2' }),
+    ).toBeVisible()
+    // newest first, the open one marked
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText(question('Q-03').question)
+    await expect(rows.nth(0)).toHaveAttribute('aria-current', 'true')
+    await expect(rows.nth(1)).toContainText(question('Q-01').question)
+
+    await rows.nth(1).click()
+
+    // the first conversation as it was shown, then asked on in its own session
+    await expect(page.getByRole('log').locator('.turn--q').first()).toContainText(
+      question('Q-01').question,
+    )
+    await expect(page.getByRole('list', { name: 'Tool calls' })).toContainText('case 17')
+    await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true')
+    await ask(page, question('Q-02').question)
+    await expect(page.getByRole('list', { name: 'Tool calls' }).last()).toContainText(
+      'what-if · case 17 · has_guarantor=true',
+    )
+    await expect(rows.nth(0)).toContainText(question('Q-01').question)
+    await expect(rows.nth(0)).toContainText('2 questions')
+  })
+
   test('answers the term question from paragraph 2, then refuses the rate question with the fixed sentence', async ({
     page,
   }) => {

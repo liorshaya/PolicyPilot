@@ -208,6 +208,62 @@
 .composer__bar .counter {
   margin-inline-start: auto;
 }
+.conversations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.conversation {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+.conversation:hover {
+  background: var(--well);
+}
+.conversation[aria-current='true'] {
+  background: var(--accent-wash);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.conversation__q {
+  font-family: var(--font-he);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: var(--leading-he);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.conversation__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conversation--new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--accent-text);
+}
+.conversation--new svg {
+  width: 12px;
+  height: 12px;
+}
 .streaming::after {
   content: '';
   display: inline-block;
@@ -234,6 +290,26 @@
 }
 .thread[dir='ltr'] .thread__opening .prov {
   text-align: start;
+}
+
+/* The product's own: an English question's row keeps the chrome's face, and the last row draws no rule under itself. */
+.conversation__q:lang(en) {
+  font-family: var(--font-ui);
+}
+.conversation:last-child {
+  border-bottom: 0;
+}
+
+/* The product's own: below 1200px the margin is a drawer (SplitView.css), so the conversations open from the sheet's
+   toolbar instead, in a popover that scrolls past a screen's worth of them; the toolbar is English chrome, the list at
+   its start and New conversation at its end. */
+.thread__toolbar {
+  justify-content: space-between;
+  direction: ltr;
+}
+.conversations--popover {
+  max-height: 60vh;
+  overflow: auto;
 }
 
 /* The notes of the thread are the product's English sentences; the spec writes them left to right (style="direction: ltr"). */

@@ -795,6 +795,23 @@
       }
     },
     "/api/v1/chat/sessions" : {
+      "get" : {
+        "tags" : [ "chat-controller" ],
+        "summary" : "The conversations of this sandbox, newest first",
+        "operationId" : "conversations",
+        "responses" : {
+          "200" : {
+            "description" : "Each session that holds at least one turn, named by its first question",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChatSessionsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post" : {
         "tags" : [ "chat-controller" ],
         "summary" : "Open a chat session bound to a published version",
@@ -1443,6 +1460,44 @@
         }
       }
     },
+    "/api/v1/chat/sessions/{id}" : {
+      "get" : {
+        "tags" : [ "chat-controller" ],
+        "summary" : "A conversation as it was shown: its version, its language and its turns",
+        "operationId" : "conversation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The session, its version and its turns, oldest first",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChatConversationResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such chat session in this sandbox",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/changes/{id}/decisions/{decisionId}/trace" : {
       "get" : {
         "tags" : [ "change-controller" ],
@@ -1850,7 +1905,8 @@
             "type" : "string"
           },
           "kind" : {
-            "type" : "string"
+            "type" : "string",
+            "enum" : [ "PARAGRAPH", "RULE", "DECISION", "SIMULATION" ]
           },
           "paragraph" : {
             "type" : "integer",
@@ -1861,8 +1917,20 @@
           },
           "label" : {
             "type" : "string"
+          },
+          "applicationNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "approve", "reject", "refer", "error" ]
+          },
+          "detail" : {
+            "type" : "string"
           }
-        }
+        },
+        "required" : [ "id", "kind" ]
       },
       "RetrievalResponse" : {
         "type" : "object",
@@ -2508,6 +2576,166 @@
           }
         },
         "required" : [ "createdAt", "id", "language", "paragraphs", "protected", "title", "versionNo" ]
+      },
+      "ChatSessionsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "sessions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Summary"
+            }
+          }
+        },
+        "required" : [ "sessions" ]
+      },
+      "Summary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "rulesetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstQuestion" : {
+            "type" : "string"
+          },
+          "turns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "firstQuestion", "id", "lastAt", "openedAt", "rulesetId", "turns", "versionNo" ]
+      },
+      "ChatConversationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "rulesetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "language" : {
+            "type" : "string"
+          },
+          "openedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "turns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Turn"
+            }
+          }
+        },
+        "required" : [ "id", "language", "openedAt", "rulesetId", "turns", "versionNo" ]
+      },
+      "Tool" : {
+        "type" : "object",
+        "properties" : {
+          "tool" : {
+            "type" : "string",
+            "enum" : [ "getDecision", "simulate", "getDecisionStats", "listRules" ]
+          },
+          "applicationNumber" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "overrides" : {
+            "type" : [ "string", "null" ]
+          },
+          "tag" : {
+            "type" : [ "string", "null" ]
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "micros" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "approve", "reject", "refer", "error" ]
+          },
+          "decidingRuleId" : {
+            "type" : [ "string", "null" ]
+          },
+          "flags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "refused" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "not_found", "invalid_arguments", "limit" ]
+          }
+        },
+        "required" : [ "applicationNumber", "decidingRuleId", "flags", "micros", "outcome", "overrides", "refused", "tag", "tool", "versionNo" ]
+      },
+      "Turn" : {
+        "type" : "object",
+        "properties" : {
+          "turn" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "question" : {
+            "type" : "string"
+          },
+          "askedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "answer" : {
+            "type" : "string"
+          },
+          "answeredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "citations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Cite"
+            }
+          },
+          "toolCalls" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Tool"
+            }
+          },
+          "fixed" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "answer", "answeredAt", "askedAt", "citations", "fixed", "question", "toolCalls", "turn" ]
       },
       "AuditEntriesResponse" : {
         "type" : "object",

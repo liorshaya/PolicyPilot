@@ -23,6 +23,7 @@ import com.liorshaya.policypilot.support.Seeded;
 import com.liorshaya.policypilot.support.ServerSentEvents;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -189,7 +190,93 @@ class ChatStreamIT extends ApiIntegrationTest {
         String calls = jdbc.sql("select tool_calls_json::text from chat_message where id = :id")
                 .param("id", UUID.fromString(dataOf(stream, "done").required("messageId").asString()))
                 .query(String.class).single();
-        assertThat(calls).contains("\"tool\": \"getDecision\"").contains("\"outcome\": \"d:17\"");
+        // stored as the tool event reported it, with the id its result may be cited by (Document 2, V13)
+        assertThat(calls).contains("\"tool\": \"getDecision\"").contains("\"cited\": \"d:17\"")
+                .contains("\"outcome\": \"refer\"");
+    }
+
+    // Document 2, GET /chat/sessions (2026-09-29): each session that holds a turn, named by its first question, newest
+    // first by its last answer; a session opened and never asked is left out. Expected: the two asked sessions, the one
+    // asked again first, with its version, its first question, its count of turns and its times in order
+    @Test
+    void theConversationsListNamesEachAskedSessionByItsFirstQuestionNewestFirst() {
+        decideTheFixtureSet();
+        String unasked = openSession();
+        String first = openSession();
+        String second = openSession();
+        model.willStream(Streamed.after("Application 17 was referred.[[d:17]]",
+                new ToolCall("getDecision", "{\"applicationNumber\":17}")),
+                Streamed.text("The maximum term is 84 months.[[p:2]]"),
+                Streamed.text("The maximum term is still 84 months.[[p:2]]"));
+        ask(first, "למה בקשה מספר 17 הופנתה לבדיקה?");
+        ask(second, TERM_QUESTION);
+        ask(first, TERM_QUESTION);
+
+        HttpResponse<String> listed = api().get("/api/v1/chat/sessions").cookie(session).send();
+
+        assertThat(listed.statusCode()).isEqualTo(200);
+        JsonNode sessions = JSON.readTree(listed.body()).required("sessions");
+        assertThat(sessions.valueStream().map(one -> one.required("id").asString()).toList())
+                .containsExactly(first, second)
+                .doesNotContain(unasked);
+        JsonNode newest = sessions.get(0);
+        assertThat(newest.required("rulesetId").asString()).isEqualTo(version);
+        assertThat(newest.required("versionNo").asInt()).isEqualTo(1);
+        assertThat(newest.required("firstQuestion").asString()).isEqualTo("למה בקשה מספר 17 הופנתה לבדיקה?");
+        assertThat(newest.required("turns").asInt()).isEqualTo(2);
+        assertThat(Instant.parse(newest.required("lastAt").asString()))
+                .isAfterOrEqualTo(Instant.parse(newest.required("openedAt").asString()));
+        assertThat(sessions.get(1).required("turns").asInt()).isEqualTo(1);
+    }
+
+    // Document 2, GET /chat/sessions/{id} (2026-09-29): a conversation reads back as it was shown. Expected: the turns
+    // oldest first, the answer with its markers, the decision cited, the getDecision call as its tool event reported
+    // it, and the not-covered sentence marked as the fixed sentence it is, with nothing cited and no call
+    @Test
+    void aConversationReadsBackWithItsAnswersCitationsToolCallsAndFixedSentences() {
+        decideTheFixtureSet();
+        String chat = openSession();
+        model.willStream(Streamed.after("Application 17 was referred.[[d:17]]",
+                new ToolCall("getDecision", "{\"applicationNumber\":17}")));
+        ask(chat, "למה בקשה מספר 17 הופנתה לבדיקה?");
+        String offCorpus = "האם יש הנחה לחיילים משוחררים? " + UUID.randomUUID();
+        embeddings.register(offCorpus, embeddings.axis(9));
+        ask(chat, offCorpus);
+
+        HttpResponse<String> read = api().get("/api/v1/chat/sessions/" + chat).cookie(session).send();
+
+        assertThat(read.statusCode()).isEqualTo(200);
+        JsonNode conversation = JSON.readTree(read.body());
+        assertThat(conversation.required("id").asString()).isEqualTo(chat);
+        assertThat(conversation.required("rulesetId").asString()).isEqualTo(version);
+        assertThat(conversation.required("language").asString()).isEqualTo("he");
+        JsonNode turns = conversation.required("turns");
+        assertThat(turns).hasSize(2);
+        JsonNode answered = turns.get(0);
+        assertThat(answered.required("turn").asInt()).isEqualTo(1);
+        assertThat(answered.required("question").asString()).isEqualTo("למה בקשה מספר 17 הופנתה לבדיקה?");
+        assertThat(answered.required("answer").asString()).isEqualTo("Application 17 was referred.[[d:17]]");
+        assertThat(answered.required("fixed").isNull()).isTrue();
+        assertThat(Instant.parse(answered.required("answeredAt").asString()))
+                .isAfterOrEqualTo(Instant.parse(answered.required("askedAt").asString()));
+        JsonNode citation = answered.required("citations").get(0);
+        assertThat(citation.required("id").asString()).isEqualTo("d:17");
+        assertThat(citation.required("kind").asString()).isEqualTo("DECISION");
+        assertThat(citation.required("outcome").asString()).isEqualTo("refer");
+        JsonNode call = answered.required("toolCalls").get(0);
+        assertThat(call.required("tool").asString()).isEqualTo("getDecision");
+        assertThat(call.required("applicationNumber").asInt()).isEqualTo(17);
+        assertThat(call.required("versionNo").asInt()).isEqualTo(1);
+        assertThat(call.required("micros").asLong()).isNotNegative();
+        assertThat(call.required("outcome").asString()).isEqualTo("refer");
+        assertThat(call.required("decidingRuleId").asString()).isEqualTo("R-330");
+        assertThat(call.required("refused").isNull()).isTrue();
+        JsonNode notCovered = turns.get(1);
+        assertThat(notCovered.required("turn").asInt()).isEqualTo(2);
+        assertThat(notCovered.required("answer").asString()).isEqualTo(NOT_COVERED_HE);
+        assertThat(notCovered.required("fixed").asString()).isEqualTo("not_covered");
+        assertThat(notCovered.required("citations")).isEmpty();
+        assertThat(notCovered.required("toolCalls")).isEmpty();
     }
 
     // Document 4, scripted question 2: simulate(17, {has_guarantor: true}) cites [[sim:...]]. Expected: the simulation

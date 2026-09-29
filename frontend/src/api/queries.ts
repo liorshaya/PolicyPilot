@@ -12,6 +12,8 @@ import type {
   AuditEntry,
   BatchResult,
   BudgetResponse,
+  ChatConversationResponse,
+  ChatSessionSummary,
   Decision,
   Diff,
   GapResolution,
@@ -42,6 +44,8 @@ export const keys = {
   proposedDecision: (changeId: string, decisionId: string) =>
     ['proposed-decision', changeId, decisionId] as const,
   audit: (versionId: string) => ['audit', versionId] as const,
+  chatSessions: ['chat-sessions'] as const,
+  chatSession: (id: string) => ['chat-session', id] as const,
   diff: (rulesetId: string, from: number, to: number) => ['diff', rulesetId, from, to] as const,
 }
 
@@ -283,6 +287,23 @@ export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
  * This session's last run of the cases on a version, if there was one (the owner's answer to phase 6's second
  * question): read from what the run left, never asked of the API, and kept for the session.
  */
+/** The sandbox's conversations, newest first (Document 2, GET /chat/sessions); a finished answer refreshes them. */
+export function useChatSessions(): UseQueryResult<ChatSessionSummary[]> {
+  return useQuery({
+    queryKey: keys.chatSessions,
+    queryFn: () => api.chatSessions().then((response) => response.sessions),
+  })
+}
+
+/** A conversation as it was shown, to open it again (Document 2, GET /chat/sessions/{id}). */
+export function useChatSession(id: string | null): UseQueryResult<ChatConversationResponse> {
+  return useQuery({
+    queryKey: keys.chatSession(id ?? 'none'),
+    queryFn: () => api.chatSession(id ?? ''),
+    enabled: id !== null,
+  })
+}
+
 export function useLastRun(
   ruleset: { id: string; versionNo: number } | null,
 ): UseQueryResult<BatchResult> {

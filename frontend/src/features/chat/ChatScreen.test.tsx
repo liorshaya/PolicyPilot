@@ -3,7 +3,7 @@ import { keys } from '../../api/queries'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { budgetSpent } from '../../test/fixtures/budget'
 import { notCovered } from '../../test/fixtures/english'
 import { lendingParagraphs, lendingRuleSet } from '../../test/fixtures/lending'
@@ -12,6 +12,7 @@ import { batch, decision, SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import type { ChatConversationResponse, ChatSessionSummary } from '../../api/types'
 import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { ChatScreen } from './ChatScreen'
 import type { ChatToolCall } from './types'
@@ -883,6 +884,284 @@ describe('ChatScreen · before and around the conversation', () => {
   })
 })
 
+/**
+ * The sandbox's conversations (the spec, section 09, v3.3; Document 2, GET /chat/sessions and GET /chat/sessions/{id}):
+ * listed beside the thread on a wide window, newest first, each by its first question; one opened again as it was
+ * shown, asking on in its own session; a new one started at any time; a popover from the toolbar below 1200px.
+ */
+describe('ChatScreen · the conversations', () => {
+  const EARLIER = '0f4c1c9e-0000-4000-8000-0000000000d2'
+  const OLDEST = '0f4c1c9e-0000-4000-8000-0000000000d3'
+  const listed: ChatSessionSummary[] = [
+    {
+      id: EARLIER,
+      rulesetId: SEEDED_RULESET_ID,
+      versionNo: 1,
+      firstQuestion: TERM_QUESTION,
+      turns: 1,
+      openedAt: '2026-09-29T11:00:00Z',
+      lastAt: '2026-09-29T11:05:00Z',
+    },
+    {
+      id: OLDEST,
+      rulesetId: SEEDED_RULESET_ID,
+      versionNo: 1,
+      firstQuestion: 'למה בקשה מספר 17 הופנתה לבדיקה?',
+      turns: 3,
+      openedAt: '2026-09-29T09:00:00Z',
+      lastAt: '2026-09-29T09:12:00Z',
+    },
+  ]
+  /** The oldest conversation as the API reads it back: case 17's referral, looked up and cited. */
+  const oldest: ChatConversationResponse = {
+    id: OLDEST,
+    rulesetId: SEEDED_RULESET_ID,
+    versionNo: 1,
+    language: 'he',
+    openedAt: '2026-09-29T09:00:00Z',
+    turns: [
+      {
+        turn: 1,
+        question: 'למה בקשה מספר 17 הופנתה לבדיקה?',
+        askedAt: '2026-09-29T09:01:00Z',
+        answer: 'בקשה 17 הופנתה לבדיקת חתם.[[d:17]]',
+        answeredAt: '2026-09-29T09:01:04Z',
+        citations: [{ id: 'd:17', kind: 'DECISION', applicationNumber: 17, outcome: 'refer' }],
+        toolCalls: [lookup],
+        fixed: null,
+      },
+    ],
+  }
+
+  function windowOf(wide: boolean) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: wide && query === '(min-width: 1200px)',
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }))
+  }
+
+  function serveConversations(sessions: ChatSessionSummary[]) {
+    server.use(http.get(`${BASE}/chat/sessions`, () => HttpResponse.json({ sessions })))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('lists them beside the thread on a wide window, New conversation first, each by its first question with its version, its count and its time', async () => {
+    windowOf(true)
+    serveSession()
+    serveConversations(listed)
+    renderScreen()
+
+    const margin = await screen.findByRole('complementary', { name: 'Conversations' })
+
+    const rows = await within(margin).findAllByRole('button')
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'New conversation',
+      `${TERM_QUESTION}v1 · 1 question · 2026-09-29 11:05`,
+      'למה בקשה מספר 17 הופנתה לבדיקה?v1 · 3 questions · 2026-09-29 09:12',
+    ])
+    const question = rows[1]!.querySelector('.conversation__q')!
+    expect(question).toHaveAttribute('lang', 'he')
+    expect(question).toHaveAttribute('dir', 'rtl')
+    expect(rows[1]!.querySelector('.conversation__meta')).toHaveTextContent(
+      /^v1 · 1 question · 2026-09-29 11:05$/,
+    )
+    // a new conversation with no question yet is not among them, so none is marked
+    expect(margin.querySelector('[aria-current="true"]')).toBeNull()
+  })
+
+  it('opens an earlier conversation as it was shown, marks it, and asks on in its own session', async () => {
+    windowOf(true)
+    serveSession()
+    serveConversations(listed)
+    const opened: string[] = []
+    server.use(
+      http.get(`${BASE}/chat/sessions/${OLDEST}`, () => HttpResponse.json(oldest)),
+      http.post(`${BASE}/chat/sessions/:id/messages`, ({ params }) => {
+        opened.push(params.id as string)
+        return streamOf(
+          answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]),
+        )
+      }),
+    )
+    renderScreen()
+    const user = userEvent.setup()
+    const margin = await screen.findByRole('complementary', { name: 'Conversations' })
+
+    await user.click(
+      await within(margin).findByRole('button', { name: /^למה בקשה מספר 17 הופנתה לבדיקה\?/ }),
+    )
+
+    // the thread as it was shown: the question, the step line, the answer with its chip, the sources strip
+    const answer = await lastAnswer()
+    expect(turns()[0]!.querySelector('.turn__body')).toHaveTextContent(
+      'למה בקשה מספר 17 הופנתה לבדיקה?',
+    )
+    expect(within(answer).getByRole('list', { name: 'Tool calls' })).toHaveTextContent(
+      'case 17ran on v1 · 1.2 msManual review',
+    )
+    expect(
+      within(answer.querySelector<HTMLElement>('p.answer')!).getByRole('button', {
+        name: 'Case 17',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(within(answer).getByRole('group', { name: 'Sources' })).getByRole('button', {
+        name: 'Case 17',
+      }),
+    ).toBeInTheDocument()
+    expect(answer.querySelector('p.answer')).not.toHaveClass('streaming')
+    expect(
+      screen.queryByRole('region', { name: 'Before the first question' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('complementary', { name: 'Conversations' })).getByRole('button', {
+        name: /^למה בקשה מספר 17/,
+      }),
+    ).toHaveAttribute('aria-current', 'true')
+
+    // the next question goes to the conversation's own session, and no session is opened for it
+    await ask(TERM_QUESTION)
+    await waitFor(() => expect(turns()).toHaveLength(4))
+    expect(opened).toEqual([OLDEST])
+  })
+
+  it('starts a new conversation, and the one left stays listed, no longer marked', async () => {
+    windowOf(true)
+    const sessions: ChatSessionSummary[] = []
+    let openings = 0
+    server.use(
+      http.post(`${BASE}/chat/sessions`, () => {
+        openings++
+        return HttpResponse.json(
+          {
+            id: openings === 1 ? SESSION : EARLIER,
+            rulesetId: SEEDED_RULESET_ID,
+            versionNo: 1,
+            language: 'he',
+          },
+          { status: 201 },
+        )
+      }),
+      http.get(`${BASE}/chat/sessions`, () => HttpResponse.json({ sessions })),
+      http.post(`${BASE}/chat/sessions/:id/messages`, ({ params }) => {
+        sessions.unshift({
+          id: params.id as string,
+          rulesetId: SEEDED_RULESET_ID,
+          versionNo: 1,
+          firstQuestion: TERM_QUESTION,
+          turns: 1,
+          openedAt: '2026-09-29T09:00:00Z',
+          lastAt: '2026-09-29T09:01:00Z',
+        })
+        return streamOf(
+          answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]),
+        )
+      }),
+    )
+    renderScreen()
+    const user = await ask(TERM_QUESTION)
+    await lastAnswer()
+
+    // once answered, the conversation is listed and marked as the open one
+    const margin = screen.getByRole('complementary', { name: 'Conversations' })
+    const row = await within(margin).findByRole('button', { name: new RegExp(`^${TERM_QUESTION}`) })
+    expect(row).toHaveAttribute('aria-current', 'true')
+
+    await user.click(within(margin).getByRole('button', { name: 'New conversation' }))
+
+    expect(
+      await screen.findByRole('region', { name: 'Before the first question' }),
+    ).toBeInTheDocument()
+    expect(turns()).toHaveLength(0)
+    await waitFor(() => expect(openings).toBe(2))
+    expect(
+      within(screen.getByRole('complementary', { name: 'Conversations' })).getByRole('button', {
+        name: new RegExp(`^${TERM_QUESTION}`),
+      }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
+  it('takes New conversation in a conversation with no question yet as a request for the question', async () => {
+    windowOf(true)
+    serveSession()
+    const openings: number[] = []
+    server.use(
+      http.post(`${BASE}/chat/sessions`, () => {
+        openings.push(1)
+        return HttpResponse.json(
+          { id: SESSION, rulesetId: SEEDED_RULESET_ID, versionNo: 1, language: 'he' },
+          { status: 201 },
+        )
+      }),
+    )
+    renderScreen()
+    const user = userEvent.setup()
+    const margin = await screen.findByRole('complementary', { name: 'Conversations' })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled())
+
+    await user.click(within(margin).getByRole('button', { name: 'New conversation' }))
+
+    expect(screen.getByLabelText('Question')).toHaveFocus()
+    expect(openings).toHaveLength(1)
+  })
+
+  it('opens them from the toolbar in a popover below 1200px, which choosing one closes', async () => {
+    windowOf(false)
+    serveSession()
+    serveConversations(listed)
+    server.use(http.get(`${BASE}/chat/sessions/${OLDEST}`, () => HttpResponse.json(oldest)))
+    renderScreen()
+    const user = userEvent.setup()
+    expect(screen.queryByRole('complementary', { name: 'Conversations' })).not.toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'Conversations · 2' }))
+
+    const popover = screen.getByRole('dialog', { name: 'Conversations' })
+    expect(
+      within(popover)
+        .getAllByRole('button')
+        .map((row) => row.textContent),
+    ).toEqual([
+      'New conversation',
+      `${TERM_QUESTION}v1 · 1 question · 2026-09-29 11:05`,
+      'למה בקשה מספר 17 הופנתה לבדיקה?v1 · 3 questions · 2026-09-29 09:12',
+    ])
+
+    await user.click(within(popover).getByRole('button', { name: /^למה בקשה מספר 17/ }))
+
+    const answer = await lastAnswer()
+    expect(screen.queryByRole('dialog', { name: 'Conversations' })).not.toBeInTheDocument()
+    expect(
+      within(answer.querySelector<HTMLElement>('p.answer')!).getByRole('button', {
+        name: 'Case 17',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('says when a conversation is no longer available, and offers a new one', async () => {
+    windowOf(true)
+    serveSession()
+    serveConversations(listed)
+    renderScreen()
+    const user = userEvent.setup()
+    const margin = await screen.findByRole('complementary', { name: 'Conversations' })
+
+    // the default handler answers 404 for any conversation read back: gone with its sandbox's reset
+    await user.click(within(margin).getByRole('button', { name: /^למה בקשה מספר 17/ }))
+
+    expect(await screen.findByText('This conversation is no longer available')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'New conversation' }))
+    expect(
+      await screen.findByRole('region', { name: 'Before the first question' }),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('ChatScreen in both directions (NFR-5)', () => {
   // two of the labeled set's English questions (fixtures/eval/questions.json, Q-13 and Q-15), asked here of an English
   // version, whose answers and not-covered sentence are English
@@ -958,7 +1237,7 @@ describe('ChatScreen.css', () => {
       ([selector]) => selector !== 'to',
     )
 
-    expect(thread).toHaveLength(35)
+    expect(thread).toHaveLength(43)
     expect(unported(stylesheet('features/chat/ChatScreen.css'), thread)).toEqual([])
     expect(stylesheet('features/chat/ChatScreen.css')).toContain('@keyframes blink')
   })

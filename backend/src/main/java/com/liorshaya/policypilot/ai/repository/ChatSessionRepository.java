@@ -1,6 +1,7 @@
 package com.liorshaya.policypilot.ai.repository;
 
 import com.liorshaya.policypilot.ai.entity.ChatSessionEntity;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,4 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ChatSessionRepository extends JpaRepository<ChatSessionEntity, UUID> {
 
     Optional<ChatSessionEntity> findByIdAndSandboxId(UUID id, UUID sandboxId);
+
+    /** Every session the sandbox opened, the newest opened first. */
+    List<ChatSessionEntity> findBySandboxIdOrderByCreatedAtDesc(UUID sandboxId);
 }

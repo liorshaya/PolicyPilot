@@ -199,7 +199,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** The conversations of this sandbox, newest first */
+        get: operations["conversations"];
         put?: never;
         /** Open a chat session bound to a published version */
         post: operations["open"];
@@ -447,6 +448,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A conversation as it was shown: its version, its language and its turns */
+        get: operations["conversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/changes/{id}/decisions/{decisionId}/trace": {
         parameters: {
             query?: never;
@@ -593,12 +611,18 @@ export interface components {
             lexicalRank?: number;
         };
         Cite: {
-            id?: string;
-            kind?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "PARAGRAPH" | "RULE" | "DECISION" | "SIMULATION";
             /** Format: int32 */
             paragraph?: number;
             ruleId?: string;
             label?: string;
+            /** Format: int32 */
+            applicationNumber?: number;
+            /** @enum {string} */
+            outcome?: "approve" | "reject" | "refer" | "error";
+            detail?: string;
         };
         RetrievalResponse: {
             covered?: boolean;
@@ -834,6 +858,67 @@ export interface components {
             paragraphs: number;
             /** Format: date-time */
             createdAt: string;
+        };
+        ChatSessionsResponse: {
+            sessions: components["schemas"]["Summary"][];
+        };
+        Summary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            rulesetId: string;
+            /** Format: int32 */
+            versionNo: number;
+            firstQuestion: string;
+            /** Format: int32 */
+            turns: number;
+            /** Format: date-time */
+            openedAt: string;
+            /** Format: date-time */
+            lastAt: string;
+        };
+        ChatConversationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            rulesetId: string;
+            /** Format: int32 */
+            versionNo: number;
+            language: string;
+            /** Format: date-time */
+            openedAt: string;
+            turns: components["schemas"]["Turn"][];
+        };
+        Tool: {
+            /** @enum {string} */
+            tool: "getDecision" | "simulate" | "getDecisionStats" | "listRules";
+            /** Format: int32 */
+            applicationNumber: number | null;
+            overrides: string | null;
+            tag: string | null;
+            /** Format: int32 */
+            versionNo: number;
+            /** Format: int64 */
+            micros: number;
+            /** @enum {string|null} */
+            outcome: "approve" | "reject" | "refer" | "error" | null;
+            decidingRuleId: string | null;
+            flags: string[];
+            /** @enum {string|null} */
+            refused: "not_found" | "invalid_arguments" | "limit" | null;
+        };
+        Turn: {
+            /** Format: int32 */
+            turn: number;
+            question: string;
+            /** Format: date-time */
+            askedAt: string;
+            answer: string;
+            /** Format: date-time */
+            answeredAt: string;
+            citations: components["schemas"]["Cite"][];
+            toolCalls: components["schemas"]["Tool"][];
+            fixed: string | null;
         };
         AuditEntriesResponse: {
             entries: components["schemas"]["Entry"][];
@@ -1431,6 +1516,26 @@ export interface operations {
             };
         };
     };
+    conversations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Each session that holds at least one turn, named by its first question */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatSessionsResponse"];
+                };
+            };
+        };
+    };
     open: {
         parameters: {
             query?: never;
@@ -1937,6 +2042,37 @@ export interface operations {
                 };
             };
             /** @description No such decision in this sandbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    conversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session, its version and its turns, oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatConversationResponse"];
+                };
+            };
+            /** @description No such chat session in this sandbox */
             404: {
                 headers: {
                     [name: string]: unknown;

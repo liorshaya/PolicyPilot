@@ -27,7 +27,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Demo step 3 served from the cache (Document 4, Serving the scripted questions from the cache; Document 6, Cached chat
@@ -87,7 +89,8 @@ class CachedScriptedAnswerIT {
         assertThat(asked).isLessThanOrEqualTo(1);
         assertThat(second.text()).isEqualTo(first.text());
         assertThat(second.cited()).isEqualTo(first.cited()).contains("d:17", "p:7");
-        assertThat(second.toolCalls()).isEqualTo(first.toolCalls());
+        // the replay ran the tools again, so the stored calls are the same but for their own timing (Document 2, V13)
+        assertThat(withoutTiming(second.toolCalls())).isEqualTo(withoutTiming(first.toolCalls()));
         assertThat(jdbc.sql("select count(*) from model_call where prompt_name = 'answer' and cache_hit")
                 .query(Long.class).single()).isPositive();
     }
@@ -221,5 +224,12 @@ class CachedScriptedAnswerIT {
         RecordedEmbeddingGateway recordedEmbeddingGateway(PolicyPilotProperties properties) {
             return RecordedEmbeddingGateway.replaying(properties.embedding().dimension());
         }
+    }
+
+    /** The stored tool calls with the microseconds each took taken out, since a replay's are its own. */
+    private static JsonNode withoutTiming(String toolCalls) {
+        JsonNode calls = JSON.readTree(toolCalls);
+        calls.forEach(call -> ((ObjectNode) call).remove("micros"));
+        return calls;
     }
 }
