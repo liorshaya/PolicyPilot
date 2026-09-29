@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.jspecify.annotations.Nullable;
 import org.hibernate.type.SqlTypes;
 
 /**
@@ -50,10 +51,14 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     private Instant at;
 
+    /** The fixed sentence an answer is, {@code not_covered} or {@code tool_limit}, or null (V13). */
+    @Column
+    private @Nullable String fixed;
+
     protected ChatMessageEntity() {}
 
     public ChatMessageEntity(UUID id, UUID sessionId, int turn, String role, String content, String citationsJson,
-            String toolCallsJson, String tokenUsageJson, Instant at) {
+            String toolCallsJson, @Nullable String tokenUsageJson, Instant at, @Nullable String fixed) {
         this.id = id;
         this.sessionId = sessionId;
         this.turn = turn;
@@ -63,10 +68,23 @@ public class ChatMessageEntity {
         this.toolCallsJson = toolCallsJson;
         this.tokenUsageJson = tokenUsageJson;
         this.at = at;
+        this.fixed = fixed;
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getSessionId() {
+        return sessionId;
+    }
+
+    public Instant getAt() {
+        return at;
+    }
+
+    public @Nullable String getFixed() {
+        return fixed;
     }
 
     public int getTurn() {

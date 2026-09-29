@@ -1,8 +1,10 @@
 package com.liorshaya.policypilot.web.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ToolCallReport;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -20,9 +22,21 @@ public final class ChatEventPayloads {
      * session's version and the call's time; for a decision or a simulation the outcome, the deciding rule and the
      * flags by code; a refused call names its reason, and has no outcome.
      */
-    public record Tool(String tool, @Nullable Integer applicationNumber, @Nullable String overrides,
-            @Nullable String tag, int versionNo, long micros, @Nullable String outcome,
-            @Nullable String decidingRuleId, List<String> flags, @Nullable String refused) {
+    public record Tool(
+            @JsonProperty(required = true)
+            @Schema(allowableValues = {"getDecision", "simulate", "getDecisionStats", "listRules"}) String tool,
+            @JsonProperty(required = true) @Schema(nullable = true) @Nullable Integer applicationNumber,
+            @JsonProperty(required = true) @Schema(nullable = true) @Nullable String overrides,
+            @JsonProperty(required = true) @Schema(nullable = true) @Nullable String tag,
+            @JsonProperty(required = true) int versionNo,
+            @JsonProperty(required = true) long micros,
+            @JsonProperty(required = true)
+            @Schema(nullable = true, allowableValues = {"approve", "reject", "refer", "error"}) @Nullable String outcome,
+            @JsonProperty(required = true) @Schema(nullable = true) @Nullable String decidingRuleId,
+            @JsonProperty(required = true) List<String> flags,
+            @JsonProperty(required = true)
+            @Schema(nullable = true, allowableValues = {"not_found", "invalid_arguments", "limit"})
+            @Nullable String refused) {
 
         public static Tool of(ToolCallReport call, int versionNo) {
             ToolCallReport.Decided decided = call.decided();
@@ -45,15 +59,19 @@ public final class ChatEventPayloads {
     }
 
     /** One source: a paragraph, a rule, a decision or a simulation. */
-    public record Cite(String id, String kind,
+    public record Cite(
+            @JsonProperty(required = true) String id,
+            @JsonProperty(required = true)
+            @Schema(allowableValues = {"PARAGRAPH", "RULE", "DECISION", "SIMULATION"}) String kind,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Integer paragraph,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String ruleId,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String label,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Integer applicationNumber,
-            @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String outcome,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(allowableValues = {"approve", "reject", "refer", "error"}) @Nullable String outcome,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String detail) {
 
-        static Cite of(ChatCitation citation) {
+        public static Cite of(ChatCitation citation) {
             return new Cite(citation.id(), citation.kind().name(), citation.paragraph(), citation.ruleId(),
                     citation.label(), citation.applicationNumber(), citation.outcome(), citation.detail());
         }

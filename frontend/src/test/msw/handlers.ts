@@ -259,6 +259,14 @@ export function twoRulesets(): RequestHandler[] {
 export const handlers: RequestHandler[] = [
   http.get(`${BASE}/system/provider`, () => HttpResponse.json(openAiProvider)),
   http.get(`${BASE}/system/budget`, () => HttpResponse.json(budgetOpen)),
+  // a sandbox that asked nothing yet (Document 2, GET /chat/sessions); a test that lists conversations serves its own
+  http.get(`${BASE}/chat/sessions`, () => HttpResponse.json({ sessions: [] })),
+  http.get(`${BASE}/chat/sessions/:id`, () =>
+    HttpResponse.json(
+      { code: 'NOT_FOUND', message: 'no such chat session', details: [], traceId: 't' },
+      { status: 404 },
+    ),
+  ),
   http.get(`${BASE}/policies`, () => HttpResponse.json(policies)),
   http.get(`${BASE}/policies/:id`, () => HttpResponse.json(seededPolicy)),
   http.post(`${BASE}/policies`, () => HttpResponse.json(seededPolicy, { status: 201 })),

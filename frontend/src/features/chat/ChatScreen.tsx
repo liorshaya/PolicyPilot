@@ -3,23 +3,39 @@ import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { useDemoStep } from '../demo/useDemoStep'
 import { Paragraph } from '../policy/Paragraph'
 import { publishedTarget } from '../../api/published'
-import { useBudget, useLastRun, usePolicy, useRulesets, useVersion } from '../../api/queries'
-import type { RuleSetDocument, RulesetSummary } from '../../api/types'
+import {
+  useBudget,
+  useChatSession,
+  useChatSessions,
+  useLastRun,
+  usePolicy,
+  useRulesets,
+  useVersion,
+} from '../../api/queries'
+import type {
+  ChatConversationResponse,
+  ChatSessionSummary,
+  RuleSetDocument,
+  RulesetSummary,
+} from '../../api/types'
 import {
   contentAttributes,
   directionOfText,
   isolated,
   type ContentLanguage,
 } from '../../shared/i18n/direction'
-import { durationText, timeOf } from '../../shared/i18n/time'
+import { dateTimeOf, durationText, timeOf } from '../../shared/i18n/time'
 import { SplitView } from '../../shared/layout/SplitView'
+import { useWide } from '../../shared/layout/useWide'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Actor, PERSON } from '../../shared/ui/Actor'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
 import { Counter } from '../../shared/ui/Field'
+import { Icon } from '../../shared/ui/Icon'
 import { Kbd } from '../../shared/ui/Kbd'
 import { Note } from '../../shared/ui/Note'
+import { Popover } from '../../shared/ui/Overlay'
 import { Provenance } from '../../shared/ui/Provenance'
 import { EmptyState, LoadingRows } from '../../shared/ui/States'
 import { DecisionTag, VersionTag } from '../../shared/ui/StatusTag'
@@ -50,12 +66,17 @@ const BUDGET = 'BUDGET_EXHAUSTED'
 /** The length of a question the API takes (Document 5, Input limits), which the composer counts against. */
 const QUESTION_LIMIT = 1000
 
+/** Which conversation the screen shows: a new one, counted so each is its own, or one read back to be resumed. */
+type Open = { kind: 'new'; count: number } | { kind: 'resume'; id: string }
+
 /**
  * The assistant (Document 2, Flow 3; the Register spec, section 09, "The assistant: a paper trail, read right to left").
  * Questions about a published version, answered with citations the API has checked. The thread reads in the version's
  * language inside the English chrome: marks on the reading-start side, each tool call a step line above the answer that
  * used it, citations after the punctuation and repeated in the sources strip, and the system's mark on a fixed sentence
- * and on a withheld answer. The model explains; the engine decided every outcome an answer reports.
+ * and on a withheld answer. The model explains; the engine decided every outcome an answer reports. The sandbox's
+ * earlier conversations stand beside the thread, each to be opened again as it was shown (GET /chat/sessions/{id}),
+ * and a new one can be started at any time.
  */
 export function ChatScreen({
   rulesetId = null,
@@ -80,9 +101,53 @@ export function ChatScreen({
   // Document 2, chat sessions: a session is opened on a PUBLISHED version. The workspace may be on a draft written a
   // moment ago (demo step 1), so the questions are asked of the first rule set that has a published version
   const target = publishedTarget(list, rulesetId)
+  const [open, setOpen] = useState<Open>({ kind: 'new', count: 0 })
+  const resumed = useChatSession(open.kind === 'resume' ? open.id : null)
+  const startNew = () =>
+    setOpen((current) => ({ kind: 'new', count: current.kind === 'new' ? current.count + 1 : 1 }))
+  const openConversation = (id: string) => setOpen({ kind: 'resume', id })
 
   if (rulesets.isPending) {
     return <LoadingRows label="Loading the rule sets" />
+  }
+  if (open.kind === 'resume') {
+    const ruleset = list.find((candidate) => candidate.id === resumed.data?.rulesetId)
+    if (resumed.isError || (resumed.data !== undefined && ruleset === undefined)) {
+      return (
+        <>
+          <WorkspaceHeader title="Assistant" />
+          <EmptyState
+            title="This conversation is no longer available"
+            description="Its session is gone; a new conversation asks about the published version."
+            action={<Button onClick={startNew}>New conversation</Button>}
+          />
+        </>
+      )
+    }
+    if (resumed.data === undefined || ruleset === undefined) {
+      return (
+        <>
+          <WorkspaceHeader title="Assistant" />
+          <LoadingRows label="Loading the conversation" />
+        </>
+      )
+    }
+    return (
+      <Conversation
+        key={`resume:${open.id}`}
+        ruleset={ruleset}
+        elsewhere={false}
+        target={{ rulesetId: resumed.data.rulesetId, versionNo: resumed.data.versionNo }}
+        resumed={resumed.data}
+        onOpenRule={onOpenRule}
+        onOpenCases={onOpenCases}
+        onOpenCase={onOpenCase}
+        onOpenConversation={openConversation}
+        onNewConversation={startNew}
+        demoAsked={demoAsked}
+        onDemoHandled={onDemoHandled}
+      />
+    )
   }
   if (target === null) {
     return (
@@ -97,14 +162,17 @@ export function ChatScreen({
   }
   return (
     <Conversation
-      // a new version is a new session, with a conversation of its own
-      key={`${target.ruleset.id}:${String(target.versionNo)}`}
+      // a new version is a new session, with a conversation of its own, and so is each conversation started anew
+      key={`new:${String(open.count)}:${target.ruleset.id}:${String(target.versionNo)}`}
       ruleset={target.ruleset}
       elsewhere={target.elsewhere}
       target={{ rulesetId: target.ruleset.id, versionNo: target.versionNo }}
+      resumed={null}
       onOpenRule={onOpenRule}
       onOpenCases={onOpenCases}
       onOpenCase={onOpenCase}
+      onOpenConversation={openConversation}
+      onNewConversation={startNew}
       demoAsked={demoAsked}
       onDemoHandled={onDemoHandled}
     />
@@ -122,9 +190,12 @@ function Conversation({
   ruleset,
   elsewhere,
   target,
+  resumed,
   onOpenRule,
   onOpenCases,
   onOpenCase,
+  onOpenConversation,
+  onNewConversation,
   demoAsked,
   onDemoHandled,
 }: {
@@ -132,13 +203,25 @@ function Conversation({
   /** The workspace is on a rule set with no published version; the questions are about this one instead. */
   elsewhere: boolean
   target: ChatTarget
+  /** The conversation read back to be resumed, or null for a new one. */
+  resumed: ChatConversationResponse | null
   onOpenRule: (ruleId: string) => void
   onOpenCases: () => void
   onOpenCase?: (decisionId: string) => void
+  /** Opens an earlier conversation of the sandbox as it was shown. */
+  onOpenConversation: (id: string) => void
+  /** Starts a new conversation, on the workspace's published version. */
+  onNewConversation: () => void
   demoAsked: boolean
   onDemoHandled?: () => void
 }) {
-  const chat = useChat(target)
+  const chat = useChat(target, resumed)
+  // the sandbox's conversations, beside the thread on a wide window and in a popover from the toolbar below 1200px
+  const sessions = useChatSessions()
+  const wide = useWide()
+  const [listAnchor, setListAnchor] = useState<HTMLElement | null>(null)
+  // "New conversation" in a conversation that has no question yet only asks for the question
+  const [focusKey, setFocusKey] = useState(0)
   // the log follows the newest turn: a question asked, and its answer as it arrives, unless the reader has scrolled up
   const scrollRef = useRef<HTMLDivElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
@@ -199,6 +282,30 @@ function Conversation({
     }
   }
 
+  function startNew() {
+    setListAnchor(null)
+    if (resumed === null && chat.exchanges.length === 0) {
+      setFocusKey((key) => key + 1)
+    } else {
+      onNewConversation()
+    }
+  }
+
+  const conversations = (
+    <ConversationList
+      sessions={sessions.data ?? []}
+      currentId={chat.sessionId}
+      onOpen={(id) => {
+        setListAnchor(null)
+        if (id !== chat.sessionId) {
+          onOpenConversation(id)
+        }
+      }}
+      onNew={startNew}
+    />
+  )
+  const count = sessions.data?.length ?? 0
+
   return (
     <>
       <WorkspaceHeader
@@ -213,99 +320,139 @@ function Conversation({
       />
       <SplitView
         fill
-        sideOpen={shownParagraph !== undefined}
-        sideLabel={shownParagraph ? `Paragraph ${String(shownParagraph.index)}` : undefined}
+        sideOpen={wide || shownParagraph !== undefined}
+        sideLabel={shownParagraph ? `Paragraph ${String(shownParagraph.index)}` : 'Conversations'}
         side={
-          shownParagraph ? (
-            <section className="margin__section">
-              <div className="margin__title">
-                <span>
-                  Policy{' '}
-                  <Chip kind="para" active>
-                    {shownParagraph.index}
-                  </Chip>
-                </span>
-                <Button variant="link" onClick={() => setOpenParagraph(null)}>
-                  Close
-                </Button>
-              </div>
-              <Paragraph
-                index={shownParagraph.index}
-                text={shownParagraph.text}
-                language={policy.data?.language === 'he' ? 'he' : 'en'}
-                cited
-              />
-            </section>
-          ) : undefined
+          <>
+            {shownParagraph ? (
+              <section className="margin__section">
+                <div className="margin__title">
+                  <span>
+                    Policy{' '}
+                    <Chip kind="para" active>
+                      {shownParagraph.index}
+                    </Chip>
+                  </span>
+                  <Button variant="link" onClick={() => setOpenParagraph(null)}>
+                    Close
+                  </Button>
+                </div>
+                <Paragraph
+                  index={shownParagraph.index}
+                  text={shownParagraph.text}
+                  language={policy.data?.language === 'he' ? 'he' : 'en'}
+                  cited
+                />
+              </section>
+            ) : null}
+            {wide ? (
+              <section className="margin__section" aria-label="Conversations">
+                <div className="margin__title">
+                  <span>Conversations</span>
+                  {count > 0 ? <span className="quiet tabular">{count}</span> : null}
+                </div>
+                {conversations}
+              </section>
+            ) : null}
+          </>
         }
         main={
-          <section className="thread" dir={chat.language === 'he' ? 'rtl' : 'ltr'}>
-            <div className="thread__scroll" ref={scrollRef}>
-              {elsewhere ? (
-                <Note>
-                  The rule set on the workspace has no published version yet; the questions are
-                  about the seeded one.
-                </Note>
-              ) : null}
-              <div
-                ref={logRef}
-                className="thread__log"
-                role="log"
-                aria-label="Conversation"
-                aria-live="polite"
-                {...contentAttributes(chat.language)}
+          <>
+            {listAnchor ? (
+              // outside the thread, which reads right to left: the popover is English chrome
+              <Popover
+                anchor={listAnchor}
+                label="Conversations"
+                align="start"
+                onClose={() => setListAnchor(null)}
               >
-                {chat.exchanges.map((exchange) => (
-                  <Exchange
-                    key={exchange.id}
-                    exchange={exchange}
-                    language={chat.language}
-                    versionNo={target.versionNo}
-                    opens={opens}
+                <div className="conversations--popover">{conversations}</div>
+              </Popover>
+            ) : null}
+            <section className="thread" dir={chat.language === 'he' ? 'rtl' : 'ltr'}>
+              {wide ? null : (
+                <div className="toolbar thread__toolbar">
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    aria-expanded={listAnchor !== null}
+                    onClick={(event) => setListAnchor(listAnchor ? null : event.currentTarget)}
+                  >
+                    {count > 0 ? `Conversations · ${String(count)}` : 'Conversations'}
+                  </Button>
+                  <Button variant="secondary" size="sm" icon="plus" onClick={startNew}>
+                    New conversation
+                  </Button>
+                </div>
+              )}
+              <div className="thread__scroll" ref={scrollRef}>
+                {elsewhere ? (
+                  <Note>
+                    The rule set on the workspace has no published version yet; the questions are
+                    about the seeded one.
+                  </Note>
+                ) : null}
+                <div
+                  ref={logRef}
+                  className="thread__log"
+                  role="log"
+                  aria-label="Conversation"
+                  aria-live="polite"
+                  {...contentAttributes(chat.language)}
+                >
+                  {chat.exchanges.map((exchange) => (
+                    <Exchange
+                      key={exchange.id}
+                      exchange={exchange}
+                      language={chat.language}
+                      versionNo={target.versionNo}
+                      opens={opens}
+                    />
+                  ))}
+                </div>
+                {chat.exchanges.length === 0 && !chat.openFailure ? (
+                  <Opening
+                    ruleset={ruleset}
+                    target={target}
+                    paragraphs={policy.data === undefined ? null : paragraphs.length}
+                    onChoose={setQuestion}
                   />
-                ))}
+                ) : null}
               </div>
-              {chat.exchanges.length === 0 && !chat.openFailure ? (
-                <Opening
-                  ruleset={ruleset}
-                  target={target}
-                  paragraphs={policy.data === undefined ? null : paragraphs.length}
-                  onChoose={setQuestion}
+              <div className="thread__foot">
+                <Composer
+                  question={question}
+                  language={chat.language}
+                  busy={chat.streaming}
+                  disabled={!chat.ready || chat.streaming || question.trim() === ''}
+                  focusKey={focusKey}
+                  onChange={setQuestion}
+                  onSubmit={submit}
                 />
-              ) : null}
-            </div>
-            <div className="thread__foot">
-              <Composer
-                question={question}
-                language={chat.language}
-                busy={chat.streaming}
-                disabled={!chat.ready || chat.streaming || question.trim() === ''}
-                onChange={setQuestion}
-                onSubmit={submit}
-              />
-              {budget.data?.spent || spentNow ? (
-                <Note tone="warning" label="Budget">
-                  {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
-                </Note>
-              ) : null}
-              {failure !== undefined &&
-              failure !== null &&
-              failure !== BUDGET &&
-              failure !== WITHHELD ? (
-                <Note tone="error">
-                  {failureText(failure)}
-                  {last?.status === 'failed' ? (
-                    <>
-                      {' '}
-                      <Button variant="link" onClick={chat.retry}>
-                        Try again
-                      </Button>
-                    </>
-                  ) : null}
-                </Note>
-              ) : null}
-            </div>
-          </section>
+                {budget.data?.spent || spentNow ? (
+                  <Note tone="warning" label="Budget">
+                    {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
+                  </Note>
+                ) : null}
+                {failure !== undefined &&
+                failure !== null &&
+                failure !== BUDGET &&
+                failure !== WITHHELD ? (
+                  <Note tone="error">
+                    {failureText(failure)}
+                    {last?.status === 'failed' ? (
+                      <>
+                        {' '}
+                        <Button variant="link" onClick={chat.retry}>
+                          Try again
+                        </Button>
+                      </>
+                    ) : null}
+                  </Note>
+                ) : null}
+              </div>
+            </section>
+          </>
         }
       />
     </>
@@ -362,6 +509,55 @@ function Opening({
 }
 
 /**
+ * The sandbox's conversations (the spec, section 09, v3.3), newest first as the API lists them: New conversation first,
+ * then each conversation named by its first question in its own language, with its version, its count of questions and
+ * when it last answered in the mono; the open one is marked.
+ */
+function ConversationList({
+  sessions,
+  currentId,
+  onOpen,
+  onNew,
+}: {
+  sessions: ChatSessionSummary[]
+  currentId: string | null
+  onOpen: (id: string) => void
+  onNew: () => void
+}) {
+  return (
+    <ul className="conversations">
+      <li>
+        <button type="button" className="conversation conversation--new" onClick={onNew}>
+          <Icon name="plus" />
+          New conversation
+        </button>
+      </li>
+      {sessions.map((session) => {
+        const asked: ContentLanguage =
+          directionOfText(session.firstQuestion) === 'rtl' ? 'he' : 'en'
+        return (
+          <li key={session.id}>
+            <button
+              type="button"
+              className="conversation"
+              aria-current={session.id === currentId ? 'true' : undefined}
+              onClick={() => onOpen(session.id)}
+            >
+              <span className="conversation__q" {...contentAttributes(asked)}>
+                {session.firstQuestion}
+              </span>
+              <span className="conversation__meta">
+                {`v${String(session.versionNo)} · ${String(session.turns)} question${session.turns === 1 ? '' : 's'} · ${dateTimeOf(session.lastAt)}`}
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/**
  * The composer, the sheet's foot (the spec, section 09, v3.3): one box that holds the question, which grows with it to
  * a few lines, the keys that ask it, the count against the API's limit and the one primary action of the screen.
  * Enter asks; Shift+Enter breaks the line.
@@ -371,6 +567,7 @@ function Composer({
   language,
   busy,
   disabled,
+  focusKey,
   onChange,
   onSubmit,
 }: {
@@ -378,10 +575,17 @@ function Composer({
   language: ContentLanguage
   busy: boolean
   disabled: boolean
+  /** Counts the requests to take the focus, each one bringing the question's box into focus. */
+  focusKey: number
   onChange: (question: string) => void
   onSubmit: (event: FormEvent) => void
 }) {
   const fieldRef = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (focusKey > 0) {
+      fieldRef.current?.focus()
+    }
+  }, [focusKey])
   // the box grows with the question and shrinks back, up to the height the stylesheet caps it at
   useLayoutEffect(() => {
     const element = fieldRef.current

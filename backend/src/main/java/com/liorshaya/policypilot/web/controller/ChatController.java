@@ -14,8 +14,10 @@ import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorEnvelope;
 import com.liorshaya.policypilot.web.request.ChatMessageRequest;
 import com.liorshaya.policypilot.web.request.OpenChatRequest;
+import com.liorshaya.policypilot.web.response.ChatConversationResponse;
 import com.liorshaya.policypilot.web.response.ChatEventPayloads;
 import com.liorshaya.policypilot.web.response.ChatSessionResponse;
+import com.liorshaya.policypilot.web.response.ChatSessionsResponse;
 import com.liorshaya.policypilot.web.security.SandboxSession;
 import com.liorshaya.policypilot.web.security.StreamRegistry;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,7 +48,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * the caller's sandbox, and {@code POST /api/v1/chat/sessions/{id}/messages} answers a question as an event stream, a
  * {@code tool} event for each tool call as it ends, {@code token} events, then {@code citations}, {@code usage} and
  * {@code done} with the fixed sentence the answer is, if it is one, or {@code error} in their place. A chat stream is
- * not resumable; the web app offers a retry.
+ * not resumable; the web app offers a retry. {@code GET /api/v1/chat/sessions} lists the sandbox's conversations and
+ * {@code GET /api/v1/chat/sessions/{id}} reads one back as it was shown (added 2026-09-29).
  */
 @RestController
 public class ChatController {
@@ -85,6 +89,29 @@ public class ChatController {
         } catch (VersionStatusException e) {
             throw new ApiException(ErrorCode.VERSION_STATUS_CONFLICT);
         }
+    }
+
+    @Operation(summary = "The conversations of this sandbox, newest first")
+    @ApiResponse(responseCode = "200",
+            description = "Each session that holds at least one turn, named by its first question",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ChatSessionsResponse.class)))
+    @GetMapping(value = ApiPaths.CHAT_SESSIONS, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ChatSessionsResponse conversations(@AuthenticationPrincipal SandboxSession session) {
+        return ChatSessionsResponse.of(chat.conversations(session.sandboxId()));
+    }
+
+    @Operation(summary = "A conversation as it was shown: its version, its language and its turns")
+    @ApiResponse(responseCode = "200", description = "The session, its version and its turns, oldest first",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ChatConversationResponse.class)))
+    @ApiResponse(responseCode = "404", description = "No such chat session in this sandbox",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorEnvelope.class)))
+    @GetMapping(value = ApiPaths.CHAT_SESSION, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ChatConversationResponse conversation(@PathVariable UUID id,
+            @AuthenticationPrincipal SandboxSession session) {
+        return chat.conversation(id, session.sandboxId()).map(ChatConversationResponse::of)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 
     @Operation(summary = "Ask a question in a session, answered as a stream of events")

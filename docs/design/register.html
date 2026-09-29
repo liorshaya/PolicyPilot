@@ -653,6 +653,15 @@ td.t-prio { font-family: var(--font-mono); }
 .composer__bar { display: flex; align-items: center; gap: 12px; padding: 6px 8px 8px 14px; direction: ltr; }
 .composer__hint { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--ink-3); }
 .composer__bar .counter { margin-inline-start: auto; }
+/* The sandbox's conversations, in the margin or in a popover: the first question names each, the current one is marked, the first row opens a new one. */
+.conversations { list-style: none; margin: 0; padding: 0; display: grid; }
+.conversation { display: grid; gap: 4px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--hairline); border-radius: 0; background: transparent; color: var(--ink); text-align: start; cursor: pointer; }
+.conversation:hover { background: var(--well); }
+.conversation[aria-current='true'] { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
+.conversation__q { font-family: var(--font-he); font-size: var(--text-sm); font-weight: 500; line-height: var(--leading-he); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.conversation__meta { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conversation--new { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 500; color: var(--accent-text); }
+.conversation--new svg { width: 12px; height: 12px; }
 .streaming::after { content: ''; display: inline-block; width: 7px; height: 14px; background: var(--ink); margin-inline-start: 3px; vertical-align: -2px; animation: blink 1s steps(2, start) infinite; }
 @keyframes blink { to { visibility: hidden; } }
 
@@ -1933,6 +1942,18 @@ td.t-prio { font-family: var(--font-mono); }
         </div>
       </div>
     </div>
+    <p class="spec-p">The sandbox's conversations stand in the margin, newest first by their last answer: each row the first question in its own language, then its version, its count of questions and when it last answered, in the mono; the open conversation on the accent wash with the accent bar, as an open document is. The first row is <b>New conversation</b>. A conversation opened again reads as it was shown and asks on in its own session, on its own version, which the header names. Below 1200px, where the margin is a drawer, the list opens in a popover from <b>Conversations</b> in the sheet's toolbar, with New conversation beside it; the cited paragraph keeps the margin.</p>
+    <div class="spec-frame" style="max-width: 360px">
+      <section class="margin__section" aria-label="Conversations">
+        <div class="margin__title"><span>Conversations</span></div>
+        <ul class="conversations">
+          <li><button type="button" class="conversation conversation--new"><svg><use href="#i-plus"/></svg>New conversation</button></li>
+          <li><button type="button" class="conversation" aria-current="true"><span class="conversation__q" lang="he" dir="rtl">למה בקשה מספר <bdi>17</bdi> הופנתה לבדיקה?</span><span class="conversation__meta">v1 · 3 questions · 2026-09-29 14:32</span></button></li>
+          <li><button type="button" class="conversation"><span class="conversation__q" lang="he" dir="rtl">מהי תקופת ההחזר המקסימלית להלוואה?</span><span class="conversation__meta">v1 · 1 question · 2026-09-29 11:05</span></button></li>
+          <li><button type="button" class="conversation"><span class="conversation__q" lang="en" dir="ltr">What is the minimum age for a personal loan?</span><span class="conversation__meta">v2 · 2 questions · 2026-09-28 17:58</span></button></li>
+        </ul>
+      </section>
+    </div>
     <ul class="spec-list">
       <li><strong>Marks on the reading-start side, a head line beside each:</strong> the person asks ("Analyst", the one role the product records), the model answers with the count of its tool calls beside its word, the system speaks for the fixed sentence and for a withheld answer, the engine's square appears wherever an outcome came from a real run. The word beside the mark, never a bubble and never an avatar.</li>
       <li><strong>The sheet is a column:</strong> the log scrolls on its own, its turns in one column of 880px at most, centred; the composer is the sheet's foot on paper, one box that holds the question, the keys that ask it and the count against the limit; the notes stand under the box. Before the first question the log holds the opening: the rule set's name, the version's line, the demo's questions on ruled rows.</li>
@@ -2467,7 +2488,7 @@ td.t-prio { font-family: var(--font-mono); }
         <tr><td>Policies</td><td>Still rows; "Loading the policy"</td><td>"No policy open" on the ruled lines; Add policy</td><td>Generate rules → four stages, each with its count, and the run's time → the dashed draft note → Review the draft</td><td>RULESET_INVALID refusal with pointers and "What the model proposed" · POLICY_INVALID (40 KB / 200 paragraphs) · PAYLOAD_TOO_LARGE (2 MB) · PROVIDER_UNAVAILABLE · RATE_LIMITED</td><td>Seeded document: read-only status; "Generate rules for this policy first" beside a disabled Open its rules</td></tr>
         <tr><td>Rules</td><td>Still rows; "Loading the rule set"</td><td>"No rule set yet" · Generate rules from the policy</td><td>Edit a cell (draft) · Review the draft / Run the review again · Acknowledge with a reason or a resolution · Publish version n</td><td>422 on a cell: the bubble under the cell; VERSION_STATUS_CONFLICT: "Only a draft is published"</td><td>Published or seeded: no cell affordance, "Seeded, read-only"; stale review: "The draft was edited after its review; run the review again."</td></tr>
         <tr><td>Cases</td><td>Still rows; the figures show dashes</td><td>"Nothing decided yet." · Run 200 cases</td><td>Run → the outcome row and the list refresh; open a row → the trace; Explain for an officer / the applicant, Copy for the letter; Decide a case → its trace; Export a trace</td><td>Evaluation error rows in ink, their code in the trace they open; "No explanation was written; the trace below is the whole of the decision."; a case the schema refuses is refused whole (<span class="mono">CASE_INVALID</span>), the field named under its input, nothing stored</td><td>"This rule set has no published version yet; the cases ran on the seeded one."</td></tr>
-        <tr><td>Assistant</td><td>The caret; tool steps appear as they run</td><td>The opening: the rule set's name, the version's line, the three scripted questions as quiet buttons on ruled rows; the composer at the foot</td><td>Ask → streamed answer with citations → sources strip</td><td>The fixed not-covered sentence (system mark) · "The answer was withheld because it contained something that must not be shown." · RATE_LIMITED · PROVIDER_UNAVAILABLE · budget spent: the note says when it resumes, the composer stays enabled and a scripted question is answered from the cache</td><td>"This version is still being indexed for questions. Try again in a moment."</td></tr>
+        <tr><td>Assistant</td><td>The caret; tool steps appear as they run</td><td>The opening: the rule set's name, the version's line, the three scripted questions as quiet buttons on ruled rows; the composer at the foot; the conversations in the margin, New conversation first</td><td>Ask → streamed answer with citations → sources strip</td><td>The fixed not-covered sentence (system mark) · "The answer was withheld because it contained something that must not be shown." · RATE_LIMITED · PROVIDER_UNAVAILABLE · budget spent: the note says when it resumes, the composer stays enabled and a scripted question is answered from the cache</td><td>"This version is still being indexed for questions. Try again in a moment."</td></tr>
         <tr><td>Change</td><td>Four stages; rules considered under the first</td><td>The request field and Propose the change</td><td>Proposal → diff → regression → note → Approve and publish vn / Reject → the seal and the sentence</td><td>RULESET_INVALID with "What the model proposed" · VERSION_STATUS_CONFLICT ("Only a published version that has finished indexing takes a change.") · decision refused: "The version it was proposed on is no longer the latest…"</td><td>A change on the seeded rule set publishes into the sandbox's copy, and the screen says so beside the primary</td></tr>
         <tr><td>Audit log</td><td>Still rows</td><td>"Nothing recorded yet" on the ruled lines</td><td>Filter by version; expand an approval; Compare two versions</td><td>—</td><td>Reset entries with the system mark; "Choose two different versions."</td></tr>
       </tbody>

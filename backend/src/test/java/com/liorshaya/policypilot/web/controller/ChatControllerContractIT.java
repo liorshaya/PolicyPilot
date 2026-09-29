@@ -17,13 +17,16 @@ import org.junit.jupiter.api.Test;
 /**
  * The chat routes against the OpenAPI document the API serves (Document 2, API Surface: {@code POST /chat/sessions}
  * with {@code {rulesetId, versionNo}}, 201, 404 for a version the sandbox cannot see, 409 for a DRAFT; the messages
- * route's refusals before any stream opens). The streams themselves are ChatStreamIT's.
+ * route's refusals before any stream opens; {@code GET /chat/sessions} and {@code GET /chat/sessions/{id}}, added
+ * 2026-09-29, for a sandbox that asked nothing yet and for another sandbox's session). The streams themselves, and
+ * the conversations they leave behind, are ChatStreamIT's.
  */
 @Requirement("FR-13")
 class ChatControllerContractIT extends ApiIntegrationTest {
 
     private static final String SESSIONS = "/api/v1/chat/sessions";
     private static final String MESSAGES = "/api/v1/chat/sessions/{id}/messages";
+    private static final String SESSION = "/api/v1/chat/sessions/{id}";
 
     private String session;
     private OpenApiContract contract;
@@ -105,6 +108,49 @@ class ChatControllerContractIT extends ApiIntegrationTest {
 
         assertThat(asked.statusCode()).isEqualTo(400);
         assertThat(contract.violations("post", MESSAGES, 400, asked.body())).isEmpty();
+    }
+
+    // Document 2, GET /chat/sessions: a session opened and never asked is not a conversation. Expected: the served
+    // document, and no session listed
+    @Test
+    void theConversationsOfASandboxThatAskedNothingMatchTheDocumented200() {
+        open(seeded, 1);
+
+        HttpResponse<String> listed = api().get(SESSIONS).cookie(session).send();
+
+        assertThat(listed.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", SESSIONS, 200, listed.body())).isEmpty();
+        assertThat((List<?>) JsonPath.read(listed.body(), "$.sessions")).isEmpty();
+    }
+
+    // Document 2, GET /chat/sessions/{id}: a session with no turn yet reads back with none. Expected: the served
+    // document, the lending rule set's language, version 1 and no turn
+    @Test
+    void readingASessionMatchesTheDocumented200() {
+        String chat = JsonPath.read(open(seeded, 1).body(), "$.id");
+
+        HttpResponse<String> read = api().get(SESSION.replace("{id}", chat)).cookie(session).send();
+
+        assertThat(read.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", SESSION, 200, read.body())).isEmpty();
+        assertThat((String) JsonPath.read(read.body(), "$.id")).isEqualTo(chat);
+        assertThat((String) JsonPath.read(read.body(), "$.rulesetId")).isEqualTo(seeded);
+        assertThat((String) JsonPath.read(read.body(), "$.language")).isEqualTo("he");
+        assertThat((Integer) JsonPath.read(read.body(), "$.versionNo")).isEqualTo(1);
+        assertThat((List<?>) JsonPath.read(read.body(), "$.turns")).isEmpty();
+    }
+
+    // Document 5, Authorization (sandbox): another sandbox's session reads as absent. Expected: 404, the envelope
+    @Test
+    void readingAnotherSandboxsSessionMatchesTheDocumented404() {
+        String chat = JsonPath.read(open(seeded, 1).body(), "$.id");
+        String stranger = api().login("198.51.100.7");
+
+        HttpResponse<String> read = api().get(SESSION.replace("{id}", chat)).cookie(stranger).send();
+
+        assertThat(read.statusCode()).isEqualTo(404);
+        assertThat(contract.violations("get", SESSION, 404, read.body())).isEmpty();
+        assertThat((String) JsonPath.read(read.body(), "$.code")).isEqualTo("NOT_FOUND");
     }
 
     private HttpResponse<String> open(String rulesetId, int versionNo) {

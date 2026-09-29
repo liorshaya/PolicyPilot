@@ -23,6 +23,7 @@ public final class ApiPaths {
     public static final String RULESET_VERSION_CHANGES = RULESET_VERSION + "/changes";
     public static final String RULESET_VERSION_DIFF = RULESETS + "/{id}/versions/{a}/diff/{b}";
     public static final String CHAT_SESSIONS = V1 + "/chat/sessions";
+    public static final String CHAT_SESSION = CHAT_SESSIONS + "/{id}";
     public static final String CHAT_MESSAGES = CHAT_SESSIONS + "/{id}/messages";
     public static final String CHANGES = V1 + "/changes";
     public static final String CHANGE_APPROVE = CHANGES + "/{id}/approve";

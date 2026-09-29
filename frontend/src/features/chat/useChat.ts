@@ -1,15 +1,20 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { api, ApiError } from '../../api/client'
+import { keys } from '../../api/queries'
 import { openSse } from '../../api/sse'
+import type { ChatConversationResponse } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { chatReducer } from './chatReducer'
+import { exchangesOf } from './history'
 import type { ChatCitation, ChatExchange, ChatToolCall, FixedAnswer } from './types'
 
 /**
  * A chat session and its streams (Document 2: POST /chat/sessions opens one bound to a version; each question is an
  * event stream of tool calls, tokens, citations and the end). The hook opens the session for the version it is given,
  * asks one question at a time, and turns each event into the conversation's state. A chat stream is not resumable, so
- * a failed answer is asked again.
+ * a failed answer is asked again. Given a conversation read back from the API (GET /chat/sessions/{id}), the hook
+ * opens no session of its own: the thread starts as the conversation was shown and asks on in its session.
  */
 
 export interface ChatTarget {
@@ -20,6 +25,8 @@ export interface ChatTarget {
 export interface Chat {
   /** Whether the session is open and a question may be asked. */
   ready: boolean
+  /** The session's id once it is open, which the list of conversations marks as the open one. */
+  sessionId: string | null
   /** Why the session could not be opened, as the API's error code. */
   openFailure: string | null
   language: ContentLanguage
@@ -29,33 +36,41 @@ export interface Chat {
   retry: () => void
 }
 
-export function useChat(target: ChatTarget): Chat {
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [language, setLanguage] = useState<ContentLanguage>('en')
+export function useChat(target: ChatTarget, resumed: ChatConversationResponse | null = null): Chat {
+  const client = useQueryClient()
+  const [sessionId, setSessionId] = useState<string | null>(() => resumed?.id ?? null)
+  const [language, setLanguage] = useState<ContentLanguage>(() =>
+    resumed?.language === 'he' ? 'he' : 'en',
+  )
   const [openFailure, setOpenFailure] = useState<string | null>(null)
-  const [exchanges, dispatch] = useReducer(chatReducer, [])
+  const [exchanges, dispatch] = useReducer(chatReducer, resumed, (conversation) =>
+    conversation === null ? [] : exchangesOf(conversation),
+  )
   const abortRef = useRef<AbortController | null>(null)
+  const resumedId = resumed?.id ?? null
 
   useEffect(() => {
     let current = true
-    api
-      .openChat(target.rulesetId, target.versionNo)
-      .then((session) => {
-        if (current) {
-          setSessionId(session.id ?? null)
-          setLanguage(session.language === 'he' ? 'he' : 'en')
-        }
-      })
-      .catch((error: unknown) => {
-        if (current) {
-          setOpenFailure(error instanceof ApiError ? error.code : 'PROVIDER_UNAVAILABLE')
-        }
-      })
+    if (resumedId === null) {
+      api
+        .openChat(target.rulesetId, target.versionNo)
+        .then((session) => {
+          if (current) {
+            setSessionId(session.id ?? null)
+            setLanguage(session.language === 'he' ? 'he' : 'en')
+          }
+        })
+        .catch((error: unknown) => {
+          if (current) {
+            setOpenFailure(error instanceof ApiError ? error.code : 'PROVIDER_UNAVAILABLE')
+          }
+        })
+    }
     return () => {
       current = false
       abortRef.current?.abort()
     }
-  }, [target.rulesetId, target.versionNo])
+  }, [target.rulesetId, target.versionNo, resumedId])
 
   const stream = useCallback(
     (question: string) => {
@@ -79,6 +94,8 @@ export function useChat(target: ChatTarget): Chat {
               dispatch({ type: 'citations', citations: data.citations as ChatCitation[] })
             } else if (event.event === 'done') {
               dispatch({ type: 'done', fixed: (data.fixed ?? null) as FixedAnswer })
+              // the conversation holds one turn more, or is a conversation at last: the list reads it again
+              void client.invalidateQueries({ queryKey: keys.chatSessions })
             } else if (event.event === 'error') {
               dispatch({ type: 'failed', code: data.code as string })
             }
@@ -94,7 +111,7 @@ export function useChat(target: ChatTarget): Chat {
         }
       })()
     },
-    [sessionId],
+    [sessionId, client],
   )
 
   const ask = useCallback(
@@ -115,6 +132,7 @@ export function useChat(target: ChatTarget): Chat {
 
   return {
     ready: sessionId !== null,
+    sessionId,
     openFailure,
     language,
     exchanges,

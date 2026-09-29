@@ -642,6 +642,15 @@ td.t-prio { font-family: var(--font-mono); }
 .composer__bar { display: flex; align-items: center; gap: 12px; padding: 6px 8px 8px 14px; direction: ltr; }
 .composer__hint { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--ink-3); }
 .composer__bar .counter { margin-inline-start: auto; }
+/* The sandbox's conversations, in the margin or in a popover: the first question names each, the current one is marked, the first row opens a new one. */
+.conversations { list-style: none; margin: 0; padding: 0; display: grid; }
+.conversation { display: grid; gap: 4px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--hairline); border-radius: 0; background: transparent; color: var(--ink); text-align: start; cursor: pointer; }
+.conversation:hover { background: var(--well); }
+.conversation[aria-current='true'] { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
+.conversation__q { font-family: var(--font-he); font-size: var(--text-sm); font-weight: 500; line-height: var(--leading-he); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.conversation__meta { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conversation--new { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 500; color: var(--accent-text); }
+.conversation--new svg { width: 12px; height: 12px; }
 .streaming::after { content: ''; display: inline-block; width: 7px; height: 14px; background: var(--ink); margin-inline-start: 3px; vertical-align: -2px; animation: blink 1s steps(2, start) infinite; }
 @keyframes blink { to { visibility: hidden; } }
 
