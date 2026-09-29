@@ -164,12 +164,17 @@ describe('RulesScreen', () => {
     expect(within(tag).getAllByRole('option')[0]).toHaveTextContent('All tags')
     const margin = screen.getByRole('group', { name: 'Show in the margin' })
     expect(margin).toHaveClass('segment')
+    // the tabs stand at the margin's head, not in the sheet's title row (the spec, section 08, v3.6)
+    expect(screen.getByRole('complementary')).toContainElement(margin)
+    expect(
+      screen.getByRole('heading', { name: 'Decision table' }).closest('.sec'),
+    ).not.toContainElement(margin)
     // a draft's margin opens on the review of its rules (the owner's answer of 2026-09-28 to phase 3's fifth question)
-    expect(within(margin).getByRole('button', { name: 'Rule' })).toHaveAttribute(
+    expect(within(margin).getByRole('button', { name: /^Review/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    expect(within(margin).getByRole('button', { name: 'Policy' })).toHaveAttribute(
+    expect(within(margin).getByRole('button', { name: 'Rule' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
@@ -469,7 +474,7 @@ describe('RulesScreen', () => {
       within(switcher)
         .getAllByRole('button')
         .map((one) => one.textContent),
-    ).toEqual(['Policy', 'Rule', 'Fields', 'JSON'])
+    ).toEqual(['Rule', 'Policy', 'Fields', 'JSON'])
     const fields = await screen.findByRole('region', { name: 'Fields' })
     expect(within(fields).getByText('9 case fields, 2 derived')).toBeInTheDocument()
     expect(within(switcher).getByRole('button', { name: 'Fields' })).toHaveAttribute(
@@ -680,6 +685,34 @@ describe('RulesScreen, the review of a draft', () => {
     return row
   }
 
+  // the spec, section 08 (v3.6): the Rule tab with no row chosen asks for one, rather than show the policy
+  it('asks for a row on the Rule tab while none is chosen, and offers the Review tab with its count on a draft', async () => {
+    const user = userEvent.setup()
+    serveReviewed()
+    renderScreen()
+
+    await screen.findByRole('region', { name: 'Review of the draft' })
+    const tabs = screen.getByRole('group', { name: 'Show in the margin' })
+    expect(
+      within(tabs)
+        .getAllByRole('button')
+        .map((one) => one.textContent),
+    ).toEqual(['Review3', 'Rule', 'Policy', 'Fields', 'JSON'])
+    expect(
+      within(tabs)
+        .getByRole('button', { name: /^Review/ })
+        .querySelector('.count'),
+    ).toHaveTextContent('3')
+
+    await user.click(within(tabs).getByRole('button', { name: 'Rule' }))
+
+    const rule = await screen.findByRole('region', { name: 'Rule' })
+    expect(rule).toHaveTextContent(
+      'Choose a row of the table to see the rule, its source and its findings',
+    )
+    expect(screen.queryByRole('region', { name: 'Review of the draft' })).not.toBeInTheDocument()
+  })
+
   it('marks the rows of the rules each finding names', async () => {
     serveReviewed()
     renderScreen()
@@ -731,7 +764,7 @@ describe('RulesScreen, the review of a draft', () => {
     const margin = within(await screen.findByRole('complementary'))
     expect(await margin.findByRole('region', { name: 'Review of the draft' })).toBeInTheDocument()
     expect(margin.getByText('Publishing version 2')).toHaveClass('publish-box__row--head')
-    expect(screen.getByRole('button', { name: 'Rule' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^Review/ })).toHaveAttribute('aria-pressed', 'true')
 
     await user.click(within(rowOf('R-110')).getByRole('button', { name: /R-110/ }))
 
@@ -745,9 +778,12 @@ describe('RulesScreen, the review of a draft', () => {
       'Findings on this rule1 of 3',
     ])
 
+    expect(screen.getByRole('button', { name: 'Rule' })).toHaveAttribute('aria-pressed', 'true')
+
     await user.click(margin.getByRole('button', { name: 'All 3, in the review' }))
 
     expect(margin.getByRole('region', { name: 'Review of the draft' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Review/ })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('acknowledges a gap only with a resolution, and sends the one chosen', async () => {

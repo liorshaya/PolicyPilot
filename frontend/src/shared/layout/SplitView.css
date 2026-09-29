@@ -28,6 +28,7 @@
 .sheet__scroll {
   overflow: auto;
   min-height: 0;
+  position: relative;
 }
 .sheet > .table-scroll {
   flex: 1;
@@ -41,6 +42,7 @@
   flex-direction: column;
   min-width: 0;
   overflow: auto;
+  position: relative;
 }
 .margin__section {
   padding: 12px 0 16px;
@@ -64,6 +66,26 @@
 .margin__title .quiet {
   font-weight: 400;
   font-size: var(--text-xs);
+}
+.margin__tabs {
+  display: flex;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.margin__tabs .segment {
+  display: flex;
+  width: 100%;
+}
+.margin__tabs .btn {
+  flex: 1;
+  padding: 0 6px;
+}
+.margin__tabs .count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--refer-text);
 }
 .margin--sheet {
   padding: 16px 24px 16px 0;
@@ -94,6 +116,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  position: relative;
 }
 .sheet--fill > section > .table-scroll {
   flex: 1;

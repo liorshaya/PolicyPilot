@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 
 /**
  * The tables of layer 4 of the spec's register.css (the Register spec, section 07), carried into Table.css rule by rule:
@@ -13,5 +13,14 @@ describe('Table.css', () => {
 
     expect(tables.length).toBeGreaterThan(70)
     expect(unported(stylesheet('shared/ui/Table.css'), tables)).toEqual([])
+  })
+
+  // the spec, section 08 (v3.6): every scroller is a containing block, so a hidden label of the table, positioned,
+  // stays inside the scroll box's clip instead of stretching the page (the owner found the Rules page scrolling)
+  it("is a containing block, so nothing positioned inside the table's scroll box escapes its clip", () => {
+    expect(rule(stylesheet('shared/ui/Table.css'), '.table-scroll')).toMatchObject({
+      overflow: 'auto',
+      position: 'relative',
+    })
   })
 })

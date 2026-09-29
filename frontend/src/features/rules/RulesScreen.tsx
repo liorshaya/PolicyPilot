@@ -34,12 +34,16 @@ import { columnsOf, sinceOf, tagsOf, withEnabled, withLeaf } from './tableModel'
 import type { Leaf } from './cellGrammar'
 import './RulesScreen.css'
 
-type SidePanel = 'source' | 'rule' | 'fields' | 'json'
+type SidePanel = 'review' | 'rule' | 'source' | 'fields' | 'json'
 
-/** The margin's four views, as the switch names them (the spec, section 05: Policy · Rule · Fields · JSON). */
-const PANELS: [SidePanel, string][] = [
-  ['source', 'Policy'],
+/**
+ * The margin's tabs, as the spec names them (section 08, v3.6): the review, offered while the version is a draft or
+ * has a review, then the rule, the policy, the fields and the JSON.
+ */
+const TABS: [SidePanel, string][] = [
+  ['review', 'Review'],
   ['rule', 'Rule'],
+  ['source', 'Policy'],
   ['fields', 'Fields'],
   ['json', 'JSON'],
 ]
@@ -114,8 +118,6 @@ export function RulesScreen({
   // the margin's view as the reader chose it; until then, a draft or a reviewed version opens on its rules' review, and
   // any other on its fields until a rule is chosen, then on the paragraph the rule cites
   const [panel, setPanel] = useState<SidePanel | null>(null)
-  // "All n, in the review" goes back to the review over a chosen rule, until another rule is chosen
-  const [reviewing, setReviewing] = useState(false)
   const [asked, setAsked] = useState<number | null>(null)
   const document = shown?.ruleSet as RuleSetDocument | undefined
   const tags = document ? tagsOf(document) : []
@@ -144,10 +146,23 @@ export function RulesScreen({
   const blockers = draft ? publishBlockers(review) : []
   const gates = shown ? publishGates(shown, review, findings) : []
   const toAcknowledge = review?.findings.filter((finding) => finding.blocking).length ?? 0
+  // a draft, or a version with a review, opens on the review until a rule is chosen (the owner's answer of 2026-09-28
+  // to phase 3's fifth question); a version with no review opens on its fields until a rule is chosen, which opens on
+  // the paragraph it cites; the tabs of the margin choose otherwise (v3.6)
+  const reviewable = draft || review !== undefined
+  const chosenTab = panel === 'review' && !reviewable ? null : panel
   const view: SidePanel =
-    panel ?? (draft || review ? 'rule' : selectedRule !== undefined ? 'source' : 'fields')
-  const showsRule = view === 'rule' && selectedRule !== undefined && !reviewing
-  const showsReview = view === 'rule' && !showsRule && (draft || review !== undefined)
+    chosenTab ??
+    (reviewable
+      ? selectedRule !== undefined
+        ? 'rule'
+        : 'review'
+      : selectedRule !== undefined
+        ? 'source'
+        : 'fields')
+  const showsRule = view === 'rule' && selectedRule !== undefined
+  const showsReview = view === 'review' && reviewable
+  const tabs = reviewable ? TABS : TABS.filter(([id]) => id !== 'review')
   // what the rule decided in the last run on this rule set's published version, when the statistics name it
   const publishedNo = chosen ? latestPublished(chosen) : undefined
   const stats = useStats(
@@ -184,8 +199,7 @@ export function RulesScreen({
     setChosenRuleId(ruleId)
     setChipped(null)
     setAsked(null)
-    setReviewing(false)
-    if (view === 'json') {
+    if (view === 'json' || view === 'review') {
       setPanel('rule')
     } else if (view === 'fields') {
       // the rule opens where its version opens a chosen rule: its paragraph, or the rule on a draft
@@ -331,22 +345,6 @@ export function RulesScreen({
                       ))}
                     </select>
                   ) : null}
-                  <div className="segment" role="group" aria-label="Show in the margin">
-                    {PANELS.map(([id, label]) => (
-                      <Button
-                        key={id}
-                        variant="secondary"
-                        size="sm"
-                        aria-pressed={view === id}
-                        onClick={() => {
-                          setPanel(id)
-                          setReviewing(false)
-                        }}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
                 </>
               }
               flush
@@ -388,119 +386,169 @@ export function RulesScreen({
           </>
         }
         side={
-          view === 'json' ? (
-            <section className="margin__section" aria-label="Rule set JSON">
-              <div className="margin__title">
-                <span>Rule set JSON</span>
-                <span className="quiet">the document the engine runs, as it is stored</span>
-              </div>
-              <pre className="rules__json mono">{JSON.stringify(document ?? {}, null, 2)}</pre>
-            </section>
-          ) : view === 'fields' && document ? (
-            <FieldsPanel document={document} findings={findings} onShowParagraph={showParagraph} />
-          ) : showsReview && shown ? (
-            <>
-              <div className="sheet">
-                <div className="sheet__scroll">
-                  <ReviewPanel
-                    review={review}
-                    language={language}
-                    draft={draft}
-                    running={runReview.isPending}
-                    onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
-                    acknowledging={acknowledging}
-                    onAcknowledge={onAcknowledge}
-                    onSelectRule={(ruleId) => {
-                      openRule(ruleId)
-                      setPanel('rule')
-                    }}
-                    onShowParagraph={showParagraph}
-                    current={focusFindingId}
-                  />
-                </div>
-              </div>
-              <PublishBox
-                version={shown}
-                review={review}
-                findings={findings}
-                publishing={publish.isPending}
-                onPublish={() => publish.mutate(undefined, { onSuccess: setLatest })}
-                running={runReview.isPending}
-                onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
-                justPublished={publish.isSuccess}
-              />
-            </>
-          ) : showsRule && document && shown ? (
-            <RuleDrawer
-              rule={selectedRule}
-              language={language}
-              versionStatus={shown.status as VersionStatus}
-              paragraph={citedParagraph}
-              citedBy={document.rules
-                .filter(
-                  (rule) =>
-                    rule.provenance.kind === 'quoted' && rule.provenance.paragraph === citedIndex,
-                )
-                .map((rule) => rule.id)}
-              findings={findings.filter((finding) => finding.ruleIds.includes(selectedRule.id))}
-              reviewFindings={(review?.findings ?? []).filter((finding) =>
-                finding.ruleIds.includes(selectedRule.id),
-              )}
-              reviewTotal={review?.findings.length ?? 0}
-              editable={draft}
-              acknowledging={acknowledging}
-              onAcknowledge={onAcknowledge}
-              onSelectRule={openRule}
-              onShowParagraph={showParagraph}
-              decided={
-                topRule && stats.data
-                  ? { count: topRule.count, decisions: stats.data.decisions }
-                  : undefined
-              }
-              since={since}
-              onOpenReview={
-                review
-                  ? () => {
-                      setReviewing(true)
-                      setPanel('rule')
-                    }
-                  : undefined
-              }
-              onToggleEnabled={
-                draft
-                  ? (enabled) =>
-                      replaceRules.mutate(withEnabled(document, selectedRule.id, enabled), {
-                        onSuccess: setLatest,
-                      })
-                  : undefined
-              }
+          <>
+            <MarginTabs
+              tabs={tabs}
+              current={view}
+              count={review?.findings.length ?? 0}
+              onChoose={setPanel}
             />
-          ) : (
-            <section className="margin__section" aria-label="Policy">
-              <div className="margin__title">
-                <span>Policy</span>
-                <span className="quiet">
-                  {asked !== null
-                    ? `Paragraph ${String(asked)}, which a finding of the review names`
-                    : selectedRule?.provenance.kind === 'quoted'
-                      ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
-                      : 'Choose a rule to see the paragraph it cites'}
-                </span>
-              </div>
-              {policy.data ? (
-                <PolicyText
-                  language={policy.data.language as ContentLanguage}
-                  paragraphs={paragraphs}
-                  highlighted={highlighted}
+            {view === 'json' ? (
+              <section className="margin__section" aria-label="Rule set JSON">
+                <div className="margin__title">
+                  <span>Rule set JSON</span>
+                  <span className="quiet">the document the engine runs, as it is stored</span>
+                </div>
+                <pre className="rules__json mono">{JSON.stringify(document ?? {}, null, 2)}</pre>
+              </section>
+            ) : view === 'fields' && document ? (
+              <FieldsPanel
+                document={document}
+                findings={findings}
+                onShowParagraph={showParagraph}
+              />
+            ) : showsReview && shown ? (
+              <>
+                <div className="sheet">
+                  <div className="sheet__scroll">
+                    <ReviewPanel
+                      review={review}
+                      language={language}
+                      draft={draft}
+                      running={runReview.isPending}
+                      onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
+                      acknowledging={acknowledging}
+                      onAcknowledge={onAcknowledge}
+                      onSelectRule={(ruleId) => {
+                        openRule(ruleId)
+                        setPanel('rule')
+                      }}
+                      onShowParagraph={showParagraph}
+                      current={focusFindingId}
+                    />
+                  </div>
+                </div>
+                <PublishBox
+                  version={shown}
+                  review={review}
+                  findings={findings}
+                  publishing={publish.isPending}
+                  onPublish={() => publish.mutate(undefined, { onSuccess: setLatest })}
+                  running={runReview.isPending}
+                  onRunReview={() => runReview.mutate(undefined, { onSuccess: setLatest })}
+                  justPublished={publish.isSuccess}
                 />
-              ) : (
-                <LoadingRows label="Loading the policy" />
-              )}
-            </section>
-          )
+              </>
+            ) : showsRule && document && shown ? (
+              <RuleDrawer
+                rule={selectedRule}
+                language={language}
+                versionStatus={shown.status as VersionStatus}
+                paragraph={citedParagraph}
+                citedBy={document.rules
+                  .filter(
+                    (rule) =>
+                      rule.provenance.kind === 'quoted' && rule.provenance.paragraph === citedIndex,
+                  )
+                  .map((rule) => rule.id)}
+                findings={findings.filter((finding) => finding.ruleIds.includes(selectedRule.id))}
+                reviewFindings={(review?.findings ?? []).filter((finding) =>
+                  finding.ruleIds.includes(selectedRule.id),
+                )}
+                reviewTotal={review?.findings.length ?? 0}
+                editable={draft}
+                acknowledging={acknowledging}
+                onAcknowledge={onAcknowledge}
+                onSelectRule={openRule}
+                onShowParagraph={showParagraph}
+                decided={
+                  topRule && stats.data
+                    ? { count: topRule.count, decisions: stats.data.decisions }
+                    : undefined
+                }
+                since={since}
+                onOpenReview={review ? () => setPanel('review') : undefined}
+                onToggleEnabled={
+                  draft
+                    ? (enabled) =>
+                        replaceRules.mutate(withEnabled(document, selectedRule.id, enabled), {
+                          onSuccess: setLatest,
+                        })
+                    : undefined
+                }
+              />
+            ) : view === 'rule' ? (
+              <section className="margin__section" aria-label="Rule">
+                <div className="margin__title">
+                  <span>Rule</span>
+                  <span className="quiet">
+                    Choose a row of the table to see the rule, its source and its findings
+                  </span>
+                </div>
+              </section>
+            ) : (
+              <section className="margin__section" aria-label="Policy">
+                <div className="margin__title">
+                  <span>Policy</span>
+                  <span className="quiet">
+                    {asked !== null
+                      ? `Paragraph ${String(asked)}, which a finding of the review names`
+                      : selectedRule?.provenance.kind === 'quoted'
+                        ? `Paragraph ${selectedRule.provenance.paragraph} is the source of ${selectedRule.id}`
+                        : 'Choose a rule to see the paragraph it cites'}
+                  </span>
+                </div>
+                {policy.data ? (
+                  <PolicyText
+                    language={policy.data.language as ContentLanguage}
+                    paragraphs={paragraphs}
+                    highlighted={highlighted}
+                  />
+                ) : (
+                  <LoadingRows label="Loading the policy" />
+                )}
+              </section>
+            )}
+          </>
         }
       />
     </>
+  )
+}
+
+/**
+ * The margin's tabs (the spec, section 08, v3.6): the margin chooses what it shows at its head, the current tab pressed
+ * and the Review tab carrying its count of findings; the sheet's title row carries no switch.
+ */
+function MarginTabs({
+  tabs,
+  current,
+  count,
+  onChoose,
+}: {
+  tabs: [SidePanel, string][]
+  current: SidePanel
+  /** The review's findings, on the Review tab. */
+  count: number
+  onChoose: (tab: SidePanel) => void
+}) {
+  return (
+    <div className="margin__tabs">
+      <div className="segment" role="group" aria-label="Show in the margin">
+        {tabs.map(([id, label]) => (
+          <Button
+            key={id}
+            variant="secondary"
+            size="sm"
+            aria-pressed={current === id}
+            onClick={() => onChoose(id)}
+          >
+            {label}
+            {id === 'review' && count > 0 ? <span className="count">{count}</span> : null}
+          </Button>
+        ))}
+      </div>
+    </div>
   )
 }
 

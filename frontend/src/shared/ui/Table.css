@@ -4,6 +4,8 @@
  */
 .table-scroll {
   overflow: auto;
+  /* a containing block: a hidden label of the table, positioned, stays inside the scroll box's clip (the spec, v3.6) */
+  position: relative;
 }
 .table-scroll::-webkit-scrollbar {
   height: 10px;

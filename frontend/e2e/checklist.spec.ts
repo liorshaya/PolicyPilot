@@ -28,6 +28,12 @@ const PLANTS: Plant[] = [
     says: 'past div',
   },
   {
+    fault: 'a page that scrolls down on a desktop',
+    html: '<div style="position: absolute; top: 2000px">low</div>',
+    check: 'overflow',
+    says: 'the page scrolls down by',
+  },
+  {
     fault: 'text under 11px',
     html: '<span style="font-size: 10px">tiny</span>',
     check: 'floor',
