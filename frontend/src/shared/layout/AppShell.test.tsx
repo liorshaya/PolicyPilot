@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ollamaProvider } from '../../test/fixtures/provider'
 import { server } from '../../test/msw/server'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { resolved, rule, specRules, stylesheet, unported } from '../../test/css'
 import { AppShell } from './AppShell'
 
 // @requirement FR-21
@@ -342,5 +342,55 @@ describe('AppShell.css, the phone', () => {
       '.phone .figure',
     ])
     expect(unported(stylesheet('shared/layout/AppShell.css'), phone)).toEqual([])
+  })
+})
+
+describe('AppShell.css, the rail', () => {
+  // The spec's shell block, but for .shell itself: the product's shell is the window (its height and min-height are
+  // the product's own, under the ported block)
+  it("carries the spec's shell and rail rules, with the spec's declarations", () => {
+    const shell = specRules('/* Shell */', '/* Guided demo strip').filter(
+      ([selector]) => selector !== '.shell',
+    )
+
+    expect(shell.map(([selector]) => selector)).toEqual([
+      '.rail',
+      '.rail__brand',
+      '.rail__brand svg',
+      '.rail__brand .brand-mark',
+      '.rail__nav',
+      '.rail__link',
+      '.rail__link:hover',
+      ".rail__link[aria-current='page']",
+      ".rail__link[aria-current='page']::before",
+      '.rail__count',
+      '.rail__count--pending',
+      '.rail__workspace',
+      '.rail__workspace .name',
+      '.rail__workspace .line',
+      '.rail__foot',
+      '.rail__me',
+      '.rail__me .actor',
+      '.rail__me .btn',
+      '.rail__tools',
+      '.rail__tools .btn',
+    ])
+    expect(unported(stylesheet('shared/layout/AppShell.css'), shell)).toEqual([])
+  })
+
+  // the spec, section 08 (v3.3, the owner's ask of 2026-09-29): the lockup at 36px, the screens and the workspace's name
+  // in the working text, 14px, and the phone's lockup at 24px
+  it('draws the lockup at 36px and the screens at 14px, and the phone lockup at 24px', () => {
+    const css = stylesheet('shared/layout/AppShell.css')
+
+    expect(rule(css, '.rail__brand svg').height).toBe('36px')
+    expect(rule(css, '.rail__link')).toMatchObject({
+      height: '34px',
+      'font-size': 'var(--text-base)',
+    })
+    expect(resolved(rule(css, '.rail__link')['font-size']!, 'light')).toBe('0.875rem')
+    expect(rule(css, '.rail__workspace .name')['font-size']).toBe('var(--text-base)')
+    expect(rule(css, '.rail__me')['font-size']).toBe('var(--text-base)')
+    expect(rule(css, '.phone__top svg').height).toBe('24px')
   })
 })

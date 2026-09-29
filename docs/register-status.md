@@ -336,6 +336,14 @@ Evidence:
 
 ---
 
+## After the phases · v3.3, the assistant and the rail
+
+2026-09-29, at the owner's ask: the assistant looked bare, and the rail's lockup and type were too small. Not a phase: the spec changed first (`register.html` and `register.css` to v3.3: the assistant's specimen and bullets, section 08's rail bullet, section 11's Assistant row, the version line), the tests second, the product third, in one pull request from `register/v3.3-assistant-and-rail`.
+
+- The assistant (section 09): the sheet is a column, the log scrolling under a foot on paper that holds the composer as one box (the question, the keys that ask it, the count against the limit, Ask); the column centred at 880px; a head line beside each mark ("Analyst", "Model" with its count of tool calls, "System"); the step lines at the thread's start edge; the opening before the first question (the rule set's name in its own language, the version's line with its paragraphs and rules, the demo's questions as quiet buttons on ruled rows); the log follows the newest turn.
+- The rail (section 08): the lockup at 36px; the screens, the workspace's name and the person at 14px on 34px rows; the count at 12px; the demo strip's toggle at 13px; the phone's lockup at 24px.
+- Evidence: `ChatScreen.test.tsx` (37, five of them new, the stylesheet pinned to the spec's 35 rules) and `AppShell.test.tsx` (the rail block pinned to the spec, the sizes asserted); the chat's RTL snapshot replaced deliberately; `e2e/chat.spec.ts` keeps the newest answer in view above the composer; 850 Vitest and 93 Playwright tests green locally; `docs/demo/register/` and the walk's screenshots refreshed. The phase-evidence screenshots of phases 3 and 5 (`rules-margin`, `rules-review`, `rules-fields`, `decide-a-case`, `change-traces`, `change-sealed`, `phone-cases`) keep the rail of their day.
+
 ## Cuts
 
 | Item | Phase | Cut on | Reason | README known-limitation line |

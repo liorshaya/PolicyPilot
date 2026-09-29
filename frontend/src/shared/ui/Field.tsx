@@ -17,9 +17,20 @@ interface FieldProps {
 
 const COUNT = new Intl.NumberFormat('en-US')
 
+/**
+ * The characters used against the limit the API states (the spec, section 05): always shown, amber from 90% of the
+ * limit. A field draws it under its control; the assistant's composer draws it in its bar.
+ */
+export function Counter({ value, max }: { value: number; max: number }) {
+  return (
+    <span className={value >= 0.9 * max ? 'counter counter--near' : 'counter'}>
+      {`${COUNT.format(value)} / ${COUNT.format(max)}`}
+    </span>
+  )
+}
+
 /** A labelled control with its guidance, its error and its counter, wired for a screen reader (the spec, section 05). */
 export function Field({ label, htmlFor, hint, error, counter, children }: FieldProps) {
-  const near = counter !== undefined && counter.value >= 0.9 * counter.max
   return (
     <div className="field">
       <label className="field__label" htmlFor={htmlFor}>
@@ -40,11 +51,7 @@ export function Field({ label, htmlFor, hint, error, counter, children }: FieldP
           ) : (
             <span />
           )}
-          {counter ? (
-            <span className={near ? 'counter counter--near' : 'counter'}>
-              {`${COUNT.format(counter.value)} / ${COUNT.format(counter.max)}`}
-            </span>
-          ) : null}
+          {counter ? <Counter value={counter.value} max={counter.max} /> : null}
         </div>
       ) : null}
     </div>
