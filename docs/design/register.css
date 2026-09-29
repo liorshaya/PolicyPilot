@@ -661,6 +661,32 @@ td.t-prio { font-family: var(--font-mono); }
 .patch__head { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
 .patch__op { font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 500; color: var(--ink-2); border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; }
 .patch__rationale { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; }
+/* The sheet is a column: the walk over the parts that scroll, the decision at the foot (v3.4). */
+.change { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.change__scroll { flex: 1; min-height: 0; overflow: auto; }
+/* The walk: the four steps of a change, each with who takes it; the current one marked, a step taken opens its part. */
+.walk { display: flex; flex-wrap: wrap; align-items: stretch; padding: 0 8px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
+.walk__step { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink-3); font-size: var(--text-xs); text-align: start; }
+.walk__step + .walk__step { border-inline-start: 1px solid var(--hairline); }
+.walk__n { font-family: var(--font-mono); color: var(--ink-3); }
+.walk__step .actor { font-size: inherit; color: inherit; }
+.walk__step--done { color: var(--ink-2); cursor: pointer; }
+.walk__step--done:hover { background: var(--well); color: var(--ink); }
+.walk__step--now { color: var(--ink); font-weight: 500; background: var(--accent-wash); box-shadow: inset 0 -2px 0 var(--accent); }
+.walk__meta { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); }
+/* The request, one box: its label, the field, then the hint, the count, the base version and the primary in its bar. */
+.request { display: grid; background: var(--sheet); border: 1px solid var(--border); border-radius: var(--r-3); transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
+.request:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--focus-ring); }
+.request__label { padding: 10px 14px 0; font-size: var(--text-xs); font-weight: 500; color: var(--ink-2); }
+.request .textarea { border: 0; background: transparent; padding: 6px 14px 4px; resize: none; }
+.request .textarea:focus { box-shadow: none; }
+.request__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 8px 8px 14px; }
+.request__bar .field__hint { flex: 1 1 280px; }
+.request__bar .counter { margin-inline-start: auto; }
+/* The decision, the sheet's foot: the note for the audit log, what approving does, Reject and the primary; the seal once decided. */
+.change__foot { display: grid; gap: 10px; margin-top: auto; padding: 12px 16px 14px; border-top: 1px solid var(--hairline); background: var(--paper); }
+.decision { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 8px 16px; align-items: end; }
+.decision__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
 /* Diff, unified: one row per changed cell */
 .udiff { border: 1px solid var(--hairline); border-radius: var(--r-3); overflow: hidden; font-size: var(--text-sm); }
 .udiff__row { display: grid; grid-template-columns: 90px 150px 1fr 20px 1fr; gap: 0 10px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--hairline); }
