@@ -163,7 +163,12 @@ interface DomElement extends DomNode {
 }
 interface DomWindow {
   document: {
-    documentElement: DomElement & { scrollWidth: number; clientWidth: number }
+    documentElement: DomElement & {
+      scrollWidth: number
+      clientWidth: number
+      scrollHeight: number
+      clientHeight: number
+    }
     querySelector(selectors: string): DomElement | null
     querySelectorAll(selectors: string): ArrayLike<DomElement>
     createRange(): { selectNodeContents(node: DomNode): void; getBoundingClientRect(): DomBox }
@@ -376,6 +381,13 @@ function check({
   if (html.scrollWidth > html.clientWidth) {
     found.overflow.push(
       `the page scrolls sideways by ${String(html.scrollWidth - html.clientWidth)}px`,
+    )
+  }
+  // Height: the shell is the window and the sheet and the margin scroll on their own (the spec, section 08), so a
+  // desktop page never scrolls down; a phone's page scrolls as one (section 10)
+  if (view.innerWidth > 720 && html.scrollHeight > html.clientHeight) {
+    found.overflow.push(
+      `the page scrolls down by ${String(html.scrollHeight - html.clientHeight)}px`,
     )
   }
   for (const element of all) {

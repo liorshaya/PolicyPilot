@@ -20,6 +20,7 @@
   min-height: 160px;
   overflow: auto;
   padding: 8px 24px 20px;
+  position: relative;
 }
 .thread__log,
 .thread__opening,

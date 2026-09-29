@@ -391,14 +391,19 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 
 /* Sheet and margin. The header stays; the sheet and the margin scroll on their own. */
 .sheet { margin: 16px 0 16px 24px; background: var(--sheet); border: 1px solid var(--hairline); border-radius: var(--r-3); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-.sheet__scroll { overflow: auto; min-height: 0; }
+.sheet__scroll { overflow: auto; min-height: 0; position: relative; }
 .sheet > .table-scroll { flex: 1; }
 .sheet > .sheet__foot { margin-top: auto; }
-.margin { padding: 16px 24px 16px 16px; display: flex; flex-direction: column; min-width: 0; overflow: auto; }
+.margin { padding: 16px 24px 16px 16px; display: flex; flex-direction: column; min-width: 0; overflow: auto; position: relative; }
 .margin__section { padding: 12px 0 16px; border-bottom: 1px solid var(--hairline); display: grid; gap: 10px; align-content: start; }
 .margin__section:last-child { border-bottom: 0; }
 .margin__title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; font-size: var(--text-sm); font-weight: 600; }
 .margin__title .quiet { font-weight: 400; font-size: var(--text-xs); }
+/* The margin's tabs (v3.6): where a margin can show more than one thing, it chooses at its head; the current tab is pressed, the Review tab carries its count. */
+.margin__tabs { display: flex; padding-bottom: 10px; margin-bottom: 4px; border-bottom: 1px solid var(--hairline); }
+.margin__tabs .segment { display: flex; width: 100%; }
+.margin__tabs .btn { flex: 1; padding: 0 6px; }
+.margin__tabs .count { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; color: var(--refer-text); }
 .margin--sheet { padding: 16px 24px 16px 0; }
 .margin--sheet > .sheet { margin: 0; flex: 1; }
 
@@ -626,7 +631,7 @@ td.t-prio { font-family: var(--font-mono); }
 /* The assistant thread. Chrome is LTR, the thread reads RTL: marks on the reading-start side. The sheet is a column: the log scrolls, the composer is its foot. */
 .thread { direction: rtl; display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .thread * { text-align: start; }
-.thread__scroll { display: flex; flex-direction: column; flex: 1; min-height: 160px; overflow: auto; padding: 8px 24px 20px; }
+.thread__scroll { display: flex; flex-direction: column; flex: 1; min-height: 160px; overflow: auto; padding: 8px 24px 20px; position: relative; }
 .thread__log, .thread__opening, .thread__foot > * { width: 100%; max-width: 880px; margin-inline: auto; }
 .turn { display: grid; grid-template-columns: 20px 1fr; gap: 6px 12px; padding: 16px 0 18px; border-bottom: 1px solid var(--hairline); }
 .turn__who { padding-top: 2px; }
@@ -677,7 +682,7 @@ td.t-prio { font-family: var(--font-mono); }
 .patch__rationale { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; }
 /* The sheet is a column: the walk over the parts that scroll, the decision at the foot (v3.4). */
 .change { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.change__scroll { flex: 1; min-height: 0; overflow: auto; }
+.change__scroll { flex: 1; min-height: 0; overflow: auto; position: relative; }
 /* The walk: the four steps of a change, each with who takes it; the current one marked, a step taken opens its part. */
 .walk { display: flex; flex-wrap: wrap; align-items: stretch; padding: 0 8px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
 .walk__step { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink-3); font-size: var(--text-xs); text-align: start; }
@@ -939,7 +944,7 @@ td.t-prio { font-family: var(--font-mono); }
   <header class="spec-top">
     <div class="spec-top__brand">
       <svg style="color: var(--ink); --brand-mark: var(--accent)"><use href="#pp-logo"/></svg>
-      <span>Register · design language · v3.5 · 2026-09-29</span>
+      <span>Register · design language · v3.6 · 2026-09-30</span>
     </div>
     <nav class="spec-top__nav" aria-label="Sections">
       <a href="#concept">Concept</a>
@@ -1574,7 +1579,7 @@ td.t-prio { font-family: var(--font-mono); }
           </header>
           <div class="ws-body">
             <section class="sheet">
-              <div class="sec"><div class="sec__title">Decision table <span class="quiet">· 20 rules</span></div><div class="sec__side"><div class="segment"><button class="btn btn--secondary btn--sm" aria-pressed="true">Policy</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Rule</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Fields</button><button class="btn btn--secondary btn--sm" aria-pressed="false">JSON</button></div></div></div>
+              <div class="sec"><div class="sec__title">Decision table <span class="quiet">· 20 rules</span></div></div>
               <div class="loading">
                 <div class="loading__row"><span></span><span></span><span></span><span></span></div>
                 <div class="loading__row"><span></span><span></span><span></span><span></span></div>
@@ -1583,6 +1588,7 @@ td.t-prio { font-family: var(--font-mono); }
               </div>
             </section>
             <aside class="margin">
+              <div class="margin__tabs"><div class="segment" role="group" aria-label="Show in the margin"><button class="btn btn--secondary btn--sm" aria-pressed="false">Review <span class="count">3</span></button><button class="btn btn--secondary btn--sm" aria-pressed="true">Rule</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Policy</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Fields</button><button class="btn btn--secondary btn--sm" aria-pressed="false">JSON</button></div></div>
               <div class="margin__section">
                 <div class="margin__title">Policy <a class="chip chip--para" href="#"><span class="pilcrow">¶</span>&nbsp;1</a></div>
                 <p class="doc doc--sm" dir="rtl" lang="he">הלוואה אישית תינתן ליחיד <span class="para__hl">שגילו <bdi>21</bdi> עד <bdi>70</bdi></span> בעת הגשת הבקשה.</p>
@@ -1599,7 +1605,7 @@ td.t-prio { font-family: var(--font-mono); }
     <ul class="spec-list">
       <li><strong>Rail:</strong> 216px, paper, a hairline on its end edge; the lockup at 36px. Text links in the working text, 14px, no icons; a count only when it is something to act on (findings to acknowledge, a proposal awaiting a decision). Then the workspace: the policy's name in Hebrew, the sandbox line, and the provider line ("Provider OpenAI · cloud", or "Provider Ollama · local"), which is FR-21 made visible; the model names and the embedding dimension from <span class="mono">GET /system/provider</span> stand in the legend behind Help. A model is still never named as an author. Then the guided demo strip: collapsed to one line, it opens to the four scripted steps with the current one marked; it never covers the sheet. At the bottom: who you are recorded as, and the legend, shortcuts and theme behind two quiet buttons.</li>
       <li><strong>Header:</strong> 60px; the screen title at 20/600 with the version status beside it; the provenance line in one line; on the end, the jump control, at most one secondary action, the reason if the primary is disabled, then the primary at 36px.</li>
-      <li><strong>Sheet and margin:</strong> the sheet is the only white area and scrolls inside itself; the margin is paper, 340px (440px for a trace), with hairline-separated sections titled in 13/600 and no explanatory sublines.</li>
+      <li><strong>Sheet and margin:</strong> the sheet is the only white area and scrolls inside itself; the margin is paper, 340px (440px for a trace), with hairline-separated sections titled in 13/600 and no explanatory sublines. Every scroller is a containing block (<span class="mono">position: relative</span>), so a hidden label or any positioned box inside it stays inside its clip and the page itself never scrolls on a desktop (v3.6). Where a margin can show more than one thing, as the Rules margin can (the review, a rule, the policy, the fields, the JSON), it chooses with its own tabs at its head, the current one pressed and the Review tab carrying its count of findings; the sheet's title row carries no switch (v3.6).</li>
       <li><strong>Loading</strong> is the real header row plus three still placeholder rows and one line of text; no shimmer, no spinner in the middle of the screen. The header and the margin render immediately.</li>
     </ul>
 
@@ -2304,7 +2310,7 @@ td.t-prio { font-family: var(--font-mono); }
           </header>
           <div class="ws-body">
             <section class="sheet">
-              <div class="sec"><div class="sec__title">Decision table <span class="quiet">· 20 rules</span></div><div class="sec__side"><select class="select" aria-label="Version" style="min-height: 28px; font-size: var(--text-xs); width: 190px"><option>Draft v2 · edited 14:02</option><option>Published v1 · 2026-09-22</option></select><select class="select" aria-label="Tag" style="min-height: 28px; font-size: var(--text-xs); width: 120px"><option>All tags</option><option>eligibility</option><option>affordability</option><option>credit_history</option></select><div class="segment" role="group" aria-label="Show in the margin"><button class="btn btn--secondary btn--sm" aria-pressed="false">Policy</button><button class="btn btn--secondary btn--sm" aria-pressed="true">Rule</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Fields</button><button class="btn btn--secondary btn--sm" aria-pressed="false">JSON</button></div></div></div>
+              <div class="sec"><div class="sec__title">Decision table <span class="quiet">· 20 rules</span></div><div class="sec__side"><select class="select" aria-label="Version" style="min-height: 28px; font-size: var(--text-xs); width: 190px"><option>Draft v2 · edited 14:02</option><option>Published v1 · 2026-09-22</option></select><select class="select" aria-label="Tag" style="min-height: 28px; font-size: var(--text-xs); width: 120px"><option>All tags</option><option>eligibility</option><option>affordability</option><option>credit_history</option></select></div></div>
               <div class="table__strip"><span><b>First hit</b> · by priority; the first terminal decision stands</span><span class="spacer"></span><span class="sev sev--error">7 block</span><span class="sev sev--warning">3 warn</span><span class="table__more">4 fields to the right ›</span></div>
               <div class="table-scroll">
 <table class="table table--decision table--last-borderless">
@@ -2343,6 +2349,7 @@ td.t-prio { font-family: var(--font-mono); }
               </div>
             </section>
             <aside class="margin">
+              <div class="margin__tabs"><div class="segment" role="group" aria-label="Show in the margin"><button class="btn btn--secondary btn--sm" aria-pressed="false">Review <span class="count">3</span></button><button class="btn btn--secondary btn--sm" aria-pressed="true">Rule</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Policy</button><button class="btn btn--secondary btn--sm" aria-pressed="false">Fields</button><button class="btn btn--secondary btn--sm" aria-pressed="false">JSON</button></div></div>
               <div class="margin__section">
                 <div class="margin__title"><span>Rule <span class="chip chip--id chip--active">R-110</span></span><span class="vstatus vstatus--draft">Draft</span></div>
                 <p dir="rtl" lang="he" style="font-size: var(--text-md); font-weight: 500">דחייה: גיל מעל <bdi>70</bdi> (למעט גמלאים)</p>
@@ -2573,7 +2580,7 @@ td.t-prio { font-family: var(--font-mono); }
         </ul>
       </div>
     </div>
-    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.5 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first; v3.4, the same day, the change request's walk, box and foot; v3.5 two corrections the owner found: a busy button keeps its face while disabled, and a Hebrew cell of the diff stands at its row's start) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
+    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.5 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first; v3.4, the same day, the change request's walk, box and foot; v3.5 two corrections the owner found: a busy button keeps its face while disabled, and a Hebrew cell of the diff stands at its row's start; v3.6 of 2026-09-30: every scroller is a containing block, so nothing positioned inside it can stretch the page, and the Rules margin chooses what it shows with its own tabs) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
   </section>
 </div>
 

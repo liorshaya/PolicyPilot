@@ -380,14 +380,19 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 
 /* Sheet and margin. The header stays; the sheet and the margin scroll on their own. */
 .sheet { margin: 16px 0 16px 24px; background: var(--sheet); border: 1px solid var(--hairline); border-radius: var(--r-3); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-.sheet__scroll { overflow: auto; min-height: 0; }
+.sheet__scroll { overflow: auto; min-height: 0; position: relative; }
 .sheet > .table-scroll { flex: 1; }
 .sheet > .sheet__foot { margin-top: auto; }
-.margin { padding: 16px 24px 16px 16px; display: flex; flex-direction: column; min-width: 0; overflow: auto; }
+.margin { padding: 16px 24px 16px 16px; display: flex; flex-direction: column; min-width: 0; overflow: auto; position: relative; }
 .margin__section { padding: 12px 0 16px; border-bottom: 1px solid var(--hairline); display: grid; gap: 10px; align-content: start; }
 .margin__section:last-child { border-bottom: 0; }
 .margin__title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; font-size: var(--text-sm); font-weight: 600; }
 .margin__title .quiet { font-weight: 400; font-size: var(--text-xs); }
+/* The margin's tabs (v3.6): where a margin can show more than one thing, it chooses at its head; the current tab is pressed, the Review tab carries its count. */
+.margin__tabs { display: flex; padding-bottom: 10px; margin-bottom: 4px; border-bottom: 1px solid var(--hairline); }
+.margin__tabs .segment { display: flex; width: 100%; }
+.margin__tabs .btn { flex: 1; padding: 0 6px; }
+.margin__tabs .count { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; color: var(--refer-text); }
 .margin--sheet { padding: 16px 24px 16px 0; }
 .margin--sheet > .sheet { margin: 0; flex: 1; }
 
@@ -615,7 +620,7 @@ td.t-prio { font-family: var(--font-mono); }
 /* The assistant thread. Chrome is LTR, the thread reads RTL: marks on the reading-start side. The sheet is a column: the log scrolls, the composer is its foot. */
 .thread { direction: rtl; display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .thread * { text-align: start; }
-.thread__scroll { display: flex; flex-direction: column; flex: 1; min-height: 160px; overflow: auto; padding: 8px 24px 20px; }
+.thread__scroll { display: flex; flex-direction: column; flex: 1; min-height: 160px; overflow: auto; padding: 8px 24px 20px; position: relative; }
 .thread__log, .thread__opening, .thread__foot > * { width: 100%; max-width: 880px; margin-inline: auto; }
 .turn { display: grid; grid-template-columns: 20px 1fr; gap: 6px 12px; padding: 16px 0 18px; border-bottom: 1px solid var(--hairline); }
 .turn__who { padding-top: 2px; }
@@ -666,7 +671,7 @@ td.t-prio { font-family: var(--font-mono); }
 .patch__rationale { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; }
 /* The sheet is a column: the walk over the parts that scroll, the decision at the foot (v3.4). */
 .change { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.change__scroll { flex: 1; min-height: 0; overflow: auto; }
+.change__scroll { flex: 1; min-height: 0; overflow: auto; position: relative; }
 /* The walk: the four steps of a change, each with who takes it; the current one marked, a step taken opens its part. */
 .walk { display: flex; flex-wrap: wrap; align-items: stretch; padding: 0 8px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
 .walk__step { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border: 0; background: transparent; color: var(--ink-3); font-size: var(--text-xs); text-align: start; }

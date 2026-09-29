@@ -94,4 +94,17 @@ describe('SplitView', () => {
     expect(rule(narrow, '.ws-body--wide-margin > .margin').width).toBe('var(--margin-w-wide)')
     expect(rule(narrow, '.margin')['box-shadow']).toBe('var(--shadow-float)')
   })
+
+  // the spec, section 08 (v3.6): the sheet's scroll box, the filled section and the margin are containing blocks, so
+  // nothing positioned inside them stretches the page
+  it('makes each scroller a containing block, so the page itself never scrolls on a desktop', () => {
+    const css = stylesheet('shared/layout/SplitView.css')
+
+    for (const scroller of ['.sheet__scroll', '.sheet--fill > section', '.margin']) {
+      expect(rule(css, scroller), scroller).toMatchObject({
+        overflow: 'auto',
+        position: 'relative',
+      })
+    }
+  })
 })
