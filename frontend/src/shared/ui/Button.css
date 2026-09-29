@@ -104,9 +104,20 @@
   animation: spin 0.8s linear infinite;
 }
 .btn--secondary.btn--busy::after,
-.btn--quiet.btn--busy::after {
+.btn--quiet.btn--busy::after,
+.btn--danger.btn--busy::after {
   border-color: var(--ink-2);
   border-right-color: transparent;
+}
+.btn--busy[disabled],
+.btn--busy[aria-disabled='true'] {
+  opacity: 1;
+  cursor: progress;
+}
+.btn--primary.btn--busy[disabled],
+.btn--primary.btn--busy[aria-disabled='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
 }
 @keyframes spin {
   to {
@@ -156,6 +167,10 @@
 .btn--link:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+.btn--link.btn--busy::after {
+  border-color: var(--ink-2);
+  border-right-color: transparent;
 }
 
 /* The reason a control is disabled is text beside it, never a tooltip. */

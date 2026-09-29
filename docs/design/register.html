@@ -194,7 +194,10 @@ bdi { unicode-bidi: isolate; }
 .btn[disabled], .btn[aria-disabled='true'] { cursor: not-allowed; opacity: 0.7; }
 .btn--busy { position: relative; color: transparent !important; pointer-events: none; }
 .btn--busy::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink-on-ink); border-right-color: transparent; animation: spin 0.8s linear infinite; }
-.btn--secondary.btn--busy::after, .btn--quiet.btn--busy::after { border-color: var(--ink-2); border-right-color: transparent; }
+.btn--secondary.btn--busy::after, .btn--quiet.btn--busy::after, .btn--danger.btn--busy::after { border-color: var(--ink-2); border-right-color: transparent; }
+/* A busy button keeps its face while it waits, disabled or not: the primary stays ink under the paper spinner (v3.5). */
+.btn--busy[disabled], .btn--busy[aria-disabled='true'] { opacity: 1; cursor: progress; }
+.btn--primary.btn--busy[disabled], .btn--primary.btn--busy[aria-disabled='true'] { background: var(--ink); border-color: var(--ink); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .btn-group { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .segment { display: inline-flex; }
@@ -705,6 +708,7 @@ td.t-prio { font-family: var(--font-mono); }
 .udiff__row--head { background: var(--paper); font-size: var(--text-2xs); font-weight: 500; color: var(--ink-3); }
 .udiff__row--collapsed { display: block; font-size: var(--text-xs); color: var(--ink-3); background: var(--paper); text-align: center; }
 .udiff .chip { justify-self: start; }
+.udiff .step__label { justify-self: start; }
 .udiff__row--he { grid-template-columns: 90px 150px 1fr; }
 .udiff__arrow { color: var(--ink-3); text-align: center; }
 .udiff .t-cmp { direction: ltr; }
@@ -935,7 +939,7 @@ td.t-prio { font-family: var(--font-mono); }
   <header class="spec-top">
     <div class="spec-top__brand">
       <svg style="color: var(--ink); --brand-mark: var(--accent)"><use href="#pp-logo"/></svg>
-      <span>Register · design language · v3.4 · 2026-09-29</span>
+      <span>Register · design language · v3.5 · 2026-09-29</span>
     </div>
     <nav class="spec-top__nav" aria-label="Sections">
       <a href="#concept">Concept</a>
@@ -2094,7 +2098,7 @@ td.t-prio { font-family: var(--font-mono); }
       <li><strong>Entry:</strong> the request in Hebrew, in one box: its label, the field, then its bar with the hint, the counter, the base version and the primary; the demo's request offered under the box as a quiet row until a proposal stands; a refusal (<span class="mono">VERSION_STATUS_CONFLICT</span>, <span class="mono">RATE_LIMITED</span>, <span class="mono">RULESET_INVALID</span>) renders as the refusal block of section 08 with "What the model proposed" behind a link.</li>
       <li><strong>Progress</strong> shows the four stages and, under the first, the rules considered: the touched ones solid, the ones left unchanged faded, so the model's reach is visible before its result.</li>
       <li><strong>Proposal:</strong> patches by operation (Add · Replace · Remove · Add the field · Set the defaults), each with the model's rationale in Hebrew, then "Considered and left unchanged".</li>
-      <li><strong>Diff:</strong> one row per changed cell (rule · field · before → after) with the changed value tinted, the whole rule struck when removed; unchanged rules collapse; side-by-side is the alternative, remembered per person.</li>
+      <li><strong>Diff:</strong> one row per changed cell (rule · field · before → after) with the changed value tinted, the whole rule struck when removed; a Hebrew value stands at its cell's start and reads right to left inside, as a chip does; unchanged rules collapse; side-by-side is the alternative, remembered per person.</li>
       <li><strong>Regression</strong> leads with "12 flipped · 6.0% of 200", then the matrix with totals and the unchanged diagonal in ink-3, the hot cells in the selection wash (never the amber of Manual review), flips by cause as a one-hue bar that filters the list, flags moved as their own figure, and each flipped case with both traces one click away.</li>
       <li><strong>Decision:</strong> the sheet's foot on paper once a proposal stands, in view while the proposal and the regression scroll above it: the note for the audit log, Reject in the danger style, "Approve and publish v2" as the primary with what approving does stated beside it; then the seal and the product's sentence in the same foot. A rejected change shows the red seal and "Rejected. Nothing was published."</li>
     </ul>
@@ -2569,7 +2573,7 @@ td.t-prio { font-family: var(--font-mono); }
         </ul>
       </div>
     </div>
-    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.4 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first; v3.4, the same day, the change request's walk, box and foot) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
+    <p class="spec-note" style="margin-top: 20px">Register · PolicyPilot design language v3.5 · 2026-09-29 (v3.2 of 2026-09-26 is what the phases of Document 9 built; v3.3 revised the assistant's thread and the rail's lockup and type at the owner's ask, the spec first; v3.4, the same day, the change request's walk, box and foot; v3.5 two corrections the owner found: a busy button keeps its face while disabled, and a Hebrew cell of the diff stands at its row's start) · tokens, components, patterns and states in this file are the reference for <span class="mono">frontend/src/styles/tokens.css</span>, <span class="mono">frontend/src/shared</span> and <span class="mono">frontend/src/features</span>. The implementation document maps each section here to the files it changes and the tests that prove it.</p>
   </section>
 </div>
 

@@ -183,7 +183,10 @@ bdi { unicode-bidi: isolate; }
 .btn[disabled], .btn[aria-disabled='true'] { cursor: not-allowed; opacity: 0.7; }
 .btn--busy { position: relative; color: transparent !important; pointer-events: none; }
 .btn--busy::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink-on-ink); border-right-color: transparent; animation: spin 0.8s linear infinite; }
-.btn--secondary.btn--busy::after, .btn--quiet.btn--busy::after { border-color: var(--ink-2); border-right-color: transparent; }
+.btn--secondary.btn--busy::after, .btn--quiet.btn--busy::after, .btn--danger.btn--busy::after { border-color: var(--ink-2); border-right-color: transparent; }
+/* A busy button keeps its face while it waits, disabled or not: the primary stays ink under the paper spinner (v3.5). */
+.btn--busy[disabled], .btn--busy[aria-disabled='true'] { opacity: 1; cursor: progress; }
+.btn--primary.btn--busy[disabled], .btn--primary.btn--busy[aria-disabled='true'] { background: var(--ink); border-color: var(--ink); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .btn-group { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .segment { display: inline-flex; }
@@ -694,6 +697,7 @@ td.t-prio { font-family: var(--font-mono); }
 .udiff__row--head { background: var(--paper); font-size: var(--text-2xs); font-weight: 500; color: var(--ink-3); }
 .udiff__row--collapsed { display: block; font-size: var(--text-xs); color: var(--ink-3); background: var(--paper); text-align: center; }
 .udiff .chip { justify-self: start; }
+.udiff .step__label { justify-self: start; }
 .udiff__row--he { grid-template-columns: 90px 150px 1fr; }
 .udiff__arrow { color: var(--ink-3); text-align: center; }
 .udiff .t-cmp { direction: ltr; }

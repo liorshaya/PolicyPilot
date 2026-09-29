@@ -78,6 +78,30 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled()
   })
 
+  // the spec, section 05 (v3.5): a busy button keeps its face while it waits, disabled or not; the owner found the
+  // primary of Generate rules going pale under a paper spinner while it was busy and disabled at once
+  it('keeps its face while busy and disabled: the primary stays ink under the paper spinner, a danger takes the ink spinner', () => {
+    render(
+      <Button variant="primary" busy disabled>
+        Generate rules
+      </Button>,
+    )
+    const button = screen.getByRole('button', { name: 'Generate rules' })
+
+    expect(button).toBeDisabled()
+    expect(button).toHaveClass('btn--primary', 'btn--busy')
+    expect(rule(css, '.btn--primary.btn--busy[disabled]')).toMatchObject({
+      background: 'var(--ink)',
+      'border-color': 'var(--ink)',
+    })
+    expect(rule(css, '.btn--busy[disabled]')).toMatchObject({ opacity: '1', cursor: 'progress' })
+    expect(resolved(rule(css, '.btn--busy::after').border!, 'light')).toBe(
+      `2px solid ${token('paper', 'light')}`,
+    )
+    expect(rule(css, '.btn--danger.btn--busy::after')['border-color']).toBe('var(--ink-2)')
+    expect(rule(css, '.btn--link.btn--busy::after')['border-color']).toBe('var(--ink-2)')
+  })
+
   it('shows no icon on Run, Publish or Ask, and shows one where it adds meaning', () => {
     render(
       <>
