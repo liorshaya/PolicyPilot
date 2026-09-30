@@ -164,9 +164,9 @@
   border-style: dotted;
 }
 .step__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
   gap: 4px 8px;
   font-size: var(--text-sm);
 }
@@ -176,6 +176,10 @@
   font-size: var(--text-sm);
   color: var(--ink-2);
   unicode-bidi: isolate;
+}
+/* A long label wraps inside its column and the status keeps the first line (v3.7); a short one stands beside its chip. */
+.step__head .step__label {
+  justify-self: start;
 }
 .step__status {
   margin-inline-start: auto;
@@ -316,4 +320,7 @@
 }
 .step--foot .step__head {
   font-size: var(--text-xs);
+}
+.step--foot .step__head > span {
+  grid-column: 1 / -1;
 }

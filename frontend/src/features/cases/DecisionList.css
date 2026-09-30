@@ -1,7 +1,12 @@
 /*
- * The case list's own, where the spec leaves the product to decide (the Register spec, section 07): the case filter at
- * the width the spec's toolbar gives it, the case number a button drawn as the cell it fills, the flags side by side.
+ * The case list's own, where the spec leaves the product to decide (the Register spec, section 07): the toolbar wraps
+ * its row height to a second line on a sheet too narrow for every filter beside it, the case filter at the width the
+ * spec's toolbar gives it, the case number a button drawn as the cell it fills, the flags side by side.
  */
+.toolbar.decisions__toolbar {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
 .toolbar .input.decisions__case {
   width: 140px;
 }

@@ -191,7 +191,7 @@ export function TraceView({
               <span
                 key={cell.ruleId}
                 className={`hitmap__cell${cell.deciding ? ' hitmap__cell--deciding' : CELL_CLASSES[cell.status]}`}
-                title={`${cell.ruleId} · ${cell.deciding ? 'decided' : STEP_LABELS[cell.status]}`}
+                title={`${cell.ruleId} · ${cell.label} · ${cell.deciding ? 'decided' : STEP_LABELS[cell.status]}`}
               />
             ))}
           </div>
@@ -214,7 +214,7 @@ export function TraceView({
             </span>
             <span>
               <span className="hitmap__cell hitmap__cell--deciding" />
-              decided, ringed in its outcome
+              decided
             </span>
           </div>
         </div>

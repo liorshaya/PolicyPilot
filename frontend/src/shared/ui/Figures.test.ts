@@ -10,10 +10,10 @@ import { specRules, stylesheet, unported } from '../../test/css'
 describe('Figures.css', () => {
   it("carries every rule of the spec's figures and bar list, with the spec's declarations", () => {
     const figures = specRules('/* Figures */', '/* Policy document and its list */').filter(
-      ([selector]) => !selector.startsWith('.outcome'),
+      ([selector]) => !selector.startsWith('.outcome') && !selector.startsWith('.summary'),
     )
 
-    expect(figures).toHaveLength(17)
+    expect(figures).toHaveLength(20)
     expect(unported(stylesheet('shared/ui/Figures.css'), figures)).toEqual([])
   })
 })

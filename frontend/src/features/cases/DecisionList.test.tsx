@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { rule, stylesheet, token } from '../../test/css'
-import { decisionIdOf, lendingRun } from '../../test/fixtures/lending'
+import { decisionIdOf, lendingRuleSet, lendingRun } from '../../test/fixtures/lending'
 import { DecisionList } from './DecisionList'
 
 // @requirement FR-9
@@ -20,6 +20,7 @@ function renderList(props: Partial<Parameters<typeof DecisionList>[0]> = {}) {
   return render(
     <DecisionList
       results={lendingRun}
+      rules={lendingRuleSet.rules}
       selectedId={null}
       onSelect={() => undefined}
       versionNo={1}
@@ -90,6 +91,26 @@ describe('DecisionList, the table', () => {
       'tag--dot',
     )
     expect(rule(css, '.t-id')['font-family']).toBe('var(--font-mono)')
+  })
+
+  it("names the deciding rule under its id, in the policy's language, and keeps the id alone in Compact rows", () => {
+    renderList()
+
+    const cell = within(rowOf(17)).getByText('R-330').closest<HTMLElement>('.t-decided')!
+    // the label of R-330 in the committed rule set (fixtures/policies/consumer-lending/ruleset.v1.json)
+    const label = within(cell).getByText('בדיקת חתם: אירוע אשראי אחד ללא ערב')
+    expect(label).toHaveClass('t-decided__label')
+    expect(label).toHaveAttribute('lang', 'he')
+    expect(label).toHaveAttribute('title', 'בדיקת חתם: אירוע אשראי אחד ללא ערב')
+    // the spec, section 07 (v3.7): one line, clipped with an ellipsis, read right to left; gone from Compact rows
+    expect(rule(css, '.t-decided__label')).toMatchObject({
+      direction: 'rtl',
+      'white-space': 'nowrap',
+      'text-overflow': 'ellipsis',
+      // Hebrew never under 13px (the checklist's floor)
+      'font-size': 'var(--text-sm)',
+    })
+    expect(rule(css, '.table--compact .t-decided__label').display).toBe('none')
   })
 
   it('shows the flags as field chips, and an empty cell as the dash', () => {
@@ -181,6 +202,30 @@ describe('DecisionList, the filters and the density', () => {
     expect(onDecidingRuleChange).toHaveBeenLastCalledWith('R-900')
     await user.selectOptions(select, '')
     expect(onDecidingRuleChange).toHaveBeenLastCalledWith(null)
+  })
+
+  it('offers Clear filters once a filter is in force, and it lifts every filter at once', async () => {
+    // the spec, section 07 (v3.7)
+    const user = userEvent.setup()
+    const { container } = renderList()
+    const foot = () => container.querySelector('.sheet__foot')!
+
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+    const select = screen.getByRole('combobox', { name: 'Deciding rule' })
+
+    await user.selectOptions(select, 'R-330')
+    await user.type(screen.getByRole('textbox', { name: 'Jump to a case' }), '1')
+    // the cases R-330 decided whose number starts with 1 (cases-expected.json)
+    const narrowed = lendingRun.filter(
+      (result) => result.decidingRuleId === 'R-330' && String(result.caseNo).startsWith('1'),
+    ).length
+    expect(foot()).toHaveTextContent(`Cases 1–${String(narrowed)} of 200 · one run on v1`)
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(select).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Jump to a case' })).toHaveValue('')
+    expect(foot()).toHaveTextContent('Cases 1–200 of 200 · one run on v1')
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
   })
 
   it('offers the outcomes in the words of the tags', () => {

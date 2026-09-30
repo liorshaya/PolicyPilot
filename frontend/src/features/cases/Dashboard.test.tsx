@@ -162,15 +162,63 @@ describe('Dashboard, the rules that decided most often', () => {
     expect(rows()).toStrictEqual(['R-2008 · 4.0%', 'R-2208 · 4.0%'])
     expect(within(document.querySelector('.barlist')!).queryByText('R-900')).not.toBeInTheDocument()
   })
+
+  it('shows the state of "Declines only", a pressed control in the list\'s title', () => {
+    // the spec, section 09 (v3.7): a pressed control, so its state shows
+    renderFigures()
+
+    const declines = screen.getByRole('button', { name: 'Declines only' })
+    expect(declines).toHaveClass('btn', 'btn--secondary', 'btn--sm')
+    expect(declines.closest('.barlist__title')).not.toBeNull()
+    expect(rule(figuresCss, ".barlist__title .btn[aria-pressed='true']")).toStrictEqual({
+      background: 'var(--well-2)',
+      'border-color': 'var(--border-strong)',
+    })
+  })
+
+  it("names each rule of the list by its label on hover, in the policy's language", () => {
+    renderFigures()
+
+    // the label of R-330 in the committed rule set (fixtures/policies/consumer-lending/ruleset.v1.json)
+    expect(screen.getByRole('button', { name: /^R-330/ })).toHaveAttribute(
+      'title',
+      'בדיקת חתם: אירוע אשראי אחד ללא ערב',
+    )
+  })
+})
+
+describe('Dashboard, the summary band', () => {
+  it('stands the outcome row and the rules side by side as one band, stacked when the sheet is narrow', () => {
+    const { container } = renderFigures()
+
+    const band = container.querySelector<HTMLElement>('.summary')!
+    expect(band.firstElementChild).toHaveClass('outcome')
+    expect(band.lastElementChild).toHaveClass('summary__rules')
+    expect(
+      within(band).getByText('Rules that decided most often · click to filter the list'),
+    ).toHaveClass('barlist__title')
+    // the spec, section 09 (v3.7): a row that wraps, the outcome first from 420px, the rules from 240px
+    expect(rule(css, '.summary')).toMatchObject({ display: 'flex', 'flex-wrap': 'wrap' })
+    expect(rule(css, '.summary > .outcome').flex).toBe('1 1 420px')
+    expect(rule(css, '.summary__rules').flex).toBe('1 1 240px')
+  })
+
+  it('names each segment of the bar on hover', () => {
+    renderFigures()
+
+    expect(
+      [...document.querySelectorAll<HTMLElement>('.outcome__seg')].map((segment) => segment.title),
+    ).toStrictEqual(['113 approved · 56.5%', '27 manual review · 13.5%', '60 declined · 30.0%'])
+  })
 })
 
 describe('Dashboard.css', () => {
-  it("carries every rule of the spec's outcome bar, with the spec's declarations", () => {
+  it("carries every rule of the spec's outcome bar and summary band, with the spec's declarations", () => {
     const outcome = specRules('/* Figures */', '/* Policy document and its list */').filter(
-      ([selector]) => selector.startsWith('.outcome'),
+      ([selector]) => selector.startsWith('.outcome') || selector.startsWith('.summary'),
     )
 
-    expect(outcome).toHaveLength(6)
+    expect(outcome).toHaveLength(9)
     expect(unported(css, outcome)).toEqual([])
   })
 })

@@ -70,9 +70,10 @@ export function effectText(action: TraceAction): string {
   return `decide · ${outcome} · ${action.terminal === false ? 'candidate' : 'terminal'}`
 }
 
-/** One cell of the hit map: a rule, what the engine found, and whether it decided the case. */
+/** One cell of the hit map: a rule with its label, what the engine found, and whether it decided the case. */
 export interface HitCell {
   ruleId: string
+  label: string
   status: TraceStep['status']
   deciding: boolean
 }
@@ -81,6 +82,7 @@ export interface HitCell {
 export function hitMap(decision: EngineDecision): HitCell[] {
   return decision.trace.map((step) => ({
     ruleId: step.ruleId,
+    label: step.label,
     status: step.status,
     deciding: step.status === 'fired' && step.ruleId === decision.decidingRuleId,
   }))

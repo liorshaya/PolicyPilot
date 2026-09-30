@@ -84,13 +84,20 @@ describe('hitMap and hitMapLabel', () => {
     const cells = hitMap(sampleDecision)
 
     expect(cells).toHaveLength(20)
+    // each cell carries its rule's label, as the engine wrote it in the step (v3.7)
     expect(cells.slice(0, 3)).toStrictEqual([
-      { ruleId: 'R-010', status: 'fired', deciding: false },
-      { ruleId: 'R-020', status: 'fired', deciding: false },
-      { ruleId: 'R-100', status: 'not_fired', deciding: false },
+      {
+        ruleId: 'R-010',
+        label: 'חישוב ההחזר החודשי לפי לוח שפיצר בריבית שנתית של 9%',
+        status: 'fired',
+        deciding: false,
+      },
+      { ruleId: 'R-020', label: 'חישוב יחס החוב להכנסה', status: 'fired', deciding: false },
+      { ruleId: 'R-100', label: 'דחייה: גיל נמוך מ-21', status: 'not_fired', deciding: false },
     ])
     expect(cells.find((cell) => cell.deciding)).toStrictEqual({
       ruleId: 'R-330',
+      label: 'בדיקת חתם: אירוע אשראי אחד ללא ערב',
       status: 'fired',
       deciding: true,
     })
@@ -103,8 +110,8 @@ describe('hitMap and hitMapLabel', () => {
     )
     expect(
       hitMapLabel([
-        { ruleId: 'R-100', status: 'fired', deciding: true },
-        { ruleId: 'R-310', status: 'disabled', deciding: false },
+        { ruleId: 'R-100', label: 'דחייה: גיל נמוך מ-21', status: 'fired', deciding: true },
+        { ruleId: 'R-310', label: 'בדיקה ידנית: ותק לא דווח', status: 'disabled', deciding: false },
       ]),
     ).toBe('2 rules: 1 matched, 1 disabled')
   })

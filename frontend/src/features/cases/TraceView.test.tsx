@@ -78,23 +78,24 @@ describe('TraceView, the head', () => {
     const cells = [...map.querySelectorAll('.hitmap__cell')]
     expect(cells).toHaveLength(20)
     expect(cells[0]).toHaveClass('hitmap__cell--matched')
-    expect(cells[0]).toHaveAttribute('title', 'R-010 · Matched')
-    expect(cells[2]).toHaveAttribute('title', 'R-100 · Did not match')
+    // each cell names its rule and its label, the engine's words for the step after them (v3.7)
+    expect(cells[0]).toHaveAttribute(
+      'title',
+      'R-010 · חישוב ההחזר החודשי לפי לוח שפיצר בריבית שנתית של 9% · Matched',
+    )
+    expect(cells[2]).toHaveAttribute('title', 'R-100 · דחייה: גיל נמוך מ-21 · Did not match')
     expect(cells[16]).toHaveClass('hitmap__cell--deciding')
-    expect(cells[16]).toHaveAttribute('title', 'R-330 · decided')
+    expect(cells[16]).toHaveAttribute(
+      'title',
+      'R-330 · בדיקת חתם: אירוע אשראי אחד ללא ערב · decided',
+    )
     expect(cells[17]).toHaveClass('hitmap__cell--notreached')
     // ringed in the colour of its outcome, never the accent (the spec, section 09)
     expect(map).toHaveClass('hitmap--refer')
     expect(rule(css, '.hitmap--refer')['--ring']).toBe('var(--refer-mark)')
     expect(
       [...document.querySelectorAll('.hitmap__legend > span')].map((entry) => entry.textContent),
-    ).toStrictEqual([
-      'matched',
-      'did not match',
-      'not reached',
-      'disabled',
-      'decided, ringed in its outcome',
-    ])
+    ).toStrictEqual(['matched', 'did not match', 'not reached', 'disabled', 'decided'])
   })
 
   it('offers the two explanations as buttons, and the export as links', () => {
@@ -353,12 +354,24 @@ describe('TraceView, what a proposal decides', () => {
 })
 
 describe('TraceView.css', () => {
+  it("keeps a step's status on the first line while a long label wraps in its own column", () => {
+    // the spec, section 09 (v3.7): the head is three columns, the chip, the label and the status
+    expect(rule(css, '.step__head')).toMatchObject({
+      display: 'grid',
+      'grid-template-columns': 'auto minmax(0, 1fr) auto',
+      'align-items': 'baseline',
+    })
+    expect(rule(css, '.step__head .step__label')['justify-self']).toBe('start')
+    // the last row, the count of what is collapsed, spans the three columns
+    expect(rule(css, '.step--foot .step__head > span')['grid-column']).toBe('1 / -1')
+  })
+
   it("carries every rule of the spec's trace, hit map, steps and comparisons, with the spec's declarations", () => {
     const trace = specRules('/* Trace */', '/* The assistant thread').filter(
       ([selector]) => !selector.startsWith('.explain'),
     )
 
-    expect(trace).toHaveLength(41)
+    expect(trace).toHaveLength(42)
     expect(unported(css, trace)).toEqual([])
   })
 })

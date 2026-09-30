@@ -50,6 +50,23 @@ test.describe('the case runner', () => {
     await expect(steps.first()).toContainText('9,500')
   })
 
+  test('names the rule that decided each case, and clears its filters in one click', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Run 200 cases' }).first().click()
+
+    // the spec, section 07 (v3.7): the label under the id, from the version the run decided on
+    const row = page.getByRole('row').filter({ hasText: 'R-330' })
+    await expect(row).toContainText('בדיקת חתם: אירוע אשראי אחד ללא ערב')
+    await page.getByRole('combobox', { name: 'Outcome' }).selectOption('reject')
+    await expect(page.getByText('Cases 0 of 1 · one run on v1')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Clear filters' }).click()
+
+    await expect(page.getByText('Cases 1–1 of 1 · one run on v1')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Clear filters' })).toHaveCount(0)
+  })
+
   // Work Plan day 10, Done when: "Explain on case 17 cites R-330 and its paragraph" (paragraph 7, R-330's provenance)
   test('explains case 17 by R-330 and its paragraph when the reader asks', async ({ page }) => {
     let asked: unknown = null
