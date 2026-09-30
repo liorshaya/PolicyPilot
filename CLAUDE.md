@@ -157,6 +157,9 @@ that ticks the last box of its cut (`scripts/ci/check_readme_limitations.py`).
 - `backend/pom.xml` overrides `jackson-2-bom.version` (2.21.6) and `jackson-bom.version` (3.1.6): Spring Boot 4.0.8
   manages jackson-databind 2.21.5 and 3.1.5, which carry CVE-2026-68497 (high, 2026-09-29). Remove both once a Spring
   Boot 4.0.x release manages the fixed versions.
+- `backend/Dockerfile` upgrades `libssl3t64` and `openssl` in the runtime stage: the pinned `eclipse-temurin:21-jre-noble`
+  digest carries openssl 3.0.13-0ubuntu3.15, which has CVE-2026-84782 (high, 2026-09-29), fixed by Ubuntu in
+  3.0.13-0ubuntu3.16. Remove the `apt-get` step once a `21-jre-noble` digest built after the fix is pinned.
 
 ## Register: the design language (Document 9)
 

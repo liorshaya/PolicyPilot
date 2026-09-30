@@ -109,6 +109,10 @@ describe('CasesScreen', () => {
     const referred = (await screen.findByText('17')).closest('tr')
     expect(within(referred!).getByText('Manual review')).toBeInTheDocument()
     expect(within(referred!).getByText('R-330')).toBeInTheDocument()
+    // the rule named under its id, from the version the run decided on (v3.7)
+    expect(within(referred!).getByText('בדיקת חתם: אירוע אשראי אחד ללא ערב')).toHaveClass(
+      't-decided__label',
+    )
     const approved = screen.getByText('18').closest('tr')
     expect(within(approved!).getByText('Approved')).toBeInTheDocument()
     expect(within(approved!).getByText('STABLE_INCOME_MANUAL_CHECK')).toBeInTheDocument()
@@ -479,7 +483,11 @@ describe('CasesScreen, every state', () => {
     const run = within(empty).getByRole('button', { name: 'Run 200 cases' })
     // one primary per screen, the header's: the empty sheet's action is a small secondary
     expect(run).toHaveClass('btn', 'btn--secondary', 'btn--sm')
-    expect(within(empty).getByText('the seeded set, on version 1')).toHaveClass('muted')
+    expect(
+      within(empty).getByText(
+        'the 200 seeded cases, decided on v1 by the engine, each with its trace',
+      ),
+    ).toHaveClass('muted')
   })
 
   // The owner's answer of 2026-09-28 to phase 5's fourth question: the row in ink, the code in the trace it opens

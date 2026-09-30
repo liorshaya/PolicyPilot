@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import type { CaseResult } from '../../api/types'
+import type { CaseResult, Rule } from '../../api/types'
+import { contentAttributes, type ContentLanguage } from '../../shared/i18n/direction'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
 import { DECISION_LABELS, type DecisionStatus } from '../../shared/ui/decisionLabels'
@@ -10,6 +11,10 @@ import './DecisionList.css'
 
 interface DecisionListProps {
   results: CaseResult[]
+  /** The rules of the version the run decided on, for the label under each deciding rule's id. */
+  rules?: Rule[]
+  /** The language of the policy, which the rules' labels are written in. */
+  language?: ContentLanguage
   selectedId: string | null
   /** The case the palette opened: its row flashes once (the deep link, section 02). */
   openedId?: string | null
@@ -51,12 +56,14 @@ const OUTCOMES: DecisionStatus[] = ['approve', 'reject', 'refer', 'error']
 
 /**
  * The decisions of a run, one row per case (Document 2, the batch answer; the Register spec, section 07, the base
- * table): the case number, what the engine decided, which rule decided it and what it flagged. Filters narrow the list
- * by case number, outcome and deciding rule; the footer states the count, the scope and the keys. Choosing a row opens
- * that decision's trace beside the list.
+ * table): the case number, what the engine decided, which rule decided it, named under its id, and what it flagged.
+ * Filters narrow the list by case number, outcome and deciding rule, and Clear filters lifts them all at once; the
+ * footer states the count, the scope and the keys. Choosing a row opens that decision's trace beside the list.
  */
 export function DecisionList({
   results,
+  rules = [],
+  language = 'he',
   selectedId,
   openedId = null,
   onSelect,
@@ -80,9 +87,16 @@ export function DecisionList({
   const tableRef = useRef<HTMLTableElement>(null)
   const selectedRef = useRef<HTMLTableRowElement>(null)
 
-  const rules = [...new Set(results.map((result) => result.decidingRuleId))]
+  const labels = new Map(rules.map((rule) => [rule.id, rule.label]))
+  const deciding = [...new Set(results.map((result) => result.decidingRuleId))]
     .filter((ruleId) => ruleId !== undefined)
     .sort()
+  const filtering = caseNo !== '' || outcome !== '' || decidingRule !== ''
+  const clearFilters = () => {
+    setCaseNo('')
+    setOutcome('')
+    setDecidingRule('')
+  }
   const shown = results.filter(
     (result) =>
       (caseNo === '' || String(result.caseNo ?? '').startsWith(caseNo)) &&
@@ -130,7 +144,7 @@ export function DecisionList({
 
   return (
     <>
-      <div className="toolbar">
+      <div className="toolbar decisions__toolbar">
         <input
           ref={filterRef}
           className="input decisions__case"
@@ -166,12 +180,17 @@ export function DecisionList({
           onChange={(event) => setDecidingRule(event.target.value)}
         >
           <option value="">Any deciding rule</option>
-          {rules.map((ruleId) => (
+          {deciding.map((ruleId) => (
             <option key={ruleId} value={ruleId}>
               {ruleId}
             </option>
           ))}
         </select>
+        {filtering ? (
+          <Button variant="quiet" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        ) : null}
         <span className="toolbar__spacer" />
         <div className="segment" role="group" aria-label="Row height">
           {(['comfortable', 'compact'] as const).map((choice) => (
@@ -244,7 +263,20 @@ export function DecisionList({
                 {result.decidingRuleId === undefined ? (
                   <td className="t-empty" aria-label="no deciding rule" />
                 ) : (
-                  <td className="t-id">{result.decidingRuleId}</td>
+                  <td>
+                    <div className="t-decided">
+                      <span className="t-id">{result.decidingRuleId}</span>
+                      {labels.has(result.decidingRuleId) ? (
+                        <span
+                          className="t-decided__label"
+                          title={labels.get(result.decidingRuleId)}
+                          {...contentAttributes(language)}
+                        >
+                          {labels.get(result.decidingRuleId)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
                 )}
                 {result.flags.length === 0 ? (
                   <td className="t-empty" aria-label="no flags" />

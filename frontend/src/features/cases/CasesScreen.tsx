@@ -205,7 +205,7 @@ export function CasesScreen({
               {aggregates?.decisions === 0 ? (
                 <EmptyState
                   title="Nothing decided yet."
-                  description={`the seeded set, on version ${String(ruleset?.versionNo ?? 1)}`}
+                  description={`the 200 seeded cases, decided on v${String(ruleset?.versionNo ?? 1)} by the engine, each with its trace`}
                   action={
                     <Button size="sm" busy={run.isPending} onClick={() => run.mutate(FIXTURE_SET)}>
                       Run 200 cases
@@ -225,6 +225,8 @@ export function CasesScreen({
               {results.length > 0 ? (
                 <DecisionList
                   results={results}
+                  rules={document?.rules ?? []}
+                  language={language}
                   selectedId={selectedId}
                   openedId={focusDecisionId}
                   onSelect={open}

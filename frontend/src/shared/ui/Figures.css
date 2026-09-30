@@ -88,24 +88,30 @@
 .barlist__row[aria-pressed='true'] .barlist__id {
   color: var(--accent-text);
 }
-
-/*
- * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
- * (Document 9, "The CSS port"): a bar list has its title row, and each row is a button that keeps its box, so its focus
- * ring shows, while its three parts sit in the list's columns; a rule's dot stands apart from its id by the figure
- * label's gap.
- */
 .barlist__title {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 8px;
+  gap: 6px 12px;
   margin-bottom: 8px;
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--ink-3);
 }
+.barlist__title .btn {
+  margin-inline-start: auto;
+}
+.barlist__title .btn[aria-pressed='true'] {
+  background: var(--well-2);
+  border-color: var(--border-strong);
+}
+
+/*
+ * The product's own, where the spec leaves the product to decide. The specimen's style attributes become classes
+ * (Document 9, "The CSS port"): each row of a bar list is a button that keeps its box, so its focus ring shows, while
+ * its three parts sit in the list's columns; a rule's dot stands apart from its id by the figure label's gap.
+ */
 button.barlist__row {
   display: grid;
   grid-template-columns: subgrid;

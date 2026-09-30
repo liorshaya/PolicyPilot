@@ -1,7 +1,7 @@
 /*
- * The outcome row over the case list (the Register spec, section 09, "Figures: the outcome row"): the outcome bar of
- * the "Figures" block of layer 5 of docs/design/register.css, as the spec writes it; the figures and the bar list under
- * it are shared with the regression report, in shared/ui/Figures.css.
+ * The summary band over the case list (the Register spec, section 09, "Figures: the outcome row"): the outcome bar and
+ * the band of the "Figures" block of layer 5 of docs/design/register.css, as the spec writes them; the figures and the
+ * bar list beside them are shared with the regression report, in shared/ui/Figures.css.
  */
 .outcome {
   display: grid;
@@ -27,8 +27,17 @@
 .outcome__seg--error {
   background: var(--mark-quiet);
 }
-
-/* The product's own: the rules that decided most often stand under the figures (shared/ui/Figures.css draws them). */
-.dashboard__rules {
-  padding: 0 16px 16px;
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.summary > .outcome {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.summary__rules {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 14px 16px;
 }

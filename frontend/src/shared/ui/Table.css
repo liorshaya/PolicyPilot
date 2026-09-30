@@ -78,6 +78,30 @@
   white-space: nowrap;
   font-variant-numeric: slashed-zero;
 }
+/* The deciding rule (v3.7): its id with its label under it, in the policy's language, one line each; the label is
+   clipped with an ellipsis and dropped from Compact rows. */
+.t-decided {
+  display: grid;
+  gap: 1px;
+  max-width: 220px;
+  min-width: 0;
+  line-height: 1.2;
+}
+.t-decided__label {
+  direction: rtl;
+  font-family: var(--font-he);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  unicode-bidi: isolate;
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table--compact .t-decided__label {
+  display: none;
+}
 .t-he {
   direction: rtl;
   font-family: var(--font-he);
@@ -438,7 +462,8 @@ button.t-rule {
   text-align: start;
   cursor: pointer;
 }
-.t-rule__label[dir='ltr'] {
+.t-rule__label[dir='ltr'],
+.t-decided__label[dir='ltr'] {
   direction: ltr;
 }
 /* A draft's cell reads as text, as the spec's draft does, and shows its input on hover and focus: the affordance a

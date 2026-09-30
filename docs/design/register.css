@@ -422,6 +422,10 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 .table--last-borderless tbody tr:last-child td { border-bottom: 0; }
 .table th.t-num, .t-num { text-align: end; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; direction: ltr; }
 .t-id { font-family: var(--font-mono); font-weight: 500; font-size: 0.92em; white-space: nowrap; font-variant-numeric: slashed-zero; }
+/* The deciding rule (v3.7): its id with its label under it, in the policy's language, one line each; the label is clipped with an ellipsis and dropped from Compact rows. */
+.t-decided { display: grid; gap: 1px; max-width: 220px; min-width: 0; line-height: 1.2; }
+.t-decided__label { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table--compact .t-decided__label { display: none; }
 .t-he { direction: rtl; font-family: var(--font-he); text-align: start; }
 .t-empty { color: var(--mark-quiet); }
 .t-empty::before { content: '—'; }
@@ -597,8 +601,10 @@ td.t-prio { font-family: var(--font-mono); }
 .step--notreached { color: var(--ink-3); }
 .step--notreached .step__mark { border-style: dashed; }
 .step--disabled .step__mark { border-style: dotted; }
-.step__head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--text-sm); }
+.step__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 8px; font-size: var(--text-sm); }
 .step__label { direction: rtl; font-family: var(--font-he); font-size: var(--text-sm); color: var(--ink-2); unicode-bidi: isolate; }
+/* A long label wraps inside its column and the status keeps the first line (v3.7); a short one stands beside its chip. */
+.step__head .step__label { justify-self: start; }
 .step__status { margin-inline-start: auto; font-size: var(--text-2xs); font-weight: 500; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
 .step--matched .step__status { color: var(--ink); }
 .cmp { grid-column: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 2px 12px; font-size: var(--text-xs); align-items: center; }
@@ -760,6 +766,13 @@ td.t-prio { font-family: var(--font-mono); }
 .barlist__val b { color: var(--ink); font-weight: 500; }
 .barlist__row[aria-pressed='true'] .barlist__fill { background: var(--accent); }
 .barlist__row[aria-pressed='true'] .barlist__id { color: var(--accent-text); }
+/* The summary band (v3.7): the outcome row and the rules that decided most often side by side while the sheet is wide enough, stacked when it is not, so the case list keeps its height. */
+.summary { display: flex; flex-wrap: wrap; align-items: flex-start; }
+.summary > .outcome { flex: 1 1 420px; min-width: 0; }
+.summary__rules { flex: 1 1 240px; min-width: 0; padding: 14px 16px; }
+.barlist__title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; font-size: var(--text-xs); font-weight: 500; color: var(--ink-3); }
+.barlist__title .btn { margin-inline-start: auto; }
+.barlist__title .btn[aria-pressed='true'] { background: var(--well-2); border-color: var(--border-strong); }
 
 /* Policy document and its list */
 .docs { list-style: none; margin: 0; padding: 0; }
