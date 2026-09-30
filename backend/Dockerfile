@@ -20,6 +20,13 @@ RUN mvn -B -ntp -q -DskipTests package \
 # eclipse-temurin:21-jre-noble, digest checked on 2026-09-18
 FROM eclipse-temurin:21-jre-noble@sha256:7739f0ffce786528961eea6bf46d9610ee968ac6127c9b2e93494757bdecce9f AS runtime
 
+# Ubuntu's fix for CVE-2026-84782 (openssl 3.0.13-0ubuntu3.16, 2026-09-29), which the base image above predates and
+# stage 6's scan refuses: the two packages move to their fixed version and nothing else is added. Remove once a
+# 21-jre-noble digest carries it (CLAUDE.md, Open values and known tensions).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade libssl3t64 openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app
 WORKDIR /app
