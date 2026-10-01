@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ComponentProps } from 'react'
-import { AccessGate } from './shared/gate/AccessGate'
+import { leave, sessionHolds } from './api/auth'
+import { AccessGate, GatePaper } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
 import { useWorkspace } from './shared/layout/useWorkspace'
@@ -54,10 +55,12 @@ function WorkspaceShell({
 
 /**
  * The application: the access gate until the code is exchanged, then the workspace. The session is the HttpOnly
- * cookie, so the app keeps no token of its own (Document 5).
+ * cookie, so the app keeps no token of its own (Document 5); on load it asks the API whether that cookie still holds,
+ * so a reload opens the workspace without the code, and Leave expires it (Document 2, /auth/session, 2026-10-01).
  */
 export function App() {
-  const [entered, setEntered] = useState(false)
+  // null while the API is asked whether the session holds, then whether the workspace is open
+  const [entered, setEntered] = useState<boolean | null>(null)
   const [screen, setScreen] = useState<ScreenId>(screenFromHash)
   // the rule another screen asked to open, so a trace step leads to the rule and its source
   const [focusRuleId, setFocusRuleId] = useState<string | null>(null)
@@ -85,6 +88,18 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  useEffect(() => {
+    let current = true
+    void sessionHolds().then((holds) => {
+      if (current) {
+        setEntered(holds)
+      }
+    })
+    return () => {
+      current = false
+    }
+  }, [])
+
   // the theme this browser chose, which index.html already applied before the first paint
   useEffect(() => {
     applyTheme(storedTheme())
@@ -95,6 +110,9 @@ export function App() {
     setScreen(next)
   }
 
+  if (entered === null) {
+    return <GatePaper />
+  }
   if (!entered) {
     return <AccessGate onEntered={() => setEntered(true)} />
   }
@@ -125,7 +143,9 @@ export function App() {
           setGoneTo(null)
           navigate(next)
         }}
-        onLeave={() => setEntered(false)}
+        onLeave={() => {
+          void leave().then(() => setEntered(false))
+        }}
         rulesetId={rulesetId}
         demoRuns={demoRuns}
         onOpenPalette={openPalette}

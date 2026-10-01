@@ -21,6 +21,14 @@ interface AccessGateProps {
  * place the sentence is written out, the field in mono, the primary at 36px, the refusal in place, the honesty line and
  * the three marks as a foot. The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5).
  */
+/**
+ * The paper alone, drawn on load while the API is asked whether the session holds (the spec, section 11, Gate, v3.8),
+ * so neither the gate nor the workspace flashes before the answer.
+ */
+export function GatePaper() {
+  return <main className="gate" aria-busy="true" />
+}
+
 export function AccessGate({ onEntered }: AccessGateProps) {
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)

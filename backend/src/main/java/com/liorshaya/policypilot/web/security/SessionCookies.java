@@ -82,6 +82,20 @@ public class SessionCookies {
                 .build();
     }
 
+    /**
+     * The {@code Set-Cookie} header that ends the session in this browser (Document 2, {@code DELETE /auth/session}):
+     * the same name and attributes, an empty value and no age left, so the browser drops the cookie it holds.
+     */
+    public ResponseCookie expired() {
+        return ResponseCookie.from(NAME, "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
+    }
+
     /** Parses, then checks the signature, then the age; a cookie is valid from its issue second for 24 hours. */
     public Verification verify(String value, Instant now) {
         if (value == null || value.isEmpty()) {

@@ -261,6 +261,20 @@ export function twoRulesets(): RequestHandler[] {
 }
 
 export const handlers: RequestHandler[] = [
+  // a fresh browser holds no session (Document 2, GET /auth/session), and Leave answers 204; a test that starts inside
+  // the workspace serves its own 204
+  http.get(`${BASE}/auth/session`, () =>
+    HttpResponse.json(
+      {
+        code: 'SESSION_INVALID',
+        message: 'A valid session is required.',
+        details: [],
+        traceId: 't',
+      },
+      { status: 401 },
+    ),
+  ),
+  http.delete(`${BASE}/auth/session`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${BASE}/system/provider`, () => HttpResponse.json(openAiProvider)),
   http.get(`${BASE}/system/budget`, () => HttpResponse.json(budgetOpen)),
   // a sandbox that asked nothing yet (Document 2, GET /chat/sessions); a test that lists conversations serves its own

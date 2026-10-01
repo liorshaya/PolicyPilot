@@ -1544,6 +1544,28 @@
         }
       }
     },
+    "/api/v1/auth/session" : {
+      "get" : {
+        "tags" : [ "auth-controller" ],
+        "summary" : "Whether the session cookie still holds: 204, and 401 from the session filter otherwise",
+        "operationId" : "session",
+        "responses" : {
+          "204" : {
+            "description" : "The session holds"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "auth-controller" ],
+        "summary" : "Leave: expire the session cookie in this browser",
+        "operationId" : "leave",
+        "responses" : {
+          "204" : {
+            "description" : "The cookie is expired"
+          }
+        }
+      }
+    },
     "/api/v1/audit" : {
       "get" : {
         "tags" : [ "audit-controller" ],
