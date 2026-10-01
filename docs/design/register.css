@@ -800,7 +800,7 @@ td.t-prio { font-family: var(--font-mono); }
 .kv--2 { grid-template-columns: 1fr 1fr; }
 
 /* Access gate: the cover of the register */
-.gate { min-height: 640px; display: grid; place-items: center; padding: 40px 24px; background: var(--paper); }
+.gate { min-height: 640px; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 40px 24px; background: var(--paper); }
 .gate__sheet { width: 400px; max-width: 100%; background: var(--sheet); border: 1px solid var(--hairline); border-radius: var(--r-3); padding: 28px 28px 24px; display: grid; gap: 18px; }
 .gate__brand svg { height: 28px; width: auto; }
 .gate__title { font-size: var(--text-lg); font-weight: 600; }

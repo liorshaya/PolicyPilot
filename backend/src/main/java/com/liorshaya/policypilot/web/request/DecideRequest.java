@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.web.request;
 import com.liorshaya.policypilot.web.error.ApiException;
 import com.liorshaya.policypilot.web.error.ErrorCode;
 import com.liorshaya.policypilot.web.error.ErrorDetail;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
@@ -19,6 +20,8 @@ public record DecideRequest(@Nullable ObjectNode singleCase, @Nullable List<Obje
 
     /** At most 500 cases per request (Document 5, Availability and Abuse Resistance: Batch decide). */
     public static final int MAX_CASES = 500;
+    /** Document 5, Input Validation: a case input is at most 100 fields. */
+    public static final int MAX_FIELDS = 100;
 
     private static final Set<String> PROPERTIES = Set.of("case", "cases", "fixtureSet");
 
@@ -54,7 +57,7 @@ public record DecideRequest(@Nullable ObjectNode singleCase, @Nullable List<Obje
         if (!node.isObject()) {
             throw invalid("/case", "is not a case");
         }
-        return (ObjectNode) node;
+        return withinFields((ObjectNode) node, "/case");
     }
 
     private static @Nullable List<ObjectNode> casesOf(JsonNode body) {
@@ -68,13 +71,15 @@ public record DecideRequest(@Nullable ObjectNode singleCase, @Nullable List<Obje
         if (node.size() > MAX_CASES) {
             throw invalid("/cases", "has more than " + MAX_CASES + " cases");
         }
-        List<ObjectNode> cases = node.valueStream().map(element -> {
+        List<ObjectNode> cases = new ArrayList<>();
+        for (int index = 0; index < node.size(); index++) {
+            JsonNode element = node.get(index);
             if (!element.isObject()) {
                 throw invalid("/cases", "holds something that is not a case");
             }
-            return (ObjectNode) element;
-        }).toList();
-        return cases;
+            cases.add(withinFields((ObjectNode) element, "/cases/" + index));
+        }
+        return List.copyOf(cases);
     }
 
     private static @Nullable String fixtureSetOf(JsonNode body) {
@@ -86,6 +91,14 @@ public record DecideRequest(@Nullable ObjectNode singleCase, @Nullable List<Obje
             throw invalid("/fixtureSet", "is not a fixture set name");
         }
         return node.stringValue();
+    }
+
+    /** The case, refused at {@code path} when it holds more fields than a case input may (Document 2, decide). */
+    private static ObjectNode withinFields(ObjectNode node, String path) {
+        if (node.size() > MAX_FIELDS) {
+            throw invalid(path, "has more than " + MAX_FIELDS + " fields");
+        }
+        return node;
     }
 
     private static ApiException invalid(String path, String problem) {

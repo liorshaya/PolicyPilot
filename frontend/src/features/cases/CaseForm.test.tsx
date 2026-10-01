@@ -183,6 +183,38 @@ describe('CaseForm', () => {
     })
   })
 
+  // The edge cases of 2026-10-01: a comma is a thousands separator only between groups of three, and only decimal
+  // digits make a number. "1,5" had gone as 15 and "0x10" as 16; each now goes as it was typed, and the API names it
+  it('sends a value that is not a plain decimal number as it was typed', async () => {
+    const sent: Record<string, unknown>[] = []
+    server.use(
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, async ({ request }) => {
+        sent.push(((await request.json()) as { case: Record<string, unknown> }).case)
+        return HttpResponse.json(sampleDecision)
+      }),
+    )
+    renderForm()
+    const user = userEvent.setup()
+    const typed: [string, unknown][] = [
+      ['1,5', '1,5'],
+      ['12,34,56', '12,34,56'],
+      ['0x10', '0x10'],
+      ['1e3', '1e3'],
+      ['1,234,567.5', 1234567.5],
+      ['.5', 0.5],
+      ['+7', 7],
+    ]
+
+    for (const [text] of typed) {
+      await user.clear(control('requested_amount'))
+      await user.type(control('requested_amount'), text)
+      await user.click(screen.getByRole('button', { name: 'Decide' }))
+      await waitFor(() => expect(sent).toHaveLength(typed.findIndex(([one]) => one === text) + 1))
+    }
+
+    expect(sent.map((one) => one.requested_amount)).toEqual(typed.map(([, value]) => value))
+  })
+
   // Document 2: "an invalid case refuses the whole request with 422 CASE_INVALID and nothing is stored"; each detail
   // is the field's pointer and the problem's code (Document 3, case validation: CASE_OUT_OF_RANGE)
   it('names the refused field under its input, and says that nothing was stored', async () => {

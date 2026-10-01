@@ -11,10 +11,20 @@ import { domainText } from '../rules/fieldSchema'
 /** U+2212, built from its code point because it passes for a hyphen in the source. */
 const MINUS_SIGN = String.fromCodePoint(0x2212)
 
-/** A number as an officer writes it, "72,000" or with a true minus, or the text itself when it is not one. */
+/**
+ * A plain decimal number as an officer writes it: digits with an optional sign and fraction, a comma only between
+ * groups of three ("72,000"), and a true minus (U+2212). "1,5" (a decimal comma), "0x10" and "1e3" are not written
+ * that way and would otherwise be read as 15, 16 and 1000.
+ */
+const DECIMAL = /^[+-]?(?:\d{1,3}(?:,\d{3})+|\d*)(?:\.\d*)?$/
+
+/** A number as an officer writes it, or the text itself when it is not one, which the API then names as such. */
 function numberOf(text: string): number | string {
-  const plain = text.replaceAll(',', '').replace(MINUS_SIGN, '-')
-  const value = Number(plain)
+  const signed = text.replace(MINUS_SIGN, '-')
+  if (!DECIMAL.test(signed) || !/\d/.test(signed)) {
+    return text
+  }
+  const value = Number(signed.replaceAll(',', ''))
   return Number.isFinite(value) ? value : text
 }
 

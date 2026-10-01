@@ -116,6 +116,27 @@ class DecisionControllerTest {
         assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].path")).isEqualTo("/cases");
     }
 
+    // Document 5, Input Validation: a case input is at most 100 fields; Document 2, decide (2026-10-01): 400 before any
+    // validation. Expected: 400 at /case for a case of 101 fields
+    @Test
+    void aCaseOfMoreThan100FieldsIs400BeforeTheServiceIsCalled() throws Exception {
+        MockHttpServletResponse response = decide("{\"case\":" + caseOfFields(101) + "}");
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].path")).isEqualTo("/case");
+        assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].problem"))
+                .isEqualTo("has more than 100 fields");
+    }
+
+    // The same limit on each case of a list. Expected: 400 naming the second case, /cases/1
+    @Test
+    void aListHoldingACaseOfMoreThan100FieldsIs400AtThatCase() throws Exception {
+        MockHttpServletResponse response = decide("{\"cases\":[" + caseOfFields(100) + "," + caseOfFields(101) + "]}");
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(response.getContentAsString(), "$.details[0].path")).isEqualTo("/cases/1");
+    }
+
     // Document 3, Simulation: a simulation needs a base and the overrides. Expected: 400 REQUEST_INVALID
     @Test
     void aSimulationWithoutOverridesIs400() throws Exception {
@@ -138,6 +159,14 @@ class DecisionControllerTest {
     private MockHttpServletResponse decide(String body) throws Exception {
         return mvc.perform(post(versionPath() + "/decide").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andReturn().getResponse();
+    }
+
+    private static String caseOfFields(int count) {
+        StringBuilder fields = new StringBuilder("{");
+        for (int i = 0; i < count; i++) {
+            fields.append(i > 0 ? "," : "").append("\"field_").append(i).append("\":").append(i);
+        }
+        return fields.append("}").toString();
     }
 
     private static String versionPath() {
