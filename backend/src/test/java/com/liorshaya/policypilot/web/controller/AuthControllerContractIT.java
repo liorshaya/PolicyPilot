@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.support.Api;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
+import com.liorshaya.policypilot.support.OpenApiContract;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -74,6 +75,57 @@ class AuthControllerContractIT extends ApiIntegrationTest {
         exchange("198.51.100.15", "wrongone");
 
         assertThat(output.getAll()).doesNotContain(Api.ACCESS_CODE);
+    }
+
+    // Document 2, GET /auth/session (2026-10-01): a reload while the session holds opens the workspace. Expected: 204
+    // with no body for the cookie, on a route the served OpenAPI document names
+    @Test
+    void theSessionRouteAnswers204WhileTheCookieHolds() {
+        String session = api().login("198.51.100.70");
+        OpenApiContract contract = new OpenApiContract(api().get("/api/docs").cookie(session).send().body());
+
+        HttpResponse<String> response = api().get(ApiPaths.AUTH_SESSION).from("198.51.100.70").cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(204);
+        assertThat(response.body()).isEmpty();
+        assertThat(contract.documents("get", ApiPaths.AUTH_SESSION)).isTrue();
+    }
+
+    // The same route with no cookie, as a fresh browser asks it. Expected: 401 SESSION_INVALID, the filter's answer
+    @Test
+    void theSessionRouteAnswers401WithoutACookie() {
+        HttpResponse<String> response = api().get(ApiPaths.AUTH_SESSION).from("198.51.100.71").send();
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("SESSION_INVALID");
+    }
+
+    // Document 2, DELETE /auth/session: Leave expires the cookie in this browser. Expected: 204 and a pp_session
+    // cookie with Max-Age=0 and the same attributes, so the browser drops the one it holds
+    @Test
+    void leavingExpiresTheSessionCookie() {
+        String session = api().login("198.51.100.72");
+
+        HttpResponse<String> response = api().method("DELETE", ApiPaths.AUTH_SESSION).web().from("198.51.100.72")
+                .cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(204);
+        assertThat(response.headers().firstValue("Set-Cookie")).hasValueSatisfying(cookie -> assertThat(cookie)
+                .startsWith("pp_session=;")
+                .contains("; Path=/", "; Max-Age=0", "; Secure", "; HttpOnly", "; SameSite=Lax"));
+    }
+
+    // Document 5, CSRF: a state-changing request without the custom header. Expected: 403 CSRF_REJECTED, no cookie
+    @Test
+    void leavingWithoutTheClientHeaderIsRefused() {
+        String session = api().login("198.51.100.73");
+
+        HttpResponse<String> response = api().method("DELETE", ApiPaths.AUTH_SESSION).from("198.51.100.73")
+                .cookie(session).send();
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("CSRF_REJECTED");
+        assertThat(response.headers().firstValue("Set-Cookie")).isEmpty();
     }
 
     // Expected: Document 5, Brute force: 20 failures within 15 minutes lock the IP for 15 minutes. The failures are

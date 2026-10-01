@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '../test/msw/server'
-import { AUTH_CODE_URL, exchangeAccessCode } from './auth'
+import { AUTH_CODE_URL, AUTH_SESSION_URL, exchangeAccessCode, leave, sessionHolds } from './auth'
 
 // Document 5, Code exchange; the statuses and codes are Document 2's error codes table.
 describe('exchangeAccessCode', () => {
@@ -59,5 +59,67 @@ describe('exchangeAccessCode', () => {
     server.use(http.post(AUTH_CODE_URL, () => HttpResponse.error()))
 
     expect(await exchangeAccessCode('qwertyui')).toEqual({ kind: 'failed' })
+  })
+})
+
+// Document 2, GET /auth/session (2026-10-01): the app asks it once on load; 204 is a session that holds, and anything
+// else, the filter's 401 or no answer at all, sends the visitor to the gate
+describe('sessionHolds', () => {
+  it('reads 204 as a session that holds, asked with the cookie', async () => {
+    let credentialsSent = false
+    server.use(
+      http.get(AUTH_SESSION_URL, ({ request }) => {
+        credentialsSent = request.credentials === 'include'
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    expect(await sessionHolds()).toBe(true)
+    expect(credentialsSent).toBe(true)
+  })
+
+  it('reads 401 as no session', async () => {
+    server.use(
+      http.get(AUTH_SESSION_URL, () =>
+        HttpResponse.json(
+          { code: 'SESSION_INVALID', message: 'm', details: [], traceId: 't' },
+          { status: 401 },
+        ),
+      ),
+    )
+
+    expect(await sessionHolds()).toBe(false)
+  })
+
+  it('reads a network error as no session', async () => {
+    server.use(http.get(AUTH_SESSION_URL, () => HttpResponse.error()))
+
+    expect(await sessionHolds()).toBe(false)
+  })
+})
+
+// Document 2, DELETE /auth/session: Leave, a state-changing request, so it carries the client header
+describe('leave', () => {
+  it('sends DELETE with the client header and the cookie', async () => {
+    let seen: { header: string | null; credentials: string } | undefined
+    server.use(
+      http.delete(AUTH_SESSION_URL, ({ request }) => {
+        seen = {
+          header: request.headers.get('X-PolicyPilot-Client'),
+          credentials: request.credentials,
+        }
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    await leave()
+
+    expect(seen).toEqual({ header: 'web', credentials: 'include' })
+  })
+
+  it('settles when the API cannot be reached, so the visitor still leaves', async () => {
+    server.use(http.delete(AUTH_SESSION_URL, () => HttpResponse.error()))
+
+    await expect(leave()).resolves.toBeUndefined()
   })
 })

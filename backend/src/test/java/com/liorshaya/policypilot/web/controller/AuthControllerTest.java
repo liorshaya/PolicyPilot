@@ -1,6 +1,8 @@
 package com.liorshaya.policypilot.web.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.jayway.jsonpath.JsonPath;
@@ -124,6 +126,25 @@ class AuthControllerTest {
                 })
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\"}");
+    }
+
+    // Document 2, GET /auth/session: the filter has let the cookie through, so the session holds. Expected: 204 and
+    // no body
+    @Test
+    void theSessionRouteAnswers204() throws Exception {
+        MockHttpServletResponse response = perform(get(ApiPaths.AUTH_SESSION));
+
+        assertThat(response.getStatus()).isEqualTo(204);
+        assertThat(response.getContentAsString()).isEmpty();
+    }
+
+    // Document 2, DELETE /auth/session: Leave. Expected: 204 with the expired cookie, Max-Age=0
+    @Test
+    void leavingAnswers204WithTheExpiredCookie() throws Exception {
+        MockHttpServletResponse response = perform(delete(ApiPaths.AUTH_SESSION));
+
+        assertThat(response.getStatus()).isEqualTo(204);
+        assertThat(response.getHeader("Set-Cookie")).startsWith("pp_session=;").contains("; Max-Age=0");
     }
 
     private MockHttpServletResponse perform(MockHttpServletRequestBuilder request) throws Exception {

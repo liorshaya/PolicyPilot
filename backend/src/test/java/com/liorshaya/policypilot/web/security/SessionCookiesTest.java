@@ -46,6 +46,16 @@ class SessionCookiesTest {
                 .contains("; Path=/", "; Max-Age=86400", "; Secure", "; HttpOnly", "; SameSite=Lax");
     }
 
+    // Document 2, DELETE /auth/session: Leave expires the cookie. Expected: the same name and attributes, an empty
+    // value and Max-Age=0, which a browser reads as "drop the cookie you hold"
+    @Test
+    void anExpiredCookieHasNoValueAndNoAgeLeft() {
+        String header = cookies.expired().toString();
+
+        assertThat(header).startsWith("pp_session=;")
+                .contains("; Path=/", "; Max-Age=0", "; Secure", "; HttpOnly", "; SameSite=Lax");
+    }
+
     // Expected: 2026-09-24T09:00:00Z is 1790240400 seconds after the epoch (computed with Python's datetime)
     @Test
     void valueIsSandboxIdDotIssuedAtDotSignature() {

@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
-import { AUTH_CODE_URL } from './api/auth'
+import { AUTH_CODE_URL, AUTH_SESSION_URL } from './api/auth'
 import { budgetSpent } from './test/fixtures/budget'
 import { server } from './test/msw/server'
 import { App } from './App'
@@ -39,13 +39,51 @@ describe('App', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
   })
 
-  it('shows the access gate on first load', () => {
+  it('shows the access gate on first load', async () => {
     renderApp()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Enter the workspace' }),
+      await screen.findByRole('heading', { level: 1, name: 'Enter the workspace' }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Access code')).toBeInTheDocument()
+  })
+
+  // Document 2, GET /auth/session (2026-10-01); the spec (v3.8), section 11, Gate: on load the paper alone is drawn while
+  // the API is asked, and a session that holds opens the workspace without the gate
+  it('draws the paper alone while it asks whether the session holds', () => {
+    renderApp()
+
+    expect(screen.queryByLabelText('Access code')).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Workspace' })).not.toBeInTheDocument()
+    expect(document.querySelector('main.gate[aria-busy="true"]')).not.toBeNull()
+  })
+
+  it('opens the workspace on load while the session holds, without the code', async () => {
+    server.use(http.get(AUTH_SESSION_URL, () => new HttpResponse(null, { status: 204 })))
+    renderApp()
+
+    expect(await screen.findByRole('navigation', { name: 'Workspace' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Access code')).not.toBeInTheDocument()
+  })
+
+  // Document 2, DELETE /auth/session: Leave ends the session in this browser, then the gate
+  it('ends the session when the visitor leaves, and shows the gate', async () => {
+    let left = false
+    server.use(
+      http.get(AUTH_SESSION_URL, () => new HttpResponse(null, { status: 204 })),
+      http.delete(AUTH_SESSION_URL, () => {
+        left = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp()
+    const rail = await screen.findByRole('navigation', { name: 'Workspace' })
+
+    await user.click(within(rail).getByRole('button', { name: 'Leave' }))
+
+    expect(await screen.findByLabelText('Access code')).toBeInTheDocument()
+    expect(left).toBe(true)
   })
 
   it('opens the workspace once the code is accepted', async () => {
@@ -53,7 +91,7 @@ describe('App', () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
 
     expect(await screen.findByRole('navigation', { name: 'Workspace' })).toBeInTheDocument()
@@ -68,7 +106,7 @@ describe('App', () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
 
     const nav = await screen.findByRole('navigation', { name: 'Workspace' })
@@ -82,7 +120,7 @@ describe('App', () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
 
     const nav = await screen.findByRole('navigation', { name: 'Workspace' })
@@ -110,7 +148,7 @@ describe('App', () => {
     )
     const user = userEvent.setup()
     renderApp()
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
     const nav = await screen.findByRole('navigation', { name: 'Workspace' })
 
@@ -135,7 +173,7 @@ describe('App', () => {
     server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
     const user = userEvent.setup()
     renderApp()
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
     await screen.findByRole('navigation', { name: 'Workspace' })
 
@@ -153,7 +191,7 @@ describe('App', () => {
     server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
     const user = userEvent.setup()
     renderApp()
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
     await screen.findByRole('navigation', { name: 'Workspace' })
 
@@ -170,7 +208,7 @@ describe('App', () => {
     server.use(http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })))
     const user = userEvent.setup()
     renderApp()
-    await user.type(screen.getByLabelText('Access code'), 'qwertyui')
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
     await screen.findByRole('navigation', { name: 'Workspace' })
     await user.click(screen.getByRole('button', { name: /guided demo/i }))
