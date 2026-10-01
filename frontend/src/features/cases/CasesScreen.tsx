@@ -81,6 +81,16 @@ export function CasesScreen({
   // step 2 of the demo is the button a presenter would press, pressed for them once the version is known
   useDemoStep(demoAsked && ruleset !== null, () => run.mutate(FIXTURE_SET), onDemoHandled)
 
+  // Document 2, a version's fixtureSets: the seeded cases are offered only on a version they fit; on another policy's
+  // they would leave its inputs absent and decide nothing that means anything (the spec, section 11, v3.8). Vercel
+  // serves a merged web app before Railway runs the API built with it, so a version may come without the field, and
+  // the screen is then what it was before it
+  const named = version.data?.fixtureSets
+  const fits = named === undefined || named.includes(FIXTURE_SET)
+  const openForm = () => {
+    setDeciding(true)
+    setSelectedId(null)
+  }
   const document = version.data?.ruleSet as RuleSetDocument | undefined
   const language: ContentLanguage = document?.language ?? 'en'
   const aggregates = batch?.aggregates ?? stats.data
@@ -102,9 +112,13 @@ export function CasesScreen({
                 <span key="domain" className="mono">
                   {version.data.domain}
                 </span>,
-                <span key="set">
-                  <span className="mono">{FIXTURE_SET}</span>, the seeded set
-                </span>,
+                ...(fits
+                  ? [
+                      <span key="set">
+                        <span className="mono">{FIXTURE_SET}</span>, the seeded set
+                      </span>,
+                    ]
+                  : []),
                 <Actor key="engine" kind="engine">
                   engine
                 </Actor>,
@@ -120,25 +134,27 @@ export function CasesScreen({
           ) : null
         }
         secondary={
-          <Button
-            disabled={ruleset === null}
-            onClick={() => {
-              setDeciding(true)
-              setSelectedId(null)
-            }}
-          >
-            Decide a case
-          </Button>
+          fits ? (
+            <Button disabled={ruleset === null} onClick={openForm}>
+              Decide a case
+            </Button>
+          ) : null
         }
         primary={
-          <Button
-            variant="primary"
-            busy={run.isPending}
-            disabled={ruleset === null}
-            onClick={() => run.mutate(FIXTURE_SET)}
-          >
-            Run 200 cases
-          </Button>
+          fits ? (
+            <Button
+              variant="primary"
+              busy={run.isPending}
+              disabled={ruleset === null}
+              onClick={() => run.mutate(FIXTURE_SET)}
+            >
+              Run 200 cases
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={openForm}>
+              Decide a case
+            </Button>
+          )
         }
       />
       <BudgetNote />
@@ -203,15 +219,31 @@ export function CasesScreen({
                 />
               ) : null}
               {aggregates?.decisions === 0 ? (
-                <EmptyState
-                  title="Nothing decided yet."
-                  description={`the 200 seeded cases, decided on v${String(ruleset?.versionNo ?? 1)} by the engine, each with its trace`}
-                  action={
-                    <Button size="sm" busy={run.isPending} onClick={() => run.mutate(FIXTURE_SET)}>
-                      Run 200 cases
-                    </Button>
-                  }
-                />
+                fits ? (
+                  <EmptyState
+                    title="Nothing decided yet."
+                    description={`the 200 seeded cases, decided on v${String(ruleset?.versionNo ?? 1)} by the engine, each with its trace`}
+                    action={
+                      <Button
+                        size="sm"
+                        busy={run.isPending}
+                        onClick={() => run.mutate(FIXTURE_SET)}
+                      >
+                        Run 200 cases
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    title="Nothing decided yet."
+                    description="the 200 seeded cases are another policy's; each case is decided as it is typed"
+                    action={
+                      <Button size="sm" onClick={openForm}>
+                        Decide a case
+                      </Button>
+                    }
+                  />
+                )
               ) : null}
               {stats.error ? (
                 <ErrorState

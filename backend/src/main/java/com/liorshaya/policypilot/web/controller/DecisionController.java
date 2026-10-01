@@ -5,6 +5,7 @@ import com.liorshaya.policypilot.decision.service.CaseInvalidException;
 import com.liorshaya.policypilot.decision.service.DecisionCsv;
 import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.decision.service.DecisionView;
+import com.liorshaya.policypilot.decision.service.FixtureSetUnfitException;
 import com.liorshaya.policypilot.rules.json.RuleSetFormatException;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.Field;
@@ -95,8 +96,13 @@ public class DecisionController {
                     throw new ApiException(ErrorCode.REQUEST_INVALID,
                             List.of(new ErrorDetail("/fixtureSet", "is not a seeded fixture set")));
                 }
-                return BatchResponse.of(
-                        decisions.decideFixtureSet(version, session.sandboxId(), decide.fixtureSet()));
+                try {
+                    return BatchResponse.of(
+                            decisions.decideFixtureSet(version, session.sandboxId(), decide.fixtureSet()));
+                } catch (FixtureSetUnfitException e) {
+                    throw new ApiException(ErrorCode.REQUEST_INVALID, List.of(new ErrorDetail("/fixtureSet",
+                            "does not supply the version's inputs " + String.join(", ", e.missingInputs()))));
+                }
             }
             if (decide.cases() != null) {
                 return BatchResponse.of(decisions.decideAll(version, session.sandboxId(), decide.cases()));

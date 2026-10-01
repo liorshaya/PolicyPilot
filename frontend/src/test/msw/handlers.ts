@@ -114,6 +114,8 @@ export const publishedVersion: VersionResponse = {
   publishedBy: 'demo-analyst',
   ruleSet: lendingRuleSet,
   findings: [],
+  // the seeded cases supply every input of the rule set they were written for (Document 2, 2026-10-01)
+  fixtureSets: ['cases-200'],
 }
 
 export const secondPolicy: PolicyResponse = {
@@ -136,6 +138,8 @@ export const secondVersion: VersionResponse = {
   policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d2',
   ruleSet: depositRuleSet,
   findings: [],
+  // the lending cases supply none of the deposit policy's inputs, so no seeded set fits it
+  fixtureSets: [],
 }
 
 export const decision: Decision = {

@@ -112,6 +112,7 @@ function copyVersion(versionNo: 1 | 2) {
         ? ruleSet
         : { ...ruleSet, rules: ruleSet.rules.map((rule) => patched.get(rule.id) ?? rule) },
     findings: [],
+    fixtureSets: ['cases-200'],
   }
 }
 

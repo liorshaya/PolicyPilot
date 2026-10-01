@@ -413,6 +413,15 @@ the same day, and each cut leaves this list in the pull request that ships it. W
   sideways in boxes of their own on a screen 390px wide, and a phone draws a scrollbar only while one scrolls, so a
   column out of sight is not counted as the decision table's strip counts its fields (the Register's checklist, section
   12, walked in [`docs/quality/register-checklist.md`](docs/quality/register-checklist.md)).
+- **A policy the product has never seen**: walked end to end on the live site on 2026-10-01 with an eight-paragraph
+  employee training-grant policy. Its eight rules matched the text, twelve hand-labeled cases (the boundaries among
+  them) decided as labeled, and a change request flipped the one case it should. Three gaps remain. The model declared
+  six case fields and marked none required, so a case that leaves one out reads every comparison on it as false and
+  the approving rule approves it: the Fields section of a draft now says how many fields are optional and lets the
+  analyst require each, but neither the validator nor the reviewer raises it. The assistant simulates only a decision
+  already made, so a question about a new applicant with no case number gets the not-covered sentence; Decide a case
+  on the Cases screen answers it, with the trace. And generating the rules of a new policy took 137 s;
+  the demo's policy is served from the response cache.
 - **Deliberately not built** (Document 2): user accounts, roles, per-user audit identity, and encryption at rest
   beyond Railway's; **one shared access code** and **in-memory rate limits** on a single instance. Each is accepted
   for a demo, with what production would add, in

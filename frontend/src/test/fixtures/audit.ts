@@ -219,5 +219,6 @@ export function copyVersion(versionNo: 1 | 2): VersionResponse {
             rules: lendingRuleSet.rules.map((rule) => patched.get(rule.id) ?? rule),
           },
     findings: [],
+    fixtureSets: ['cases-200'],
   }
 }

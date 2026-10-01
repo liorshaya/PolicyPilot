@@ -328,6 +328,34 @@ describe('RulesScreen', () => {
     expect(document.rules).toHaveLength(lendingRuleSet.rules.length)
   })
 
+  // The spec (v3.8), section 09: a draft's Fields mark a case field required, the whole document sent as an edit is
+  it('marks a case field of a draft required in its Fields and sends the whole document with it', async () => {
+    const user = userEvent.setup()
+    let sent: RuleSetDocument | null = null
+    serveDraft()
+    server.use(
+      http.put(`${BASE}/rulesets/:id/versions/:no/rules`, async ({ request }) => {
+        sent = (await request.json()) as RuleSetDocument
+        return HttpResponse.json({ ...draftVersion, ruleSet: sent })
+      }),
+    )
+    renderScreen()
+
+    const switcher = await screen.findByRole('group', { name: 'Show in the margin' })
+    await user.click(within(switcher).getByRole('button', { name: 'Fields' }))
+    const fields = await screen.findByRole('region', { name: 'Fields' })
+    const row = [...fields.querySelectorAll<HTMLElement>('.schema__row')].find((one) =>
+      one.textContent.startsWith('employment_months'),
+    )!
+    await user.click(within(row).getByRole('checkbox', { name: 'Required' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    const document = sent as unknown as RuleSetDocument
+    expect(document.fields.find((field) => field.name === 'employment_months')?.required).toBe(true)
+    expect(document.fields).toHaveLength(lendingRuleSet.fields.length)
+    expect(document.rules).toStrictEqual(lendingRuleSet.rules)
+  })
+
   it('keeps a cell that is not a comparison in the editor and says what a cell may hold', async () => {
     const user = userEvent.setup()
     let calls = 0

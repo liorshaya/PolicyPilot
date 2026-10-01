@@ -1821,11 +1821,18 @@
               "$ref" : "#/components/schemas/FindingResponse"
             }
           },
+          "fixtureSets" : {
+            "type" : "array",
+            "description" : "The seeded fixture sets whose cases supply every case input of this version",
+            "items" : {
+              "type" : "string"
+            }
+          },
           "review" : {
             "$ref" : "#/components/schemas/ReviewResponse"
           }
         },
-        "required" : [ "domain", "findings", "name", "policyVersionId", "protected", "ruleSet", "rulesetId", "status", "versionId", "versionNo" ]
+        "required" : [ "domain", "findings", "fixtureSets", "name", "policyVersionId", "protected", "ruleSet", "rulesetId", "status", "versionId", "versionNo" ]
       },
       "ErrorDetail" : {
         "type" : "object",

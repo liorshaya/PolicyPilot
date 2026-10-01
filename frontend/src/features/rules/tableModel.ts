@@ -375,3 +375,21 @@ export function withEnabled(
     rules: document.rules.map((rule) => (rule.id === ruleId ? { ...rule, enabled } : rule)),
   }
 }
+
+/**
+ * The document with one case field required or optional again (Document 3, Field Schema: a case missing a required field
+ * is rejected before evaluation), every other field and every rule as they were; the Fields section of a draft sends it
+ * as the edit (the spec, section 09, v3.8).
+ */
+export function withRequired(
+  document: RuleSetDocument,
+  fieldName: string,
+  required: boolean,
+): RuleSetDocument {
+  return {
+    ...document,
+    fields: document.fields.map((field) =>
+      field.name === fieldName ? { ...field, required } : field,
+    ),
+  }
+}

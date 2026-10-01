@@ -172,6 +172,8 @@ test.describe('demo step 1: the rules are written from the policy', () => {
           policyVersionId: '0f4c1c9e-0000-4000-8000-0000000000d2',
           ruleSet: draftRuleSet,
           findings: [],
+          // the lending cases supply none of the deposit policy's inputs
+          fixtureSets: [],
         },
       }),
     )

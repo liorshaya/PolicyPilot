@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jayway.jsonpath.JsonPath;
 import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.Requirement;
+import com.liorshaya.policypilot.support.Seeded;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +144,26 @@ class BatchDecisionIT extends ApiIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat((String) JsonPath.read(response.body(), "$.details[0].path")).isEqualTo("/fixtureSet");
+        assertThat(storedDecisions()).isZero();
+    }
+
+    // Document 2, decide (2026-10-01): a fixture set decides only a version whose every case input the set supplies.
+    // Expected: the second domain's inputs that no case of cases-200 supplies, in the order its expected.ruleset.json
+    // declares them (age is the one input both share), 400 REQUEST_INVALID at /fixtureSet, nothing stored
+    @Test
+    void aFixtureSetIsRefusedOnAVersionWhoseInputsItDoesNotSupply() {
+        List<String> ids = JsonPath.read(api().get(Decisions.RULESETS).cookie(session).send().body(),
+                "$.rulesets[?(@.protected == true && @.domain == '" + Seeded.SECOND_DOMAIN + "')].id");
+        String secondDomain = Decisions.RULESETS + "/" + UUID.fromString(ids.getFirst()) + "/versions/1";
+
+        HttpResponse<String> response = decisions.decide(secondDomain, FIXTURE_SET);
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("REQUEST_INVALID");
+        assertThat((String) JsonPath.read(response.body(), "$.details[0].path")).isEqualTo("/fixtureSet");
+        assertThat((String) JsonPath.read(response.body(), "$.details[0].problem")).isEqualTo(
+                "does not supply the version's inputs receives_old_age_pension, receives_income_supplement, "
+                        + "apartment_count, area_sqm, municipal_debt, submission_date");
         assertThat(storedDecisions()).isZero();
     }
 

@@ -84,6 +84,23 @@ class RulesetControllerContractIT extends ApiIntegrationTest {
         assertThat((String) JsonPath.read(response.body(), "$.status")).isEqualTo("PUBLISHED");
         assertThat((List<?>) JsonPath.read(response.body(), "$.ruleSet.rules"))
                 .hasSize(Fixtures.lendingV1().withArray("rules").size());
+        // Document 2, 2026-10-01: cases-200 supplies every input of ruleset.v1.json, the rule set it was written for
+        assertThat((List<String>) JsonPath.read(response.body(), "$.fixtureSets")).containsExactly("cases-200");
+    }
+
+    // Document 2, a version's fixtureSets (2026-10-01). Expected: none for the second domain, whose
+    // expected.ruleset.json declares six inputs no case of cases-200 supplies, and the documented 200
+    @Test
+    void aVersionTheSeededCasesDoNotFitNamesNoFixtureSet() {
+        List<String> ids = JsonPath.read(api().get(RULESETS).cookie(session).send().body(),
+                "$.rulesets[?(@.protected == true && @.domain == '" + Seeded.SECOND_DOMAIN + "')].id");
+
+        HttpResponse<String> response = api().get(versionPath(UUID.fromString(ids.getFirst()), 1)).cookie(session)
+                .send();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(contract.violations("get", VERSION, 200, response.body())).isEmpty();
+        assertThat((List<String>) JsonPath.read(response.body(), "$.fixtureSets")).isEmpty();
     }
 
     // Document 2, NOT_FOUND. Expected: the served OpenAPI document

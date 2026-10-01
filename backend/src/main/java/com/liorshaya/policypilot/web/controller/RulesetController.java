@@ -2,6 +2,7 @@ package com.liorshaya.policypilot.web.controller;
 
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.common.SecurityEvents;
+import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.rules.json.RuleSetFormatException;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.ruleset.service.FindingsUnresolvedException;
@@ -52,12 +53,15 @@ public class RulesetController {
 
     private final RulesetService rulesets;
     private final DraftReviewer reviewer;
+    private final DecisionService decisions;
     private final SecurityEvents events;
     private final RuleSetMapper mapper = new RuleSetMapper();
 
-    public RulesetController(RulesetService rulesets, DraftReviewer reviewer, SecurityEvents events) {
+    public RulesetController(RulesetService rulesets, DraftReviewer reviewer, DecisionService decisions,
+            SecurityEvents events) {
         this.rulesets = rulesets;
         this.reviewer = reviewer;
+        this.decisions = decisions;
         this.events = events;
     }
 
@@ -195,7 +199,9 @@ public class RulesetController {
     /** Maps the service's refusals to the envelope; an unknown or foreign id is 404 (Document 5, no existence oracle). */
     private VersionResponse answer(String endpoint, Supplier<Optional<VersionView>> call) {
         try {
-            return call.get().map(VersionResponse::of).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+            return call.get()
+                    .map(version -> VersionResponse.of(version, decisions.fittingFixtureSets(version.document())))
+                    .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
         } catch (RulesetInvalidException e) {
             events.inputRejected(endpoint, ErrorCode.RULESET_INVALID.name());
             throw new ApiException(ErrorCode.RULESET_INVALID, e.problems().stream()

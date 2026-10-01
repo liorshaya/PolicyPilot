@@ -70,7 +70,7 @@ const whatIf = {
   flags: ['STABLE_INCOME_MANUAL_CHECK'],
 }
 
-interface Answer {
+export interface Answer {
   text: string
   citations: unknown[]
   /** The tool calls the answer made, each sent as it ends, before the first token. */
@@ -114,7 +114,7 @@ const answers: Record<string, Answer> = {
   'Q-04': { text: notCovered('he'), citations: [], fixed: 'not_covered' },
 }
 
-function streamOf({ text, citations, steps = [], fixed }: Answer): string {
+export function streamOf({ text, citations, steps = [], fixed }: Answer): string {
   const pieces = text.match(/.{1,9}/gsu) ?? []
   const events: [string, unknown][] = [
     ...steps.map((step): [string, unknown] => ['tool', step]),
