@@ -406,6 +406,7 @@ export function RulesScreen({
                 document={document}
                 findings={findings}
                 onShowParagraph={showParagraph}
+                saving={replaceRules.isPending}
                 onRequire={
                   draft
                     ? (field, required) =>

@@ -535,6 +535,51 @@ describe('CasesScreen, every state', () => {
     expect(screen.getByRole('complementary', { name: 'Decide a case' })).toBeInTheDocument()
   })
 
+  // The strict check of 2026-10-01: step 2 of the guided demo, asked while the workspace is on a published version the
+  // seeded cases do not fit, ran them there and got the API's refusal. The spec (v3.8), section 11: it runs them on
+  // the seeded rule set and says so. Expected: the decide request goes to the seeded rule set, once
+  it('Cases · step 2 of the guided demo on a version the seeded cases do not fit', async () => {
+    const asked: string[] = []
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json({
+          rulesets: [
+            rulesets.rulesets[0]!,
+            { ...secondRuleset, versions: [{ versionNo: 1, status: 'PUBLISHED' }] },
+          ],
+        }),
+      ),
+      http.get(`${BASE}/rulesets/${SECOND_RULESET_ID}/versions/:no`, () =>
+        HttpResponse.json({ ...secondVersion, status: 'PUBLISHED', fixtureSets: [] }),
+      ),
+      http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
+        asked.push(String(params.id))
+        return HttpResponse.json(batch)
+      }),
+    )
+    const onDemoHandled = vi.fn()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <CasesScreen
+          onOpenRule={() => undefined}
+          rulesetId={SECOND_RULESET_ID}
+          demoAsked
+          onDemoHandled={onDemoHandled}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('2 cases · one run')).toBeInTheDocument()
+    expect(asked).toEqual([SEEDED_RULESET_ID])
+    expect(onDemoHandled).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByText(
+        "The seeded cases are another policy's; step 2 ran them on the seeded rule set.",
+      ),
+    ).toBeInTheDocument()
+  })
+
   // Vercel serves a merged web app before Railway runs the API built with it (CLAUDE.md, the CI deploy job), so for
   // those minutes a version comes without fixtureSets. Expected: the screen as it was before the field, the run offered
   it('Cases · a version from an API that predates fixtureSets', async () => {

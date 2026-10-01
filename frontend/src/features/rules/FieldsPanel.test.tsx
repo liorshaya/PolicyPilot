@@ -227,6 +227,24 @@ describe('FieldsPanel on a draft', () => {
     expect(screen.getByRole('region', { name: 'Fields' }).querySelector('.note')).toBeNull()
   })
 
+  it('holds every Required box while an edit is being saved', () => {
+    render(
+      <FieldsPanel
+        document={lendingRuleSet}
+        findings={[]}
+        onShowParagraph={() => undefined}
+        onRequire={() => undefined}
+        saving
+      />,
+    )
+
+    const boxes = screen.getAllByRole('checkbox', { name: 'Required' })
+    expect(boxes).toHaveLength(8)
+    for (const box of boxes) {
+      expect(box).toBeDisabled()
+    }
+  })
+
   it('offers no Required and no note on a published or seeded version', () => {
     renderPanel()
 

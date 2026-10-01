@@ -152,12 +152,12 @@ public class DecisionService {
     }
 
     /**
-     * The seeded fixture sets whose cases supply every case input of a rule set document, by name (Document 2, a
-     * version's {@code fixtureSets}, 2026-10-01): the sets {@link #decideFixtureSet} would decide on that version.
+     * The seeded fixture sets that fit a rule set document, by name (Document 2, a version's {@code fixtureSets},
+     * 2026-10-01): the sets {@link #decideFixtureSet} would decide on that version.
      */
     @Transactional(readOnly = true)
     public List<String> fittingFixtureSets(JsonNode document) {
-        List<String> inputs = FixtureFit.inputsOf(document);
+        List<FixtureFit.Input> inputs = FixtureFit.inputsOf(document);
         Map<String, Set<String>> supplied = new TreeMap<>();
         for (CaseFixtureRepository.SuppliedField row : cases.suppliedFields()) {
             supplied.computeIfAbsent(row.getFixtureSet(), set -> new HashSet<>()).add(row.getField());

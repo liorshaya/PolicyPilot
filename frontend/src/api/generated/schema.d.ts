@@ -582,7 +582,7 @@ export interface components {
             /** @description The whole DSL document (Document 3) */
             ruleSet: unknown;
             findings: components["schemas"]["FindingResponse"][];
-            /** @description The seeded fixture sets whose cases supply every case input of this version */
+            /** @description The seeded fixture sets that fit this version, as decide judges a fixture set */
             fixtureSets: string[];
             review?: components["schemas"]["ReviewResponse"];
         };

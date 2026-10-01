@@ -41,7 +41,7 @@ public record VersionResponse(
         ObjectNode ruleSet,
         @JsonProperty(required = true) List<FindingResponse> findings,
         @JsonProperty(required = true)
-        @Schema(description = "The seeded fixture sets whose cases supply every case input of this version")
+        @Schema(description = "The seeded fixture sets that fit this version, as decide judges a fixture set")
         List<String> fixtureSets,
         @JsonInclude(JsonInclude.Include.NON_NULL) ReviewResponse review) {
 
@@ -119,8 +119,8 @@ public record VersionResponse(
     /**
      * The version as the API answers it.
      *
-     * @param fixtureSets the seeded fixture sets whose cases supply every case input of the version (Document 2,
-     *     2026-10-01), so the web app offers a run of them only where it fits
+     * @param fixtureSets the seeded fixture sets that fit the version (Document 2, 2026-10-01), so the web app offers
+     *     a run of them only where it fits
      */
     public static VersionResponse of(VersionView version, List<String> fixtureSets) {
         return new VersionResponse(version.rulesetId(), version.name(), version.domain(), version.isProtected(),

@@ -147,9 +147,9 @@ class BatchDecisionIT extends ApiIntegrationTest {
         assertThat(storedDecisions()).isZero();
     }
 
-    // Document 2, decide (2026-10-01): a fixture set decides only a version whose every case input the set supplies.
-    // Expected: the second domain's inputs that no case of cases-200 supplies, in the order its expected.ruleset.json
-    // declares them (age is the one input both share), 400 REQUEST_INVALID at /fixtureSet, nothing stored
+    // Document 2, decide (2026-10-01): a fixture set decides only a version it fits. Expected: the second domain's
+    // required inputs that no case of cases-200 supplies, in the order its expected.ruleset.json declares them (age is
+    // the one both share), 400 REQUEST_INVALID at /fixtureSet, nothing stored
     @Test
     void aFixtureSetIsRefusedOnAVersionWhoseInputsItDoesNotSupply() {
         List<String> ids = JsonPath.read(api().get(Decisions.RULESETS).cookie(session).send().body(),
@@ -162,8 +162,8 @@ class BatchDecisionIT extends ApiIntegrationTest {
         assertThat((String) JsonPath.read(response.body(), "$.code")).isEqualTo("REQUEST_INVALID");
         assertThat((String) JsonPath.read(response.body(), "$.details[0].path")).isEqualTo("/fixtureSet");
         assertThat((String) JsonPath.read(response.body(), "$.details[0].problem")).isEqualTo(
-                "does not supply the version's inputs receives_old_age_pension, receives_income_supplement, "
-                        + "apartment_count, area_sqm, municipal_debt, submission_date");
+                "does not supply the version's inputs receives_old_age_pension, apartment_count, area_sqm, "
+                        + "submission_date");
         assertThat(storedDecisions()).isZero();
     }
 
