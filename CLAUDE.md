@@ -154,9 +154,10 @@ that ticks the last box of its cut (`scripts/ci/check_readme_limitations.py`).
   lineup, the strong model's output at 12 USD per million, that is 4.80 USD, under the owner's 5 USD a day.
 - `backend/pom.xml` overrides `tomcat.version` (11.0.26): Spring Boot 4.0.8 manages Tomcat 11.0.24, which has
   three critical CVEs. Remove the override once a Spring Boot 4.0.x release manages 11.0.25 or later.
-- `backend/pom.xml` overrides `jackson-2-bom.version` (2.21.6) and `jackson-bom.version` (3.1.6): Spring Boot 4.0.8
-  manages jackson-databind 2.21.5 and 3.1.5, which carry CVE-2026-68497 (high, 2026-09-29). Remove both once a Spring
-  Boot 4.0.x release manages the fixed versions.
+- `backend/pom.xml` overrides `jackson-2-bom.version` (2.21.7) and `jackson-bom.version` (3.1.7): Spring Boot 4.0.8
+  manages jackson-databind 2.21.5 and 3.1.5, which carry CVE-2026-68497 (high, 2026-09-29), and 2.21.6 and 3.1.6 carry
+  CVE-2026-91776 and CVE-2026-91777 (high, 2026-10-01). Remove both once a Spring Boot 4.0.x release manages the fixed
+  versions.
 - `backend/Dockerfile` upgrades `libssl3t64` and `openssl` in the runtime stage: the pinned `eclipse-temurin:21-jre-noble`
   digest carries openssl 3.0.13-0ubuntu3.15, which has CVE-2026-84782 (high, 2026-09-29), fixed by Ubuntu in
   3.0.13-0ubuntu3.16. Remove the `apt-get` step once a `21-jre-noble` digest built after the fix is pinned.
