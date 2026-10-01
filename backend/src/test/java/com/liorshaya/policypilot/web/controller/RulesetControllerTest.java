@@ -51,7 +51,7 @@ class RulesetControllerTest {
         JsonMapper json = JsonMapper.builder().build();
         SecurityEvents events = new SecurityEvents(registry, "salt".getBytes(StandardCharsets.UTF_8));
         RulesetService rulesets = new RulesetService(null, null, null, null, null, events, null, null);
-        mvc = MockMvcBuilders.standaloneSetup(new RulesetController(rulesets, null, events))
+        mvc = MockMvcBuilders.standaloneSetup(new RulesetController(rulesets, null, null, events))
                 .setControllerAdvice(new ApiExceptionHandler(new ErrorResponses(new TraceIds(new SimpleTracer()), json)))
                 .setMessageConverters(new StringHttpMessageConverter(StandardCharsets.UTF_8),
                         new JacksonJsonHttpMessageConverter(json))

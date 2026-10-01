@@ -16,6 +16,7 @@ import {
   tagsOf,
   withEnabled,
   withLeaf,
+  withRequired,
 } from './tableModel'
 
 /**
@@ -496,5 +497,24 @@ describe('withEnabled', () => {
     expect(withEnabled(off, 'R-310', true).rules.find((rule) => rule.id === 'R-310')?.enabled).toBe(
       true,
     )
+  })
+})
+
+describe('withRequired', () => {
+  // Document 3, Field Schema: a case missing a required field is rejected before evaluation. Expected: employment_months,
+  // optional in ruleset.v1.json, made required and back, every other field and every rule as they were
+  it('makes one case field required or optional again and leaves the rest of the document as it was', () => {
+    const required = withRequired(lendingRuleSet, 'employment_months', true)
+
+    expect(required.fields.find((field) => field.name === 'employment_months')?.required).toBe(true)
+    expect(required.fields.filter((field) => field.name !== 'employment_months')).toStrictEqual(
+      lendingRuleSet.fields.filter((field) => field.name !== 'employment_months'),
+    )
+    expect(required.rules).toStrictEqual(lendingRuleSet.rules)
+    expect(
+      withRequired(required, 'employment_months', false).fields.find(
+        (field) => field.name === 'employment_months',
+      )?.required,
+    ).toBe(false)
   })
 })

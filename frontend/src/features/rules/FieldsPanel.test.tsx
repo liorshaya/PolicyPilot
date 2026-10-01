@@ -135,6 +135,106 @@ describe('FieldsPanel', () => {
   })
 })
 
+/**
+ * The spec (v3.8), section 09: on a draft, a case field that is neither derived nor given a default carries Required,
+ * and the section says how many are optional. Expected: ruleset.v1.json declares eight such fields, of which
+ * employment_months alone is optional; has_guarantor has a default and the two derived fields are the rules' own.
+ */
+describe('FieldsPanel on a draft', () => {
+  const HINT = 'A case without it is refused; unchecked, every comparison on it reads false'
+
+  function renderDraft(
+    document: RuleSetDocument = lendingRuleSet,
+    onRequire: (field: string, required: boolean) => void = () => undefined,
+  ) {
+    return render(
+      <FieldsPanel
+        document={document}
+        findings={[]}
+        onShowParagraph={() => undefined}
+        onRequire={onRequire}
+      />,
+    )
+  }
+
+  it('gives Required to each case field with neither a derivation nor a default, checked as the field is', () => {
+    renderDraft()
+
+    const boxes = screen.getAllByRole('checkbox', { name: 'Required' })
+    expect(
+      boxes.map((box) => [
+        box.closest('.schema__row')!.querySelector('.schema__head > .mono')!.textContent,
+        (box as HTMLInputElement).checked,
+      ]),
+    ).toEqual([
+      ['age', true],
+      ['requested_amount', true],
+      ['term_months', true],
+      ['employment_type', true],
+      ['employment_months', false],
+      ['monthly_income', true],
+      ['existing_monthly_debt', true],
+      ['credit_events_24m', true],
+    ])
+    expect(boxes[0]).toHaveAccessibleDescription(HINT)
+  })
+
+  it('asks for the field to be required, and for it to be optional again', async () => {
+    const user = userEvent.setup()
+    const onRequire = vi.fn()
+    renderDraft(lendingRuleSet, onRequire)
+    const row = rows().find((one) => one.textContent.startsWith('employment_months'))!
+
+    await user.click(within(row).getByRole('checkbox', { name: 'Required' }))
+    await user.click(rows()[0]!.querySelector<HTMLElement>('input[type="checkbox"]')!)
+
+    expect(onRequire.mock.calls).toEqual([
+      ['employment_months', true],
+      ['age', false],
+    ])
+  })
+
+  it('says how many case fields are optional with no default, in the singular for one', () => {
+    renderDraft()
+
+    expect(screen.getByRole('region', { name: 'Fields' }).querySelector('.note')).toHaveTextContent(
+      '1 case field is optional and has no default: a case without it is not refused, and every comparison on it reads false.',
+    )
+  })
+
+  // the new-policy walk of 2026-10-01: the model declared six inputs and marked none required
+  it('counts every one when none is required', () => {
+    renderDraft({
+      ...lendingRuleSet,
+      fields: lendingRuleSet.fields.map((field) =>
+        field.derived === true ? field : { ...field, required: false },
+      ),
+    })
+
+    expect(screen.getByRole('region', { name: 'Fields' }).querySelector('.note')).toHaveTextContent(
+      '8 case fields are optional and have no default: a case without one is not refused, and every comparison on it reads false.',
+    )
+  })
+
+  it('says nothing when every such field is required', () => {
+    renderDraft({
+      ...lendingRuleSet,
+      fields: lendingRuleSet.fields.map((field) =>
+        field.name === 'employment_months' ? { ...field, required: true } : field,
+      ),
+    })
+
+    expect(screen.getByRole('region', { name: 'Fields' }).querySelector('.note')).toBeNull()
+  })
+
+  it('offers no Required and no note on a published or seeded version', () => {
+    renderPanel()
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Fields' }).querySelector('.note')).toBeNull()
+  })
+})
+
 describe('FieldsPanel.css', () => {
   it("carries the spec's field schema, with the spec's declarations", () => {
     const schema = specRules('.schema {', '.barlist__id .dot')

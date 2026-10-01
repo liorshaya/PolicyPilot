@@ -11,6 +11,7 @@ import {
   rulesets,
   SECOND_RULESET_ID,
   secondRuleset,
+  secondVersion,
   SEEDED_RULESET_ID,
   twoRulesets,
 } from '../../test/msw/handlers'
@@ -319,6 +320,10 @@ describe('CasesScreen', () => {
           ],
         }),
       ),
+      // and its version is one the seeded cases fit (Document 2, a version's fixtureSets), so the run is offered
+      http.get(`${BASE}/rulesets/${SECOND_RULESET_ID}/versions/:no`, () =>
+        HttpResponse.json({ ...secondVersion, status: 'PUBLISHED', fixtureSets: ['cases-200'] }),
+      ),
       ...twoRulesets(),
       http.post(`${BASE}/rulesets/:id/versions/:no/decide`, ({ params }) => {
         asked = String(params.id)
@@ -488,6 +493,67 @@ describe('CasesScreen, every state', () => {
         'the 200 seeded cases, decided on v1 by the engine, each with its trace',
       ),
     ).toHaveClass('muted')
+  })
+
+  // The spec (v3.8), section 11: on a version the seeded cases do not fit, another policy's, the screen offers no run of
+  // them; Decide a case is the header's primary and the empty sheet's action (Document 2, a version's fixtureSets)
+  it('Cases · a version the seeded cases do not fit', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () =>
+        HttpResponse.json({ ...publishedVersion, fixtureSets: [] }),
+      ),
+      http.get(`${BASE}/rulesets/:id/versions/:no/stats`, () =>
+        HttpResponse.json({ outcomes: {}, errors: 0, topDecidingRules: [], decisions: 0 }),
+      ),
+    )
+    renderScreen()
+
+    const sentence = await screen.findByText('Nothing decided yet.')
+    const actions = document.querySelector<HTMLElement>('.ws-header__side')!
+    expect(
+      within(actions)
+        .getAllByRole('button')
+        .map((one) => one.textContent),
+    ).toEqual(['Decide a case'])
+    expect(within(actions).getByRole('button', { name: 'Decide a case' })).toHaveClass(
+      'btn--primary',
+    )
+    expect(screen.queryByRole('button', { name: 'Run 200 cases' })).not.toBeInTheDocument()
+    expect(document.querySelector('.ws-header .prov')).not.toHaveTextContent('cases-200')
+    const empty = sentence.closest<HTMLElement>('.empty')!
+    expect(
+      within(empty).getByText(
+        "the 200 seeded cases are another policy's; each case is decided as it is typed",
+      ),
+    ).toHaveClass('muted')
+    const decide = within(empty).getByRole('button', { name: 'Decide a case' })
+    expect(decide).toHaveClass('btn', 'btn--secondary', 'btn--sm')
+
+    await user.click(decide)
+
+    expect(screen.getByRole('complementary', { name: 'Decide a case' })).toBeInTheDocument()
+  })
+
+  // Vercel serves a merged web app before Railway runs the API built with it (CLAUDE.md, the CI deploy job), so for
+  // those minutes a version comes without fixtureSets. Expected: the screen as it was before the field, the run offered
+  it('Cases · a version from an API that predates fixtureSets', async () => {
+    const older = Object.fromEntries(
+      Object.entries(publishedVersion).filter(([key]) => key !== 'fixtureSets'),
+    )
+    server.use(http.get(`${BASE}/rulesets/:id/versions/:no`, () => HttpResponse.json(older)))
+    renderScreen()
+
+    await screen.findByText('Approved')
+    const actions = document.querySelector<HTMLElement>('.ws-header__side')!
+    await waitFor(() =>
+      expect(document.querySelector('.ws-header .prov')).toHaveTextContent('cases-200'),
+    )
+    expect(
+      within(actions)
+        .getAllByRole('button')
+        .map((one) => one.textContent),
+    ).toEqual(['Decide a case', 'Run 200 cases'])
   })
 
   // The owner's answer of 2026-09-28 to phase 5's fourth question: the row in ink, the code in the trace it opens

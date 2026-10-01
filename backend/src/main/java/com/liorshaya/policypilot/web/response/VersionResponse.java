@@ -19,9 +19,9 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * One rule set version: the DSL document, the status and the findings the validator reports on it (Document 2, API
- * Surface: "a rule set version with rules, findings and status"), and the review a draft carries once it has one
- * (Document 2, Flow 1). An edit that forked a protected rule set answers with the ids of the sandbox's own copy and
- * {@code forkedFromId}.
+ * Surface: "a rule set version with rules, findings and status"), the seeded fixture sets that fit it, and the review a
+ * draft carries once it has one (Document 2, Flow 1). An edit that forked a protected rule set answers with the ids of
+ * the sandbox's own copy and {@code forkedFromId}.
  */
 public record VersionResponse(
         @JsonProperty(required = true) UUID rulesetId,
@@ -40,6 +40,9 @@ public record VersionResponse(
         @Schema(implementation = Object.class, description = "The whole DSL document (Document 3)")
         ObjectNode ruleSet,
         @JsonProperty(required = true) List<FindingResponse> findings,
+        @JsonProperty(required = true)
+        @Schema(description = "The seeded fixture sets whose cases supply every case input of this version")
+        List<String> fixtureSets,
         @JsonInclude(JsonInclude.Include.NON_NULL) ReviewResponse review) {
 
     /** One validation finding in the Document 3 reporting shape. */
@@ -113,11 +116,17 @@ public record VersionResponse(
             @JsonInclude(JsonInclude.Include.NON_NULL) String note,
             @JsonProperty(required = true) Instant at) {}
 
-    public static VersionResponse of(VersionView version) {
+    /**
+     * The version as the API answers it.
+     *
+     * @param fixtureSets the seeded fixture sets whose cases supply every case input of the version (Document 2,
+     *     2026-10-01), so the web app offers a run of them only where it fits
+     */
+    public static VersionResponse of(VersionView version, List<String> fixtureSets) {
         return new VersionResponse(version.rulesetId(), version.name(), version.domain(), version.isProtected(),
                 version.forkedFromId(), version.versionId(), version.versionNo(), version.status().name(),
                 version.policyVersionId(), version.parentVersionId(), version.publishedAt(), version.publishedBy(),
                 version.document(), version.findings().stream().map(FindingResponse::of).toList(),
-                version.review() == null ? null : ReviewResponse.of(version.review()));
+                List.copyOf(fixtureSets), version.review() == null ? null : ReviewResponse.of(version.review()));
     }
 }

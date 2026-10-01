@@ -33,10 +33,11 @@
              Remove this override once a Spring Boot 4.0.x release manages Tomcat 11.0.25 or later. -->
         <tomcat.version>11.0.26</tomcat.version>
         <!-- Spring Boot 4.0.8 manages jackson-databind 2.21.5 and 3.1.5, which carry CVE-2026-68497 (high, fixed in
-             2.21.6 and 3.1.6), found by Trivy in CI stage 6 on 2026-09-29. Remove these two overrides once a Spring
-             Boot 4.0.x release manages the fixed versions. -->
-        <jackson-2-bom.version>2.21.6</jackson-2-bom.version>
-        <jackson-bom.version>3.1.6</jackson-bom.version>
+             2.21.6 and 3.1.6), found by Trivy in CI stage 6 on 2026-09-29; 2.21.6 and 3.1.6 carry CVE-2026-91776 and
+             CVE-2026-91777 (high, fixed in 2.21.7 and 3.1.7), found the same way on 2026-10-01. Remove these two
+             overrides once a Spring Boot 4.0.x release manages the fixed versions. -->
+        <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
         <spring-ai.version>2.0.1</spring-ai.version>
         <springdoc.version>3.0.3</springdoc.version>
         <!-- springdoc 3.0.3 brings swagger-core 2.2.47 but an older swagger-annotations through a transitive

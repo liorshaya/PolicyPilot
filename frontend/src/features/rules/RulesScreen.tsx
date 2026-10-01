@@ -30,7 +30,7 @@ import { RulesetSwitcher, VersionPicker } from './Pickers'
 import { publishBlockers, publishGates } from './findings'
 import { PublishBox, ReviewPanel } from './ReviewPanel'
 import { RuleDrawer } from './RuleDrawer'
-import { columnsOf, sinceOf, tagsOf, withEnabled, withLeaf } from './tableModel'
+import { columnsOf, sinceOf, tagsOf, withEnabled, withLeaf, withRequired } from './tableModel'
 import type { Leaf } from './cellGrammar'
 import './RulesScreen.css'
 
@@ -406,6 +406,14 @@ export function RulesScreen({
                 document={document}
                 findings={findings}
                 onShowParagraph={showParagraph}
+                onRequire={
+                  draft
+                    ? (field, required) =>
+                        replaceRules.mutate(withRequired(document, field, required), {
+                          onSuccess: setLatest,
+                        })
+                    : undefined
+                }
               />
             ) : showsReview && shown ? (
               <>

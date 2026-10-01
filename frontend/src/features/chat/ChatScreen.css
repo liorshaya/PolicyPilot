@@ -319,12 +319,15 @@
 }
 
 /* A what-if's tool chip names three words, the tool, the case and the change; on a line narrower than it, as on a phone,
-   it breaks between them, each word whole, rather than widen the turn past the window. One line keeps the chip's 20px. */
+   it breaks between them, each word whole, rather than widen the turn past the window. One line keeps the chip's 20px.
+   A change of several fields is one run with no space (has_guarantor=true,term_months=60), so it breaks anywhere
+   rather than push the turn wider than the log and clip the answer's start (the new-policy walk of 2026-10-01). */
 .steps .chip--tool {
   max-width: 100%;
   height: auto;
   min-height: 20px;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* The thread's turns sit in the log that announces them, and the tool calls of an answer are a list of step lines. */

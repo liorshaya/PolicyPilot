@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Limit;
@@ -94,14 +97,25 @@ public class DecisionService {
     /**
      * Decides a seeded fixture set (Brief FR-9: the 200 cases with their aggregates); every decision names the case
      * it came from.
+     *
+     * @throws FixtureSetUnfitException when the set leaves some of the version's case inputs unsupplied; nothing is
+     *     evaluated or stored
      */
     @Transactional
     public BatchResult decideFixtureSet(PublishedVersion version, UUID sandboxId, String fixtureSet) {
         List<CaseFixtureEntity> fixtures = cases.findByFixtureSetOrderByCaseNo(fixtureSet);
+        List<ObjectNode> inputs = fixtures.stream()
+                .map(fixture -> (ObjectNode) JSON.readTree(fixture.getFields()))
+                .toList();
+        List<String> missing = FixtureFit.missingInputs(version.compiled().ruleSet(), inputs);
+        if (!missing.isEmpty()) {
+            throw new FixtureSetUnfitException(missing);
+        }
         List<DecisionEntity> rows = new ArrayList<>();
         Map<UUID, Integer> numbers = new LinkedHashMap<>();
-        for (CaseFixtureEntity fixture : fixtures) {
-            ObjectNode input = (ObjectNode) JSON.readTree(fixture.getFields());
+        for (int index = 0; index < fixtures.size(); index++) {
+            CaseFixtureEntity fixture = fixtures.get(index);
+            ObjectNode input = inputs.get(index);
             DecisionEntity row = row(version, sandboxId, fixture.getId(), input,
                     evaluate(version, input, "/fixtureSet"));
             numbers.put(row.getId(), fixture.getCaseNo());
@@ -135,6 +149,23 @@ public class DecisionService {
     @Transactional(readOnly = true)
     public boolean hasFixtureSet(String fixtureSet) {
         return cases.existsByFixtureSet(fixtureSet);
+    }
+
+    /**
+     * The seeded fixture sets whose cases supply every case input of a rule set document, by name (Document 2, a
+     * version's {@code fixtureSets}, 2026-10-01): the sets {@link #decideFixtureSet} would decide on that version.
+     */
+    @Transactional(readOnly = true)
+    public List<String> fittingFixtureSets(JsonNode document) {
+        List<String> inputs = FixtureFit.inputsOf(document);
+        Map<String, Set<String>> supplied = new TreeMap<>();
+        for (CaseFixtureRepository.SuppliedField row : cases.suppliedFields()) {
+            supplied.computeIfAbsent(row.getFixtureSet(), set -> new HashSet<>()).add(row.getField());
+        }
+        return supplied.entrySet().stream()
+                .filter(set -> FixtureFit.missing(inputs, set.getValue()).isEmpty())
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     /** A stored decision of this sandbox (Document 2, {@code GET /decisions/{id}}). */

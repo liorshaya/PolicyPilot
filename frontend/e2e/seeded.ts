@@ -109,6 +109,8 @@ export async function serveTheSeededRuleSet(page: Page): Promise<void> {
         publishedBy: 'demo-analyst',
         ruleSet,
         findings: [],
+        // the seeded cases supply every input of the rule set they were written for (Document 2, 2026-10-01)
+        fixtureSets: ['cases-200'],
       },
     }),
   )

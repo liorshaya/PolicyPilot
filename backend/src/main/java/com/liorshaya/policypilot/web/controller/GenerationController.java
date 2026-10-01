@@ -3,6 +3,7 @@ package com.liorshaya.policypilot.web.controller;
 import com.liorshaya.policypilot.ai.LlmMalformedOutputException;
 import com.liorshaya.policypilot.ai.LlmUnavailableException;
 import com.liorshaya.policypilot.ai.service.AuthorService;
+import com.liorshaya.policypilot.decision.service.DecisionService;
 import com.liorshaya.policypilot.policy.service.PolicyService;
 import com.liorshaya.policypilot.policy.service.PolicyVersionRef;
 import com.liorshaya.policypilot.policy.service.PolicyView;
@@ -57,16 +58,19 @@ public class GenerationController {
     private final DraftReviewer reviewer;
     private final PolicyService policies;
     private final RulesetService rulesets;
+    private final DecisionService decisions;
     private final StreamRegistry streams;
     private final ExecutorService generations;
     private final Clock clock;
 
     public GenerationController(AuthorService author, DraftReviewer reviewer, PolicyService policies,
-            RulesetService rulesets, StreamRegistry streams, ExecutorService generations, Clock clock) {
+            RulesetService rulesets, DecisionService decisions, StreamRegistry streams, ExecutorService generations,
+            Clock clock) {
         this.author = author;
         this.reviewer = reviewer;
         this.policies = policies;
         this.rulesets = rulesets;
+        this.decisions = decisions;
         this.streams = streams;
         this.generations = generations;
         this.clock = clock;
@@ -110,7 +114,9 @@ public class GenerationController {
                 VersionView draft = rulesets.createDraft(sandboxId, version.id(), authored.document(),
                         ValidationContext.AUTHORING, Set.of());
                 send(emitter, lease, "reviewing", new Progress(version.paragraphs().size()));
-                send(emitter, lease, "draft", VersionResponse.of(reviewed(draft, sandboxId)));
+                VersionView reviewed = reviewed(draft, sandboxId);
+                send(emitter, lease, "draft",
+                        VersionResponse.of(reviewed, decisions.fittingFixtureSets(reviewed.document())));
             }
             emitter.complete();
         } catch (LlmUnavailableException e) {

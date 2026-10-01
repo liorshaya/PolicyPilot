@@ -582,6 +582,8 @@ export interface components {
             /** @description The whole DSL document (Document 3) */
             ruleSet: unknown;
             findings: components["schemas"]["FindingResponse"][];
+            /** @description The seeded fixture sets whose cases supply every case input of this version */
+            fixtureSets: string[];
             review?: components["schemas"]["ReviewResponse"];
         };
         ErrorDetail: {

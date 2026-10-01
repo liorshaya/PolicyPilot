@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ask, notCovered, question, serveTheChat } from './chat'
+import { ask, notCovered, question, serveTheChat, streamOf } from './chat'
 import { paragraphs, ruleSet, serveASeededRun, serveTheSeededRuleSet } from './seeded'
 
 /**
@@ -176,6 +176,58 @@ test.describe('the assistant', () => {
     await expect(refusal.locator('xpath=ancestor::p[1]').getByRole('button')).toHaveCount(0)
     // the stream names it as Document 4's fixed sentence, which the system says and no source backs
     await expect(page.getByText("No source · a fixed sentence, not the model's")).toBeVisible()
+  })
+
+  // The new-policy walk of 2026-10-01 on the cloud site: a what-if whose change was six fields in one run without a
+  // space, its arguments refused, widened the turn past the log and cut off the start of the answer under it. The
+  // tool call and the answer are that walk's, as the API streamed them
+  test('keeps a long what-if on its step line inside the log, and the answer under it whole', async ({
+    page,
+  }) => {
+    const change =
+      'received_grant_in_previous_12_months=false,requested_amount=3000,tenure_months=10,training_hours=20,' +
+      'training_in_employee_occupation=true,latest_performance_rating=4'
+    const answer = 'המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.'
+    await page.route('**/api/v1/chat/sessions/*/messages', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: streamOf({
+          text: answer,
+          citations: [],
+          steps: [
+            {
+              tool: 'simulate',
+              applicationNumber: null,
+              overrides: change,
+              tag: null,
+              versionNo: 1,
+              micros: 2700,
+              outcome: null,
+              decidingRuleId: null,
+              flags: [],
+              refused: 'invalid_arguments',
+            },
+          ],
+        }),
+      }),
+    )
+    await ask(page, 'עובד עם ותק של 10 חודשים מבקש 3,000 ש"ח. מה תהיה ההחלטה?')
+
+    await expect(page.getByRole('list', { name: 'Tool calls' })).toContainText(change)
+    const log = page.locator('.thread__scroll')
+    const said = page.getByText(answer)
+    await expect(said).toBeVisible()
+    // nothing scrolls the log sideways, and the answer starts inside it on both edges
+    const sideways = await log.evaluate(
+      (element: { scrollWidth: number; clientWidth: number }) =>
+        element.scrollWidth - element.clientWidth,
+    )
+    expect(sideways).toBeLessThanOrEqual(0)
+    const frame = (await log.boundingBox())!
+    const box = (await said.boundingBox())!
+    expect(box.x).toBeGreaterThanOrEqual(frame.x)
+    expect(box.x + box.width).toBeLessThanOrEqual(frame.x + frame.width)
   })
 })
 

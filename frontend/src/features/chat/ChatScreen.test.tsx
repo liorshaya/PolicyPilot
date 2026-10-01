@@ -1259,4 +1259,16 @@ describe('ChatScreen.css', () => {
     // an English thread keeps its step lines at its own start edge (NFR-5)
     expect(rule(css, ".thread[dir='ltr'] .steps")['justify-content']).toBe('flex-start')
   })
+
+  // The new-policy walk of 2026-10-01: a what-if whose change is six fields, written without a space, widened the turn
+  // past the log and cut off the start of the answer under it; the chip breaks such a run anywhere instead
+  it("breaks a tool chip's run without a space rather than widen the turn", () => {
+    const css = stylesheet('features/chat/ChatScreen.css')
+
+    expect(rule(css, '.steps .chip--tool')).toMatchObject({
+      'max-width': '100%',
+      'white-space': 'normal',
+      'overflow-wrap': 'anywhere',
+    })
+  })
 })
