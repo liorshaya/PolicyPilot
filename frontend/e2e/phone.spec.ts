@@ -27,6 +27,21 @@ async function enter(page: Page): Promise<void> {
   await expect(page.getByRole('navigation', { name: 'Workspace' })).toBeVisible()
 }
 
+// The edge cases of 2026-10-01: the gate's 400px sheet sat in a grid column as wide as itself, so on every phone
+// narrower than 424px the first screen scrolled sideways (35px at 390). Expected: the spec's gate (v3.8, its column
+// held to the window) fits the narrowest common phone and this spec's one
+for (const width of [320, 390]) {
+  test(`the gate fits a ${String(width)}px phone with nothing scrolling sideways`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/')
+    await expect(page.getByLabel('Access code')).toBeVisible()
+
+    expect(await sideways(page)).toBeLessThanOrEqual(0)
+  })
+}
+
 /** Opens a screen from the row of screens under the top bar. */
 async function open(page: Page, name: string): Promise<void> {
   await page

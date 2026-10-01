@@ -6,6 +6,7 @@
 .gate {
   min-height: 640px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 40px 24px;
   background: var(--paper);
