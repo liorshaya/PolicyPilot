@@ -63,7 +63,9 @@ export function CasesScreen({
   const list = rulesets.data ?? []
   // Document 2, decide: only a published version decides. The workspace may be on a draft written a moment ago, so
   // the cases run on its latest published version, or on the first rule set that has one, and the screen says so
-  const target = publishedTarget(list, rulesetId)
+  // step 2 of the guided demo, asked on a version the seeded cases do not fit, runs them on the seeded rule set
+  const [demoOnSeeded, setDemoOnSeeded] = useState(false)
+  const target = publishedTarget(list, demoOnSeeded ? null : rulesetId)
   const ruleset = target ? { id: target.ruleset.id, versionNo: target.versionNo } : null
   const elsewhere = target?.elsewhere ?? false
   const version = useVersion(ruleset)
@@ -78,15 +80,27 @@ export function CasesScreen({
   // the rule the figures filter the list by, which the list's own select changes too
   const [decidingRule, setDecidingRule] = useState<string | null>(null)
   const decision = useDecision(selectedId)
-  // step 2 of the demo is the button a presenter would press, pressed for them once the version is known
-  useDemoStep(demoAsked && ruleset !== null, () => run.mutate(FIXTURE_SET), onDemoHandled)
-
   // Document 2, a version's fixtureSets: the seeded cases are offered only on a version they fit; on another policy's
   // they would leave its inputs absent and decide nothing that means anything (the spec, section 11, v3.8). Vercel
   // serves a merged web app before Railway runs the API built with it, so a version may come without the field, and
   // the screen is then what it was before it
   const named = version.data?.fixtureSets
   const fits = named === undefined || named.includes(FIXTURE_SET)
+  // step 2 of the demo is the button a presenter would press, pressed for them once the version is known; on a version
+  // the cases do not fit it moves to the seeded rule set, runs them there once its version is read, and says so (the
+  // spec, section 11, v3.8)
+  useDemoStep(
+    demoAsked && !demoOnSeeded && ruleset !== null && version.data !== undefined,
+    () => {
+      if (fits) {
+        run.mutate(FIXTURE_SET)
+      } else {
+        setDemoOnSeeded(true)
+      }
+    },
+    onDemoHandled,
+  )
+  useDemoStep(demoOnSeeded && version.data !== undefined && fits, () => run.mutate(FIXTURE_SET))
   const openForm = () => {
     setDeciding(true)
     setSelectedId(null)
@@ -168,8 +182,13 @@ export function CasesScreen({
         }
         main={
           <>
-            {elsewhere || refusal ? (
+            {elsewhere || refusal || demoOnSeeded ? (
               <div className="sheet__notes">
+                {demoOnSeeded ? (
+                  <Note>
+                    The seeded cases are another policy's; step 2 ran them on the seeded rule set.
+                  </Note>
+                ) : null}
                 {elsewhere ? (
                   <Note>
                     This rule set has no published version yet; the cases ran on the seeded one.

@@ -1823,7 +1823,7 @@
           },
           "fixtureSets" : {
             "type" : "array",
-            "description" : "The seeded fixture sets whose cases supply every case input of this version",
+            "description" : "The seeded fixture sets that fit this version, as decide judges a fixture set",
             "items" : {
               "type" : "string"
             }

@@ -19,6 +19,11 @@ interface FieldsPanelProps {
    * or seeded version, which nobody edits.
    */
   onRequire?: (field: string, required: boolean) => void
+  /**
+   * An edit of the draft is being saved: every Required box waits for the answer, because each edit sends the whole
+   * document as this render holds it, and a second tick sent before the first is answered would drop the first.
+   */
+  saving?: boolean
 }
 
 /** A case field the analyst may require: one the case supplies (not derived) with no default to stand in for it. */
@@ -41,7 +46,13 @@ function optionalNote(count: number): string {
  * a case field with no default carries Required, because an optional one that a case leaves out makes every comparison
  * on it false (Document 3, Missing values), so an approving rule decides a case that lacks what the policy asks for.
  */
-export function FieldsPanel({ document, findings, onShowParagraph, onRequire }: FieldsPanelProps) {
+export function FieldsPanel({
+  document,
+  findings,
+  onShowParagraph,
+  onRequire,
+  saving = false,
+}: FieldsPanelProps) {
   const titleId = useId()
   const hintId = useId()
   const derived = document.fields.filter((field) => field.derived === true).length
@@ -105,6 +116,7 @@ export function FieldsPanel({ document, findings, onShowParagraph, onRequire }: 
                   <input
                     type="checkbox"
                     checked={field.required === true}
+                    disabled={saving}
                     onChange={(event) => onRequire(field.name, event.target.checked)}
                     aria-describedby={hintId}
                   />

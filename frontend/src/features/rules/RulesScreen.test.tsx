@@ -356,6 +356,45 @@ describe('RulesScreen', () => {
     expect(document.rules).toStrictEqual(lendingRuleSet.rules)
   })
 
+  // The strict check of 2026-10-01: each tick sent the document of its render, so a second tick before the first was
+  // answered sent the draft without the first and the stored draft kept only the last. The boxes wait for the answer
+  it('holds every Required box while an edit is saved, so a second tick builds on the first', async () => {
+    const user = userEvent.setup()
+    let answer: () => void = () => undefined
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve
+    })
+    let sent: RuleSetDocument | null = null
+    serveDraft()
+    server.use(
+      http.put(`${BASE}/rulesets/:id/versions/:no/rules`, async ({ request }) => {
+        sent = (await request.json()) as RuleSetDocument
+        await answered
+        return HttpResponse.json({ ...draftVersion, ruleSet: sent })
+      }),
+    )
+    renderScreen()
+
+    const switcher = await screen.findByRole('group', { name: 'Show in the margin' })
+    await user.click(within(switcher).getByRole('button', { name: 'Fields' }))
+    const fields = await screen.findByRole('region', { name: 'Fields' })
+    const box = () =>
+      within(
+        [...fields.querySelectorAll<HTMLElement>('.schema__row')].find((one) =>
+          one.textContent.startsWith('employment_months'),
+        )!,
+      ).getByRole('checkbox', { name: 'Required' })
+    await user.click(box())
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    for (const each of within(fields).getAllByRole('checkbox', { name: 'Required' })) {
+      expect(each).toBeDisabled()
+    }
+    answer()
+    await waitFor(() => expect(box()).toBeEnabled())
+    expect(box()).toBeChecked()
+  })
+
   it('keeps a cell that is not a comparison in the editor and says what a cell may hold', async () => {
     const user = userEvent.setup()
     let calls = 0
