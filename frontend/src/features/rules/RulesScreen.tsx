@@ -107,6 +107,10 @@ export function RulesScreen({
   const setLatest = (version: VersionResponse) =>
     setAnswered({ ruleset: chosen?.id ?? '', version })
   const shown: VersionResponse | undefined = latest ?? version.data
+  // the list of rule sets and the version are read before anything else is shown: still rows meanwhile, the refusal of
+  // either when it comes, the empty state only for a list that is read and holds none (the spec, section 11, v3.9)
+  const loading = rulesets.isPending || (ruleset !== null && version.isPending)
+  const unread = rulesets.error ?? version.error
   const target = latest
     ? { id: latest.rulesetId, versionNo: latest.versionNo }
     : (ruleset ?? { id: '', versionNo: 1 })
@@ -125,8 +129,9 @@ export function RulesScreen({
   // below 1200px the margin is a drawer, closed until the reader asks for it (the spec, section 08, v3.9)
   const drawer = useDrawer()
   const [drawerOpen, setDrawerOpen] = useState(focusRuleId !== null || focusFindingId !== null)
-  const sideOpen = !drawer || drawerOpen
   const document = shown?.ruleSet as RuleSetDocument | undefined
+  // the margin speaks of the version on the screen, so it waits with the sheet and has nothing to say without one
+  const sideOpen = (!drawer || drawerOpen) && (document !== undefined || (loading && !unread))
   const tags = document ? tagsOf(document) : []
   // a tag the version on the screen does not carry filters nothing: all tags are shown
   const [chosenTag, setChosenTag] = useState<string | null>(null)
@@ -383,10 +388,14 @@ export function RulesScreen({
               }
               flush
             >
-              {ruleset !== null && version.isPending ? (
-                <LoadingRows label="Loading the rule set" />
-              ) : null}
-              {version.error ? (
+              {loading && !unread ? <LoadingRows label="Loading the rule set" /> : null}
+              {rulesets.error ? (
+                <ErrorState
+                  code={rulesets.error instanceof ApiError ? rulesets.error.code : undefined}
+                  description="The rule sets could not be read."
+                  onRetry={() => void rulesets.refetch()}
+                />
+              ) : version.error ? (
                 <ErrorState
                   code={version.error instanceof ApiError ? version.error.code : undefined}
                   description="The rule set could not be read."
@@ -406,7 +415,7 @@ export function RulesScreen({
                   tag={tag}
                 />
               ) : null}
-              {!document && !(ruleset !== null && version.isPending) && !version.error ? (
+              {!document && !loading && !unread ? (
                 <EmptyState
                   title="No rule set yet"
                   action={

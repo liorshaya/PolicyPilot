@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ComponentProps } from 'react'
-import { leave, sessionHolds } from './api/auth'
+import { useQueryClient } from '@tanstack/react-query'
+import { leave, onSessionEnded, sessionHolds } from './api/auth'
 import { AccessGate, GatePaper } from './shared/gate/AccessGate'
 import { AppShell } from './shared/layout/AppShell'
 import { SCREENS, type ScreenId } from './shared/layout/screens'
@@ -33,6 +34,9 @@ const OPENS_ON: Record<PaletteTarget['kind'], ScreenId> = {
   change: 'audit',
 }
 
+/** What the gate says when it stands again because the session ended (the spec, section 11, Gate, v3.9). */
+const SESSION_ENDED = 'Your session has ended. Enter the code again.'
+
 /**
  * The rail, with what it says about the workspace: read only once the gate is behind, when the session can read it.
  */
@@ -56,11 +60,79 @@ function WorkspaceShell({
 /**
  * The application: the access gate until the code is exchanged, then the workspace. The session is the HttpOnly
  * cookie, so the app keeps no token of its own (Document 5); on load it asks the API whether that cookie still holds,
- * so a reload opens the workspace without the code, and Leave expires it (Document 2, /auth/session, 2026-10-01).
+ * so a reload opens the workspace without the code, and Leave expires it (Document 2, /auth/session, 2026-10-01). A
+ * session that ends while the workspace is open brings the gate back, saying so; Leave and the end of a session drop
+ * all the workspace held, since it was its sandbox's and the next session is a new sandbox (the spec, section 11,
+ * Gate, v3.9).
  */
 export function App() {
   // null while the API is asked whether the session holds, then whether the workspace is open
   const [entered, setEntered] = useState<boolean | null>(null)
+  // whether the gate stands again because the session ended while the workspace was open
+  const [ended, setEnded] = useState(false)
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    let current = true
+    void sessionHolds().then((holds) => {
+      if (current) {
+        setEntered(holds)
+      }
+    })
+    return () => {
+      current = false
+    }
+  }, [])
+
+  // the theme this browser chose, which index.html already applied before the first paint
+  useEffect(() => {
+    applyTheme(storedTheme())
+  }, [])
+
+  const close = useCallback(
+    (why: 'left' | 'ended') => {
+      queryClient.clear()
+      setEnded(why === 'ended')
+      setEntered(false)
+    },
+    [queryClient],
+  )
+
+  useEffect(() => {
+    if (entered !== true) {
+      return undefined
+    }
+    return onSessionEnded(() => close('ended'))
+  }, [entered, close])
+
+  if (entered === null) {
+    return <GatePaper />
+  }
+  if (!entered) {
+    return (
+      <AccessGate
+        notice={ended ? SESSION_ENDED : undefined}
+        onEntered={() => {
+          setEnded(false)
+          setEntered(true)
+        }}
+      />
+    )
+  }
+  return (
+    <Workspace
+      onLeave={() => {
+        void leave().then(() => close('left'))
+      }}
+    />
+  )
+}
+
+/**
+ * The workspace behind the gate: the six screens in the shell, the guided demo and the palette. All it holds is the
+ * session's, so it is mounted anew with each session.
+ */
+function Workspace({ onLeave }: { onLeave: () => void }) {
   const [screen, setScreen] = useState<ScreenId>(screenFromHash)
   // the rule another screen asked to open, so a trace step leads to the rule and its source
   const [focusRuleId, setFocusRuleId] = useState<string | null>(null)
@@ -88,33 +160,9 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  useEffect(() => {
-    let current = true
-    void sessionHolds().then((holds) => {
-      if (current) {
-        setEntered(holds)
-      }
-    })
-    return () => {
-      current = false
-    }
-  }, [])
-
-  // the theme this browser chose, which index.html already applied before the first paint
-  useEffect(() => {
-    applyTheme(storedTheme())
-  }, [])
-
   function navigate(next: ScreenId) {
     window.location.hash = `#/${next}`
     setScreen(next)
-  }
-
-  if (entered === null) {
-    return <GatePaper />
-  }
-  if (!entered) {
-    return <AccessGate onEntered={() => setEntered(true)} />
   }
 
   function runDemoStep(step: DemoStep) {
@@ -143,9 +191,7 @@ export function App() {
           setGoneTo(null)
           navigate(next)
         }}
-        onLeave={() => {
-          void leave().then(() => setEntered(false))
-        }}
+        onLeave={onLeave}
         rulesetId={rulesetId}
         demoRuns={demoRuns}
         onOpenPalette={openPalette}

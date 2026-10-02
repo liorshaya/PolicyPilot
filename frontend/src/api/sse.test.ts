@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { onSessionEnded } from './auth'
 import { ApiError } from './client'
 import { openSse, parseEvent, type SseEvent } from './sse'
 
@@ -183,6 +184,27 @@ describe('openSse', () => {
     expect(refusal).toBeInstanceOf(ApiError)
     expect((refusal as ApiError).status).toBe(409)
     expect((refusal as ApiError).code).toBe('VERSION_STATUS_CONFLICT')
+  })
+
+  // the spec (v3.9), section 11, Gate: a stream refused because the session has ended tells the app, which brings
+  // the gate back; any other refusal is the screen's to say
+  it('tells the app the session has ended when the API refuses a stream with SESSION_INVALID, and only then', async () => {
+    const ended = vi.fn()
+    const stop = onSessionEnded(ended)
+    respondWith(null, 401, {
+      code: 'SESSION_INVALID',
+      message: 'A valid session is required.',
+      details: [],
+    })
+
+    const refusal = await collect('/api/v1/stream').catch((error: unknown) => error)
+
+    expect((refusal as ApiError).code).toBe('SESSION_INVALID')
+    expect(ended).toHaveBeenCalledOnce()
+    respondWith(null, 409, { code: 'VERSION_STATUS_CONFLICT', message: 'not ready', details: [] })
+    await collect('/api/v1/stream').catch(() => undefined)
+    expect(ended).toHaveBeenCalledOnce()
+    stop()
   })
 
   it('fails with the status alone when the refusal carries no envelope', async () => {

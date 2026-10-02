@@ -82,6 +82,44 @@ test.describe('access gate', () => {
     await expect(page.getByLabel('Access code')).toBeVisible()
   })
 
+  // the spec (v3.9), section 11, Gate: a session that ends while the workspace is open, any call answered 401
+  // SESSION_INVALID, brings the gate back with the system's note, and the code opens a new one
+  test('a session that ends while the workspace is open brings the gate back, saying so', async ({
+    page,
+  }) => {
+    let ended = false
+    await page.route(AUTH_CODE, async (route) => {
+      ended = false
+      await route.fulfill({ status: 204 })
+    })
+    // the one call the test answers both ways: a list while the session holds, the filter's 401 once it has ended
+    await page.route('**/api/v1/rulesets', (route) =>
+      route.fulfill(
+        ended
+          ? {
+              status: 401,
+              json: { code: 'SESSION_INVALID', message: 'm', details: [], traceId: 't' },
+            }
+          : { json: { rulesets: [] } },
+      ),
+    )
+    await page.goto('/')
+    await page.getByLabel('Access code').fill('qwertyui')
+    await page.getByRole('button', { name: 'Enter' }).click()
+    const workspace = page.getByRole('navigation', { name: 'Workspace' })
+    await expect(workspace).toBeVisible()
+
+    ended = true
+    await workspace.getByRole('button', { name: /^Rules/ }).click()
+
+    await expect(page.getByRole('note', { name: 'Session' })).toHaveText(
+      'Your session has ended. Enter the code again.',
+    )
+    await page.getByLabel('Access code').fill('qwertyui')
+    await page.getByRole('button', { name: 'Enter' }).click()
+    await expect(workspace).toBeVisible()
+  })
+
   test('a wrong code is refused on the gate', async ({ page }) => {
     await page.route(AUTH_CODE, (route) =>
       route.fulfill({

@@ -288,7 +288,14 @@ export function PoliciesScreen({
             {selectedId === null ? (
               policies.isPending ? (
                 <LoadingRows label="Loading the policy" />
-              ) : policies.error ? null : (
+              ) : policies.error ? (
+                // said on the sheet, which a closed drawer would leave empty (the spec, section 11, v3.9)
+                <ErrorState
+                  code={policies.error instanceof ApiError ? policies.error.code : undefined}
+                  description="The policy list could not be read."
+                  onRetry={() => void policies.refetch()}
+                />
+              ) : (
                 <EmptyState
                   title="No policy open"
                   action={
@@ -396,13 +403,7 @@ function Documents({
         <span className="quiet">seeded first, then this sandbox&apos;s</span>
       </div>
       {query.isPending ? <LoadingRows label="Loading the policies" /> : null}
-      {query.error ? (
-        <ErrorState
-          code={query.error instanceof ApiError ? query.error.code : undefined}
-          description="The policy list could not be read."
-          onRetry={() => void query.refetch()}
-        />
-      ) : null}
+      {/* a list that cannot be read is said on the sheet, once */}
       {query.data ? (
         <ul className="docs">
           {list.map((policy) => (

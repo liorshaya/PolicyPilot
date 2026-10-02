@@ -78,3 +78,24 @@ export async function leave(): Promise<void> {
     // the cookie then expires on its own, 24 hours after its last renewal (Document 5)
   }
 }
+
+/** Who wants to hear that the session has ended: the app, which brings the gate back. */
+const endedListeners = new Set<() => void>()
+
+/**
+ * Listens for the end of the session while the workspace is open (Document 2: any call answered 401 SESSION_INVALID,
+ * its cookie expired or tampered with); the spec, section 11, Gate (v3.9). Returns the way to stop listening.
+ */
+export function onSessionEnded(listener: () => void): () => void {
+  endedListeners.add(listener)
+  return () => {
+    endedListeners.delete(listener)
+  }
+}
+
+/** Tells every listener that a call found the session ended; the API client and the streams call it. */
+export function sessionEnded(): void {
+  for (const listener of endedListeners) {
+    listener()
+  }
+}

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { rule, stylesheet } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { Button } from './Button'
 import { Refusal } from './Refusal'
 import { EmptyState, LoadingRows } from './States'
@@ -42,6 +42,18 @@ describe('LoadingRows', () => {
     expect(container.querySelector('.loading__text')).toHaveTextContent('Loading the rule set')
     expect(rule(css, '.loading__row').animation).toBeUndefined()
     expect(rule(css, '.loading__row span').animation).toBeUndefined()
+  })
+
+  // the spec (v3.9), section 08, Loading: a placeholder narrows with a narrow box, as in the margin, where the rows'
+  // fixed columns ran 50px past it
+  it("carries the spec's loading rows, whose placeholders narrow with their box", () => {
+    const loading = specRules('.loading {', '.progress {')
+
+    expect(loading).toHaveLength(5)
+    expect(unported(css, loading)).toEqual([])
+    expect(rule(css, '.loading__row')['grid-template-columns']).toBe(
+      'minmax(0, 60px) minmax(0, 120px) minmax(0, 90px) minmax(0, 1fr)',
+    )
   })
 })
 

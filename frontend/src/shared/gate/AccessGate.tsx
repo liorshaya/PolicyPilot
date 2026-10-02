@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { exchangeAccessCode } from '../../api/auth'
 import { Actor } from '../ui/Actor'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { Logo } from '../ui/Logo'
+import { Note } from '../ui/Note'
 import './AccessGate.css'
 import { refusalMessage } from './refusalMessage'
 
@@ -13,14 +14,10 @@ const CODE_MAX_LENGTH = 32
 interface AccessGateProps {
   /** Called once the API has set the session cookie. */
   onEntered: () => void
+  /** Why the gate stands again, in the system's note: the session ended while the workspace was open. */
+  notice?: ReactNode
 }
 
-/**
- * The access gate: the single screen a visitor sees before the demo (Document 2, Frontend Architecture, key decision 6),
- * as the Register composes it (the spec, section 10): one sheet on paper with the two-tone lockup, the title, the one
- * place the sentence is written out, the field in mono, the primary at 36px, the refusal in place, the honesty line and
- * the three marks as a foot. The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5).
- */
 /**
  * The paper alone, drawn on load while the API is asked whether the session holds (the spec, section 11, Gate, v3.8),
  * so neither the gate nor the workspace flashes before the answer.
@@ -29,7 +26,14 @@ export function GatePaper() {
   return <main className="gate" aria-busy="true" />
 }
 
-export function AccessGate({ onEntered }: AccessGateProps) {
+/**
+ * The access gate: the single screen a visitor sees before the demo (Document 2, Frontend Architecture, key decision 6),
+ * as the Register composes it (the spec, section 10): one sheet on paper with the two-tone lockup, the title, the one
+ * place the sentence is written out, the field in mono, the primary at 36px, the refusal in place, the honesty line and
+ * the three marks as a foot. The code is exchanged at POST /api/v1/auth/code for the session cookie (Document 5). When
+ * the session ended while the workspace was open, the system's note says so above the field (section 11, v3.9).
+ */
+export function AccessGate({ onEntered, notice }: AccessGateProps) {
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -65,6 +69,7 @@ export function AccessGate({ onEntered }: AccessGateProps) {
             policy change.
           </p>
         </div>
+        {notice ? <Note label="Session">{notice}</Note> : null}
         <form className="gate__form" onSubmit={(event) => void handleSubmit(event)}>
           <Field label="Access code" htmlFor="access-code" error={message}>
             <input

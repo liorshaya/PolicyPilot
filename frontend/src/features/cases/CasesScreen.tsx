@@ -226,7 +226,15 @@ export function CasesScreen({
               }
               flush
             >
-              {stats.isPending && !batch ? (
+              {rulesets.error ? (
+                // with no list of rule sets there is no version to read statistics of (the spec, section 11, v3.9)
+                <ErrorState
+                  code={rulesets.error instanceof ApiError ? rulesets.error.code : undefined}
+                  description="The rule sets could not be read."
+                  onRetry={() => void rulesets.refetch()}
+                />
+              ) : null}
+              {stats.isPending && !batch && !rulesets.error ? (
                 <>
                   <Dashboard
                     aggregates={undefined}

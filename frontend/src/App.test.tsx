@@ -9,6 +9,8 @@ import { server } from './test/msw/server'
 import { App } from './App'
 import { SCRIPTED_CHANGE_REQUEST, SCRIPTED_QUESTIONS } from './features/demo/steps'
 
+const BASE = 'http://localhost:8080/api/v1'
+
 /** The application: the gate, then the workspace with its sidebar (Document 2, Frontend Architecture). */
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -20,10 +22,12 @@ function renderApp() {
 }
 
 describe('App', () => {
-  // the theme lives on <html> and in the browser's storage, outside what cleanup() resets
+  // the theme lives on <html> and in the browser's storage, and the screen in the address bar, outside what cleanup()
+  // resets
   afterEach(() => {
     localStorage.removeItem('pp-theme')
     document.documentElement.removeAttribute('data-theme')
+    window.location.hash = ''
   })
 
   // The Register spec, section 12: "Light by default ...; dark is a toggle remembered per browser". Expected: the
@@ -84,6 +88,62 @@ describe('App', () => {
 
     expect(await screen.findByLabelText('Access code')).toBeInTheDocument()
     expect(left).toBe(true)
+    // the visitor chose to leave: the gate says nothing about it
+    expect(screen.queryByRole('note', { name: 'Session' })).not.toBeInTheDocument()
+  })
+
+  // the spec (v3.9), section 11, Gate: a session that ends while the workspace is open, any call answered 401
+  // SESSION_INVALID (its cookie expired or was tampered with), brings the gate back with the system's note; every
+  // screen's Try again had answered the same 401 again
+  it('brings the gate back with a note when the session ends while the workspace is open', async () => {
+    server.use(
+      http.get(AUTH_SESSION_URL, () => new HttpResponse(null, { status: 204 })),
+      http.get(`${BASE}/policies`, () =>
+        HttpResponse.json(
+          {
+            code: 'SESSION_INVALID',
+            message: 'A valid session is required.',
+            details: [],
+            traceId: 't',
+          },
+          { status: 401 },
+        ),
+      ),
+    )
+    renderApp()
+
+    expect(await screen.findByLabelText('Access code')).toBeInTheDocument()
+    expect(screen.getByRole('note', { name: 'Session' })).toHaveTextContent(
+      'Your session has ended. Enter the code again.',
+    )
+    expect(screen.queryByRole('navigation', { name: 'Workspace' })).not.toBeInTheDocument()
+  })
+
+  // the spec (v3.9), section 11, Gate: Leave, or the end of a session, drops all the workspace held, which was its
+  // sandbox's; a new session is a new sandbox (Document 5), which the last one's run of the cases is not
+  it("drops what the workspace held when the session closes, so the next one shows nothing of the last one's", async () => {
+    server.use(
+      http.get(AUTH_SESSION_URL, () => new HttpResponse(null, { status: 204 })),
+      http.post(AUTH_CODE_URL, () => new HttpResponse(null, { status: 204 })),
+    )
+    const user = userEvent.setup()
+    renderApp()
+    const rail = await screen.findByRole('navigation', { name: 'Workspace' })
+    await user.click(within(rail).getByRole('button', { name: /^Cases/ }))
+    await user.click((await screen.findAllByRole('button', { name: 'Run 200 cases' }))[0]!)
+    expect(await screen.findByRole('button', { name: '17' })).toBeInTheDocument()
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Workspace' })).getByRole('button', {
+        name: 'Leave',
+      }),
+    )
+    await user.type(await screen.findByLabelText('Access code'), 'qwertyui')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: /^Cases/ })).toBeInTheDocument()
+    expect(await screen.findByText('Published v1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '17' })).not.toBeInTheDocument()
   })
 
   it('opens the workspace once the code is accepted', async () => {

@@ -1272,3 +1272,87 @@ describe('ChatScreen.css', () => {
     })
   })
 })
+
+/**
+ * Before the conversation (the spec, section 11, the Assistant row, v3.9): the header stands while the rule sets are
+ * read, a list that cannot be read says so where the screen said there was no published version, and a conversation
+ * that does not open says that, where the note said a question could not be answered before any was asked.
+ */
+describe('ChatScreen · what it opens on', () => {
+  it('draws its header while the rule sets are read', async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    serveSession()
+    server.use(
+      http.get(`${BASE}/rulesets`, async () => {
+        await read
+        return HttpResponse.json({
+          rulesets: [
+            {
+              id: SEEDED_RULESET_ID,
+              name: lendingRuleSet.name,
+              domain: lendingRuleSet.id,
+              protected: true,
+              versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+            },
+          ],
+        })
+      }),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('Loading the rule sets')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Assistant' })).toBeInTheDocument()
+    release()
+    expect(await screen.findByLabelText('Question')).toBeInTheDocument()
+  })
+
+  it('Assistant · a list that cannot be read', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json(
+          {
+            code: 'INTERNAL_ERROR',
+            message: 'The request could not be completed.',
+            details: [],
+            traceId: 't',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('The rule sets could not be read.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(screen.queryByText('No published version to ask about')).not.toBeInTheDocument()
+  })
+
+  it('says when the conversation could not be opened, and opens it again on request', async () => {
+    let opened = 0
+    server.use(
+      http.post(`${BASE}/chat/sessions`, () => {
+        opened += 1
+        return opened === 1
+          ? HttpResponse.error()
+          : HttpResponse.json(
+              { id: SESSION, rulesetId: SEEDED_RULESET_ID, versionNo: 1, language: 'he' },
+              { status: 201 },
+            )
+      }),
+    )
+    renderScreen()
+
+    const note = await screen.findByRole('alert')
+    expect(note).toHaveTextContent(
+      /^The conversation could not be opened\. Try again in a moment\. Try again$/,
+    )
+    await userEvent.click(within(note).getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(opened).toBe(2)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled())
+  })
+})

@@ -697,6 +697,8 @@ describe('RulesScreen, every state', () => {
     const sentence = await screen.findByText('No rule set yet')
     expect(sentence).toHaveClass('empty__rule--text')
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    // with no rule set there is no policy to read: the margin waited for one forever (v3.9)
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
     await userEvent.click(
       within(sentence.closest<HTMLElement>('.empty')!).getByRole('button', {
         name: 'Generate rules from the policy',
@@ -1173,5 +1175,60 @@ describe('RulesScreen below 1200px', () => {
         /Paragraph 7 is the source of R-330/,
       ),
     ).toBeInTheDocument()
+  })
+})
+
+/**
+ * The rule-set list itself (the spec, section 11, the Rules row, v3.9): while it is read the table's still rows stand
+ * where the empty state flashed, and a list that cannot be read says so with Try again, where the screen said "No rule
+ * set yet" and offered to generate one.
+ */
+describe('RulesScreen, the list of rule sets', () => {
+  it('Rules · loading the list', async () => {
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get(`${BASE}/rulesets`, async () => {
+        await read
+        return HttpResponse.json(rulesets)
+      }),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('Loading the rule set')).toBeInTheDocument()
+    expect(screen.queryByText('No rule set yet')).not.toBeInTheDocument()
+    release()
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+  })
+
+  it('Rules · a list that cannot be read', async () => {
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/rulesets`, () => {
+        calls += 1
+        return calls === 1
+          ? HttpResponse.json(
+              {
+                code: 'INTERNAL_ERROR',
+                message: 'The request could not be completed.',
+                details: [],
+                traceId: 't',
+              },
+              { status: 500 },
+            )
+          : HttpResponse.json(rulesets)
+      }),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('The rule sets could not be read.')).toBeInTheDocument()
+    expect(screen.getByText('INTERNAL_ERROR')).toBeInTheDocument()
+    expect(screen.queryByText('No rule set yet')).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('table')).toBeInTheDocument()
   })
 })

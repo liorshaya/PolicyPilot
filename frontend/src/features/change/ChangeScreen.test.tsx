@@ -810,3 +810,28 @@ describe('ChangeScreen.css', () => {
     expect(rule(css, '.request:focus-within')['border-color']).toBe('var(--focus)')
   })
 })
+
+/** The rule-set list itself (the spec, section 11, the Change row, v3.9): a list that cannot be read says so. */
+describe('ChangeScreen, the list of rule sets', () => {
+  it('Change · a list that cannot be read', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json(
+          {
+            code: 'INTERNAL_ERROR',
+            message: 'The request could not be completed.',
+            details: [],
+            traceId: 't',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('The rule sets could not be read.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('What should change'), TEXT)
+    expect(screen.getByRole('button', { name: 'Propose the change' })).toBeDisabled()
+  })
+})
