@@ -172,6 +172,17 @@ describe('RegressionReport', () => {
     expect(flips.parentElement).toHaveClass('table-scroll')
   })
 
+  // the spec (v3.9), section 09, Regression: a table that scrolls in its box is a named stop of the keyboard, so the
+  // arrows can scroll it; the matrix holds nothing that takes the focus, and on a phone its columns were out of reach
+  it("makes the matrix's box a named stop of the keyboard, the flips' box being reached through its buttons", () => {
+    renderReport()
+
+    const box = screen.getByRole('region', { name: 'Version 1 by the proposal' })
+    expect(box).toHaveClass('table-scroll')
+    expect(box).toHaveAttribute('tabindex', '0')
+    expect(within(box).getByRole('table')).toBeInTheDocument()
+  })
+
   it('draws a report stored before its outcomes were counted without the matrix and the flags moved', () => {
     renderReport({
       decisions: report.decisions,

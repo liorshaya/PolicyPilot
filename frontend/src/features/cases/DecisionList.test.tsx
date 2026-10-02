@@ -270,6 +270,35 @@ describe('DecisionList, the keys', () => {
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(decisionIdOf(17))
   })
 
+  // the spec (v3.9), section 07, Footer: the rows are one stop of the Tab key, so a list of 200 cases is not 200 stops
+  it('is one stop of the Tab key, the chosen case or the first, which the arrows carry along', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderList()
+    const stops = () =>
+      screen
+        .getAllByRole('button')
+        .filter((button) => button.classList.contains('decisions__open') && button.tabIndex === 0)
+        .map((button) => button.textContent)
+
+    expect(stops()).toStrictEqual(['1'])
+    screen.getByRole('button', { name: '1' }).focus()
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    expect(stops()).toStrictEqual(['3'])
+    await user.tab()
+    expect(screen.getByRole('button', { name: '3' })).not.toHaveFocus()
+
+    rerender(
+      <DecisionList
+        results={lendingRun}
+        rules={lendingRuleSet.rules}
+        selectedId={decisionIdOf(17)}
+        onSelect={() => undefined}
+        versionNo={1}
+      />,
+    )
+    expect(stops()).toStrictEqual(['17'])
+  })
+
   it('moves between the cases with the arrows and opens one with Enter', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()

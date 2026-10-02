@@ -83,6 +83,8 @@ export function DecisionList({
     }
   }
   const [density, setDensity] = useState<Density>(storedDensity)
+  // the case the focus was last on, kept with the choice it was made under: a new choice takes the stop back
+  const [focused, setFocused] = useState<{ id: string; under: string | null } | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
   const selectedRef = useRef<HTMLTableRowElement>(null)
@@ -103,6 +105,15 @@ export function DecisionList({
       (outcome === '' || statusOf(result) === outcome) &&
       (decidingRule === '' || result.decidingRuleId === decidingRule),
   )
+  // the rows are one stop of the Tab key (the spec, section 07, v3.9): the case the arrows or a click left the focus
+  // on, else the chosen case, else the first shown; the arrows move between the rows
+  const isShown = (id: string | null | undefined) => shown.some((result) => result.id === id)
+  const lastFocused = focused !== null && focused.under === selectedId ? focused.id : null
+  const stopId = isShown(lastFocused)
+    ? lastFocused
+    : isShown(selectedId)
+      ? selectedId
+      : (shown[0]?.id ?? null)
 
   // the selected row is kept in view when the margin opens (the spec, section 08), from the palette too
   useEffect(() => {
@@ -247,6 +258,8 @@ export function DecisionList({
                   <button
                     type="button"
                     className="decisions__open"
+                    tabIndex={result.id === stopId ? 0 : -1}
+                    onFocus={() => setFocused({ id: result.id, under: selectedId })}
                     onClick={(event) => {
                       // the row answers the click too; the button is the case's way in for a keyboard
                       event.stopPropagation()

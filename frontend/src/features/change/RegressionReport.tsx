@@ -191,8 +191,14 @@ function Matrix({
           .reduce((sum, other) => sum + moved(from, other), 0)
       : moved(from, to)
   return (
-    // a table may be wider than the window only in a box of its own that scrolls (the spec, section 10, the phone)
-    <div className="table-scroll">
+    // a table may be wider than the window only in a box of its own that scrolls (the spec, section 10, the phone); with
+    // nothing in it that takes the focus, the box is a named stop of the keyboard, so the arrows can scroll it (v3.9)
+    <div
+      className="table-scroll"
+      role="region"
+      tabIndex={0}
+      aria-label={`Version ${String(baseVersionNo)} by the proposal`}
+    >
       <table className="matrix" aria-label={`Version ${String(baseVersionNo)} by the proposal`}>
         <thead>
           <tr>

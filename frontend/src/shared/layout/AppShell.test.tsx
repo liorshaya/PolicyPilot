@@ -195,6 +195,40 @@ describe('AppShell', () => {
     expect(localStorage.getItem('pp-theme')).toBe('light')
   })
 
+  // the spec (v3.9), section 08, Rail: the keyboard's first stop skips to the workspace; it stayed clipped to a pixel
+  // while it had the focus, so the focus went out of sight
+  it('makes a link to the workspace the first stop of the keyboard, drawn when it takes the focus', async () => {
+    const user = userEvent.setup()
+    renderShell()
+
+    await user.tab()
+
+    const skip = screen.getByRole('link', { name: 'Skip to the workspace' })
+    expect(skip).toHaveFocus()
+    expect(skip).toHaveAttribute('href', '#workspace')
+    expect(skip).toHaveClass('sr-only', 'skip')
+    expect(rule(stylesheet('shared/layout/AppShell.css'), '.skip:focus-visible')).toMatchObject({
+      position: 'fixed',
+      width: 'auto',
+      height: 'auto',
+      'clip-path': 'none',
+    })
+  })
+
+  // the address bar names the screen (#/rules), so the link's own #workspace took the reader to Policies from any
+  // screen: it moves the focus into the workspace and leaves the address as it was
+  it('skips to the workspace of the screen on hand, the address unchanged', async () => {
+    window.location.hash = '#/rules'
+    const user = userEvent.setup()
+    renderShell()
+
+    await user.click(screen.getByRole('link', { name: 'Skip to the workspace' }))
+
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(window.location.hash).toBe('#/rules')
+    window.location.hash = ''
+  })
+
   it('keeps the principle sentence out of the rail, and carries the guided demo strip', () => {
     renderShell()
 

@@ -88,6 +88,16 @@ describe('CaseForm', () => {
     expect(control('age')).toHaveAttribute('inputmode', 'numeric')
   })
 
+  // the spec (v3.9), section 09: a number field asks a phone for the keypad with the decimal point, an integer field
+  // for the digits; every number field had the digits alone, so 9,500.5 could not be typed on a phone
+  it('asks a phone for the decimal keypad on a number field and the digits on an integer field', () => {
+    renderForm()
+
+    expect(control('monthly_income')).toHaveAttribute('inputmode', 'decimal')
+    expect(control('requested_amount')).toHaveAttribute('inputmode', 'decimal')
+    expect(control('term_months')).toHaveAttribute('inputmode', 'numeric')
+  })
+
   // The spec, section 09: "an enum as a select, a boolean as a checkbox with a sentence"
   it('offers an enum as a select of its values and a boolean as a checkbox with its sentence', () => {
     renderForm()

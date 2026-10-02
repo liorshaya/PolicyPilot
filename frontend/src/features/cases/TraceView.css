@@ -283,6 +283,11 @@
   margin-inline-start: auto;
   font-size: var(--text-xs);
 }
+/* The product's own (the spec, section 09, Export, v3.9): links in a line of text are underlined, since their colour
+   alone does not tell them from the words around them. */
+.trace__export a {
+  text-decoration: underline;
+}
 .trace__decided {
   display: grid;
   gap: 4px;

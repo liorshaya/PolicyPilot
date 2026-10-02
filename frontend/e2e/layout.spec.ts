@@ -67,6 +67,30 @@ test.describe('on a laptop', () => {
     expect((await what.boundingBox())!.width).toBeGreaterThan(140)
   })
 
+  // the spec (v3.9), section 08, Rail: the keyboard's first stop skips to the workspace; it stayed clipped to a pixel
+  // while it had the focus, and its #workspace took the reader to Policies from any other screen
+  test('shows the link that skips to the workspace when the first Tab reaches it, and keeps the screen', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    // a session that holds (Document 2, GET /auth/session), so the page opens on Rules and the keyboard at its top
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ status: 204 }))
+    await page.goto('/#/rules')
+    await expect(page.getByRole('heading', { level: 1, name: /^Rules/ })).toBeVisible()
+
+    await page.keyboard.press('Tab')
+    const skip = page.getByRole('link', { name: 'Skip to the workspace' })
+    await expect(skip).toBeFocused()
+    const box = (await skip.boundingBox())!
+    expect(box.width).toBeGreaterThan(100)
+    expect(box.height).toBeGreaterThan(16)
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByRole('main')).toBeFocused()
+    await expect(page.getByRole('heading', { level: 1, name: /^Rules/ })).toBeVisible()
+    expect(new URL(page.url()).hash).toBe('#/rules')
+  })
+
   test('the guided panel folds its steps away when hidden', async ({ page }) => {
     await serveTheSeededRuleSet(page)
     await openThePanel(page)
