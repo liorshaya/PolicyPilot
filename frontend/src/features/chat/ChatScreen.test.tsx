@@ -12,6 +12,7 @@ import { batch, decision, SEEDED_RULESET_ID } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import { windowAt } from '../../test/viewport'
 import type { ChatConversationResponse, ChatSessionSummary } from '../../api/types'
 import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { ChatScreen } from './ChatScreen'
@@ -1354,5 +1355,49 @@ describe('ChatScreen · what it opens on', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     expect(opened).toBe(2)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled())
+  })
+})
+
+/**
+ * The cited paragraph below 1200px (the spec, sections 08 and 10, v3.9): a drawer that Esc shuts, as every drawer is;
+ * on a phone the next section of the page, under the thread and the composer, brought into view when a chip opens it.
+ */
+describe('ChatScreen · the cited paragraph below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  async function openParagraph() {
+    serveSession()
+    serveAnswer(answered('84 months.[[p:2]]', [{ id: 'p:2', kind: 'PARAGRAPH', paragraph: 2 }]))
+    renderScreen()
+    const user = await ask(TERM_QUESTION)
+    const [inline] = await within(await lastAnswer()).findAllByRole('button', {
+      name: 'Paragraph 2',
+    })
+    await user.click(inline!)
+    return user
+  }
+
+  it('shuts the drawer of the paragraph on Esc', async () => {
+    windowAt(1024)
+    const user = await openParagraph()
+    expect(screen.getByRole('complementary', { name: 'Paragraph 2' })).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('complementary', { name: 'Paragraph 2' })).not.toBeInTheDocument()
+  })
+
+  it('on a phone brings the paragraph into view under the composer', async () => {
+    windowAt(390)
+    const shown = vi.spyOn(Element.prototype, 'scrollIntoView')
+    vi.stubGlobal('scrollTo', vi.fn())
+    await openParagraph()
+
+    expect(shown.mock.contexts).toContain(
+      screen.getByRole('complementary', { name: 'Paragraph 2' }),
+    )
   })
 })

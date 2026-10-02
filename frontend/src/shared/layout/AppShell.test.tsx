@@ -141,8 +141,8 @@ describe('AppShell', () => {
   })
 
   it('lists each shortcut the product answers, in the order of the spec', async () => {
-    // the spec, section 04: a shortcut joins the sheet with the phase that builds it; phase 2 built /, ↓ ↑ and ↵, and
-    // phase 6 the palette
+    // the spec, section 04: a shortcut joins the sheet with the phase that builds it; phase 2 built /, ↓ ↑ and ↵, phase
+    // 6 the palette, and the pass of 2026-10-02 Esc and [ ]; E, which asks a model, is not built
     renderShell()
 
     await userEvent.click(screen.getByRole('button', { name: 'Help' }))
@@ -153,6 +153,8 @@ describe('AppShell', () => {
       'Filter the list/',
       'Select next / previous row↓↑',
       'Open the row in the margin↵',
+      'Close the marginEsc',
+      'Previous / next case[ ]',
       'Go to Rules / Cases / AssistantGR C A',
     ])
   })
@@ -193,6 +195,40 @@ describe('AppShell', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Theme' }))
     expect(document.documentElement).toHaveAttribute('data-theme', 'light')
     expect(localStorage.getItem('pp-theme')).toBe('light')
+  })
+
+  // the spec (v3.9), section 08, Rail: the keyboard's first stop skips to the workspace; it stayed clipped to a pixel
+  // while it had the focus, so the focus went out of sight
+  it('makes a link to the workspace the first stop of the keyboard, drawn when it takes the focus', async () => {
+    const user = userEvent.setup()
+    renderShell()
+
+    await user.tab()
+
+    const skip = screen.getByRole('link', { name: 'Skip to the workspace' })
+    expect(skip).toHaveFocus()
+    expect(skip).toHaveAttribute('href', '#workspace')
+    expect(skip).toHaveClass('sr-only', 'skip')
+    expect(rule(stylesheet('shared/layout/AppShell.css'), '.skip:focus-visible')).toMatchObject({
+      position: 'fixed',
+      width: 'auto',
+      height: 'auto',
+      'clip-path': 'none',
+    })
+  })
+
+  // the address bar names the screen (#/rules), so the link's own #workspace took the reader to Policies from any
+  // screen: it moves the focus into the workspace and leaves the address as it was
+  it('skips to the workspace of the screen on hand, the address unchanged', async () => {
+    window.location.hash = '#/rules'
+    const user = userEvent.setup()
+    renderShell()
+
+    await user.click(screen.getByRole('link', { name: 'Skip to the workspace' }))
+
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(window.location.hash).toBe('#/rules')
+    window.location.hash = ''
   })
 
   it('keeps the principle sentence out of the rail, and carries the guided demo strip', () => {

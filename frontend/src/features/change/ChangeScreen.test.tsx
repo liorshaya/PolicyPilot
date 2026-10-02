@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { rule, specRules, stylesheet, unported } from '../../test/css'
 import {
   approvedDecision,
@@ -23,6 +23,7 @@ import {
   twoRulesets,
 } from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
+import { windowAt } from '../../test/viewport'
 import { ChangeScreen } from './ChangeScreen'
 
 // @requirement FR-17
@@ -833,5 +834,43 @@ describe('ChangeScreen, the list of rule sets', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText('What should change'), TEXT)
     expect(screen.getByRole('button', { name: 'Propose the change' })).toBeDisabled()
+  })
+})
+
+/**
+ * Both traces below 1200px (the spec, sections 08 and 10, v3.9): a drawer that Esc shuts, as every drawer is; on a
+ * phone the next section of the page, under the regression, brought into view when a flipped case is chosen.
+ */
+describe('ChangeScreen, both traces below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('shuts the drawer of both traces on Esc', async () => {
+    windowAt(1024)
+    renderScreen()
+    const user = await proposalShown()
+    const flips = within(screen.getByRole('table', { name: 'The decisions that flip' }))
+
+    await user.click(flips.getAllByRole('button', { name: 'Both traces' })[0]!)
+    await screen.findByRole('complementary', { name: 'Both traces' })
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('complementary', { name: 'Both traces' })).not.toBeInTheDocument()
+  })
+
+  it('on a phone brings both traces into view under the regression', async () => {
+    windowAt(390)
+    const shown = vi.spyOn(Element.prototype, 'scrollIntoView')
+    vi.stubGlobal('scrollTo', vi.fn())
+    renderScreen()
+    const user = await proposalShown()
+    const flips = within(screen.getByRole('table', { name: 'The decisions that flip' }))
+
+    await user.click(flips.getAllByRole('button', { name: 'Both traces' })[0]!)
+
+    const margin = await screen.findByRole('complementary', { name: 'Both traces' })
+    expect(shown.mock.contexts).toContain(margin)
   })
 })

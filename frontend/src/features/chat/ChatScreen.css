@@ -60,6 +60,7 @@
   display: grid;
   gap: 10px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .turn--q .turn__body {
   display: block;

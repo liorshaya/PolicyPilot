@@ -193,14 +193,15 @@ describe('SplitView below 1200px', () => {
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('מדיניות')
   })
 
-  it('is no drawer from 1200px: the margin stands beside the sheet with no Close, and Esc leaves it', async () => {
+  // the spec, section 08: "In a table, ↑ ↓ move the selection, ↵ opens the margin, Esc closes it", at every width
+  it('is no drawer from 1200px: the margin stands beside the sheet with no Close at its head, and Esc still shuts what it holds', async () => {
     windowAt(1376)
     const user = userEvent.setup()
     const onCloseSide = vi.fn()
     render(
       <SplitView
-        main={<p>The policy</p>}
-        side={<p>The documents</p>}
+        main={<p>The cases</p>}
+        side={<p>Case 17</p>}
         sideOpen
         onCloseSide={onCloseSide}
         closeButton
@@ -211,7 +212,7 @@ describe('SplitView below 1200px', () => {
       within(screen.getByRole('complementary')).queryByRole('button', { name: 'Close' }),
     ).toBeNull()
     await user.keyboard('{Escape}')
-    expect(onCloseSide).not.toHaveBeenCalled()
+    expect(onCloseSide).toHaveBeenCalledOnce()
   })
 
   it('on a phone brings the margin into view for each row, and the reader back to where they were when it closes', () => {

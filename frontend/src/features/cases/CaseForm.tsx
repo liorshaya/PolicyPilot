@@ -122,8 +122,13 @@ export function CaseForm({ fields, language, version, onDecided, onClose }: Case
                 <input
                   id={id}
                   className="input input--mono"
+                  // a phone's keypad: the decimal point for a number, the digits for an integer (v3.9)
                   inputMode={
-                    field.type === 'number' || field.type === 'integer' ? 'numeric' : undefined
+                    field.type === 'number'
+                      ? 'decimal'
+                      : field.type === 'integer'
+                        ? 'numeric'
+                        : undefined
                   }
                   value={typeof values[field.name] === 'string' ? String(values[field.name]) : ''}
                   onChange={(event) => set(field.name, event.target.value)}

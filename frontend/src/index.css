@@ -126,6 +126,7 @@ bdi {
   max-width: min(100%, 560px);
   border-left: 2px solid var(--border-strong);
   padding: 2px 0 2px 10px;
+  overflow-wrap: anywhere;
 }
 .he-quote > [dir='rtl'] {
   font-size: var(--text-sm);

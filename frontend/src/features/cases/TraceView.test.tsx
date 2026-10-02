@@ -108,6 +108,12 @@ describe('TraceView, the head', () => {
     expect(screen.getByRole('link', { name: 'CSV' })).toHaveAttribute('href', exportTo)
   })
 
+  // the spec (v3.9), section 09, Export: the two formats are links in a line of text, so they are underlined; their
+  // colour alone did not tell them from the words around them (axe: link-in-text-block)
+  it('underlines the export links, which stand in a line of text', () => {
+    expect(rule(css, '.trace__export a')['text-decoration']).toBe('underline')
+  })
+
   it('exports the CSV with its Accept header and saves what the API sent', async () => {
     const user = userEvent.setup()
     let accepted: string | null = null

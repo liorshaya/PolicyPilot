@@ -270,6 +270,54 @@ describe('DecisionList, the keys', () => {
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(decisionIdOf(17))
   })
 
+  // the spec (v3.9), section 07, Footer: the rows are one stop of the Tab key, so a list of 200 cases is not 200 stops
+  it('is one stop of the Tab key, the chosen case or the first, which the arrows carry along', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderList()
+    const stops = () =>
+      screen
+        .getAllByRole('button')
+        .filter((button) => button.classList.contains('decisions__open') && button.tabIndex === 0)
+        .map((button) => button.textContent)
+
+    expect(stops()).toStrictEqual(['1'])
+    screen.getByRole('button', { name: '1' }).focus()
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    expect(stops()).toStrictEqual(['3'])
+    await user.tab()
+    expect(screen.getByRole('button', { name: '3' })).not.toHaveFocus()
+
+    rerender(
+      <DecisionList
+        results={lendingRun}
+        rules={lendingRuleSet.rules}
+        selectedId={decisionIdOf(17)}
+        onSelect={() => undefined}
+        versionNo={1}
+      />,
+    )
+    expect(stops()).toStrictEqual(['17'])
+  })
+
+  // the spec, sections 04 and 08: "[ ] step through cases while a trace is open", in the order the list shows them
+  it('steps to the previous and the next case of the list with [ and ] while a case is open', async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    renderList({ onSelect, selectedId: decisionIdOf(17) })
+
+    await user.keyboard(']')
+    expect(onSelect).toHaveBeenLastCalledWith(decisionIdOf(18))
+    // "[[" is how user-event types one "[", which otherwise opens a key's name
+    await user.keyboard('[[')
+    expect(onSelect).toHaveBeenLastCalledWith(decisionIdOf(16))
+    expect(onSelect).toHaveBeenCalledTimes(2)
+
+    // never while the reader types, nor with no case open
+    await user.click(screen.getByRole('textbox', { name: 'Jump to a case' }))
+    await user.keyboard(']')
+    expect(onSelect).toHaveBeenCalledTimes(2)
+  })
+
   it('moves between the cases with the arrows and opens one with Enter', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()

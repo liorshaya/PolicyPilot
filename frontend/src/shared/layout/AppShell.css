@@ -288,3 +288,27 @@ button.rail__link {
 .phone__menu .rail__foot {
   margin-top: 0;
 }
+
+/* The product's own (the spec, section 08, Rail, v3.9): the keyboard's first stop, the link that skips to the workspace,
+   is hidden until it takes the focus and drawn then at the window's top start, on the sheet with its border. */
+.skip:focus-visible {
+  position: fixed;
+  inset-block-start: 8px;
+  inset-inline-start: 8px;
+  z-index: 20;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 6px 10px;
+  overflow: visible;
+  clip-path: none;
+  white-space: nowrap;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  font-size: var(--text-sm);
+}
+/* The workspace takes the focus from the skip link only to hand it on to what follows, so it draws no ring. */
+.workspace:focus-visible {
+  outline: none;
+}

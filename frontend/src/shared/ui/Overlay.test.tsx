@@ -1,7 +1,10 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { rule, stylesheet } from '../../test/css'
 import { Dialog, Popover, Toast } from './Overlay'
+
+const css = stylesheet('shared/ui/Overlay.css')
 
 /**
  * The overlays (the spec, section 08): a dialog only for the irreversible, asked as a question; a popover placed from
@@ -91,6 +94,33 @@ describe('Popover', () => {
     // 390 − (340 + 36): the popover's end edge is the button's
     expect(popover).toHaveStyle({ right: '14px', top: '38px' })
     expect(popover.style.left).toBe('')
+    anchor.remove()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  // the spec (v3.9), section 08: a popover keeps inside the window, a token's gap from its edge; on a 320px phone the
+  // menu, 320px wide and lined up with its button's end, started 14px before the window
+  it('keeps inside the window, as wide as the room beside its anchor leaves it', () => {
+    vi.stubGlobal('innerHeight', 700)
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(320)
+    const anchor = document.createElement('button')
+    document.body.append(anchor)
+    vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue(new DOMRect(270, 10, 36, 28))
+
+    render(
+      <Popover anchor={anchor} label="Menu" align="end" onClose={vi.fn()}>
+        The menu
+      </Popover>,
+    )
+
+    const popover = screen.getByRole('dialog', { name: 'Menu' })
+    // 320 − (270 + 36): the room is all the window holds before the button's end edge
+    expect(popover).toHaveStyle({ right: '14px' })
+    expect(popover.style.getPropertyValue('--popover-offset')).toBe('14px')
+    expect(rule(css, '.popover[data-side]')['max-width']).toBe(
+      'calc(100vw - var(--popover-offset, 0px) - var(--s-2))',
+    )
     anchor.remove()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

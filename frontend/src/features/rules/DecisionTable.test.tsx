@@ -134,6 +134,19 @@ describe('DecisionTable, the header', () => {
     expect(cssRule(css, '.t-field .derived').border).toBe('1px dashed var(--border-strong)')
   })
 
+  // the cell above Priority is empty in the spec's own markup; an empty header names nothing, so it is hidden from
+  // assistive technology (axe: empty-table-header)
+  it('hides the empty group cell above Priority from assistive technology', () => {
+    renderTable()
+
+    const groups = within(screen.getByRole('table')).getAllByRole('row')[0]!
+    const empty = [...groups.querySelectorAll('th.t-group')].filter(
+      (cell) => cell.textContent === '',
+    )
+    expect(empty).toHaveLength(1)
+    expect(empty[0]).toHaveAttribute('aria-hidden', 'true')
+  })
+
   it('breaks a field name at its underscores', () => {
     renderTable()
 

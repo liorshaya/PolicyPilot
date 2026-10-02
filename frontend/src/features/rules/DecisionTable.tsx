@@ -107,7 +107,8 @@ export function DecisionTable({
               <th className="t-group t-frozen t-frozen--shadow" scope="colgroup">
                 Rule
               </th>
-              <th className="t-group" />
+              {/* empty in the spec's own markup: it names nothing, so assistive technology does not read it */}
+              <th className="t-group" aria-hidden="true" />
               <th className="t-group" colSpan={columns.length} scope="colgroup">
                 Conditions
               </th>

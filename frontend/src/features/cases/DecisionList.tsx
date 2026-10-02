@@ -83,6 +83,8 @@ export function DecisionList({
     }
   }
   const [density, setDensity] = useState<Density>(storedDensity)
+  // the case the focus was last on, kept with the choice it was made under: a new choice takes the stop back
+  const [focused, setFocused] = useState<{ id: string; under: string | null } | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
   const selectedRef = useRef<HTMLTableRowElement>(null)
@@ -103,27 +105,49 @@ export function DecisionList({
       (outcome === '' || statusOf(result) === outcome) &&
       (decidingRule === '' || result.decidingRuleId === decidingRule),
   )
+  // the rows are one stop of the Tab key (the spec, section 07, v3.9): the case the arrows or a click left the focus
+  // on, else the chosen case, else the first shown; the arrows move between the rows
+  const isShown = (id: string | null | undefined) => shown.some((result) => result.id === id)
+  const lastFocused = focused !== null && focused.under === selectedId ? focused.id : null
+  const stopId = isShown(lastFocused)
+    ? lastFocused
+    : isShown(selectedId)
+      ? selectedId
+      : (shown[0]?.id ?? null)
 
   // the selected row is kept in view when the margin opens (the spec, section 08), from the palette too
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: 'nearest' })
   }, [selectedId])
 
-  // "/" goes to the case filter from anywhere the reader is not typing
+  // "/" goes to the case filter, and "[" and "]" to the previous and the next case of the list while one is open (the
+  // spec, sections 04 and 08), from anywhere the reader is not typing
+  const openAt = shown.findIndex((result) => result.id === selectedId)
+  const previous = openAt > 0 ? shown[openAt - 1]?.id : undefined
+  const next = openAt >= 0 ? shown[openAt + 1]?.id : undefined
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       const typing =
         target !== null &&
         (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-      if (event.key === '/' && !typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) {
+        return
+      }
+      if (event.key === '/') {
         event.preventDefault()
         filterRef.current?.focus()
+      } else if (event.key === '[' && previous !== undefined) {
+        event.preventDefault()
+        onSelect(previous)
+      } else if (event.key === ']' && next !== undefined) {
+        event.preventDefault()
+        onSelect(next)
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [onSelect, previous, next])
 
   /** The arrows move from one case's button to the next one's; Enter on a button opens its case. */
   function onRowKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -247,6 +271,8 @@ export function DecisionList({
                   <button
                     type="button"
                     className="decisions__open"
+                    tabIndex={result.id === stopId ? 0 : -1}
+                    onFocus={() => setFocused({ id: result.id, under: selectedId })}
                     onClick={(event) => {
                       // the row answers the click too; the button is the case's way in for a keyboard
                       event.stopPropagation()

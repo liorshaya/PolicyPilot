@@ -1,7 +1,13 @@
 import { Fragment, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
-import { useRulesets, useStats, useVersion } from '../../api/queries'
+import {
+  useDecision,
+  useProposedDecision,
+  useRulesets,
+  useStats,
+  useVersion,
+} from '../../api/queries'
 import type { ChangeDecision, RuleSetDocument } from '../../api/types'
 import { contentAttributes, isolated, type ContentLanguage } from '../../shared/i18n/direction'
 import { dateTimeOf, durationText } from '../../shared/i18n/time'
@@ -145,6 +151,14 @@ export function ChangeScreen({
     })
   }
 
+  // both traces of the flipped case the margin opens, read here too so a phone brings them into view once they are read
+  // and the page is as long as they are (the queries are the margin's own, shared)
+  const storedTrace = useDecision(traced?.decisionId ?? null)
+  const proposedTrace = useProposedDecision(
+    traced && proposal ? { changeId: proposal.id, decisionId: traced.decisionId } : null,
+  )
+  const tracesRead = !storedTrace.isPending && !proposedTrace.isPending
+
   const decided = state.status === 'decided' ? state.decision : null
   // the parts of the sheet a step of the walk brings into view
   const requestRef = useRef<HTMLDivElement>(null)
@@ -186,6 +200,9 @@ export function ChangeScreen({
         sideSheet
         fill
         sideOpen={traced !== null && proposal !== null}
+        // its own Close, and Esc below 1200px; on a phone a flipped case brings both traces into view (v3.9)
+        onCloseSide={() => setTraced(null)}
+        sideKey={traced !== null && tracesRead ? traced.decisionId : null}
         sideLabel="Both traces"
         side={
           traced && proposal ? (

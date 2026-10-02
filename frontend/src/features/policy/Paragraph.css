@@ -15,6 +15,7 @@
 .para__text {
   direction: rtl;
   unicode-bidi: isolate;
+  overflow-wrap: anywhere;
 }
 .para__n {
   font-family: var(--font-doc-en);

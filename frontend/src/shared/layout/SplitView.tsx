@@ -20,8 +20,8 @@ interface SplitViewProps {
   /** What the margin holds, which names it as a landmark: "Paragraph 2". */
   sideLabel?: string
   /**
-   * Shuts the margin where it is a drawer, from 721 to 1199px: Esc does, and the drawer's own Close where `closeButton`
-   * asks for one (the spec, section 08, v3.9).
+   * Shuts the margin: Esc does at every width ("in a table, ↵ opens the margin, Esc closes it", the spec, section 08),
+   * and below 1200px, where the margin is a drawer, its own Close where `closeButton` asks for one (v3.9).
    */
   onCloseSide?: () => void
   /** The drawer carries its Close at its head; a margin that holds a Close of its own, as a trace does, leaves it out. */
@@ -45,10 +45,10 @@ function keepsEscape(target: EventTarget | null): boolean {
 
 /**
  * The body of a working screen (the spec, section 08): the sheet, the only white area, and the paper margin beside it at
- * 340px, or 440px for a trace. Each scrolls on its own under the header. Below 1200px the margin is a drawer over the
- * sheet, which the screen opens on what the reader asks for; Esc or its Close shuts it and gives the focus back to what
- * opened it. On a phone the margin is the next section of the page: a new row brings it into view, and closing it takes
- * the reader back to where they were (the spec, sections 08 and 10, v3.9).
+ * 340px, or 440px for a trace. Each scrolls on its own under the header, and Esc shuts it. Below 1200px the margin is a
+ * drawer over the sheet, which the screen opens on what the reader asks for; Esc or its Close shuts it and gives the
+ * focus back to what opened it. On a phone the margin is the next section of the page: a new row brings it into view,
+ * and closing it takes the reader back to where they were (the spec, sections 08 and 10, v3.9).
  */
 export function SplitView({
   main,
@@ -89,7 +89,7 @@ export function SplitView({
   }, [open])
 
   useEffect(() => {
-    if (!drawer || !open || onCloseSide === undefined) {
+    if (!open || onCloseSide === undefined) {
       return undefined
     }
     const onKey = (event: KeyboardEvent) => {
@@ -99,7 +99,7 @@ export function SplitView({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [drawer, open, onCloseSide])
+  }, [open, onCloseSide])
 
   useEffect(() => {
     if (!phone || !open || sideKey === null) {

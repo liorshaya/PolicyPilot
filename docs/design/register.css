@@ -151,7 +151,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .quiet { color: var(--ink-2); }
 bdi { unicode-bidi: isolate; }
 /* A Hebrew quotation inside an English row: a box that shrinks to its text, hung from the row's start edge, with a bar. */
-.he-quote { width: fit-content; max-width: min(100%, 560px); border-left: 2px solid var(--border-strong); padding: 2px 0 2px 10px; }
+.he-quote { width: fit-content; max-width: min(100%, 560px); border-left: 2px solid var(--border-strong); padding: 2px 0 2px 10px; overflow-wrap: anywhere; }
 .he-quote > [dir='rtl'] { font-size: var(--text-sm); color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -633,7 +633,7 @@ td.t-prio { font-family: var(--font-mono); }
 .turn__head { display: flex; align-items: center; gap: 8px; font-size: var(--text-xs); color: var(--ink-3); }
 .turn__head b { color: var(--ink-2); font-weight: 500; }
 .turn__head > * + *::before { content: '·'; color: var(--border-strong); margin-inline-end: 8px; }
-.turn__body { grid-column: 2; display: grid; gap: 10px; min-width: 0; }
+.turn__body { grid-column: 2; display: grid; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
 .turn--q .turn__body { display: block; font-family: var(--font-he); font-size: var(--text-md); font-weight: 500; line-height: var(--leading-he); }
 .answer { font-family: var(--font-he); font-size: var(--text-md); line-height: 1.7; }
 .answer--fixed { color: var(--ink-2); padding: 8px 12px; border-inline-start: 2px solid var(--border-strong); background: var(--paper); border-radius: var(--r-1); }
@@ -783,7 +783,7 @@ td.t-prio { font-family: var(--font-mono); }
 .doc-row__meta { font-size: var(--text-xs); color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
 .para { display: grid; grid-template-columns: 1fr 28px; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .para:last-child { border-bottom: 0; }
-.para__text { direction: rtl; unicode-bidi: isolate; }
+.para__text { direction: rtl; unicode-bidi: isolate; overflow-wrap: anywhere; }
 .para__n { font-family: var(--font-doc-en); font-size: var(--text-sm); color: var(--ink-3); text-align: end; padding-top: 4px; }
 .para--cited { background: var(--accent-wash); margin: 0 -12px; padding-inline: 12px; border-radius: var(--r-2); }
 .para--cited .para__n { color: var(--accent-text); }

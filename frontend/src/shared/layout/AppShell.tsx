@@ -213,9 +213,7 @@ export function AppShell({
   if (phone) {
     return (
       <div className="phone">
-        <a className="sr-only" href="#workspace">
-          Skip to the workspace
-        </a>
+        <SkipLink />
         <header className="phone__top">
           <Logo />
           <span className="phone__side">
@@ -257,7 +255,7 @@ export function AppShell({
             </Button>
           ))}
         </nav>
-        <main className="workspace phone__body" id="workspace">
+        <main className="workspace phone__body" id="workspace" tabIndex={-1}>
           {children}
         </main>
         {menuAnchor ? (
@@ -277,9 +275,7 @@ export function AppShell({
 
   return (
     <div className="shell">
-      <a className="sr-only" href="#workspace">
-        Skip to the workspace
-      </a>
+      <SkipLink />
       <nav className="rail" aria-label="Workspace">
         <div className="rail__brand">
           <Logo />
@@ -304,12 +300,31 @@ export function AppShell({
         {aside}
         {foot}
       </nav>
-      <main className="workspace" id="workspace">
+      <main className="workspace" id="workspace" tabIndex={-1}>
         {children}
       </main>
       {help}
       {palette}
     </div>
+  )
+}
+
+/**
+ * The keyboard's first stop (the spec, section 08, Rail, v3.9): it moves the focus into the workspace. The address bar
+ * names the screen (#/rules), so the link's own fragment is not followed, which took the reader to Policies.
+ */
+function SkipLink() {
+  return (
+    <a
+      className="sr-only skip"
+      href="#workspace"
+      onClick={(event) => {
+        event.preventDefault()
+        document.getElementById('workspace')?.focus()
+      }}
+    >
+      Skip to the workspace
+    </a>
   )
 }
 
@@ -373,6 +388,18 @@ function Legend({
           <span>Open the row in the margin</span>
           <span className="keys">
             <Kbd>↵</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Close the margin</span>
+          <span className="keys">
+            <Kbd>Esc</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Previous / next case</span>
+          <span className="keys">
+            <Kbd>[</Kbd> <Kbd>]</Kbd>
           </span>
         </div>
         <div>
