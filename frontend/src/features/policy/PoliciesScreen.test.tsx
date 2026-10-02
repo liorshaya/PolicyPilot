@@ -1052,6 +1052,30 @@ describe('PoliciesScreen below 1200px', () => {
     expect(await screen.findByRole('region', { name: secondPolicy.title })).toBeInTheDocument()
   })
 
+  // the spec (v3.9), section 11, the Policies row: a list that cannot be read is said on the sheet, which the closed
+  // drawer would otherwise leave empty
+  it('Policies · a list that cannot be read, on the sheet', async () => {
+    windowAt(1024)
+    server.use(
+      http.get(`${BASE}/policies`, () =>
+        HttpResponse.json(
+          {
+            code: 'INTERNAL_ERROR',
+            message: 'The request could not be completed.',
+            details: [],
+            traceId: 't',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('The policy list could not be read.')).toBeInTheDocument()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+  })
+
   it('keeps the documents in the margin beside the sheet from 1200px, with no Documents button', async () => {
     windowAt(1376)
     renderScreen()

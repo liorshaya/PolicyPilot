@@ -813,3 +813,28 @@ describe('CasesScreen below 1200px', () => {
     expect(scrolled).toHaveBeenCalledTimes(1)
   })
 })
+
+/** The rule-set list itself (the spec, section 11, the Cases row, v3.9): a list that cannot be read says so. */
+describe('CasesScreen, the list of rule sets', () => {
+  it('Cases · a list that cannot be read', async () => {
+    server.use(
+      http.get(`${BASE}/rulesets`, () =>
+        HttpResponse.json(
+          {
+            code: 'INTERNAL_ERROR',
+            message: 'The request could not be completed.',
+            details: [],
+            traceId: 't',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('The rule sets could not be read.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    // it waited on statistics no version could be read for
+    expect(screen.queryByText('Loading the statistics')).not.toBeInTheDocument()
+  })
+})

@@ -1,4 +1,5 @@
 import { Fragment, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
+import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
 import { useRulesets, useStats, useVersion } from '../../api/queries'
 import type { ChangeDecision, RuleSetDocument } from '../../api/types'
@@ -16,7 +17,7 @@ import { Refusal } from '../../shared/ui/Refusal'
 import { findingRows } from '../../shared/ui/refusalRows'
 import { Seal } from '../../shared/ui/Seal'
 import { Section } from '../../shared/ui/Section'
-import '../../shared/ui/States.css'
+import { ErrorState } from '../../shared/ui/States'
 import { DecisionTag, VersionTag } from '../../shared/ui/StatusTag'
 import { DECISION_LABELS, type VersionStatus } from '../../shared/ui/decisionLabels'
 import { SCRIPTED_CHANGE_REQUEST } from '../demo/steps'
@@ -210,6 +211,15 @@ export function ChangeScreen({
               <div className="change__part" ref={requestRef}>
                 <Section title="Change request">
                   <div className="change__entry">
+                    {rulesets.error ? (
+                      // with no list of rule sets there is no published version to change, and Propose the change
+                      // waits for one (the spec, section 11, v3.9)
+                      <ErrorState
+                        code={rulesets.error instanceof ApiError ? rulesets.error.code : undefined}
+                        description="The rule sets could not be read."
+                        onRetry={() => void rulesets.refetch()}
+                      />
+                    ) : null}
                     {target?.elsewhere ? (
                       <Note>
                         The rule set on the workspace has no published version yet; the change is

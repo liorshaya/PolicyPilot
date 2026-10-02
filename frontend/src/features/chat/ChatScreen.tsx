@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type Reac
 import { SCRIPTED_QUESTIONS } from '../demo/steps'
 import { useDemoStep } from '../demo/useDemoStep'
 import { Paragraph } from '../policy/Paragraph'
+import { ApiError } from '../../api/client'
 import { publishedTarget } from '../../api/published'
 import {
   useBudget,
@@ -37,7 +38,7 @@ import { Kbd } from '../../shared/ui/Kbd'
 import { Note } from '../../shared/ui/Note'
 import { Popover } from '../../shared/ui/Overlay'
 import { Provenance } from '../../shared/ui/Provenance'
-import { EmptyState, LoadingRows } from '../../shared/ui/States'
+import { EmptyState, ErrorState, LoadingRows } from '../../shared/ui/States'
 import { DecisionTag, VersionTag } from '../../shared/ui/StatusTag'
 import { DECISION_LABELS } from '../../shared/ui/decisionLabels'
 import { failureText } from './failures'
@@ -107,8 +108,27 @@ export function ChatScreen({
     setOpen((current) => ({ kind: 'new', count: current.kind === 'new' ? current.count + 1 : 1 }))
   const openConversation = (id: string) => setOpen({ kind: 'resume', id })
 
+  // the header stands while the rule sets are read, and a list that cannot be read is said, never taken for one with
+  // no published version (the spec, section 11, v3.9)
   if (rulesets.isPending) {
-    return <LoadingRows label="Loading the rule sets" />
+    return (
+      <>
+        <WorkspaceHeader title="Assistant" />
+        <LoadingRows label="Loading the rule sets" />
+      </>
+    )
+  }
+  if (rulesets.error) {
+    return (
+      <>
+        <WorkspaceHeader title="Assistant" />
+        <ErrorState
+          code={rulesets.error instanceof ApiError ? rulesets.error.code : undefined}
+          description="The rule sets could not be read."
+          onRetry={() => void rulesets.refetch()}
+        />
+      </>
+    )
   }
   if (open.kind === 'resume') {
     const ruleset = list.find((candidate) => candidate.id === resumed.data?.rulesetId)
@@ -250,7 +270,8 @@ function Conversation({
   const paragraphs = policy.data?.versions?.[policy.data.versions.length - 1]?.paragraphs ?? []
   const shownParagraph = paragraphs.find((paragraph) => paragraph.index === openParagraph)
   const last = chat.exchanges.at(-1)
-  const failure = last?.status === 'failed' ? last.code : chat.openFailure
+  // a question's failure; a conversation that does not open is said on its own, since no question has failed
+  const failure = last?.status === 'failed' ? last.code : null
   const spentNow = failure === BUDGET
   const { refetch } = budget
   // a question that finds the day's budget spent reads the budget again, whose note then says when it resumes
@@ -434,10 +455,15 @@ function Conversation({
                     {`Today's model budget is spent${budget.data ? ` until ${timeOf(budget.data.resumesAt)}` : ''}. The demo's questions are still answered from the cache.`}
                   </Note>
                 ) : null}
-                {failure !== undefined &&
-                failure !== null &&
-                failure !== BUDGET &&
-                failure !== WITHHELD ? (
+                {chat.openFailure !== null ? (
+                  <Note tone="error">
+                    The conversation could not be opened. Try again in a moment.{' '}
+                    <Button variant="link" onClick={onNewConversation}>
+                      Try again
+                    </Button>
+                  </Note>
+                ) : null}
+                {failure !== null && failure !== BUDGET && failure !== WITHHELD ? (
                   <Note tone="error">
                     {failureText(failure)}
                     {last?.status === 'failed' ? (

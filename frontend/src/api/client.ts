@@ -1,5 +1,5 @@
 import { API_BASE_URL } from './config'
-import { CLIENT_HEADER } from './auth'
+import { CLIENT_HEADER, sessionEnded } from './auth'
 import type {
   Audience,
   AuditEntriesResponse,
@@ -85,7 +85,7 @@ async function request<T>(
       options.formData ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
   })
   if (!response.ok) {
-    throw new ApiError(response.status, await envelopeOf(response))
+    throw await refusalOf(response)
   }
   if (response.status === 204) {
     return undefined as T
@@ -99,6 +99,18 @@ async function envelopeOf(response: Response): Promise<ErrorEnvelope | null> {
   } catch {
     return null
   }
+}
+
+/**
+ * The refusal a response carries, as an ApiError with its envelope. A 401 SESSION_INVALID means the session has ended
+ * while the workspace is open, which the app hears and answers with the gate (the spec, section 11, Gate, v3.9).
+ */
+export async function refusalOf(response: Response): Promise<ApiError> {
+  const refusal = new ApiError(response.status, await envelopeOf(response))
+  if (refusal.status === 401 && refusal.code === 'SESSION_INVALID') {
+    sessionEnded()
+  }
+  return refusal
 }
 
 /** Where a decision's export is downloaded from: the link's own address, which asks for JSON when followed. */
@@ -117,7 +129,7 @@ async function download(
     headers: { [CLIENT_HEADER]: 'web', Accept: accept },
   })
   if (!response.ok) {
-    throw new ApiError(response.status, await envelopeOf(response))
+    throw await refusalOf(response)
   }
   const disposition = response.headers.get('Content-Disposition') ?? ''
   return {

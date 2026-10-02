@@ -283,10 +283,6 @@ export function useRunFixtureSet(ruleset: { id: string; versionNo: number }) {
   })
 }
 
-/**
- * This session's last run of the cases on a version, if there was one (the owner's answer to phase 6's second
- * question): read from what the run left, never asked of the API, and kept for the session.
- */
 /** The sandbox's conversations, newest first (Document 2, GET /chat/sessions); a finished answer refreshes them. */
 export function useChatSessions(): UseQueryResult<ChatSessionSummary[]> {
   return useQuery({
@@ -304,6 +300,11 @@ export function useChatSession(id: string | null): UseQueryResult<ChatConversati
   })
 }
 
+/**
+ * This session's last run of the cases on a version, if there was one (the owner's answer to phase 6's second
+ * question): read from what the run left, never asked of the API, and kept for the session, which drops it when it
+ * closes (the spec, section 11, Gate, v3.9).
+ */
 export function useLastRun(
   ruleset: { id: string; versionNo: number } | null,
 ): UseQueryResult<BatchResult> {

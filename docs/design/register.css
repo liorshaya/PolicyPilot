@@ -522,7 +522,7 @@ td.t-prio { font-family: var(--font-mono); }
 .empty__rule--action .btn { margin: 0; }
 .empty__rule .muted { font-size: var(--text-xs); }
 .loading { display: grid; }
-.loading__row { height: var(--row-h); border-bottom: 1px solid var(--hairline); display: grid; grid-template-columns: 60px 120px 90px 1fr; gap: 16px; align-items: center; padding: 0 16px; }
+.loading__row { height: var(--row-h); border-bottom: 1px solid var(--hairline); display: grid; grid-template-columns: minmax(0, 60px) minmax(0, 120px) minmax(0, 90px) minmax(0, 1fr); gap: 16px; align-items: center; padding: 0 16px; }
 .loading__row span { height: 10px; border-radius: 2px; background: var(--well); }
 .loading__row span:nth-child(3) { background: var(--well-2); }
 .loading__text { padding: 10px 16px; font-size: var(--text-xs); color: var(--ink-3); }
