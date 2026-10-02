@@ -120,21 +120,34 @@ export function DecisionList({
     selectedRef.current?.scrollIntoView({ block: 'nearest' })
   }, [selectedId])
 
-  // "/" goes to the case filter from anywhere the reader is not typing
+  // "/" goes to the case filter, and "[" and "]" to the previous and the next case of the list while one is open (the
+  // spec, sections 04 and 08), from anywhere the reader is not typing
+  const openAt = shown.findIndex((result) => result.id === selectedId)
+  const previous = openAt > 0 ? shown[openAt - 1]?.id : undefined
+  const next = openAt >= 0 ? shown[openAt + 1]?.id : undefined
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       const typing =
         target !== null &&
         (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-      if (event.key === '/' && !typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) {
+        return
+      }
+      if (event.key === '/') {
         event.preventDefault()
         filterRef.current?.focus()
+      } else if (event.key === '[' && previous !== undefined) {
+        event.preventDefault()
+        onSelect(previous)
+      } else if (event.key === ']' && next !== undefined) {
+        event.preventDefault()
+        onSelect(next)
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [onSelect, previous, next])
 
   /** The arrows move from one case's button to the next one's; Enter on a button opens its case. */
   function onRowKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {

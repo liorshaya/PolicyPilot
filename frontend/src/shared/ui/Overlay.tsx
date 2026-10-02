@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Button } from './Button'
 import './Overlay.css'
 
@@ -49,12 +49,19 @@ interface PopoverProps {
 /**
  * A popover (the spec, section 08), placed from the control that opened it: under it in the upper half of the window,
  * over it in the lower half, at its start edge, or at its end edge for a control at the window's end; the gap is the
- * CSS's. Escape closes it and gives the focus back.
+ * CSS's. Its offset from the window's edge is passed to the CSS too, which keeps it inside the window (v3.9). Escape
+ * closes it and gives the focus back.
  */
 export function Popover({ anchor, label, align = 'start', onClose, children }: PopoverProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   const rect = anchor.getBoundingClientRect()
   const below = rect.top < window.innerHeight / 2
+  const offset = align === 'start' ? rect.left : document.documentElement.clientWidth - rect.right
+  const placement: CSSProperties & { '--popover-offset': string } = {
+    ...(align === 'start' ? { left: offset } : { right: offset }),
+    ...(below ? { top: rect.bottom } : { bottom: window.innerHeight - rect.top }),
+    '--popover-offset': `${String(offset)}px`,
+  }
 
   useEffect(() => {
     boxRef.current?.focus()
@@ -86,12 +93,7 @@ export function Popover({ anchor, label, align = 'start', onClose, children }: P
       aria-label={label}
       tabIndex={-1}
       data-side={below ? 'below' : 'above'}
-      style={{
-        ...(align === 'start'
-          ? { left: rect.left }
-          : { right: document.documentElement.clientWidth - rect.right }),
-        ...(below ? { top: rect.bottom } : { bottom: window.innerHeight - rect.top }),
-      }}
+      style={placement}
     >
       {children}
     </div>

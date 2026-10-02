@@ -299,6 +299,25 @@ describe('DecisionList, the keys', () => {
     expect(stops()).toStrictEqual(['17'])
   })
 
+  // the spec, sections 04 and 08: "[ ] step through cases while a trace is open", in the order the list shows them
+  it('steps to the previous and the next case of the list with [ and ] while a case is open', async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    renderList({ onSelect, selectedId: decisionIdOf(17) })
+
+    await user.keyboard(']')
+    expect(onSelect).toHaveBeenLastCalledWith(decisionIdOf(18))
+    // "[[" is how user-event types one "[", which otherwise opens a key's name
+    await user.keyboard('[[')
+    expect(onSelect).toHaveBeenLastCalledWith(decisionIdOf(16))
+    expect(onSelect).toHaveBeenCalledTimes(2)
+
+    // never while the reader types, nor with no case open
+    await user.click(screen.getByRole('textbox', { name: 'Jump to a case' }))
+    await user.keyboard(']')
+    expect(onSelect).toHaveBeenCalledTimes(2)
+  })
+
   it('moves between the cases with the arrows and opens one with Enter', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()

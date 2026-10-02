@@ -141,8 +141,8 @@ describe('AppShell', () => {
   })
 
   it('lists each shortcut the product answers, in the order of the spec', async () => {
-    // the spec, section 04: a shortcut joins the sheet with the phase that builds it; phase 2 built /, ↓ ↑ and ↵, and
-    // phase 6 the palette
+    // the spec, section 04: a shortcut joins the sheet with the phase that builds it; phase 2 built /, ↓ ↑ and ↵, phase
+    // 6 the palette, and the pass of 2026-10-02 Esc and [ ]; E, which asks a model, is not built
     renderShell()
 
     await userEvent.click(screen.getByRole('button', { name: 'Help' }))
@@ -153,6 +153,8 @@ describe('AppShell', () => {
       'Filter the list/',
       'Select next / previous row↓↑',
       'Open the row in the margin↵',
+      'Close the marginEsc',
+      'Previous / next case[ ]',
       'Go to Rules / Cases / AssistantGR C A',
     ])
   })

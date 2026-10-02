@@ -198,6 +198,19 @@ test.describe('the margin on a phone', () => {
 test.describe('on the narrowest phone', () => {
   test.use({ viewport: { width: 320, height: 640 } })
 
+  // the spec (v3.9), section 08: a popover keeps inside the window; the menu, 320px wide and lined up with its button's
+  // end, started 14px before the window, and Help after it too
+  test('keeps the menu and the legend behind Help inside the window', async ({ page }) => {
+    await enter(page)
+
+    await page.getByRole('button', { name: 'Menu' }).click()
+    await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible()
+    expect((await inspect(page)).overflow, 'Menu').toEqual([])
+    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Help' }).click()
+    await expect(page.getByRole('dialog', { name: 'Help' })).toBeVisible()
+    expect((await inspect(page)).overflow, 'Help').toEqual([])
+  })
+
   // the spec, section 10 (v3.9): the decision table is a rule list on a phone; it kept every column, and at 320px its
   // frozen action column stood over the frozen label column, covering the start of each Hebrew label
   test('draws the rules as a rule list, the label and id, then the action, neither covering the other', async ({

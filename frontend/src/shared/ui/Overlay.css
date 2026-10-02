@@ -120,10 +120,12 @@
 }
 
 /* Placement, which the spec leaves to the product: a popover stands at the edge of the control that opened it, a
-   token's gap away, over the page. */
+   token's gap away, over the page, and keeps inside the window, a token's gap from its edge, however close to the
+   edge its control is (v3.9: on a 320px phone the menu started 14px before the window). */
 .popover[data-side] {
   position: fixed;
   z-index: 10;
+  max-width: calc(100vw - var(--popover-offset, 0px) - var(--s-2));
 }
 .popover[data-side='below'] {
   margin-top: var(--s-2);

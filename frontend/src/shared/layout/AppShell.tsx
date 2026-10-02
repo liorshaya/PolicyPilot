@@ -391,6 +391,18 @@ function Legend({
           </span>
         </div>
         <div>
+          <span>Close the margin</span>
+          <span className="keys">
+            <Kbd>Esc</Kbd>
+          </span>
+        </div>
+        <div>
+          <span>Previous / next case</span>
+          <span className="keys">
+            <Kbd>[</Kbd> <Kbd>]</Kbd>
+          </span>
+        </div>
+        <div>
           <span>Go to Rules / Cases / Assistant</span>
           <span className="keys">
             <Kbd>G</Kbd>
