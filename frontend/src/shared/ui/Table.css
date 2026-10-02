@@ -475,3 +475,22 @@ button.t-rule {
   border-color: transparent;
   background: transparent;
 }
+
+/* The product's own, after the spec's phone (section 10, v3.9): the decision table is a rule list there, the label and
+   its id, then the action. The priority, the condition columns and the source are left out, the conditions standing in
+   the margin's Rule tab, and no column is frozen, so the action never covers a label (at 320px it covered the start of
+   every Hebrew one). */
+@media (max-width: 720px) {
+  .table--decision .t-prio,
+  .table--decision .t-field,
+  .table--decision .t-cond,
+  .table--decision .t-src,
+  .table--decision th.t-group:not(.t-frozen) {
+    display: none;
+  }
+  .table--decision .t-frozen,
+  .table--decision .t-frozen-end {
+    position: static;
+    box-shadow: none;
+  }
+}

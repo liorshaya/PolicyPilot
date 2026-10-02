@@ -177,6 +177,14 @@ export function CasesScreen({
         fill
         sideSheet={!deciding}
         sideOpen={deciding || selectedId !== null}
+        // the trace and the form carry their own Close; Esc shuts the drawer below 1200px, and on a phone a chosen case
+        // brings its trace into view once it is read, when the page is as long as the trace (the spec, sections 08 and
+        // 10, v3.9)
+        onCloseSide={() => {
+          setDeciding(false)
+          setSelectedId(null)
+        }}
+        sideKey={deciding ? 'deciding' : decision.isPending ? null : selectedId}
         sideLabel={
           deciding ? 'Decide a case' : decision.data ? traceLabel(decision.data) : undefined
         }

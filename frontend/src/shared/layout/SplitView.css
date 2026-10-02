@@ -81,7 +81,8 @@
   flex: 1;
   padding: 0 6px;
 }
-.margin__tabs .count {
+.margin__tabs .count,
+.margin__opener .count {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -136,6 +137,12 @@
   gap: 8px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--hairline);
+}
+
+/* The product's own: the drawer's Close, at its head on the end edge (the spec, section 08, Sheet and margin, v3.9). */
+.margin__close {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Below 1200px the margin becomes a drawer over the sheet (the spec, section 08): it stands at the end edge of the body,

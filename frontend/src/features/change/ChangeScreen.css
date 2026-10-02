@@ -168,9 +168,11 @@
 }
 
 /* The product's own. The request's part stands as the spec's frame spaces it: the box, the demo's request, the
-   progress, a refusal; the request and the note are as tall as the spec's frames draw them. */
+   progress, a refusal; the request and the note are as tall as the spec's frames draw them. Its one column holds to its
+   width, so nothing in it widens the box past the sheet (19px past at 320px, the pass of 2026-10-02). */
 .change__entry {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 .change__request {
@@ -181,7 +183,7 @@
 }
 
 /* The demo's request, offered under the box as the assistant offers its questions: a kicker, then the request as a
-   quiet button in its own language. */
+   quiet button in its own language, which wraps inside the button on a line narrower than it. */
 .change__starter {
   display: grid;
   justify-items: start;
@@ -192,6 +194,13 @@
 .change__starter .btn {
   font-family: var(--font-he);
   font-weight: 400;
+  max-width: 100%;
+  height: auto;
+  min-height: var(--control-h);
+  padding-block: 6px;
+  white-space: normal;
+  line-height: 1.4;
+  text-align: start;
 }
 
 /* The walk's step that is a button keeps the step's face, and the mark inside the strip keeps its size. */

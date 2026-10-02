@@ -213,14 +213,17 @@ ins.diff__mark {
   font-family: var(--font-mono);
 }
 
-/* Narrow: each view keeps a readable width and scrolls sideways in its box, and an attribute's name sits over its value;
-   at a phone's width the side-by-side table had no room left, a label running a letter a line, and the unified rows,
-   the spec's columns of 90px and 150px, clipped the values they changed. */
+/* Narrow: each view keeps a readable width and scrolls sideways in its box wherever the box is narrower, whatever the
+   window (the spec, section 09, v3.9): at a phone's width the side-by-side table had no room left, a label running a
+   letter a line, and the unified rows, the spec's columns of 90px and 150px, clipped the values they changed, as they
+   did beside the rail of a window 721 to 800px wide. */
+.udiff,
+.diff__table {
+  min-width: 34rem;
+}
+
+/* At a phone's width an attribute's name sits over its value. */
 @media (max-width: 700px) {
-  .udiff,
-  .diff__table {
-    min-width: 34rem;
-  }
   .diff__key-head {
     width: 5rem;
   }

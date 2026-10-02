@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { rule, stylesheet } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { Button } from './Button'
 import { Section } from './Section'
 
@@ -54,5 +54,17 @@ describe('Section', () => {
     )
     expect(container.querySelector('.sheet__body')).toBeNull()
     expect(rule(css, '.sheet__body').padding).toBe('16px')
+  })
+
+  // the spec, section 08 (v3.9): a section's title row wraps its controls under its title when the sheet has no room
+  // for both; the Rules sheet beside a drawer at 800px ran its controls 25px past the sheet
+  it("carries the spec's section row, which wraps its controls under its title", () => {
+    const section = specRules('.sec {', '.sheet__body {')
+
+    expect(section).toHaveLength(4)
+    expect(unported(css, section)).toEqual([])
+    expect(rule(css, '.sec')['flex-wrap']).toBe('wrap')
+    // and the controls wrap among themselves, shrinking to the row (the Rules draft's three at 721px)
+    expect(rule(css, '.sec__side')).toMatchObject({ 'flex-wrap': 'wrap', 'min-width': '0' })
   })
 })

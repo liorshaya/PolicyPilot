@@ -223,6 +223,10 @@ button.rail__link {
 .phone .figure {
   padding: 6px 12px 6px 0;
 }
+.phone a.chip,
+.phone button.chip {
+  height: 24px;
+}
 
 /*
  * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The spec's .phone is the

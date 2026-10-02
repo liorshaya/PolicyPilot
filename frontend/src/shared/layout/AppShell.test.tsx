@@ -323,7 +323,8 @@ describe('AppShell below 720px', () => {
 })
 
 describe('AppShell.css, the phone', () => {
-  // The spec's phone block, but for the frame it draws the phone in: the product's phone is the window itself
+  // The spec's phone block, but for the frame it draws the phone in: the product's phone is the window itself; the
+  // chips at 24px are section 10's touch targets, written into the block in v3.9
   it("carries the spec's phone rules, with the spec's declarations", () => {
     const phone = specRules('/* Phone (', '/* decide a case').filter(
       ([selector]) => selector !== '.phone',
@@ -340,6 +341,8 @@ describe('AppShell.css, the phone', () => {
       '.phone .figures',
       '.phone .figure:nth-child(2)',
       '.phone .figure',
+      '.phone a.chip',
+      '.phone button.chip',
     ])
     expect(unported(stylesheet('shared/layout/AppShell.css'), phone)).toEqual([])
   })

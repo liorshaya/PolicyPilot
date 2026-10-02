@@ -1,6 +1,9 @@
-import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { useState, type ReactNode } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { media, rule, stylesheet } from '../../test/css'
+import { windowAt } from '../../test/viewport'
 import { SplitView } from './SplitView'
 
 /**
@@ -106,5 +109,128 @@ describe('SplitView', () => {
         position: 'relative',
       })
     }
+  })
+})
+
+/**
+ * The margin below 1200px (the spec, section 08, Sheet and margin, v3.9): a drawer over the sheet, closed until the
+ * reader asks for it, shut by its Close or Esc, which give the focus back to what opened it; on a phone the next section
+ * of the page, brought into view when its row changes, the reader taken back when it closes.
+ */
+describe('SplitView below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  /** A screen whose button opens the margin, as Documents opens the Policies drawer. */
+  function Opened({ children }: { children?: ReactNode }) {
+    const [open, setOpen] = useState(false)
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Documents
+        </button>
+        <SplitView
+          main={<p>The policy</p>}
+          side={
+            <>
+              <p>The documents</p>
+              {children}
+            </>
+          }
+          sideOpen={open}
+          onCloseSide={() => setOpen(false)}
+          closeButton
+        />
+      </>
+    )
+  }
+
+  it('is a drawer with its Close at its head, shut by Close or Esc, the focus back on what opened it', async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    render(<Opened />)
+    const opener = screen.getByRole('button', { name: 'Documents' })
+
+    await user.click(opener)
+    expect(screen.getByRole('complementary')).toHaveTextContent('The documents')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(opener).toHaveFocus()
+
+    await user.click(opener)
+    await user.click(
+      within(screen.getByRole('complementary')).getByRole('button', { name: 'Close' }),
+    )
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(opener).toHaveFocus()
+  })
+
+  it('leaves Esc to a popover over the drawer and to a field the reader is typing in', async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    render(
+      <Opened>
+        <div role="dialog" aria-label="Help">
+          <button type="button">In the popover</button>
+        </div>
+        <label>
+          Title
+          <input />
+        </label>
+      </Opened>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Documents' }))
+
+    await user.click(screen.getByRole('button', { name: 'In the popover' }))
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('complementary')).toBeInTheDocument()
+
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'מדיניות')
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('מדיניות')
+  })
+
+  it('is no drawer from 1200px: the margin stands beside the sheet with no Close, and Esc leaves it', async () => {
+    windowAt(1376)
+    const user = userEvent.setup()
+    const onCloseSide = vi.fn()
+    render(
+      <SplitView
+        main={<p>The policy</p>}
+        side={<p>The documents</p>}
+        sideOpen
+        onCloseSide={onCloseSide}
+        closeButton
+      />,
+    )
+
+    expect(
+      within(screen.getByRole('complementary')).queryByRole('button', { name: 'Close' }),
+    ).toBeNull()
+    await user.keyboard('{Escape}')
+    expect(onCloseSide).not.toHaveBeenCalled()
+  })
+
+  it('on a phone brings the margin into view for each row, and the reader back to where they were when it closes', () => {
+    windowAt(390)
+    const shown = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const scrolled = vi.fn()
+    vi.stubGlobal('scrollTo', scrolled)
+    vi.stubGlobal('scrollY', 7200)
+    const { rerender } = render(
+      <SplitView main={<p>The cases</p>} side={<p>Case 17</p>} sideOpen sideKey="17" />,
+    )
+
+    const margin = screen.getByRole('complementary')
+    expect(shown.mock.contexts).toStrictEqual([margin])
+
+    rerender(<SplitView main={<p>The cases</p>} side={<p>Case 18</p>} sideOpen sideKey="18" />)
+    expect(shown.mock.contexts).toStrictEqual([margin, margin])
+
+    rerender(<SplitView main={<p>The cases</p>} side={null} sideOpen={false} sideKey={null} />)
+    expect(scrolled).toHaveBeenCalledWith({ top: 7200 })
   })
 })

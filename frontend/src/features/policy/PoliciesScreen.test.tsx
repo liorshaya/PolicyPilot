@@ -24,6 +24,7 @@ import {
 import { PoliciesScreen } from './PoliciesScreen'
 import { englishParagraphs, englishPolicy } from '../../test/fixtures/english'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import { windowAt } from '../../test/viewport'
 
 // @requirement NFR-5
 
@@ -1004,5 +1005,95 @@ describe('PoliciesScreen, gone to from the palette', () => {
     expect(document.querySelectorAll('.para--cited')).toHaveLength(1)
     await waitFor(() => expect(scrolled.mock.contexts).toContain(paragraph))
     scrolled.mockRestore()
+  })
+})
+
+/**
+ * Below 1200px the margin is a drawer over the sheet (the spec, section 08, Sheet and margin, v3.9): closed until the
+ * reader asks for it, since open it covered the start of every Hebrew line of the policy and the draft's Review the
+ * draft; Documents in the sheet's title row opens it, so do Add policy and a generation while its stages run.
+ */
+describe('PoliciesScreen below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('opens with the whole policy on the sheet and the drawer closed, and Documents opens and Close shuts it', async () => {
+    windowAt(1024)
+    renderScreen()
+
+    await screen.findByText(lendingParagraphs[0]!.text)
+    expect(screen.queryByRole('complementary')).toBeNull()
+
+    const documents = screen.getByRole('button', { name: 'Documents' })
+    expect(documents).toHaveAttribute('aria-expanded', 'false')
+    await userEvent.click(documents)
+    expect(documents).toHaveAttribute('aria-expanded', 'true')
+    const drawer = screen.getByRole('complementary')
+    expect(within(drawer).getByRole('region', { name: 'Documents' })).toHaveTextContent(
+      seededPolicy.title,
+    )
+    await userEvent.click(within(drawer).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(documents).toHaveFocus()
+  })
+
+  it('closes the drawer on the document the reader chooses, which then stands on the sheet', async () => {
+    windowAt(1024)
+    server.use(...twoRulesets())
+    renderScreen()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Documents' }))
+    await userEvent.click(
+      within(screen.getByRole('complementary')).getByRole('button', { name: /Security Deposit/ }),
+    )
+
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(await screen.findByRole('region', { name: secondPolicy.title })).toBeInTheDocument()
+  })
+
+  it('keeps the documents in the margin beside the sheet from 1200px, with no Documents button', async () => {
+    windowAt(1376)
+    renderScreen()
+
+    await screen.findByText(lendingParagraphs[0]!.text)
+    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Documents' })).toBeNull()
+  })
+
+  it('opens the drawer on the form from Add policy', async () => {
+    windowAt(1024)
+    renderScreen()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Add policy' }))
+
+    expect(
+      within(screen.getByRole('complementary')).getByRole('region', { name: 'Add a policy' }),
+    ).toBeInTheDocument()
+  })
+
+  it('opens the drawer on the stages while they run, and closes it on the draft, which stands on the sheet', async () => {
+    windowAt(1024)
+    let finish: () => void = () => undefined
+    server.use(
+      http.post(`${BASE}/policies/:id/rulesets`, () =>
+        streamed((send, close) => {
+          send('parsing', { paragraphs: 9 })
+          finish = () => {
+            send('draft', reviewedDraft)
+            close()
+          }
+        }),
+      ),
+    )
+    renderScreen()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate rules' }))
+    const drawer = await screen.findByRole('complementary')
+    expect(within(drawer).getByRole('region', { name: 'Generation' })).toBeInTheDocument()
+    act(() => finish())
+
+    await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
+    expect(screen.getByRole('button', { name: 'Review the draft' })).toBeInTheDocument()
   })
 })

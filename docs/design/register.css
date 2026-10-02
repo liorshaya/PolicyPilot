@@ -370,8 +370,8 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 /* Workspace and header */
 .workspace { display: flex; flex-direction: column; min-width: 0; }
 .ws-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: var(--header-h); padding: 10px 24px; border-bottom: 1px solid var(--hairline); }
-.ws-header__text { display: grid; gap: 4px; min-width: 0; }
-.ws-header__title { font-size: var(--text-lg); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.ws-header__text { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
+.ws-header__title { font-size: var(--text-lg); font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .ws-header__side { display: flex; align-items: center; gap: 10px; flex: none; }
 .ws-header__side .btn--primary { height: var(--control-h-lg); padding: 0 14px; }
 .ws-body { display: grid; grid-template-columns: minmax(0, 1fr) var(--margin-w); flex: 1; min-height: 0; }
@@ -396,10 +396,10 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 .margin--sheet { padding: 16px 24px 16px 0; }
 .margin--sheet > .sheet { margin: 0; flex: 1; }
 
-.sec { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--hairline); min-height: 44px; }
+.sec { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 16px; border-bottom: 1px solid var(--hairline); min-height: 44px; }
 .sec__title { font-size: var(--text-sm); font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .sec__title .quiet { font-weight: 400; color: var(--ink-3); }
-.sec__side { display: flex; align-items: center; gap: 8px; flex: none; }
+.sec__side { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0; }
 .sheet__body { padding: 16px; }
 .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
 .toolbar .input, .toolbar .select { width: auto; min-height: var(--control-h-sm); font-size: var(--text-xs); }
@@ -800,7 +800,7 @@ td.t-prio { font-family: var(--font-mono); }
 .kv--2 { grid-template-columns: 1fr 1fr; }
 
 /* Access gate: the cover of the register */
-.gate { min-height: 640px; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 40px 24px; background: var(--paper); }
+.gate { min-height: min(640px, 100dvh); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 40px 24px; background: var(--paper); }
 .gate__sheet { width: 400px; max-width: 100%; background: var(--sheet); border: 1px solid var(--hairline); border-radius: var(--r-3); padding: 28px 28px 24px; display: grid; gap: 18px; }
 .gate__brand svg { height: 28px; width: auto; }
 .gate__title { font-size: var(--text-lg); font-weight: 600; }
@@ -821,6 +821,7 @@ td.t-prio { font-family: var(--font-mono); }
 .phone .figures { grid-template-columns: 1fr 1fr; }
 .phone .figure:nth-child(2) { border-inline-end: 0; }
 .phone .figure { padding: 6px 12px 6px 0; }
+.phone a.chip, .phone button.chip { height: 24px; }
 
 /* decide a case, and the field schema (section 09) */
 .case-form { display: grid; gap: 12px; max-width: 420px; }

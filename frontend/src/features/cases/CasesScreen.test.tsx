@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   aggregates,
   batch,
@@ -20,6 +20,7 @@ import { CasesScreen } from './CasesScreen'
 import { lendingCase17, lendingRuleSet } from '../../test/fixtures/lending'
 import { ENGLISH_RULESET_ID, englishDecision, englishRuleSet } from '../../test/fixtures/english'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import { windowAt } from '../../test/viewport'
 
 // @requirement NFR-5
 
@@ -762,5 +763,53 @@ describe('CasesScreen in both directions (NFR-5)', () => {
     const trace = await openCase17()
     expect(await within(trace).findByText(englishDecision.reason!)).toHaveAttribute('dir', 'ltr')
     expect(rtlSnapshot(trace)).toMatchSnapshot()
+  })
+})
+
+/**
+ * The trace below 1200px (the spec, sections 08 and 10, v3.9): a drawer that Esc shuts, giving the focus back to the
+ * case that opened it; on a phone the next section of the page, brought into view when a case is chosen, and its Close
+ * takes the reader back to the row.
+ */
+describe('CasesScreen below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('shuts the trace drawer on Esc and gives the focus back to the case that opened it', async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    const opener = await screen.findByRole('button', { name: '17' })
+    await user.click(opener)
+    const drawer = await screen.findByRole('complementary')
+    within(drawer).getByRole('button', { name: 'Close' }).focus()
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(opener).toHaveFocus()
+  })
+
+  it('on a phone brings the trace into view when a case is chosen, and the reader back when it closes', async () => {
+    windowAt(390)
+    const shown = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const scrolled = vi.fn()
+    vi.stubGlobal('scrollTo', scrolled)
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'Run 200 cases' }))
+    await user.click(await screen.findByRole('button', { name: '17' }))
+    const trace = await screen.findByRole('complementary')
+    // once the decision is read, so the page is as long as the trace it scrolls to
+    await within(trace).findByText(decision.reason!)
+    expect(shown.mock.contexts).toContain(trace)
+
+    await user.click(within(trace).getByRole('button', { name: 'Close' }))
+    expect(scrolled).toHaveBeenCalledTimes(1)
   })
 })

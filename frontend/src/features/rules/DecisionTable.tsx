@@ -111,7 +111,7 @@ export function DecisionTable({
               <th className="t-group" colSpan={columns.length} scope="colgroup">
                 Conditions
               </th>
-              <th className="t-head2" rowSpan={2} scope="col">
+              <th className="t-head2 t-src" rowSpan={2} scope="col">
                 Source
               </th>
               <th className="t-head2 t-frozen-end" rowSpan={2} scope="col">
@@ -354,7 +354,7 @@ function RuleRow({
           onEditCell={onEditCell}
         />
       ))}
-      <td>
+      <td className="t-src">
         <Source rule={rule} />
       </td>
       <td className="t-frozen-end">
@@ -420,14 +420,16 @@ function TableCell({ cell, field, rule, underline, refused, onEditCell }: TableC
   const leaf = cell?.leaves[0]
 
   if (cell === undefined) {
-    return <td className="t-empty" aria-label="no comparison" />
+    return <td className="t-cond t-empty" aria-label="no comparison" />
   }
 
   if (!cell.editable || onEditCell === undefined || leaf === undefined) {
     const complex = cell.parts.some((parts) => parts.expression)
     return (
       <td
-        className={['t-cmp', complex ? 't-cmp--complex' : '', underlined].filter(Boolean).join(' ')}
+        className={['t-cond t-cmp', complex ? 't-cmp--complex' : '', underlined]
+          .filter(Boolean)
+          .join(' ')}
       >
         {cell.parts.map((parts) => (
           <Fragment key={cellText(parts)}>
@@ -455,7 +457,7 @@ function TableCell({ cell, field, rule, underline, refused, onEditCell }: TableC
   const shown = problem ?? refused
   return (
     <td
-      className={['t-cell-edit', shown === undefined ? '' : 't-cell-invalid', underlined]
+      className={['t-cond t-cell-edit', shown === undefined ? '' : 't-cell-invalid', underlined]
         .filter(Boolean)
         .join(' ')}
     >

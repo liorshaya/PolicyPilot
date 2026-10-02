@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { rule, stylesheet } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
 import { AUTH_CODE_URL } from '../../api/auth'
 import { server } from '../../test/msw/server'
@@ -128,6 +128,16 @@ describe('AccessGate', () => {
         'The model proposes and explains, the rules engine decides, a person approves every policy change.',
       ),
     ).toHaveClass('gate__lead')
+  })
+
+  // the spec, section 10 (v3.9): the gate stands 640px tall, or as tall as a shorter window, so the page never
+  // scrolls for empty paper (a window 600px tall scrolled by 40px)
+  it("carries the spec's gate, its height held to a short window", () => {
+    const gate = specRules('/* Access gate', '/* Phone (')
+
+    expect(gate).toHaveLength(8)
+    expect(unported(gateCss, gate)).toEqual([])
+    expect(rule(gateCss, '.gate')['min-height']).toBe('min(640px, 100dvh)')
   })
 
   it('sets the field in mono, a password with no autocomplete, and Enter as the primary at 36px', () => {

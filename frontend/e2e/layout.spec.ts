@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ollamaProvider } from '../src/test/fixtures/provider'
 import { changeRequest, serveTheChange } from './change'
+import { serveTheGeneration } from './generation'
 import { openThePanel } from './panel'
-import { serveTheSeededRuleSet } from './seeded'
+import { paragraphs, serveTheSeededRuleSet } from './seeded'
 
 // @requirement FR-20
 // @requirement FR-23
@@ -185,5 +186,66 @@ test.describe('on a phone', () => {
     const to = page.getByRole('combobox', { name: 'to', exact: true })
     await to.scrollIntoViewIfNeeded()
     await expect(to).toBeInViewport({ ratio: 1 })
+  })
+})
+
+// The pass over every width of 2026-10-02 (the spec, section 08, Sheet and margin, v3.9): from 721 to 1199px the margin
+// is a drawer over the sheet, and on Policies and Rules it stood open with no Close, hiding the start of every Hebrew
+// line, most of the rule table and the draft's Review the draft. It now starts closed and opens on what is asked for.
+test.describe('between 721 and 1199px', () => {
+  test.use({ viewport: { width: 1024, height: 768 } })
+
+  test('opens Policies on the whole policy, the drawer on Documents, and Esc shuts it', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await enter(page)
+    await expect(page.getByText(paragraphs[0].text)).toBeVisible()
+    await expect(page.getByRole('complementary')).toHaveCount(0)
+
+    const documents = page.getByRole('button', { name: 'Documents' })
+    await documents.click()
+    await expect(
+      page.getByRole('complementary').getByRole('region', { name: 'Documents' }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByRole('complementary')).toHaveCount(0)
+    await expect(documents).toBeFocused()
+  })
+
+  test("leaves the draft's Review the draft free to press once the stages have run", async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await serveTheGeneration(page)
+    await enter(page)
+
+    await page.getByRole('button', { name: 'Generate rules' }).click()
+    // a click waits until nothing covers the button: the open drawer did, and the click never landed
+    await page.getByRole('button', { name: 'Review the draft' }).click()
+
+    await expect(page.getByRole('heading', { level: 1, name: /^Rules/ })).toBeVisible()
+  })
+
+  test('opens Rules on the whole table, and a row opens the drawer on its rule until Esc', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await enter(page)
+    await page
+      .getByRole('navigation', { name: 'Workspace' })
+      .getByRole('button', { name: /^Rules/ })
+      .click()
+    await expect(page.getByRole('table').getByRole('button', { name: /R-330/ })).toBeVisible()
+    await expect(page.getByRole('complementary')).toHaveCount(0)
+
+    await page.getByRole('table').getByRole('button', { name: /R-330/ }).click()
+    await expect(page.getByRole('complementary')).toContainText(
+      'Paragraph 7 is the source of R-330',
+    )
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByRole('complementary')).toHaveCount(0)
   })
 })

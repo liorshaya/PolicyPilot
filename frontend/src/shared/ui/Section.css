@@ -3,9 +3,10 @@
  */
 .sec {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--hairline);
   min-height: 44px;
@@ -23,9 +24,11 @@
 }
 .sec__side {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 .sheet__body {
   padding: 16px;
@@ -48,11 +51,9 @@
   flex: 1;
 }
 
-/* The product's own: in a narrow window, and on a phone, a section row wraps its controls under its title. */
+/* The product's own: in a narrow window, and on a phone, the controls under a section's title take the whole row and
+   wrap among themselves. */
 @media (max-width: 700px) {
-  .sec {
-    flex-wrap: wrap;
-  }
   .sec__side {
     flex: 1 1 100%;
     flex-wrap: wrap;

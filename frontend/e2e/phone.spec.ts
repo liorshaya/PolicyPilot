@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { changeRequest, serveTheChange } from './change'
 import { ask, question, serveTheChat } from './chat'
 import { inspect } from './checklist'
+import { serveTheWholeRun } from './lending'
 import { step } from './panel'
 import { serveASeededRun, serveTheSeededRuleSet } from './seeded'
 
@@ -120,11 +121,12 @@ test.describe('the demo on a phone', () => {
     const box = await row.boundingBox()
     expect(box?.height).toBeGreaterThanOrEqual(44)
     await row.getByRole('button', { name: '17' }).click()
-    // the margin is the next section of the page, under the list, and the page still fits
+    // the margin is the next section of the page, under the list, and the page still fits; both read after the click,
+    // which brings the trace into view (v3.9)
     const trace = page.getByRole('complementary')
     await expect(trace).toBeVisible()
     const traceBox = await trace.boundingBox()
-    expect(traceBox!.y).toBeGreaterThan(box!.y)
+    expect(traceBox!.y).toBeGreaterThan((await row.boundingBox())!.y)
     expect(await sideways(page)).toBeLessThanOrEqual(0)
   })
 })
@@ -145,5 +147,70 @@ test.describe('on a narrower phone', () => {
     )
 
     expect((await inspect(page)).overflow).toEqual([])
+  })
+})
+
+// The pass over every width of 2026-10-02 (the spec, section 10, v3.9): on a phone the margin is the next section of the
+// page, under the list, so a case chosen among the 200 opened its trace some 7,500px below, out of sight, and nothing
+// seemed to happen; a chosen row now brings the margin into view, and the trace's Close takes the reader back
+test.describe('the margin on a phone', () => {
+  test("brings a chosen case's trace into view, and its Close takes the reader back to the row", async ({
+    page,
+  }) => {
+    await enter(page)
+    // the 200 cases of cases-expected.json, over the one case the other tests run
+    await serveTheWholeRun(page)
+    await open(page, 'Cases')
+    await page.getByRole('button', { name: 'Run 200 cases' }).first().click()
+    const row = page.getByRole('button', { name: '17', exact: true })
+
+    await row.tap()
+    const heading = page.getByRole('heading', { level: 2, name: /^Case 17/ })
+    await expect(heading).toBeInViewport()
+    // at the top of the window, the trace under it: a scroll made before the trace was read stopped at the page's
+    // end, the trace's head at the window's foot
+    expect((await heading.boundingBox())!.y).toBeLessThan(120)
+    await page.getByRole('complementary').getByRole('button', { name: 'Close' }).tap()
+
+    await expect(row).toBeInViewport()
+  })
+
+  test('brings a chosen rule into view under the rule list', async ({ page }) => {
+    await enter(page)
+    await open(page, 'Rules')
+
+    // the first rule, so the margin stands a whole list of rules below it (R-010 cites paragraph 5, ruleset.v1.json)
+    await page.getByRole('table').getByRole('button', { name: /R-010/ }).tap()
+
+    await expect(page.getByText(/Paragraph 5 is the source of R-010/)).toBeInViewport()
+  })
+
+  // the spec, section 10: "chips 24px tall" on a phone, a touch target; they stood at the desktop's 20px
+  test('makes a chip a 24px touch target', async ({ page }) => {
+    await enter(page)
+
+    const chip = page.getByRole('button', { name: 'R-330', exact: true })
+    await expect(chip).toBeVisible()
+    expect((await chip.boundingBox())!.height).toBe(24)
+  })
+})
+
+test.describe('on the narrowest phone', () => {
+  test.use({ viewport: { width: 320, height: 640 } })
+
+  // the spec, section 10 (v3.9): the decision table is a rule list on a phone; it kept every column, and at 320px its
+  // frozen action column stood over the frozen label column, covering the start of each Hebrew label
+  test('draws the rules as a rule list, the label and id, then the action, neither covering the other', async ({
+    page,
+  }) => {
+    await enter(page)
+    await open(page, 'Rules')
+
+    const row = page.getByRole('row').filter({ hasText: 'R-010' })
+    const label = (await row.getByRole('rowheader').boundingBox())!
+    const action = (await row.getByRole('cell').last().boundingBox())!
+    expect(label.x + label.width).toBeLessThanOrEqual(action.x + 1)
+    await expect(page.getByRole('columnheader', { name: 'Priority' })).toBeHidden()
+    expect(await sideways(page)).toBeLessThanOrEqual(0)
   })
 })

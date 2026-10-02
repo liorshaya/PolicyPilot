@@ -47,8 +47,11 @@
 }
 
 /* The report's parts stand apart as the spec's frame spaces them, and its two sentences for when nothing flips. */
+/* Its one column holds to its width, so a figure or a bar list narrower than its content wraps or scrolls inside it
+   rather than widen the report past an audit entry (24px past at 320px, the pass of 2026-10-02). */
 .regression {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .regression__empty {

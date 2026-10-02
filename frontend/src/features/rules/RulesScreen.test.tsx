@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RuleSetDocument, RulesetsResponse, VersionResponse } from '../../api/types'
 import { copyRuleset, copyVersion } from '../../test/fixtures/audit'
 import { lendingRuleSet } from '../../test/fixtures/lending'
@@ -17,6 +17,7 @@ import { server } from '../../test/msw/server'
 import { RulesScreen } from './RulesScreen'
 import { ENGLISH_RULESET_ID, englishRuleSet } from '../../test/fixtures/english'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
+import { windowAt } from '../../test/viewport'
 
 // @requirement NFR-5
 
@@ -1091,5 +1092,86 @@ describe('RulesScreen in both directions (NFR-5)', () => {
     const table = await screen.findByRole('table')
     await within(table).findByText(englishRuleSet.rules[0]!.label)
     expect(rtlSnapshot(table)).toMatchSnapshot()
+  })
+})
+
+/**
+ * Below 1200px the margin is a drawer over the sheet (the spec, section 08, Sheet and margin, v3.9): closed until the
+ * reader asks for it, since open it covered most of the decision table; a row opens it on that rule, the sheet's title
+ * row names what it shows first and opens it there, a rule another screen asks for opens it, and Close shuts it.
+ */
+describe('RulesScreen below 1200px', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('opens with the table whole and the drawer closed; a row opens it on that rule, and Close shuts it', async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: /R-330/ }))
+    const drawer = screen.getByRole('complementary')
+    expect(within(drawer).getByText(/Paragraph 7 is the source of R-330/)).toBeInTheDocument()
+
+    await user.click(within(drawer).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('complementary')).toBeNull()
+  })
+
+  it("keeps the table alone until Fields in the sheet's title row opens the drawer, which holds the tabs", async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    renderScreen()
+
+    await screen.findByRole('button', { name: /R-330/ })
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Show in the margin' })).toBeNull()
+
+    // a published version shows its fields first (the owner's answer of 2026-09-28 to phase 5's second question)
+    const opener = screen.getByRole('button', { name: 'Fields' })
+    expect(opener).toHaveAttribute('aria-expanded', 'false')
+    await user.click(opener)
+    const tabs = within(screen.getByRole('complementary')).getByRole('group', {
+      name: 'Show in the margin',
+    })
+    expect(within(tabs).getByRole('button', { name: 'Fields' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    // the opener is no switch: it says the drawer is open, and the tabs choose
+    expect(opener).toHaveAttribute('aria-expanded', 'true')
+    expect(opener).not.toHaveAttribute('aria-pressed')
+  })
+
+  it('opens the drawer of a draft on its review, named with its count in the title row', async () => {
+    windowAt(1024)
+    const user = userEvent.setup()
+    server.use(
+      http.get(`${BASE}/rulesets`, () => HttpResponse.json(draftRulesets)),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, () => HttpResponse.json(reviewedDraft)),
+    )
+    renderScreen()
+
+    const opener = await screen.findByRole('button', { name: /^Review/ })
+    expect(screen.queryByRole('complementary')).toBeNull()
+    expect(opener.querySelector('.count')).toHaveTextContent('3')
+    await user.click(opener)
+
+    expect(
+      within(screen.getByRole('complementary')).getByRole('region', {
+        name: 'Review of the draft',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('opens the drawer on the rule another screen asked for', async () => {
+    windowAt(1024)
+    renderScreen('R-330')
+
+    expect(
+      await within(await screen.findByRole('complementary')).findByText(
+        /Paragraph 7 is the source of R-330/,
+      ),
+    ).toBeInTheDocument()
   })
 })
