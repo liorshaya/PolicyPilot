@@ -4,7 +4,7 @@
 
 /* Access gate: the cover of the register */
 .gate {
-  min-height: 640px;
+  min-height: min(640px, 100dvh);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   place-items: center;

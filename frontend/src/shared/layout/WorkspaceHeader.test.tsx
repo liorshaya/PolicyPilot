@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { rule, stylesheet } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { Button } from '../ui/Button'
 import { VersionTag } from '../ui/StatusTag'
 import { PaletteContext } from '../ui/paletteContext'
@@ -105,5 +105,20 @@ describe('WorkspaceHeader', () => {
     render(<WorkspaceHeader title="Cases" goTo />)
 
     expect(screen.queryByRole('button', { name: /^Go to/ })).not.toBeInTheDocument()
+  })
+
+  // the spec, section 08 (v3.9): where the header has no room for them, the status and the seeded tag wrap under the
+  // title, never under the actions (at 1024px "Seeded, read-only" ran under Go to, at 320px past the window), and the
+  // text's one column holds to the header, so a long title row cannot widen it
+  it("carries the spec's header, the title row wrapping its tags and the text held to its column", () => {
+    // the block's grid of the body is SplitView's to draw
+    const header = specRules('/* Workspace and header */', '/* Sheet and margin').filter(
+      ([selector]) => !selector.startsWith('.ws-body'),
+    )
+
+    expect(header).toHaveLength(6)
+    expect(unported(css, header)).toEqual([])
+    expect(rule(css, '.ws-header__title')['flex-wrap']).toBe('wrap')
+    expect(rule(css, '.ws-header__text')['grid-template-columns']).toBe('minmax(0, 1fr)')
   })
 })

@@ -9,6 +9,7 @@ import { fieldHints } from '../demo/fieldHints'
 import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { SplitView } from '../../shared/layout/SplitView'
+import { useDrawer } from '../../shared/layout/useDrawer'
 import { Button } from '../../shared/ui/Button'
 import { Chip } from '../../shared/ui/Chip'
 import { Section } from '../../shared/ui/Section'
@@ -26,7 +27,8 @@ import './PoliciesScreen.css'
  * paragraph numbered, because the number is what a rule cites (Document 3, Provenance), and under each paragraph the
  * rules that cite it and the findings that name it, so provenance runs both ways; a Hebrew policy reads right to left
  * inside the left-to-right workspace. The margin holds the form that adds a policy, the documents, the generation's
- * stages and the review's summary.
+ * stages and the review's summary; below 1200px it is a drawer that opens on Documents, on Add policy and on a run's
+ * stages while they run (the spec, section 08, v3.9).
  */
 export function PoliciesScreen({
   onOpenRules,
@@ -51,6 +53,10 @@ export function PoliciesScreen({
   // the policy step 1 pasted: generating it sends the seeded rule set's inputs as the author's field hints
   const [demoPolicyId, setDemoPolicyId] = useState<string | null>(null)
   const create = useCreatePolicy()
+  // below 1200px the margin is a drawer, closed until the reader asks for it: what it was opened for, which a run keeps
+  // open only while its stages run, since the run's result stands on the sheet (the spec, section 08, v3.9)
+  const drawer = useDrawer()
+  const [drawerFor, setDrawerFor] = useState<'documents' | 'form' | 'run' | null>(null)
 
   const generation = useGeneration()
   // seeded first, then the sandbox's own (the spec, section 10: "Documents · seeded first, then this sandbox's")
@@ -76,6 +82,7 @@ export function PoliciesScreen({
     () => {
       setFromDemo(true)
       setAdding(true)
+      setDrawerFor('form')
     },
     onDemoHandled,
   )
@@ -108,10 +115,28 @@ export function PoliciesScreen({
   // the version whose rules and findings stand under the paragraphs: the run's draft, else the rule set's latest
   const shown: VersionResponse | undefined = run?.draft ?? citingVersion.data
   const rulesetId = run?.draft?.rulesetId ?? citing?.id
+  const sideOpen =
+    !drawer ||
+    drawerFor === 'documents' ||
+    (drawerFor === 'form' && adding) ||
+    (drawerFor === 'run' && generation.running)
+
+  // the drawer's opener, at the end of the sheet's title row, which has the focus again when the drawer closes
+  const documents = drawer ? (
+    <Button
+      variant="quiet"
+      size="sm"
+      aria-expanded={sideOpen}
+      onClick={() => setDrawerFor('documents')}
+    >
+      Documents
+    </Button>
+  ) : null
 
   function openForm() {
     setFromDemo(false)
     setAdding(true)
+    setDrawerFor('form')
   }
 
   /** Under a paragraph: the rules that cite it, in the document's order, then the review's findings that name it. */
@@ -194,6 +219,7 @@ export function PoliciesScreen({
                     ? fieldHints(seededFields)
                     : undefined
                 generation.start(selected.data.id, hints)
+                setDrawerFor('run')
               }}
             >
               Generate rules
@@ -203,7 +229,9 @@ export function PoliciesScreen({
       />
       <BudgetNote />
       <SplitView
-        sideOpen
+        sideOpen={sideOpen}
+        onCloseSide={() => setDrawerFor(null)}
+        closeButton
         fill
         main={
           <Section
@@ -218,25 +246,30 @@ export function PoliciesScreen({
               )
             }
             actions={
-              selected.data ? (
+              selected.data || documents ? (
                 <>
-                  <span className="muted policies__size">
-                    {`Version ${String(latest?.versionNo ?? 1)} · ${String(paragraphs.length)} paragraphs`}
-                  </span>
-                  {rulesetId === undefined ? (
-                    <span className="reason">Generate rules for this policy first</span>
+                  {selected.data ? (
+                    <>
+                      <span className="muted policies__size">
+                        {`Version ${String(latest?.versionNo ?? 1)} · ${String(paragraphs.length)} paragraphs`}
+                      </span>
+                      {rulesetId === undefined ? (
+                        <span className="reason">Generate rules for this policy first</span>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        disabled={rulesetId === undefined}
+                        onClick={() => {
+                          if (rulesetId !== undefined) {
+                            onOpenRules(rulesetId)
+                          }
+                        }}
+                      >
+                        Open its rules
+                      </Button>
+                    </>
                   ) : null}
-                  <Button
-                    size="sm"
-                    disabled={rulesetId === undefined}
-                    onClick={() => {
-                      if (rulesetId !== undefined) {
-                        onOpenRules(rulesetId)
-                      }
-                    }}
-                  >
-                    Open its rules
-                  </Button>
+                  {documents}
                 </>
               ) : null
             }
@@ -317,7 +350,11 @@ export function PoliciesScreen({
               query={policies}
               list={list}
               selectedId={selectedId}
-              onSelect={setChosenId}
+              onSelect={(policyId) => {
+                setChosenId(policyId)
+                // a document chosen in the drawer is read on the sheet, which the drawer would cover
+                setDrawerFor(null)
+              }}
             />
             {run ? <GenerationProgress generation={run} /> : null}
             <ReviewSummary

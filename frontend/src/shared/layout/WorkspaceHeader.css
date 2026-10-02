@@ -19,6 +19,7 @@
 }
 .ws-header__text {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
 }
@@ -26,8 +27,9 @@
   font-size: var(--text-lg);
   font-weight: 600;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
 }
 .ws-header__side {
   display: flex;

@@ -34,8 +34,11 @@
   width: 11px;
   height: 11px;
 }
+/* The entry's one column holds to its width, so a diff or a line of its approval scrolls or wraps inside it rather than
+   widen the entry past its sheet (24px past at 320px, the pass of 2026-10-02). */
 .event__body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
 }
@@ -80,6 +83,7 @@
 }
 .event__more {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 8px 0 4px;
 }
@@ -139,4 +143,17 @@
   padding: 8px 16px;
   font-size: var(--text-xs);
   color: var(--decline-text);
+}
+
+/* The product's own: on a phone an entry's column is too narrow for two figures side by side, so the regression an
+   approval carries stands its figures one under another (24px past at 320px, the pass of 2026-10-02). */
+@media (max-width: 720px) {
+  .event .figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .event .figure,
+  .event .figure + .figure {
+    border-inline-end: 0;
+    padding-inline-start: 0;
+  }
 }

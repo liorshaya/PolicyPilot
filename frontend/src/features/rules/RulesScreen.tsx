@@ -15,6 +15,7 @@ import {
 import type { GapResolution, RuleSetDocument, VersionResponse } from '../../api/types'
 import type { ContentLanguage } from '../../shared/i18n/direction'
 import { SplitView } from '../../shared/layout/SplitView'
+import { useDrawer } from '../../shared/layout/useDrawer'
 import { BudgetNote } from '../../shared/layout/BudgetNote'
 import { WorkspaceHeader } from '../../shared/layout/WorkspaceHeader'
 import { Button } from '../../shared/ui/Button'
@@ -71,7 +72,9 @@ interface RulesScreenProps {
  * 2026-09-28 to phase 3's fifth question), the policy, the fields the version declares or the JSON the engine runs; a
  * version with no review opens on its fields until a rule is chosen (the owner's answer of 2026-09-28 to phase 5's
  * second question). A rule, its source and its findings are shown together, because that pairing is what makes a
- * published version auditable.
+ * published version auditable. Below 1200px the margin is a drawer: a row opens it on the rule, and so does a rule or a
+ * finding another screen asks for; closed, the sheet's title row names what it shows first and opens it there (the
+ * spec, section 08, v3.9).
  */
 export function RulesScreen({
   onOpenCases,
@@ -119,6 +122,10 @@ export function RulesScreen({
   // any other on its fields until a rule is chosen, then on the paragraph the rule cites
   const [panel, setPanel] = useState<SidePanel | null>(null)
   const [asked, setAsked] = useState<number | null>(null)
+  // below 1200px the margin is a drawer, closed until the reader asks for it (the spec, section 08, v3.9)
+  const drawer = useDrawer()
+  const [drawerOpen, setDrawerOpen] = useState(focusRuleId !== null || focusFindingId !== null)
+  const sideOpen = !drawer || drawerOpen
   const document = shown?.ruleSet as RuleSetDocument | undefined
   const tags = document ? tagsOf(document) : []
   // a tag the version on the screen does not carry filters nothing: all tags are shown
@@ -199,6 +206,7 @@ export function RulesScreen({
     setChosenRuleId(ruleId)
     setChipped(null)
     setAsked(null)
+    setDrawerOpen(true)
     if (view === 'json' || view === 'review') {
       setPanel('rule')
     } else if (view === 'fields') {
@@ -217,6 +225,28 @@ export function RulesScreen({
     setAsked(index)
     setPanel('source')
   }
+
+  // what the drawer shows first, which its opener names: the review of a draft or a reviewed version, else the fields;
+  // the opener stays while the drawer is open, so the focus has it again when the drawer closes
+  const first: SidePanel = reviewable ? 'review' : 'fields'
+  const opener =
+    !drawer || !shown ? null : (
+      <Button
+        variant="quiet"
+        size="sm"
+        className="margin__opener"
+        aria-expanded={sideOpen}
+        onClick={() => {
+          setPanel(first)
+          setDrawerOpen(true)
+        }}
+      >
+        {first === 'review' ? 'Review' : 'Fields'}
+        {first === 'review' && (review?.findings.length ?? 0) > 0 ? (
+          <span className="count">{review?.findings.length}</span>
+        ) : null}
+      </Button>
+    )
 
   const acknowledging = acknowledge.isPending ? (acknowledge.variables.findingId ?? null) : null
   const onAcknowledge = (findingId: string, resolution?: GapResolution, note?: string) =>
@@ -282,7 +312,10 @@ export function RulesScreen({
       />
       <BudgetNote />
       <SplitView
-        sideOpen
+        sideOpen={sideOpen}
+        onCloseSide={() => setDrawerOpen(false)}
+        closeButton
+        sideKey={selectedRuleId}
         fill
         sideSheet={showsReview}
         main={
@@ -345,6 +378,7 @@ export function RulesScreen({
                       ))}
                     </select>
                   ) : null}
+                  {opener}
                 </>
               }
               flush

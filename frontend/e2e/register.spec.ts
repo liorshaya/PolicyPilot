@@ -225,6 +225,55 @@ test.describe('the seven screens at 1376×900', () => {
 })
 
 /**
+ * The seven screens at the widths the pass of 2026-10-02 found broken (the spec, v3.9): a small laptop, where the margin
+ * is a drawer over the sheet (1024×768, where the Rules header's seeded tag ran under Go to), a short window narrower
+ * still (800×600, where the unified diff clipped what it changed and the gate scrolled for empty paper) and the
+ * narrowest common phone (320×640, where the Rules header, an audit entry and the change request ran past their
+ * sheets). In the light theme only: what overflows does not change with the theme.
+ */
+test.describe('the seven screens at the narrow widths', () => {
+  // and two states on the way to them that the narrow widths broke: the seeded rule set as a visitor first finds it,
+  // whose title row is the longest (Published v1, Seeded, read-only), and the change screen before a proposal
+  const states: typeof SCREENS = [
+    ...SCREENS,
+    {
+      name: 'published rules',
+      reach: async (page) => {
+        await enter(page)
+        await open(page, 'Rules')
+        await expect(page.getByRole('table').getByRole('button', { name: /R-310/ })).toBeVisible()
+      },
+    },
+    {
+      name: 'change before a proposal',
+      reach: async (page) => {
+        await enter(page)
+        await open(page, 'Change')
+        await expect(page.getByLabel('What should change')).toBeVisible()
+      },
+    },
+  ]
+  for (const [width, height] of [
+    [1024, 768],
+    [800, 600],
+    [320, 640],
+  ] as const) {
+    for (const screen of states) {
+      test(`${screen.name} at ${String(width)}×${String(height)}: keeps the checklist`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height })
+        await choose(page, 'light')
+        await serve(page)
+        await screen.reach(page)
+        await settle(page)
+        await keepsTheChecklist(page)
+      })
+    }
+  }
+})
+
+/**
  * The Rules screen on the seeded version as a visitor first finds it, published and read-only: the table of section 07
  * with every comparison of the lending rules, which the draft the seven screens show does not hold in the same widths
  * (the cloud walk of 2026-09-29 found a set of values standing past its cell there).
