@@ -83,34 +83,32 @@ test.describe('access gate', () => {
   })
 
   // the spec (v3.9), section 11, Gate: a session that ends while the workspace is open, any call answered 401
-  // SESSION_INVALID, brings the gate back with the system's note, and the code opens a new one
+  // SESSION_INVALID, brings the gate back with the system's note, and the code opens a new one. The first session ends
+  // at a call only the reader makes, the audit log's, so nothing else races it
   test('a session that ends while the workspace is open brings the gate back, saying so', async ({
     page,
   }) => {
-    let ended = false
+    let sessions = 0
     await page.route(AUTH_CODE, async (route) => {
-      ended = false
+      sessions += 1
       await route.fulfill({ status: 204 })
     })
-    // the one call the test answers both ways: a list while the session holds, the filter's 401 once it has ended
-    await page.route('**/api/v1/rulesets', (route) =>
+    await page.route('**/api/v1/audit**', (route) =>
       route.fulfill(
-        ended
+        sessions === 1
           ? {
               status: 401,
               json: { code: 'SESSION_INVALID', message: 'm', details: [], traceId: 't' },
             }
-          : { json: { rulesets: [] } },
+          : { json: { entries: [] } },
       ),
     )
     await page.goto('/')
     await page.getByLabel('Access code').fill('qwertyui')
     await page.getByRole('button', { name: 'Enter' }).click()
     const workspace = page.getByRole('navigation', { name: 'Workspace' })
-    await expect(workspace).toBeVisible()
 
-    ended = true
-    await workspace.getByRole('button', { name: /^Rules/ }).click()
+    await workspace.getByRole('button', { name: /^Audit log/ }).click()
 
     await expect(page.getByRole('note', { name: 'Session' })).toHaveText(
       'Your session has ended. Enter the code again.',
@@ -118,6 +116,7 @@ test.describe('access gate', () => {
     await page.getByLabel('Access code').fill('qwertyui')
     await page.getByRole('button', { name: 'Enter' }).click()
     await expect(workspace).toBeVisible()
+    await expect(page.getByRole('note', { name: 'Session' })).toHaveCount(0)
   })
 
   test('a wrong code is refused on the gate', async ({ page }) => {
