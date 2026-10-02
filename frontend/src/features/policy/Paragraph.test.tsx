@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { specRules, stylesheet, unported } from '../../test/css'
+import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { lendingParagraphs, lendingRuleSet } from '../../test/fixtures/lending'
 import { Paragraph } from './Paragraph'
 
@@ -48,5 +48,13 @@ describe('Paragraph.css', () => {
 
     expect(paragraphs).toHaveLength(11)
     expect(unported(stylesheet('features/policy/Paragraph.css'), paragraphs)).toEqual([])
+  })
+
+  // the spec (v3.9), section 03: prose breaks a word too long for its line rather than run past its box; a pasted
+  // address of 200 characters pushed the Hebrew sentence before it out of the sheet
+  it('breaks a word too long for its line', () => {
+    expect(rule(stylesheet('features/policy/Paragraph.css'), '.para__text')['overflow-wrap']).toBe(
+      'anywhere',
+    )
   })
 })

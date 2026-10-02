@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ollamaProvider } from '../src/test/fixtures/provider'
 import { changeRequest, serveTheChange } from './change'
+import { streamOf } from './chat'
+import { inspect } from './checklist'
 import { serveTheGeneration } from './generation'
 import { openThePanel } from './panel'
-import { paragraphs, serveTheSeededRuleSet } from './seeded'
+import { POLICY_ID, paragraphs, serveTheSeededRuleSet } from './seeded'
 
 // @requirement FR-20
 // @requirement FR-23
@@ -273,3 +275,76 @@ test.describe('between 721 and 1199px', () => {
     await expect(page.getByRole('complementary')).toHaveCount(0)
   })
 })
+
+// The spec (v3.9), section 03: prose a person or a model wrote breaks a word too long for its line. A pasted address
+// of 200 characters ran a paragraph 1,100px past its sheet, pushing the Hebrew sentence before it out of sight, and a
+// question, an answer and a note to the audit log did the same; on a phone the page scrolled sideways by 1,500px
+for (const [device, viewport] of [
+  ['laptop', LAPTOP],
+  ['phone', PHONE],
+] as const) {
+  test(`breaks a word too long for its line on a ${device}: a paragraph, a question, an answer, a note`, async ({
+    page,
+  }) => {
+    const address = `https://example.org/${'a'.repeat(200)}`
+    await page.setViewportSize(viewport)
+    await serveTheSeededRuleSet(page)
+    await serveTheChange(page)
+    await page.route(`**/api/v1/policies/${POLICY_ID}`, (route) =>
+      route.fulfill({
+        json: {
+          id: POLICY_ID,
+          title: 'מדיניות אשראי צרכני',
+          language: 'he',
+          protected: true,
+          createdAt: '2026-09-20T09:00:00Z',
+          versions: [
+            {
+              versionNo: 1,
+              createdAt: '2026-09-20T09:00:00Z',
+              paragraphs: [{ index: 1, text: `הלוואה אישית תינתן ליחיד, ראו ${address}` }],
+            },
+          ],
+        },
+      }),
+    )
+    await page.route('**/api/v1/chat/sessions', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({ json: { sessions: [] } })
+        : route.fulfill({
+            status: 201,
+            json: { id: 'session-1', rulesetId: 'ruleset', versionNo: 1, language: 'he' },
+          }),
+    )
+    await page.route('**/api/v1/chat/sessions/*/messages', (route) =>
+      route.fulfill({
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: streamOf({ text: `הכתובת ${address} אינה מסמך של המדיניות.`, citations: [] }),
+      }),
+    )
+    await enter(page)
+    const go = (screen: string) =>
+      page
+        .getByRole('navigation', { name: 'Workspace' })
+        .getByRole('button', { name: new RegExp(`^${screen}`) })
+        .click()
+
+    await expect(page.getByText(/^הלוואה אישית תינתן ליחיד/)).toBeVisible()
+    expect((await inspect(page)).overflow, 'Policies').toEqual([])
+
+    await go('Assistant')
+    await page.getByLabel('Question', { exact: true }).fill(`מה כתוב ב-${address}?`)
+    await page.getByRole('button', { name: 'Ask' }).click()
+    await expect(page.getByText(/אינה מסמך של המדיניות/)).toBeVisible()
+    expect((await inspect(page)).overflow, 'Assistant').toEqual([])
+
+    await go('Change')
+    await page.getByLabel('What should change').fill(changeRequest.text.he)
+    await page.getByRole('button', { name: 'Propose the change' }).click()
+    await page.getByLabel('Note for the audit log').fill(`אושר, ראו ${address}`)
+    await page.getByRole('button', { name: /^Approve and publish v\d+$/ }).click()
+    await page.getByRole('button', { name: 'Open the audit log' }).click()
+    await expect(page.getByText(/^אושר, ראו/)).toBeVisible()
+    expect((await inspect(page)).overflow, 'Audit log').toEqual([])
+  })
+}
