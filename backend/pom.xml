@@ -43,12 +43,12 @@
         <!-- springdoc 3.0.3 brings swagger-core 2.2.47 but an older swagger-annotations through a transitive
              dependency; the two must be the same version, or reading a @Schema annotation fails at runtime -->
         <swagger.version>2.2.47</swagger.version>
-        <archunit.version>1.5.0</archunit.version>
+        <archunit.version>1.5.1</archunit.version>
         <!-- Document 6, Backend Test Design: property-based tests of the engine. -->
         <jqwik.version>1.10.1</jqwik.version>
         <!-- Document 3, JSON Schema: the networknt validator on draft 2020-12; the 3.x line runs on Jackson 3,
              the Jackson line Spring Boot 4 manages. -->
-        <json-schema-validator.version>3.0.7</json-schema-validator.version>
+        <json-schema-validator.version>3.0.8</json-schema-validator.version>
         <!-- Document 3, Conditions: matches runs on a linear-time engine (no backtracking, no lookaround). -->
         <re2j.version>1.8</re2j.version>
         <bucket4j.version>8.20.0</bucket4j.version>
