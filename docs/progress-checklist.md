@@ -230,11 +230,11 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 - [ ] Fixes from rehearsal 2 (restored from the v1.0.0 freeze)
 - [ ] The 2-minute fallback video recorded from a clean run; one screenshot per step; both linked from the README and copied to the phone (restored from the v1.0.0 freeze)
 - [ ] Secrets rotated after the video: access code, cookie secret, provider key (old key deleted), admin code; OpenAI monthly limit set (restored from the v1.0.0 freeze)
-- [ ] Manual reset tested with the admin code, then the code rotated again (restored: the reset)
+- [ ] Manual reset tested with the admin code, then the code rotated again (restored: the reset; tested on 2026-10-04: refused without the code, 200 with it; the rotation is the owner's)
 
 **Day 19, Sun Oct 4: rehearsal 3 and freeze**
 
-- [ ] Reset, full script with cached outputs warm, encore on the second domain (restored: rung 2 for the encore)
+- [ ] Reset, full script with cached outputs warm, encore on the second domain (restored: rung 2 for the encore; the agent's half on 2026-10-04: the reset and one pass of the four steps on the live site, every output from the cache, and the second domain's rules open; the owner's rehearsal is next, see the worklog)
 - [ ] Contingencies rehearsed: video offline on the phone; screenshots without the site (restored from the v1.0.0 freeze)
 - [ ] `main` tagged, CI green including security gates, SBOM attached (restored from the v1.0.0 freeze)
 - [ ] Definition of Done ticked in the README with evidence links (restored from the v1.0.0 freeze)
@@ -270,10 +270,10 @@ the Definition of Done walk and the tag, named the v1.0.0 freeze (2026-09-22). D
 
 - [ ] Secrets rotated within the last 7 days: access code, cookie secret, provider key; old key deleted in the OpenAI dashboard
 - [ ] OpenAI monthly limit set to the demo budget; ledger counter near zero
-- [x] Security counters for the last 7 days reviewed; no protected-row write attempts, no denylist hits (2026-09-22, the logs of all 20 deployments; repeated the morning of 5.10)
-- [ ] Protected rule set checksum equals the fixture; 200 cases present; nightly reset ran last night (the checksum and the 200 cases checked at the v1.0.0 freeze) (restored: the reset)
+- [x] Security counters for the last 7 days reviewed; no protected-row write attempts, no denylist hits (2026-09-22, the logs of all 20 deployments; again on 2026-10-04, the 31 deployments of the last 7 days; repeated the morning of 5.10)
+- [x] Protected rule set checksum equals the fixture; 200 cases present; nightly reset ran last night (restored: the reset; 2026-10-04: both protected rule sets equal their fixtures, 200 of 200 cases as the fixture, the reset ran at 03:00 UTC every night of the week; the worklog)
 - [x] CI green on `main` including the security gates; SBOM attached to the tagged build (`v1.0.0`)
-- [ ] Manual reset endpoint tested with the admin code, then the admin code rotated (restored: the reset)
+- [ ] Manual reset endpoint tested with the admin code, then the admin code rotated (restored: the reset; tested on 2026-10-04, the rotation is the owner's)
 - [ ] Vercel and Railway environment variables reviewed; no unused variables; `SPRING_PROFILES_ACTIVE` is `openai,cloud` (Railway reviewed 2026-09-22: `openai,cloud`; `POLICYPILOT_ADMIN_CODE` stays for the reset of day 15; Vercel is the owner's, RUNBOOK 12.1)
 - [ ] Rate limits tested from a phone on mobile data
 - [x] The README's security section and known limitations reviewed against Document 5
