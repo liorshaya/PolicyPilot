@@ -173,6 +173,7 @@ export function CasesScreen({
       />
       <BudgetNote />
       <SplitView
+        screen="cases"
         wide
         fill
         sideSheet={!deciding}

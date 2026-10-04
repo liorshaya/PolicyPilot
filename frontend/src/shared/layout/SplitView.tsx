@@ -1,7 +1,10 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Button } from '../ui/Button'
+import type { ScreenId } from './screens'
 import { useDrawer } from './useDrawer'
+import { useMarginWidth } from './useMarginWidth'
 import { usePhone } from './usePhone'
+import { useWide } from './useWide'
 import './SplitView.css'
 
 interface SplitViewProps {
@@ -28,6 +31,8 @@ interface SplitViewProps {
   closeButton?: boolean
   /** What the margin is about, such as the chosen row: on a phone a new one brings the margin into view. */
   sideKey?: string | null
+  /** The screen this is the body of, under which this browser remembers the width its margin was drawn out to (v3.11). */
+  screen?: ScreenId
 }
 
 /** Whether Esc belongs to the element it was pressed in: a field being typed in keeps it, as a dialog over it does. */
@@ -48,7 +53,8 @@ function keepsEscape(target: EventTarget | null): boolean {
  * 340px, or 440px for a trace. Each scrolls on its own under the header, and Esc shuts it. Below 1200px the margin is a
  * drawer over the sheet, which the screen opens on what the reader asks for; Esc or its Close shuts it and gives the
  * focus back to what opened it. On a phone the margin is the next section of the page: a new row brings it into view,
- * and closing it takes the reader back to where they were (the spec, sections 08 and 10, v3.9).
+ * and closing it takes the reader back to where they were (the spec, sections 08 and 10, v3.9). From 1200px the edge
+ * between the sheet and the margin is a handle, which widens the margin as the sheet narrows (v3.11).
  */
 export function SplitView({
   main,
@@ -61,12 +67,17 @@ export function SplitView({
   onCloseSide,
   closeButton = false,
   sideKey = null,
+  screen,
 }: SplitViewProps) {
   const open = sideOpen && side !== undefined && side !== null
   const layout = !open ? ' ws-body--single' : wide ? ' ws-body--wide-margin' : ''
   const drawer = useDrawer()
   const phone = usePhone()
+  const beside = useWide()
+  const bodyRef = useRef<HTMLDivElement>(null)
   const marginRef = useRef<HTMLElement>(null)
+  const marginId = useId()
+  const width = useMarginWidth(bodyRef, { beside: open && beside, wide, screen })
   // what had the focus when the margin opened, which has it again when the margin closes with the focus inside it
   const openerRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(open)
@@ -117,7 +128,15 @@ export function SplitView({
   }, [phone, open])
 
   return (
-    <div className={`ws-body${layout}`}>
+    <div
+      ref={bodyRef}
+      className={`ws-body${layout}${width.set === null ? '' : ' ws-body--set'}`}
+      style={
+        width.set === null
+          ? undefined
+          : ({ '--margin-set': `${String(width.set)}px` } as CSSProperties)
+      }
+    >
       {fill ? (
         <section className="sheet sheet--fill">{main}</section>
       ) : (
@@ -125,9 +144,30 @@ export function SplitView({
           <div className="sheet__scroll">{main}</div>
         </section>
       )}
+      {width.handle ? (
+        <div
+          className={`ws-handle${width.handle.held ? ' ws-handle--held' : ''}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Width of the margin"
+          aria-controls={marginId}
+          aria-valuenow={width.handle.now}
+          aria-valuemin={width.handle.own}
+          aria-valuemax={width.handle.most}
+          tabIndex={0}
+          title="Drag to widen the margin; double-click to put it back"
+          onPointerDown={width.handle.onPointerDown}
+          onPointerMove={width.handle.onPointerMove}
+          onPointerUp={width.handle.onPointerUp}
+          onPointerCancel={width.handle.onPointerUp}
+          onDoubleClick={width.handle.onDoubleClick}
+          onKeyDown={width.handle.onKeyDown}
+        />
+      ) : null}
       {open ? (
         <aside
           ref={marginRef}
+          id={marginId}
           className={`margin${sideSheet ? ' margin--sheet' : ''}`}
           aria-label={sideLabel}
         >

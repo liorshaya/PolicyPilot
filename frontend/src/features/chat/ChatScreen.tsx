@@ -372,6 +372,7 @@ function Conversation({
     <>
       {header}
       <SplitView
+        screen="assistant"
         fill
         sideOpen={wide || shownParagraph !== undefined}
         // the paragraph's own Close, and Esc below 1200px; on a phone a chip brings the paragraph into view (v3.9)

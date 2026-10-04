@@ -113,6 +113,7 @@
   --rail-w: 216px;
   --margin-w: 340px;
   --margin-w-wide: 440px;
+  --sheet-min: 480px;       /* what the sheet keeps when the margin is drawn wider (section 08, v3.11) */
   --header-h: 60px;
   --control-h: 32px;
   --control-h-sm: 28px;

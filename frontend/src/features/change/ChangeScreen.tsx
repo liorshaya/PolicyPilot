@@ -196,6 +196,7 @@ export function ChangeScreen({
       />
       <BudgetNote />
       <SplitView
+        screen="change"
         wide
         sideSheet
         fill

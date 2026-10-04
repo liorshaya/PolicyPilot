@@ -229,6 +229,7 @@ export function PoliciesScreen({
       />
       <BudgetNote />
       <SplitView
+        screen="policies"
         sideOpen={sideOpen}
         onCloseSide={() => setDrawerFor(null)}
         closeButton

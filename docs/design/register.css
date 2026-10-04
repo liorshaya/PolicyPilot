@@ -94,6 +94,7 @@
   --rail-w: 216px;
   --margin-w: 340px;
   --margin-w-wide: 440px;
+  --sheet-min: 480px;       /* what the sheet keeps when the margin is drawn wider (section 08, v3.11) */
   --header-h: 60px;
   --control-h: 32px;
   --control-h-sm: 28px;
@@ -395,6 +396,16 @@ a.chip:hover, button.chip:hover { border-color: var(--border-strong); text-decor
 .margin__tabs .count { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; color: var(--refer-text); }
 .margin--sheet { padding: 16px 24px 16px 0; }
 .margin--sheet > .sheet { margin: 0; flex: 1; }
+/* The margin's handle (v3.11): from 1200px the edge between the sheet and the margin is a handle. Drawn toward the sheet it widens the margin and the sheet narrows by as much, never under the margin's own width and never past what leaves the sheet --sheet-min. Nothing marks it at rest: the pointer on it, after a moment, or the focus draws the edge. */
+.ws-body { position: relative; --margin-own: var(--margin-w); }
+.ws-body--wide-margin { --margin-own: var(--margin-w-wide); }
+.ws-body--set { grid-template-columns: minmax(0, 1fr) clamp(var(--margin-own), var(--margin-set, var(--margin-own)), calc(100% - var(--sheet-min))); }
+.ws-handle { position: absolute; grid-column: 2; inset-block: var(--s-4); inset-inline-start: calc(var(--s-1) * -1); width: var(--s-2); z-index: 4; cursor: col-resize; touch-action: none; }
+.ws-handle::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: calc(50% - 1px); width: 2px; background: var(--accent); opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+.ws-handle:hover::before { opacity: 1; transition-delay: var(--t-base); }
+.ws-handle--held::before, .ws-handle:focus-visible::before { opacity: 1; transition-delay: 0s; }
+.ws-handle:focus-visible { outline: 0; }
+.ws-handle:focus-visible::before { background: var(--focus); }
 
 .sec { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 16px; border-bottom: 1px solid var(--hairline); min-height: 44px; }
 .sec__title { font-size: var(--text-sm); font-weight: 600; display: flex; align-items: center; gap: 8px; }

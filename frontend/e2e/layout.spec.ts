@@ -340,6 +340,103 @@ test.describe('on a laptop', () => {
     const drawn = (await title.boundingBox())!
     expect([drawn.x, drawn.y]).toEqual([reading.x, reading.y])
   })
+
+  // The spec (v3.11), section 08, Sheet and margin: from 1200px the edge between the sheet and the margin is a handle.
+  // The margin stood at 340px whatever it held, a review's Hebrew findings among them; drawn toward the sheet it widens
+  // and the sheet narrows by as much. The widths are the spec's: the margin's own 340px, the sheet's floor of 480px
+  // (456px of sheet after its 24px gutter), a press of 16px; the body of this window is 1224px, the rail's 216px less.
+  test('draws the margin wider by its handle, the sheet narrowing by as much, and keeps the width over a reload', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    // a session that holds (Document 2, GET /auth/session), so the reload comes back to the screen
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ status: 204 }))
+    await page.goto('/#/rules')
+    const sheet = page.locator('.ws-body > .sheet')
+    const margin = page.getByRole('complementary')
+    const handle = page.getByRole('separator', { name: 'Width of the margin' })
+    await expect(handle).toHaveAttribute('aria-valuenow', '340')
+    const sheetWas = (await sheet.boundingBox())!
+    const edge = (await margin.boundingBox())!.x
+    // the handle is the sheet's own height, astride the edge
+    const grip = (await handle.boundingBox())!
+    expect([grip.y, grip.height]).toEqual([sheetWas.y, sheetWas.height])
+    expect(grip.x + grip.width / 2).toBe(edge)
+    const rule = page.getByRole('table').getByRole('button', { name: /R-330/ })
+    await rule.focus()
+
+    await page.mouse.move(edge, 450)
+    await page.mouse.down()
+    // across the table's Hebrew labels, and off the handle's own line
+    await page.mouse.move(edge - 200, 520, { steps: 8 })
+    await page.mouse.up()
+
+    expect((await margin.boundingBox())!.width).toBe(540)
+    expect((await sheet.boundingBox())!.width).toBe(sheetWas.width - 200)
+    await expect(handle).toHaveAttribute('aria-valuenow', '540')
+    // the pointer selected nothing on its way and took the focus from nothing, and nothing runs past the sheet or the
+    // window
+    await expect(rule).toBeFocused()
+    expect(
+      await page.evaluate(() =>
+        (globalThis as unknown as { getSelection(): { toString(): string } })
+          .getSelection()
+          .toString(),
+      ),
+    ).toBe('')
+    expect((await inspect(page)).overflow).toEqual([])
+
+    await page.reload()
+    await expect(handle).toHaveAttribute('aria-valuenow', '540')
+    expect((await margin.boundingBox())!.width).toBe(540)
+
+    // a double click puts the margin back at its own width
+    await handle.dblclick()
+    expect((await margin.boundingBox())!.width).toBe(340)
+    expect((await sheet.boundingBox())!.width).toBe(sheetWas.width)
+  })
+
+  test('stops the handle where the sheet keeps its floor, and moves it from the keyboard', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ status: 204 }))
+    await page.goto('/#/rules')
+    const sheet = page.locator('.ws-body > .sheet')
+    const margin = page.getByRole('complementary')
+    const handle = page.getByRole('separator', { name: 'Width of the margin' })
+    await expect(handle).toHaveAttribute('aria-valuemax', '744')
+    const edge = (await margin.boundingBox())!.x
+
+    // drawn as far as the rail: the sheet keeps its floor, the margin the rest, and the table still fits its sheet
+    await page.mouse.move(edge, 450)
+    await page.mouse.down()
+    await page.mouse.move(220, 450, { steps: 8 })
+    await page.mouse.up()
+    expect((await sheet.boundingBox())!.width).toBe(456)
+    expect((await margin.boundingBox())!.width).toBe(744)
+    expect((await inspect(page)).overflow).toEqual([])
+
+    await handle.focus()
+    await page.keyboard.press('Home')
+    expect((await margin.boundingBox())!.width).toBe(340)
+    await page.keyboard.press('ArrowLeft')
+    expect((await margin.boundingBox())!.width).toBe(356)
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowRight')
+    expect((await margin.boundingBox())!.width).toBe(340)
+    await page.keyboard.press('End')
+    expect((await margin.boundingBox())!.width).toBe(744)
+
+    // a narrower window holds the set width to the sheet's floor, and a wider one gives it back
+    await page.setViewportSize({ width: 1200, height: 900 })
+    await expect(handle).toHaveAttribute('aria-valuenow', '504')
+    expect((await sheet.boundingBox())!.width).toBe(456)
+    expect((await margin.boundingBox())!.width).toBe(504)
+    await page.setViewportSize(LAPTOP)
+    await expect(handle).toHaveAttribute('aria-valuenow', '744')
+    expect((await margin.boundingBox())!.width).toBe(744)
+  })
 })
 
 test.describe('on a phone', () => {
@@ -434,6 +531,33 @@ test.describe('between 721 and 1199px', () => {
     await page.keyboard.press('Escape')
 
     await expect(page.getByRole('complementary')).toHaveCount(0)
+  })
+
+  // the spec (v3.11), section 08: a drawer keeps the margin's own width and has no handle, whatever was set on a wider
+  // window; a drawer drawn out to 600px would cover the sheet it floats over
+  test("keeps the drawer at the margin's own width, with no handle, whatever a wider window set", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const view = globalThis as unknown as {
+        localStorage: { setItem(key: string, value: string): void }
+      }
+      view.localStorage.setItem('pp-margin-rules', '600')
+    })
+    await serveTheSeededRuleSet(page)
+    await enter(page)
+    await page
+      .getByRole('navigation', { name: 'Workspace' })
+      .getByRole('button', { name: /^Rules/ })
+      .click()
+
+    await page.getByRole('table').getByRole('button', { name: /R-330/ }).click()
+
+    await expect(page.getByRole('complementary')).toContainText(
+      'Paragraph 7 is the source of R-330',
+    )
+    expect((await page.getByRole('complementary').boundingBox())!.width).toBe(340)
+    await expect(page.getByRole('separator')).toHaveCount(0)
   })
 })
 

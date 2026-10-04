@@ -16,6 +16,16 @@ if (!('scrollIntoView' in Element.prototype)) {
   })
 }
 
+// jsdom follows no pointer, so taking one for a drag is a no-op there rather than a missing function.
+if (!('setPointerCapture' in Element.prototype)) {
+  // writable and configurable, so a test can watch which element takes the pointer
+  Object.defineProperty(Element.prototype, 'setPointerCapture', {
+    value: () => undefined,
+    writable: true,
+    configurable: true,
+  })
+}
+
 // Every API call in a component test is answered by MSW; an unexpected request fails the test.
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {

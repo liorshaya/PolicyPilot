@@ -317,6 +317,7 @@ export function RulesScreen({
       />
       <BudgetNote />
       <SplitView
+        screen="rules"
         sideOpen={sideOpen}
         onCloseSide={() => setDrawerOpen(false)}
         closeButton
