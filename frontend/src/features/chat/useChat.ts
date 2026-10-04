@@ -29,7 +29,8 @@ export interface Chat {
   sessionId: string | null
   /** Why the session could not be opened, as the API's error code. */
   openFailure: string | null
-  language: ContentLanguage
+  /** The language the session answers in, its version's own; null until the session is open. */
+  language: ContentLanguage | null
   exchanges: ChatExchange[]
   streaming: boolean
   ask: (question: string) => void
@@ -39,8 +40,9 @@ export interface Chat {
 export function useChat(target: ChatTarget, resumed: ChatConversationResponse | null = null): Chat {
   const client = useQueryClient()
   const [sessionId, setSessionId] = useState<string | null>(() => resumed?.id ?? null)
-  const [language, setLanguage] = useState<ContentLanguage>(() =>
-    resumed?.language === 'he' ? 'he' : 'en',
+  // a session that is still to open has not said its language: the screen reads it from the version meanwhile
+  const [language, setLanguage] = useState<ContentLanguage | null>(() =>
+    resumed === null ? null : resumed.language === 'he' ? 'he' : 'en',
   )
   const [openFailure, setOpenFailure] = useState<string | null>(null)
   const [exchanges, dispatch] = useReducer(chatReducer, resumed, (conversation) =>

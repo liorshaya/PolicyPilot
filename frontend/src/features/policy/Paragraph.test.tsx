@@ -38,6 +38,25 @@ describe('Paragraph', () => {
     expect(document.querySelector('mark')).toBeNull()
     expect(document.querySelector('.para__text')).toHaveTextContent(paragraphOne.text)
   })
+
+  // the spec (v3.10), section 03: on the sheet the number is the row's first box, its gutter, and the text beside it
+  // names its direction in markup, which is what the stylesheet turns an English row by
+  it('puts the number first on the sheet, and only an English row is the one the stylesheet turns', () => {
+    const turned = ".para--sheet:has(> .para__text[dir='ltr'])"
+    const { container, rerender } = render(
+      <Paragraph index={1} text={paragraphOne.text} language="he" sheet />,
+    )
+
+    const row = container.querySelector('.para')!
+    expect([...row.children].map((child) => child.className)).toEqual(['para__n', 'para__text doc'])
+    expect(row.matches(turned)).toBe(false)
+
+    rerender(<Paragraph index={1} text="Applicants must be 21." language="en" sheet />)
+    expect(container.querySelector('.para')!.matches(turned)).toBe(true)
+    // in the margin the number stands after the text, and no row is turned
+    rerender(<Paragraph index={1} text="Applicants must be 21." language="en" />)
+    expect(container.querySelector('.para')!.matches(turned)).toBe(false)
+  })
 })
 
 describe('Paragraph.css', () => {
@@ -56,5 +75,16 @@ describe('Paragraph.css', () => {
     expect(rule(stylesheet('features/policy/Paragraph.css'), '.para__text')['overflow-wrap']).toBe(
       'anywhere',
     )
+  })
+
+  // the spec (v3.10), sections 03 and 10: a mark sits on the reading-start side, so on the sheet a paragraph's number is
+  // the gutter on the right of a Hebrew policy and on the left of an English one. The gutter is the row's first column,
+  // and a grid lays its columns out in the row's direction, so the row runs as the policy reads
+  it("runs the sheet's row as the policy reads, the number's gutter on the reading-start side", () => {
+    const css = stylesheet('features/policy/Paragraph.css')
+
+    expect(rule(css, '.para--sheet')['grid-template-columns']).toBe('36px 1fr')
+    expect(rule(css, '.para--sheet').direction).toBe('rtl')
+    expect(rule(css, ".para--sheet:has(> .para__text[dir='ltr'])").direction).toBe('ltr')
   })
 })

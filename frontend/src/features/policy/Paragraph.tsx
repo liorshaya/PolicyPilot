@@ -15,7 +15,7 @@ interface ParagraphProps {
   current?: boolean
   /** What stands under the paragraph: the rules that cite it, and on the sheet the findings that name it. */
   cites?: ReactNode
-  /** On the Policies screen's sheet: the number in the gutter before the text, in the serif at the sheet's size. */
+  /** On the Policies screen's sheet: the number in the gutter where the text begins, in the serif at the sheet's size. */
   sheet?: boolean
   /** The paragraph's anchor, "paragraph-4". */
   id?: string
@@ -26,7 +26,8 @@ interface ParagraphProps {
  * One paragraph of a policy (the spec, section 09, "Policy document and its list"): its text in the serif and in its own
  * direction, its number, and the span a rule quotes marked in place, so a rule and its source read together. In the
  * margin the number stands at the end and the text is a size smaller; on the Policies screen's sheet the number is the
- * gutter and the text is the document's own size (section 10).
+ * gutter on the reading-start side, the right of a Hebrew paragraph and the left of an English one, and the text is
+ * the document's own size (sections 03 and 10, v3.10).
  */
 export function Paragraph({
   index,

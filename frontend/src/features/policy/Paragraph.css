@@ -50,6 +50,7 @@
 .para--sheet {
   grid-template-columns: 36px 1fr;
   padding: 12px 20px;
+  direction: rtl;
 }
 .para--sheet .para__n {
   text-align: start;
@@ -61,14 +62,18 @@
 /*
  * The product's own, where the spec leaves the product to decide (Document 9, "The CSS port"). The quoted span is a
  * mark, which keeps the paragraph's ink in both themes; a paragraph in English, and the chips under it, read left to
- * right, where the spec draws only Hebrew. On the sheet the chips stand under the text, and the findings follow the
- * rules after a gap, as the composed screen's style attributes set them (section 10).
+ * right, where the spec draws only Hebrew, and on the sheet its row runs left to right too, so its number keeps the
+ * reading-start side, the left (section 03, v3.10). On the sheet the chips stand under the text, and the findings
+ * follow the rules after a gap, as the composed screen's style attributes set them (section 10).
  */
 mark.para__hl {
   color: inherit;
 }
 .para__text[dir='ltr'],
 .para__text[dir='ltr'] ~ .para__cites {
+  direction: ltr;
+}
+.para--sheet:has(> .para__text[dir='ltr']) {
   direction: ltr;
 }
 .para--sheet .para__cites {

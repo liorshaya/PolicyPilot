@@ -67,6 +67,12 @@ const BUDGET = 'BUDGET_EXHAUSTED'
 /** The length of a question the API takes (Document 5, Input limits), which the composer counts against. */
 const QUESTION_LIMIT = 1000
 
+/**
+ * The header's line while no rule set is on hand, as every screen's header says what the screen is until its data says
+ * more: the title then stands where it stays, with a line under it in every state (the spec, P4 and section 08, v3.10).
+ */
+const ABOUT = 'Questions about a published version, answered with citations'
+
 /** Which conversation the screen shows: a new one, counted so each is its own, or one read back to be resumed. */
 type Open = { kind: 'new'; count: number } | { kind: 'resume'; id: string }
 
@@ -108,12 +114,12 @@ export function ChatScreen({
     setOpen((current) => ({ kind: 'new', count: current.kind === 'new' ? current.count + 1 : 1 }))
   const openConversation = (id: string) => setOpen({ kind: 'resume', id })
 
-  // the header stands while the rule sets are read, and a list that cannot be read is said, never taken for one with
-  // no published version (the spec, section 11, v3.9)
+  // the header stands while the rule sets are read, with its line, and a list that cannot be read is said, never taken
+  // for one with no published version (the spec, section 11, v3.9)
   if (rulesets.isPending) {
     return (
       <>
-        <WorkspaceHeader title="Assistant" />
+        <WorkspaceHeader title="Assistant" provenance={[ABOUT]} />
         <LoadingRows label="Loading the rule sets" />
       </>
     )
@@ -121,7 +127,7 @@ export function ChatScreen({
   if (rulesets.error) {
     return (
       <>
-        <WorkspaceHeader title="Assistant" />
+        <WorkspaceHeader title="Assistant" provenance={[ABOUT]} />
         <ErrorState
           code={rulesets.error instanceof ApiError ? rulesets.error.code : undefined}
           description="The rule sets could not be read."
@@ -135,7 +141,7 @@ export function ChatScreen({
     if (resumed.isError || (resumed.data !== undefined && ruleset === undefined)) {
       return (
         <>
-          <WorkspaceHeader title="Assistant" />
+          <WorkspaceHeader title="Assistant" provenance={[ABOUT]} />
           <EmptyState
             title="This conversation is no longer available"
             description="Its session is gone; a new conversation asks about the published version."
@@ -147,7 +153,7 @@ export function ChatScreen({
     if (resumed.data === undefined || ruleset === undefined) {
       return (
         <>
-          <WorkspaceHeader title="Assistant" />
+          <WorkspaceHeader title="Assistant" provenance={[ABOUT]} />
           <LoadingRows label="Loading the conversation" />
         </>
       )
@@ -172,7 +178,7 @@ export function ChatScreen({
   if (target === null) {
     return (
       <>
-        <WorkspaceHeader title="Assistant" />
+        <WorkspaceHeader title="Assistant" provenance={[ABOUT]} />
         <EmptyState
           title="No published version to ask about"
           description="The assistant answers questions about a published version. Publish a rule set, then come back."
@@ -263,6 +269,9 @@ function Conversation({
   const run = useLastRun({ id: target.rulesetId, versionNo: target.versionNo })
   const budget = useBudget()
   const policy = usePolicy(ruleset.policyId ?? null)
+  // the version the questions are about, whose rule set says which language it is written in and how many rules it holds
+  const version = useVersion({ id: target.rulesetId, versionNo: target.versionNo })
+  const ruleSet = version.data?.ruleSet as RuleSetDocument | undefined
   const [question, setQuestion] = useState('')
   const [openParagraph, setOpenParagraph] = useState<number | null>(null)
   // step 3 of the demo types the first scripted question; the presenter presses Ask and asks the next two
@@ -293,6 +302,18 @@ function Conversation({
     },
     onOpenParagraph: setOpenParagraph,
   }
+  // The thread reads in the language of the version it is about (NFR-5): the session's own word for it once it is open,
+  // and until then the rule set's, the same fact read sooner (Document 2: a session answers in its version's language).
+  // Where neither could be read, the thread stands as the chrome does.
+  const known = chat.language ?? ruleSet?.language ?? null
+  const language: ContentLanguage = known ?? 'en'
+  const opening = chat.exchanges.length === 0 && chat.openFailure === null
+  // A screen is drawn once (the spec, sections 08 and 09, v3.10): the thread waits for its direction while the version
+  // is read or the session opens, and the opening for the two counts of its line, so nothing turns around or fills in
+  // under the reader. The loading rows stand meanwhile, as they do while the rule sets are read.
+  const directionToCome =
+    known === null && (version.isLoading || (!chat.ready && chat.openFailure === null))
+  const countsToCome = opening && (version.isLoading || policy.isLoading)
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -326,19 +347,30 @@ function Conversation({
     />
   )
   const count = sessions.data?.length ?? 0
+  const header = (
+    <WorkspaceHeader
+      title="Assistant"
+      provenance={[
+        <span key="domain" className="mono">
+          {ruleset.domain}
+        </span>,
+        'answers cite the policy and the rules; the engine decided every outcome they report',
+      ]}
+      version={<span className="tabular">Version {target.versionNo}</span>}
+    />
+  )
 
+  if (directionToCome || countsToCome) {
+    return (
+      <>
+        {header}
+        <LoadingRows label="Loading the conversation" />
+      </>
+    )
+  }
   return (
     <>
-      <WorkspaceHeader
-        title="Assistant"
-        provenance={[
-          <span key="domain" className="mono">
-            {ruleset.domain}
-          </span>,
-          'answers cite the policy and the rules; the engine decided every outcome they report',
-        ]}
-        version={<span className="tabular">Version {target.versionNo}</span>}
-      />
+      {header}
       <SplitView
         fill
         sideOpen={wide || shownParagraph !== undefined}
@@ -393,7 +425,7 @@ function Conversation({
                 <div className="conversations--popover">{conversations}</div>
               </Popover>
             ) : null}
-            <section className="thread" dir={chat.language === 'he' ? 'rtl' : 'ltr'}>
+            <section className="thread" dir={language === 'he' ? 'rtl' : 'ltr'}>
               {wide ? null : (
                 <div className="toolbar thread__toolbar">
                   <Button
@@ -422,23 +454,24 @@ function Conversation({
                   role="log"
                   aria-label="Conversation"
                   aria-live="polite"
-                  {...contentAttributes(chat.language)}
+                  {...contentAttributes(language)}
                 >
                   {chat.exchanges.map((exchange) => (
                     <Exchange
                       key={exchange.id}
                       exchange={exchange}
-                      language={chat.language}
+                      language={language}
                       versionNo={target.versionNo}
                       opens={opens}
                     />
                   ))}
                 </div>
-                {chat.exchanges.length === 0 && !chat.openFailure ? (
+                {opening ? (
                   <Opening
                     ruleset={ruleset}
-                    target={target}
+                    versionNo={target.versionNo}
                     paragraphs={policy.data === undefined ? null : paragraphs.length}
+                    rules={ruleSet?.rules.length ?? null}
                     onChoose={setQuestion}
                   />
                 ) : null}
@@ -446,7 +479,7 @@ function Conversation({
               <div className="thread__foot">
                 <Composer
                   question={question}
-                  language={chat.language}
+                  language={language}
                   busy={chat.streaming}
                   disabled={!chat.ready || chat.streaming || question.trim() === ''}
                   focusKey={focusKey}
@@ -492,21 +525,22 @@ function Conversation({
  * Before the first question (the spec, section 09, v3.3): what the questions are about, the rule set's name in its own
  * language with the published version's line under it, and the demo's three questions as quiet buttons on ruled rows,
  * numbered in the demo's order, each filling the composer. The counts are the API's: the policy's paragraphs and the
- * version's rules, each left out until it has been read.
+ * version's rules, each null, and left out, only where it could not be read; the opening is drawn once both reads have
+ * ended, so its line never fills in (v3.10).
  */
 function Opening({
   ruleset,
-  target,
+  versionNo,
   paragraphs,
+  rules,
   onChoose,
 }: {
   ruleset: RulesetSummary
-  target: ChatTarget
+  versionNo: number
   paragraphs: number | null
+  rules: number | null
   onChoose: (question: string) => void
 }) {
-  const version = useVersion({ id: target.rulesetId, versionNo: target.versionNo })
-  const rules = (version.data?.ruleSet as RuleSetDocument | undefined)?.rules.length
   const named: ContentLanguage = directionOfText(ruleset.name) === 'rtl' ? 'he' : 'en'
   return (
     <section className="thread__opening" aria-label="Before the first question">
@@ -515,9 +549,9 @@ function Opening({
       </p>
       <Provenance
         segments={[
-          <VersionTag key="version" status="PUBLISHED" versionNo={target.versionNo} />,
+          <VersionTag key="version" status="PUBLISHED" versionNo={versionNo} />,
           ...(paragraphs === null ? [] : [`${String(paragraphs)} paragraphs`]),
-          ...(rules === undefined ? [] : [`${String(rules)} rules`]),
+          ...(rules === null ? [] : [`${String(rules)} rules`]),
         ]}
       />
       <div className="starters" role="group" aria-labelledby="starters-head">
