@@ -95,6 +95,56 @@
   margin: 0;
   flex: 1;
 }
+/* The margin's handle (v3.11): from 1200px the edge between the sheet and the margin is a handle. Drawn toward the sheet
+   it widens the margin and the sheet narrows by as much, never under the margin's own width and never past what leaves
+   the sheet --sheet-min. Nothing marks it at rest: the pointer on it, after a moment, or the focus draws the edge. */
+.ws-body {
+  position: relative;
+  --margin-own: var(--margin-w);
+}
+.ws-body--wide-margin {
+  --margin-own: var(--margin-w-wide);
+}
+.ws-body--set {
+  grid-template-columns:
+    minmax(0, 1fr)
+    clamp(var(--margin-own), var(--margin-set, var(--margin-own)), calc(100% - var(--sheet-min)));
+}
+.ws-handle {
+  position: absolute;
+  grid-column: 2;
+  inset-block: var(--s-4);
+  inset-inline-start: calc(var(--s-1) * -1);
+  width: var(--s-2);
+  z-index: 4;
+  cursor: col-resize;
+  touch-action: none;
+}
+.ws-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 1px);
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+.ws-handle:hover::before {
+  opacity: 1;
+  transition-delay: var(--t-base);
+}
+.ws-handle--held::before,
+.ws-handle:focus-visible::before {
+  opacity: 1;
+  transition-delay: 0s;
+}
+.ws-handle:focus-visible {
+  outline: 0;
+}
+.ws-handle:focus-visible::before {
+  background: var(--focus);
+}
 .sheet__foot {
   display: flex;
   align-items: center;
@@ -166,6 +216,10 @@
   }
   .ws-body--wide-margin > .margin {
     width: var(--margin-w-wide);
+  }
+  /* a drawer keeps the margin's own width and has no handle (v3.11) */
+  .ws-handle {
+    display: none;
   }
 }
 
