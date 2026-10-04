@@ -231,7 +231,9 @@ class ChatStreamIT extends ApiIntegrationTest {
 
     // Document 2, GET /chat/sessions/{id} (2026-09-29): a conversation reads back as it was shown. Expected: the turns
     // oldest first, the answer with its markers, the decision cited, the getDecision call as its tool event reported
-    // it, and the not-covered sentence marked as the fixed sentence it is, with nothing cited and no call
+    // it, and the not-covered sentence marked as the fixed sentence it is, with nothing cited and no call. The second
+    // question follows one that names application 17, so it is read as a follow-up (Document 4, Follow-up, 2026-10-04)
+    // and the sentence is the model's own answer, as its prompt gives it
     @Test
     void aConversationReadsBackWithItsAnswersCitationsToolCallsAndFixedSentences() {
         decideTheFixtureSet();
@@ -241,6 +243,7 @@ class ChatStreamIT extends ApiIntegrationTest {
         ask(chat, "למה בקשה מספר 17 הופנתה לבדיקה?");
         String offCorpus = "האם יש הנחה לחיילים משוחררים? " + UUID.randomUUID();
         embeddings.register(offCorpus, embeddings.axis(9));
+        model.willStream(Streamed.text(NOT_COVERED_HE));
         ask(chat, offCorpus);
 
         HttpResponse<String> read = api().get("/api/v1/chat/sessions/" + chat).cookie(session).send();
@@ -497,6 +500,48 @@ class ChatStreamIT extends ApiIntegrationTest {
         assertThat(tokens(stream)).isEqualTo(NOT_COVERED_HE);
         assertThat(citationIds(stream)).isEmpty();
         assertThat(model.asked()).isEmpty();
+    }
+
+    // Document 4, Follow-up (the owner's conversation of 2026-10-04): a question the Threshold would stop, asked after
+    // one that named a rule, is answered by the model with that rule's chunk and the turn before it. Expected: the
+    // scripted answer and not the fixed sentence, R-320 cited, its chunk and one turn of history in the prompt
+    @Test
+    @Requirement("FR-16")
+    void aFollowUpThatNamesNothingIsAnsweredWithTheRuleNamedBeforeIt() {
+        String chat = openSession();
+        model.willStream(Streamed.text("R-320 refers a debt ratio between 35% and 40%.[[r:R-320]]"));
+        ask(chat, "מה עושה הכלל R-320?");
+        String followUp = "ומה קורה כאשר הכלל הזה מסומן? " + UUID.randomUUID();
+        embeddings.register(followUp, embeddings.axis(9));
+        model.willStream(Streamed.text("The application goes to an underwriter.[[r:R-320]]"));
+
+        String stream = ask(chat, followUp);
+
+        assertThat(tokens(stream)).isEqualTo("The application goes to an underwriter.[[r:R-320]]");
+        assertThat(citationIds(stream)).containsExactly("r:R-320");
+        assertThat(dataOf(stream, "done").required("fixed").isNull()).isTrue();
+        assertThat(model.lastUserPrompt()).contains("<chunk id=\"r:R-320\" kind=\"rule\">")
+                .contains("<history turns=\"1\">");
+    }
+
+    // Document 4, Follow-up: "an answer that cites none of them ends the carry", which is what keeps the demo's rate
+    // question stopped after the term question. Expected: after a question naming R-320 and a term question answered
+    // from paragraph 2, an off-corpus question gets the fixed sentence and the model is not asked a third time
+    @Test
+    void anOffCorpusQuestionAfterAnAnswerThatLeftTheRuleIsStillNotCovered() {
+        String chat = openSession();
+        model.willStream(Streamed.text("R-320 refers a debt ratio between 35% and 40%.[[r:R-320]]"));
+        ask(chat, "מה עושה הכלל R-320?");
+        model.willStream(Streamed.text("The maximum term is 84 months.[[p:2]]"));
+        ask(chat, TERM_QUESTION);
+        String question = "האם יש הנחה לחיילים משוחררים? " + UUID.randomUUID();
+        embeddings.register(question, embeddings.axis(9));
+
+        String stream = ask(chat, question);
+
+        assertThat(tokens(stream)).isEqualTo(NOT_COVERED_HE);
+        assertThat(dataOf(stream, "done").required("fixed").asString()).isEqualTo("not_covered");
+        assertThat(model.asked()).hasSize(2);
     }
 
     // Document 4, Threshold: the fixed sentence is in the version's language, English as well as Hebrew. The labeled

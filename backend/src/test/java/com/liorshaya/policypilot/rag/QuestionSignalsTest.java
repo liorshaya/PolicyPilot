@@ -6,6 +6,7 @@ import com.liorshaya.policypilot.rag.service.QuestionSignals;
 import com.liorshaya.policypilot.rules.json.RuleSetMapper;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.support.Fixtures;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -70,5 +71,23 @@ class QuestionSignalsTest {
 
         assertThat(signals.namesSomething()).isFalse();
         assertThat(signals.strongTerms()).isEmpty();
+    }
+
+    // Document 4, Follow-up: the names a conversation carries count twice like a question's own (Query), in their
+    // normalized form. Expected: the rule id as r410 and the field as written, in that order, and a decision kept
+    @Test
+    void namesGivenAloneCountTwiceLikeAQuestionsOwn() {
+        QuestionSignals signals = QuestionSignals.naming(Set.of("R-410"), Set.of("monthly_income"), true);
+
+        assertThat(signals.strongTerms()).isEqualTo("r410 monthly_income");
+        assertThat(signals.ruleIds()).containsExactly("R-410");
+        assertThat(signals.namesADecision()).isTrue();
+    }
+
+    // Expected: what a conversation with no named subject carries names nothing
+    @Test
+    void nothingNamesNothing() {
+        assertThat(QuestionSignals.NOTHING.namesSomething()).isFalse();
+        assertThat(QuestionSignals.NOTHING.strongTerms()).isEmpty();
     }
 }

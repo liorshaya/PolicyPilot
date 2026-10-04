@@ -166,7 +166,10 @@ visitor's sandbox with the same results, so a cached explanation is never shown 
 makes. A label's word that names an outcome is met by any form of it (Document 4, Words that name an outcome): the
 what-if's answers often say "אושרה" or "אישור" where its label says "מאושר", and until 2026-09-25 none of them was
 kept, so the question was asked live on every run. The fourth question never reaches the model: retrieval finds nothing above the
-threshold, and the API answers with Document 4's sentence.
+threshold, and the API answers with Document 4's sentence. A follow-up that names nothing is not stopped there: asked
+after "תסביר לי את כלל R-410", the question "ומה קורה כאשר הכלל הזה מסומן?" takes R-410 from the conversation and
+is answered from that rule (Document 4, Follow-up, 2026-10-04). The fourth question takes nothing: the term question
+before it names nothing, and its answer cites no decision.
 
 Screenshots of the four steps on a desktop and on a phone are in [`docs/demo/`](docs/demo/), from
 `desktop-1-author.png` to `phone-4-audit.png`, taken in the Register by the register spec from the committed fixtures
@@ -408,7 +411,10 @@ the same day, and each cut leaves this list in the pull request that ships it. W
   day 15; the admin code is rotated with the other secrets after the video, on day 18.
 - **Retrieval**: an English question about the Hebrew policy can be refused as not covered (Q-14, in every run so far), and a
   paragraph reached only through a rule's quote can be missed: for 2 of the 23 answerable questions, no expected
-  chunk is among the eight retrieved.
+  chunk is among the eight retrieved. A follow-up is recognized by the rule id, field name or decision number its
+  conversation carries, with no model rewriting the question: one whose subject no earlier question named is still
+  refused when its own words score below the threshold, and an unrelated question asked right after a named one
+  reaches the model, which refuses it itself.
 - **On a phone, three tables scroll with no count**: the change's diff and the regression report's two tables scroll
   sideways in boxes of their own on a screen 390px wide, and a phone draws a scrollbar only while one scrolls, so a
   column out of sight is not counted as the decision table's strip counts its fields (the Register's checklist, section

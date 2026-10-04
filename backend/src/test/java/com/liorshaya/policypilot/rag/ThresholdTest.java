@@ -10,6 +10,7 @@ import com.liorshaya.policypilot.rules.model.Language;
 import com.liorshaya.policypilot.rules.model.RuleSet;
 import com.liorshaya.policypilot.support.Fixtures;
 import com.liorshaya.policypilot.support.Requirement;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -45,6 +46,41 @@ class ThresholdTest {
         assertThat(threshold.covers(0.1, QuestionSignals.of("מה עושה הכלל R-320?", LENDING))).isTrue();
         assertThat(threshold.covers(0.1, QuestionSignals.of("what is has_guarantor for?", LENDING))).isTrue();
         assertThat(threshold.covers(0.1, QuestionSignals.of("למה בקשה מספר 17 הופנתה לבדיקה?", LENDING))).isTrue();
+    }
+
+    // Document 4, Follow-up: "a question the Threshold would stop ... takes the names the conversation carries, and
+    // when there are any it is covered". Expected: the owner's follow-up of 2026-10-04, at its cosine of 0.327, goes
+    // by R-410 and is covered
+    @Test
+    void aFollowUpTheThresholdWouldStopGoesByTheNamesCarried() {
+        QuestionSignals asked = QuestionSignals.of("ומה קורה כאשר הכלל הזה מסומן?", LENDING);
+        QuestionSignals carried = QuestionSignals.naming(Set.of("R-410"), Set.of(), false);
+
+        QuestionSignals names = threshold.namesOf(0.327, asked, carried);
+
+        assertThat(names.ruleIds()).containsExactly("R-410");
+        assertThat(threshold.covers(0.327, names)).isTrue();
+    }
+
+    // Document 4, Follow-up: "a question covered on its own takes nothing from the conversation". Expected: its own
+    // names, whether the cosine or a rule id it names keeps it covered
+    @Test
+    void aQuestionCoveredOnItsOwnTakesNothingFromTheConversation() {
+        QuestionSignals nothing = QuestionSignals.of("מהי תקופת ההחזר המקסימלית להלוואה?", LENDING);
+        QuestionSignals named = QuestionSignals.of("מה עושה הכלל R-320?", LENDING);
+        QuestionSignals carried = QuestionSignals.naming(Set.of("R-410"), Set.of(), false);
+
+        assertThat(threshold.namesOf(0.35, nothing, carried)).isEqualTo(nothing);
+        assertThat(threshold.namesOf(0.1, named, carried)).isEqualTo(named);
+    }
+
+    // Document 4, Follow-up and Threshold: with nothing carried the Threshold stops the question as before.
+    // Expected: not covered
+    @Test
+    void aLowScoringQuestionWithNothingCarriedIsNotCovered() {
+        QuestionSignals asked = QuestionSignals.of("ומה קורה כאשר הכלל הזה מסומן?", LENDING);
+
+        assertThat(threshold.covers(0.327, threshold.namesOf(0.327, asked, QuestionSignals.NOTHING))).isFalse();
     }
 
     // Document 4, Threshold: the fixed answer for each language, word for word
