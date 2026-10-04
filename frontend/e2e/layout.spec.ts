@@ -1,14 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ollamaProvider } from '../src/test/fixtures/provider'
 import { changeRequest, serveTheChange } from './change'
-import { streamOf } from './chat'
+import { serveTheChat, streamOf } from './chat'
 import { inspect } from './checklist'
 import { serveTheGeneration } from './generation'
+import { englishPolicy } from './lending'
 import { openThePanel } from './panel'
 import { POLICY_ID, paragraphs, serveTheSeededRuleSet } from './seeded'
 
 // @requirement FR-20
 // @requirement FR-23
+// @requirement NFR-5
 
 /**
  * The screens as the demo shows them, at the two widths it is shown at (Work Plan day 16, the pass over every screen in
@@ -178,6 +180,165 @@ test.describe('on a laptop', () => {
       const box = (await name.boundingBox())!
       expect(box.x + box.width).toBeLessThanOrEqual(edge.x + edge.width)
     }
+  })
+
+  // the spec (v3.10), sections 03 and 10: a mark sits on the reading-start side, so on the sheet a paragraph's number
+  // is the gutter on the right of a Hebrew policy, where each line begins; it stood on the left, where they end
+  test("numbers a Hebrew policy's paragraphs on their right, the rules that cite one under its first word", async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await enter(page)
+
+    const row = page.locator('#paragraph-7')
+    await expect(row.locator('.para__n')).toHaveText('7')
+    const number = (await row.locator('.para__n').boundingBox())!
+    const text = (await row.locator('.para__text').boundingBox())!
+    const chip = (await row.locator('.para__cites .chip').first().boundingBox())!
+    expect(number.x).toBeGreaterThanOrEqual(text.x + text.width)
+    // the first rule that cites the paragraph stands where the paragraph itself begins
+    expect(Math.abs(chip.x + chip.width - (text.x + text.width))).toBeLessThan(1)
+  })
+
+  // an English policy reads left to right (NFR-5), so its numbers keep the left, where its lines begin
+  test("numbers an English policy's paragraphs on their left, the rules that cite one under its first word", async ({
+    page,
+  }) => {
+    const createdAt = '2026-09-28T09:00:00Z'
+    await serveTheSeededRuleSet(page)
+    await page.route('**/api/v1/policies', (route) =>
+      route.fulfill({
+        json: {
+          policies: [
+            {
+              id: POLICY_ID,
+              title: 'Consumer credit policy',
+              language: 'en',
+              protected: true,
+              versionNo: 1,
+              paragraphs: englishPolicy.length,
+              createdAt,
+            },
+          ],
+        },
+      }),
+    )
+    await page.route(`**/api/v1/policies/${POLICY_ID}`, (route) =>
+      route.fulfill({
+        json: {
+          id: POLICY_ID,
+          title: 'Consumer credit policy',
+          language: 'en',
+          protected: true,
+          createdAt,
+          versions: [{ versionNo: 1, createdAt, paragraphs: englishPolicy }],
+        },
+      }),
+    )
+    await enter(page)
+
+    const row = page.locator('#paragraph-7')
+    await expect(row.locator('.para__text')).toHaveAttribute('dir', 'ltr')
+    const number = (await row.locator('.para__n').boundingBox())!
+    const text = (await row.locator('.para__text').boundingBox())!
+    const chip = (await row.locator('.para__cites .chip').first().boundingBox())!
+    expect(number.x + number.width).toBeLessThanOrEqual(text.x)
+    expect(Math.abs(chip.x - text.x)).toBeLessThan(1)
+  })
+
+  // the spec (v3.10), sections 03, 08 and 09: a screen is drawn once. The assistant's thread stood left to right, with
+  // its hint in English, until its session opened, then turned around, the numbers of the demo's questions crossing
+  // the sheet; and the questions, the first Hebrew at weight 400, were drawn again when their face arrived
+  test('draws the assistant once: right to left before its session opens, nothing moved when it does, no face fetched on the way in', async ({
+    page,
+  }) => {
+    await serveTheSeededRuleSet(page)
+    await serveTheChat(page)
+    // the session opens late, as it does over a network
+    let open: () => void = () => undefined
+    const opened = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    await page.route('**/api/v1/chat/sessions', async (route) => {
+      if (route.request().method() === 'POST') {
+        await opened
+      }
+      return route.fallback()
+    })
+    await enter(page)
+    await expect(page.getByRole('heading', { level: 1, name: 'Policies' })).toBeVisible()
+    await page.evaluate(async () => {
+      await (globalThis as unknown as { document: { fonts: { ready: Promise<unknown> } } }).document
+        .fonts.ready
+    })
+    const faces: string[] = []
+    page.on('request', (request) => {
+      if (/\.woff2?(\?|$)/.test(request.url())) {
+        faces.push(request.url().split('/').pop()!)
+      }
+    })
+    /** Where each part of the opening and the question's box stand: what a reader would see move. */
+    const standing = async () =>
+      Promise.all(
+        (
+          await page
+            .locator(
+              '.thread__opening .name, .thread__opening .prov > *, .starters__head, .starters__n, .starters .btn > span:last-child, .composer textarea',
+            )
+            .all()
+        ).map((part) => part.boundingBox()),
+      )
+
+    await page
+      .getByRole('navigation', { name: 'Workspace' })
+      .getByRole('button', { name: 'Assistant' })
+      .click()
+    const question = page.getByLabel('Question', { exact: true })
+    await expect(question).toBeVisible()
+
+    await expect(page.locator('.thread')).toHaveAttribute('dir', 'rtl')
+    await expect(question).toHaveAttribute('placeholder', /^\p{Script=Hebrew}/u)
+    await expect(page.getByRole('button', { name: 'Ask' })).toBeDisabled()
+    const before = await standing()
+    // the name, the version's line of three, the head, three numbers and three questions, and the question's box
+    expect(before).toHaveLength(12)
+    open()
+    // the session is open once a typed question can be asked
+    await question.fill('?')
+    await expect(page.getByRole('button', { name: 'Ask' })).toBeEnabled()
+    await question.fill('')
+
+    expect(await standing()).toEqual(before)
+    expect(faces).toEqual([])
+  })
+
+  // a screen opened by its address is drawn once too (section 08, v3.10): while the rule sets were read the assistant's
+  // header had no line, so its title stood lower and moved up when the line came
+  test('opens the assistant by its address with the title where it stays', async ({ page }) => {
+    await serveTheSeededRuleSet(page)
+    await serveTheChat(page)
+    // the session holds, as it does across a reload (Document 2, GET /auth/session)
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ status: 204 }))
+    // the rule sets arrive late, as they do over a network
+    let read: () => void = () => undefined
+    const arrived = new Promise<void>((resolve) => {
+      read = resolve
+    })
+    await page.route('**/api/v1/rulesets', async (route) => {
+      await arrived
+      return route.fallback()
+    })
+    await page.goto('/#/assistant')
+
+    await expect(page.getByText('Loading the rule sets')).toBeVisible()
+    const title = page.getByRole('heading', { level: 1, name: 'Assistant' })
+    const reading = (await title.boundingBox())!
+    read()
+    await expect(page.getByLabel('Question', { exact: true })).toBeVisible()
+
+    await expect(page.locator('.thread')).toHaveAttribute('dir', 'rtl')
+    const drawn = (await title.boundingBox())!
+    expect([drawn.x, drawn.y]).toEqual([reading.x, reading.y])
   })
 })
 

@@ -1,14 +1,28 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { keys } from '../../api/queries'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { budgetSpent } from '../../test/fixtures/budget'
-import { notCovered } from '../../test/fixtures/english'
+import {
+  ENGLISH_POLICY_ID,
+  ENGLISH_RULESET_ID,
+  englishParagraphs,
+  englishPolicy,
+  englishRuleSet,
+  notCovered,
+} from '../../test/fixtures/english'
 import { lendingParagraphs, lendingRuleSet } from '../../test/fixtures/lending'
 import { PERSON } from '../../shared/ui/Actor'
-import { batch, decision, SEEDED_RULESET_ID } from '../../test/msw/handlers'
+import {
+  batch,
+  decision,
+  publishedVersion,
+  SEEDED_POLICY_ID,
+  SEEDED_RULESET_ID,
+  seededPolicy,
+} from '../../test/msw/handlers'
 import { server } from '../../test/msw/server'
 import { rule, specRules, stylesheet, unported } from '../../test/css'
 import { rtlSnapshot } from '../../test/rtlSnapshot'
@@ -94,6 +108,40 @@ function serveSession(language = 'he') {
   )
 }
 
+/**
+ * The labeled set's English lending policy as the workspace's only rule set, published: a session answers in the
+ * language of the version it is bound to (Document 2), so an English session is served with it.
+ */
+function serveTheEnglishVersion() {
+  server.use(
+    http.get(`${BASE}/rulesets`, () =>
+      HttpResponse.json({
+        rulesets: [
+          {
+            id: ENGLISH_RULESET_ID,
+            name: englishRuleSet.name,
+            domain: englishRuleSet.id,
+            protected: false,
+            policyId: ENGLISH_POLICY_ID,
+            versions: [{ versionNo: 1, status: 'PUBLISHED' }],
+          },
+        ],
+      }),
+    ),
+    http.get(`${BASE}/rulesets/:id/versions/:no`, () =>
+      HttpResponse.json({
+        ...publishedVersion,
+        rulesetId: ENGLISH_RULESET_ID,
+        name: englishRuleSet.name,
+        domain: englishRuleSet.id,
+        protected: false,
+        ruleSet: englishRuleSet,
+      }),
+    ),
+    http.get(`${BASE}/policies/:id`, () => HttpResponse.json(englishPolicy)),
+  )
+}
+
 function serveAnswer(events: [string, unknown][]) {
   server.use(http.post(`${BASE}/chat/sessions/${SESSION}/messages`, () => streamOf(events)))
 }
@@ -109,7 +157,7 @@ function renderScreen(
       <ChatScreen onOpenRule={onOpenRule} onOpenCases={onOpenCases} rulesetId={rulesetId} />
     </QueryClientProvider>,
   )
-  return { onOpenRule, onOpenCases }
+  return { onOpenRule, onOpenCases, client }
 }
 
 async function ask(question: string) {
@@ -1197,6 +1245,7 @@ describe('ChatScreen in both directions (NFR-5)', () => {
   })
 
   it('LTR: an English thread stays left to right (snapshot)', async () => {
+    serveTheEnglishVersion()
     serveSession('en')
     serveAnswer(
       answered('The minimum age is 21.[[p:1]]', [{ id: 'p:1', kind: 'PARAGRAPH', paragraph: 1 }]),
@@ -1216,6 +1265,9 @@ describe('ChatScreen in both directions (NFR-5)', () => {
       ['he', TERM_QUESTION],
       ['en', APPROVAL_DAYS],
     ] as const) {
+      if (language === 'en') {
+        serveTheEnglishVersion()
+      }
       serveSession(language)
       serveAnswer(answered(notCovered(language), [], { fixed: 'not_covered' }))
       renderScreen()
@@ -1355,6 +1407,281 @@ describe('ChatScreen · what it opens on', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     expect(opened).toBe(2)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled())
+  })
+})
+
+/**
+ * A screen is drawn once (the spec, v3.10: section 08, Loading, and section 09, the assistant's opening). The thread
+ * reads in its version's language from its first frame, which the rule set says before the session is open (Document
+ * 2: a session answers in the language of the version it is bound to), and the opening stands whole, its line with
+ * both counts; until the version and the policy are read the screen keeps its loading rows. The session opened late
+ * here, as it does over a network: the thread of a Hebrew version stood left to right until it did, then turned.
+ */
+describe('ChatScreen · drawn once', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const refused = () =>
+    HttpResponse.json(
+      {
+        code: 'INTERNAL_ERROR',
+        message: 'The request could not be completed.',
+        details: [],
+        traceId: 't',
+      },
+      { status: 500 },
+    )
+
+  /** An answer that waits until the test lets it go. */
+  function held(): { wait: Promise<void>; release: () => void } {
+    let release: () => void = () => undefined
+    const wait = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    return { wait, release }
+  }
+
+  /** The session of a version, opened only when the test lets it. */
+  function serveSessionLate(language: 'he' | 'en', rulesetId = SEEDED_RULESET_ID) {
+    const session = held()
+    server.use(
+      http.post(`${BASE}/chat/sessions`, async () => {
+        await session.wait
+        return HttpResponse.json(
+          { id: SESSION, rulesetId, versionNo: 1, language },
+          { status: 201 },
+        )
+      }),
+    )
+    return session
+  }
+
+  /** Everything the page has shown of one thing since the call, each value once in a row, in order. */
+  function watched(read: () => string | undefined): () => string[] {
+    const seen: string[] = []
+    const look = () => {
+      const value = read()
+      if (value !== undefined && seen.at(-1) !== value) {
+        seen.push(value)
+      }
+    }
+    const observer = new MutationObserver(look)
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    })
+    return () => {
+      look()
+      observer.disconnect()
+      return seen
+    }
+  }
+
+  /** Every direction the thread has stood in. */
+  const directions = () =>
+    watched(() => document.querySelector('.thread')?.getAttribute('dir') ?? undefined)
+
+  /** Every line the opening has drawn under the name, its segments as the line separates them. */
+  const openingLines = () =>
+    watched(() => {
+      const line = document.querySelector('.thread__opening .prov')
+      return line === null
+        ? undefined
+        : [...line.children].map((segment) => segment.textContent).join(' · ')
+    })
+
+  /** Whether a question could be asked now, which is so once the session is open. */
+  async function sessionIsOpen() {
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Question'), 'x')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ask' })).toBeEnabled())
+  }
+
+  it('reads right to left from its first frame, before the session of a Hebrew version is open', async () => {
+    const session = serveSessionLate('he')
+    const stood = directions()
+    renderScreen()
+
+    const question = await screen.findByLabelText('Question')
+
+    expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled()
+    expect(thread().closest('.thread')).toHaveAttribute('dir', 'rtl')
+    expect(thread()).toHaveAttribute('dir', 'rtl')
+    expect(thread()).toHaveAttribute('lang', 'he')
+    // the composer's hint is the spec's own (section 09)
+    expect(question).toHaveAttribute('placeholder', 'שאל על כלל, על סעיף במדיניות או על מספר בקשה')
+    session.release()
+    await sessionIsOpen()
+    expect(stood()).toEqual(['rtl'])
+  })
+
+  it('reads left to right from its first frame when the version is English', async () => {
+    const session = serveSessionLate('en', ENGLISH_RULESET_ID)
+    serveTheEnglishVersion()
+    const stood = directions()
+    const lines = openingLines()
+    renderScreen()
+
+    const question = await screen.findByLabelText('Question')
+
+    expect(thread().closest('.thread')).toHaveAttribute('dir', 'ltr')
+    expect(thread()).toHaveAttribute('lang', 'en')
+    expect(question.getAttribute('placeholder')).not.toMatch(/\p{Script=Hebrew}/u)
+    session.release()
+    await sessionIsOpen()
+    expect(stood()).toEqual(['ltr'])
+    expect(lines()).toEqual([
+      `Published v1 · ${String(englishParagraphs.length)} paragraphs · ${String(englishRuleSet.rules.length)} rules`,
+    ])
+  })
+
+  it('keeps its loading rows until the version and the policy are read, then draws the opening whole', async () => {
+    serveSession()
+    const version = held()
+    const policy = held()
+    server.use(
+      http.get(`${BASE}/rulesets/:id/versions/:no`, async () => {
+        await version.wait
+        return HttpResponse.json(publishedVersion)
+      }),
+      http.get(`${BASE}/policies/:id`, async () => {
+        await policy.wait
+        return HttpResponse.json(seededPolicy)
+      }),
+    )
+    const lines = openingLines()
+    const { client } = renderScreen()
+
+    expect(await screen.findByText('Loading the conversation')).toBeInTheDocument()
+    // under the header as it will stay: the title, the version beside it and the rule set's line
+    expect(screen.getByRole('heading', { level: 1, name: 'Assistant' })).toHaveTextContent(
+      /^Assistant Version 1$/,
+    )
+    expect(document.querySelector('.ws-header .prov')).toHaveTextContent(/^consumer-lending/)
+    expect(screen.queryByRole('log')).not.toBeInTheDocument()
+    version.release()
+    await waitFor(() =>
+      expect(client.getQueryData(keys.version(SEEDED_RULESET_ID, 1))).toBeDefined(),
+    )
+    // the direction is known now, but the line would still be short of its paragraphs
+    expect(screen.getByText('Loading the conversation')).toBeInTheDocument()
+    expect(screen.queryByRole('log')).not.toBeInTheDocument()
+    policy.release()
+
+    const opening = await screen.findByRole('region', { name: 'Before the first question' })
+    expect(within(opening).getByText('מדיניות אשראי צרכני')).toBeInTheDocument()
+    expect(within(opening).getByRole('group', { name: "The demo's questions" })).toBeInTheDocument()
+    expect(screen.queryByText('Loading the conversation')).not.toBeInTheDocument()
+    expect(client.getQueryData(keys.policy(SEEDED_POLICY_ID))).toBeDefined()
+    expect(lines()).toEqual([
+      `Published v1 · ${String(lendingParagraphs.length)} paragraphs · ${String(lendingRuleSet.rules.length)} rules`,
+    ])
+  })
+
+  it('takes its direction from the session when the version cannot be read, and counts no rules', async () => {
+    const session = serveSessionLate('he')
+    server.use(http.get(`${BASE}/rulesets/:id/versions/:no`, refused))
+    const stood = directions()
+    const lines = openingLines()
+    const { client } = renderScreen()
+
+    expect(await screen.findByText('Loading the conversation')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(client.getQueryState(keys.version(SEEDED_RULESET_ID, 1))?.status).toBe('error'),
+    )
+    // the version will not say which way the thread reads; the session still may, so nothing is drawn on a guess
+    expect(screen.getByText('Loading the conversation')).toBeInTheDocument()
+    expect(screen.queryByRole('log')).not.toBeInTheDocument()
+    session.release()
+
+    expect(
+      await screen.findByRole('region', { name: 'Before the first question' }),
+    ).toBeInTheDocument()
+    expect(thread()).toHaveAttribute('dir', 'rtl')
+    expect(stood()).toEqual(['rtl'])
+    expect(lines()).toEqual([`Published v1 · ${String(lendingParagraphs.length)} paragraphs`])
+  })
+
+  it("says a conversation could not be opened in the version's direction, once the version is read", async () => {
+    const version = held()
+    const fetched = vi.spyOn(globalThis, 'fetch')
+    server.use(
+      http.post(`${BASE}/chat/sessions`, () => HttpResponse.error()),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, async () => {
+        await version.wait
+        return HttpResponse.json(publishedVersion)
+      }),
+    )
+    const stood = directions()
+    renderScreen()
+
+    expect(await screen.findByText('Loading the conversation')).toBeInTheDocument()
+    // the session has refused, and the screen has heard it, while the version is still being read
+    const asked = () =>
+      fetched.mock.calls.findIndex(
+        ([address, request]) =>
+          typeof address === 'string' &&
+          address.endsWith('/chat/sessions') &&
+          request?.method === 'POST',
+      )
+    await waitFor(() => expect(asked()).toBeGreaterThanOrEqual(0))
+    const refusal = fetched.mock.results[asked()]!.value as Promise<Response>
+    await act(async () => {
+      await refusal.catch(() => undefined)
+      await new Promise((resolve) => setTimeout(resolve))
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    version.release()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /^The conversation could not be opened\. Try again in a moment\. Try again$/,
+    )
+    expect(thread()).toHaveAttribute('dir', 'rtl')
+    expect(stood()).toEqual(['rtl'])
+  })
+
+  // P4: every screen carries its line. A header with none stood its title lower, which moved up when the line came
+  it('keeps a line under the title in every state, so the title stands where it stays', async () => {
+    const about = /^Questions about a published version, answered with citations$/
+    const rulesets = held()
+    server.use(
+      http.get(`${BASE}/rulesets`, async () => {
+        await rulesets.wait
+        return HttpResponse.json({ rulesets: [] })
+      }),
+    )
+    renderScreen()
+
+    expect(await screen.findByText('Loading the rule sets')).toBeInTheDocument()
+    expect(document.querySelector('.ws-header .prov')).toHaveTextContent(about)
+    rulesets.release()
+    expect(await screen.findByText('No published version to ask about')).toBeInTheDocument()
+    expect(document.querySelector('.ws-header .prov')).toHaveTextContent(about)
+    cleanup()
+
+    server.use(http.get(`${BASE}/rulesets`, refused))
+    renderScreen()
+    expect(await screen.findByText('The rule sets could not be read.')).toBeInTheDocument()
+    expect(document.querySelector('.ws-header .prov')).toHaveTextContent(about)
+  })
+
+  it("stands in the chrome's own direction, with the note, when neither the version nor the session answers", async () => {
+    server.use(
+      http.post(`${BASE}/chat/sessions`, () => HttpResponse.error()),
+      http.get(`${BASE}/rulesets/:id/versions/:no`, refused),
+    )
+    const stood = directions()
+    renderScreen()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /^The conversation could not be opened\. Try again in a moment\. Try again$/,
+    )
+    expect(thread()).toHaveAttribute('dir', 'ltr')
+    expect(screen.getByLabelText('Question')).toBeInTheDocument()
+    expect(stood()).toEqual(['ltr'])
   })
 })
 

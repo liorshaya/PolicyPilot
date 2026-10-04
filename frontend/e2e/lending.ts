@@ -13,12 +13,19 @@ import { POLICY_ID, ruleSet } from './seeded'
 const fixture = (path: string): string =>
   readFileSync(fileURLToPath(new URL(`../../fixtures/${path}`, import.meta.url)), 'utf8')
 
-/** The policy's paragraphs, a blank line between two, numbered from 1. */
-export const wholePolicy = fixture('policies/consumer-lending/policy.he.md')
-  .split('\n\n')
-  .map((block) => block.trim())
-  .filter((block) => block !== '')
-  .map((text, position) => ({ index: position + 1, text }))
+/** A policy's paragraphs as its file holds them, a blank line between two, numbered from 1. */
+const paragraphsOf = (path: string): { index: number; text: string }[] =>
+  fixture(path)
+    .split('\n\n')
+    .map((block) => block.trim())
+    .filter((block) => block !== '')
+    .map((text, position) => ({ index: position + 1, text }))
+
+/** The policy's paragraphs. */
+export const wholePolicy = paragraphsOf('policies/consumer-lending/policy.he.md')
+
+/** The labeled set's English lending policy, for what a policy that reads left to right must show (NFR-5). */
+export const englishPolicy = paragraphsOf('eval/policies/consumer-lending-en/policy.en.md')
 
 const expected = JSON.parse(fixture('policies/consumer-lending/cases-expected.json')) as {
   cases: { id: number; outcome: string; decidingRuleId: string; flags: string[] }[]

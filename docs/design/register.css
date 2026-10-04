@@ -789,7 +789,8 @@ td.t-prio { font-family: var(--font-mono); }
 .para--cited .para__n { color: var(--accent-text); }
 .para__hl { background: var(--accent-line); border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .para__cites { grid-column: 1; direction: rtl; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.para--sheet { grid-template-columns: 36px 1fr; padding: 12px 20px; }
+/* On the sheet a paragraph's number is its gutter on the reading-start side (v3.10): the row runs as the policy reads, so the number of a Hebrew paragraph stands on its right, where its first word is. */
+.para--sheet { grid-template-columns: 36px 1fr; padding: 12px 20px; direction: rtl; }
 .para--sheet .para__n { text-align: start; }
 .para--sheet .para__text { padding-inline-end: 8px; }
 .kv { display: grid; gap: 8px; font-size: var(--text-sm); }

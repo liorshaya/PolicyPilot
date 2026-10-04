@@ -16,6 +16,11 @@ import '@fontsource/frank-ruhl-libre/400.css'
 import '@fontsource/frank-ruhl-libre/500.css'
 import './index.css'
 import { App } from './App'
+import { loadFaces } from './styles/faces'
+
+// Every face is fetched now, so no screen draws a text in a fallback face and then again in its own (the spec,
+// section 03, v3.10).
+loadFaces()
 
 // Server state lives in TanStack Query only (Document 2, Frontend Architecture, key decision 1).
 const queryClient = new QueryClient({
