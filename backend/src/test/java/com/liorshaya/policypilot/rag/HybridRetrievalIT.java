@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
 import com.liorshaya.policypilot.policy.service.PolicyService;
+import com.liorshaya.policypilot.rag.service.QuestionSignals;
 import com.liorshaya.policypilot.rag.service.Retrieval;
 import com.liorshaya.policypilot.rag.service.RetrievalService;
 import com.liorshaya.policypilot.rag.service.RetrievedChunk;
@@ -15,6 +16,7 @@ import com.liorshaya.policypilot.support.ApiIntegrationTest;
 import com.liorshaya.policypilot.support.FakeEmbeddingGateway;
 import com.liorshaya.policypilot.support.Requirement;
 import com.liorshaya.policypilot.support.Seeded;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -143,6 +145,40 @@ class HybridRetrievalIT extends ApiIntegrationTest {
         assertThat(result.chunks()).isEmpty();
         assertThat(result.notCovered())
                 .isEqualTo("המסמכים אינם עוסקים בשאלה הזו; אפשר לשאול על כלל, על סעיף או על מספר בקשה.");
+    }
+
+    // Document 4, Follow-up: a question the Threshold would stop, cosine 0 everywhere and nothing named, takes the
+    // names the conversation carries: "the lexical query reads them as words of the question ... and Fusion keeps the
+    // carried rules' chunks". No word of the question is in the corpus. Expected: covered, and r:R-320 retrieved,
+    // first in the lexical list
+    @Test
+    void aFollowUpTheThresholdWouldStopRetrievesTheRuleCarried() {
+        String question = "שאלה" + Long.toHexString(System.nanoTime());
+        gateway.register(question, gateway.axis(9));
+        RagFixtures.Published version = fixtures.ready("פסקה " + UUID.randomUUID());
+
+        Retrieval result = retrieval.retrieve(version.rulesetId(), 1, version.sandboxId(), question,
+                QuestionSignals.naming(Set.of("R-320"), Set.of(), false)).orElseThrow();
+
+        assertThat(result.covered()).isTrue();
+        assertThat(result.bestCosine()).isCloseTo(0.0, within(1e-6));
+        assertThat(result.chunks()).filteredOn(chunk -> chunk.id().equals("r:R-320"))
+                .extracting(RetrievedChunk::lexicalRank).containsExactly(1);
+    }
+
+    // Document 4, Follow-up: "a question covered on its own takes nothing from the conversation". Every chunk shares
+    // the question's axis, so its cosine is 1, and no word of it is in the corpus. Expected: R-320, which the
+    // conversation carries, is not among the chunks: the eight are the first by chunk id, all paragraphs
+    @Test
+    void aQuestionCoveredOnItsOwnIsRetrievedWithoutTheNamesCarried() {
+        String question = "שאלה" + Long.toHexString(System.nanoTime());
+        RagFixtures.Published version = fixtures.ready("פסקה " + UUID.randomUUID());
+
+        Retrieval result = retrieval.retrieve(version.rulesetId(), 1, version.sandboxId(), question,
+                QuestionSignals.naming(Set.of("R-320"), Set.of(), false)).orElseThrow();
+
+        assertThat(result.covered()).isTrue();
+        assertThat(result.chunks()).extracting(RetrievedChunk::id).hasSize(8).allMatch(id -> id.startsWith("p:"));
     }
 
     // Document 4, Scoping: "the chat never mixes versions or sandboxes". Two versions whose tenth paragraphs share the

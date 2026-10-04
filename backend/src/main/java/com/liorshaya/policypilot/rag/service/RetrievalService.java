@@ -22,8 +22,9 @@ import org.springframework.stereotype.Service;
  * Hybrid retrieval (Document 4, Retrieval Pipeline): the question embedded as it is, the vector top 20 and the lexical
  * top 20 of one version, fused with RRF, the top 8 kept with every rule the question names, and citations checked
  * against the version. A question below the Threshold gets the fixed sentence of the rule set's language instead of
- * chunks, and nothing here can call a model. The version is resolved through {@code ruleset}, which is where the
- * sandbox is checked, so a query never names a version its caller cannot see.
+ * chunks, unless it follows up on names its conversation carries (Follow-up), and nothing here can call a model. The
+ * version is resolved through {@code ruleset}, which is where the sandbox is checked, so a query never names a version
+ * its caller cannot see.
  */
 @Service
 public class RetrievalService {
@@ -55,7 +56,16 @@ public class RetrievalService {
      * when the version's embedding is not {@code READY}.
      */
     public Optional<Retrieval> retrieve(UUID rulesetId, int versionNo, UUID sandboxId, String question) {
-        return rulesets.corpus(rulesetId, versionNo, sandboxId).map(corpus -> retrieve(corpus, question));
+        return retrieve(rulesetId, versionNo, sandboxId, question, QuestionSignals.NOTHING);
+    }
+
+    /**
+     * Retrieves for a question of a conversation (Document 4, Follow-up): {@code carried} is what the turns before it
+     * name, which a question the Threshold would stop goes by as if it had named them.
+     */
+    public Optional<Retrieval> retrieve(UUID rulesetId, int versionNo, UUID sandboxId, String question,
+            QuestionSignals carried) {
+        return rulesets.corpus(rulesetId, versionNo, sandboxId).map(corpus -> retrieve(corpus, question, carried));
     }
 
     /**
@@ -67,19 +77,22 @@ public class RetrievalService {
                 .toList();
     }
 
-    private Retrieval retrieve(EmbeddingSource corpus, String question) {
+    private Retrieval retrieve(EmbeddingSource corpus, String question, QuestionSignals carried) {
         UUID version = corpus.versionId();
-        QuestionSignals signals = QuestionSignals.of(question, corpus.ruleSet());
         List<ScoredChunk> vector = chunks.vectorTop(version, gateway.embed(question), CANDIDATES);
         double bestCosine = vector.isEmpty() ? 0 : vector.getFirst().score();
+        QuestionSignals asked = QuestionSignals.of(question, corpus.ruleSet());
+        QuestionSignals signals = threshold.namesOf(bestCosine, asked, carried);
         if (!threshold.covers(bestCosine, signals)) {
             meters.counter("policypilot.rag.not_covered").increment();
             LOG.atInfo().setMessage("rag.not_covered").addKeyValue("version", version)
                     .addKeyValue("bestCosine", bestCosine).log();
             return new Retrieval(false, bestCosine, List.of(), List.of(), sentences.of(corpus.ruleSet().language()));
         }
-        List<ScoredChunk> lexical = chunks.lexicalTop(version, LexicalText.normalize(question), signals.strongTerms(),
-                CANDIDATES);
+        // a follow-up's lexical query reads the names it took as words of the question, which did not say them
+        String words = LexicalText.normalize(question);
+        List<ScoredChunk> lexical = chunks.lexicalTop(version,
+                signals.equals(asked) ? words : words + " " + signals.strongTerms(), signals.strongTerms(), CANDIDATES);
         Map<String, ScoredChunk> found = new HashMap<>();
         lexical.forEach(chunk -> found.put(id(chunk), chunk));
         vector.forEach(chunk -> found.put(id(chunk), chunk));

@@ -11,6 +11,7 @@ import com.liorshaya.policypilot.ai.prompt.PromptRegistry;
 import com.liorshaya.policypilot.ai.repository.ChatMessageRepository;
 import com.liorshaya.policypilot.ai.repository.ChatSessionRepository;
 import com.liorshaya.policypilot.ai.service.chat.AnswerComposer;
+import com.liorshaya.policypilot.ai.service.chat.CarriedNames;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitation;
 import com.liorshaya.policypilot.ai.service.chat.ChatCitations;
 import com.liorshaya.policypilot.ai.service.chat.ChatEvents;
@@ -56,7 +57,8 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * The chat use case (Document 2, Flow 3; Document 4, Prompt 4): a session bound to one published version of the
  * caller's sandbox, and a question answered from what retrieval found, the last 10 turns and what the tools return.
- * A question below the Threshold gets the fixed sentence without a model call; any other is streamed by the
+ * A question below the Threshold gets the fixed sentence without a model call, unless it follows up on a rule, a
+ * field or a decision the turns before it carry ({@link CarriedNames}); any other is streamed by the
  * {@link AnswerComposer}. A scripted question is served from the {@link AnswerCache} when the answer kept for it still
  * holds in this sandbox, and a live answer to one is kept when it meets its label (Document 4, Serving the scripted
  * questions from the cache). The question and the answer shown are stored as one turn, with the answer's citations,
@@ -152,7 +154,9 @@ public class ChatService {
         Language language = corpus.ruleSet().language();
         List<ChatMessageEntity> earlier = messages.findBySessionIdOrderByTurnAscRoleDesc(session.id());
         int turnNo = earlier.stream().mapToInt(ChatMessageEntity::getTurn).max().orElse(0) + 1;
-        Retrieval found = retrieval.retrieve(session.rulesetId(), session.versionNo(), session.sandboxId(), question)
+        List<Conversation.Turn> before = turnsOf(earlier);
+        Retrieval found = retrieval.retrieve(session.rulesetId(), session.versionNo(), session.sandboxId(), question,
+                        CarriedNames.of(cited(before), corpus.ruleSet()))
                 .orElseThrow(() -> new VersionStatusException("the session's version is gone"));
         if (!found.covered()) {
             sink.token(found.notCovered());
@@ -160,7 +164,7 @@ public class ChatService {
                     FixedAnswer.NOT_COVERED, sink);
         }
         PromptSpec spec = ChatPrompt.spec(prompts.get(PROMPT), session.versionNo(), session.domain(), language,
-                found.chunks(), ChatHistory.of(turns(earlier)), question, notCovered.of(language));
+                found.chunks(), ChatHistory.of(exchanges(before)), question, notCovered.of(language));
         Optional<ScriptedAnswers.Label> label = scripted.labelOf(question);
         Optional<CachedAnswer> cached = label.isPresent() ? cache.find(spec) : Optional.empty();
         if (cached.isPresent()) {
@@ -304,19 +308,14 @@ public class ChatService {
         return answerId;
     }
 
-    /** The session's earlier exchanges, a question and the answer shown for it each, oldest first. */
-    private static List<ChatHistory.Turn> turns(List<ChatMessageEntity> earlier) {
-        List<ChatHistory.Turn> turns = new ArrayList<>();
-        String question = null;
-        for (ChatMessageEntity message : earlier) {
-            if (ChatMessageEntity.USER.equals(message.getRole())) {
-                question = message.getContent();
-            } else if (question != null) {
-                turns.add(new ChatHistory.Turn(question, message.getContent()));
-                question = null;
-            }
-        }
-        return turns;
+    /** The earlier turns as the answer prompt's history reads them: a question and the answer shown for it each. */
+    private static List<ChatHistory.Turn> exchanges(List<Conversation.Turn> before) {
+        return before.stream().map(turn -> new ChatHistory.Turn(turn.question(), turn.answer())).toList();
+    }
+
+    /** The earlier turns as a follow-up reads them: a question and what the answer shown for it cited each. */
+    private static List<CarriedNames.Turn> cited(List<Conversation.Turn> before) {
+        return before.stream().map(turn -> new CarriedNames.Turn(turn.question(), turn.citations())).toList();
     }
 
     private static ChatSessionView view(ChatSessionEntity session, PublishedVersion version) {
