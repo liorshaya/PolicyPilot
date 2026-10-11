@@ -18,7 +18,7 @@ RUN mvn -B -ntp -q -DskipTests package \
 
 # ---- runtime stage -----------------------------------------------------------------------------
 # eclipse-temurin:21-jre-noble, digest checked on 2026-09-18
-FROM eclipse-temurin:21-jre-noble@sha256:7739f0ffce786528961eea6bf46d9610ee968ac6127c9b2e93494757bdecce9f AS runtime
+FROM eclipse-temurin:21-jre-noble@sha256:000fd431958bc81a24abe1e8e5f0f0fd3ae365a594bd50aadb20696805f9408c AS runtime
 
 # Ubuntu's fix for CVE-2026-84782 (openssl 3.0.13-0ubuntu3.16, 2026-09-29), which the base image above predates and
 # stage 6's scan refuses: the two packages move to their fixed version and nothing else is added. Remove once a
