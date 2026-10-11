@@ -57,7 +57,7 @@ jobs:
         run: python3 scripts/ci/check_readme_limitations.py
       - name: The README's setup block reads as the clean-clone run expects
         run: python3 scripts/ci/readme_setup.py --self-test
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -84,7 +84,7 @@ jobs:
       - name: Backend unit, architecture and conformance tests with the JaCoCo gates
         working-directory: backend
         run: ./mvnw -B -ntp verify -DskipITs
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -111,7 +111,7 @@ jobs:
           git diff --exit-code --stat -- fixtures/
       - name: Quarantine count
         run: scripts/ci/quarantine_count.sh | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-fast-tests
@@ -139,7 +139,7 @@ jobs:
       - name: PIT on engine and rules (at least 90%)
         working-directory: backend
         run: ./mvnw -B -ntp -Pmutation -DskipITs test-compile org.pitest:pitest-maven:mutationCoverage
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-mutation
@@ -163,7 +163,7 @@ jobs:
           pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep scan --config .semgrep/policypilot.yml --error --metrics=off \
             backend/src frontend/src frontend/e2e scripts
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -193,7 +193,7 @@ jobs:
       - name: ArchUnit report
         working-directory: backend
         run: ./mvnw -B -ntp -DskipITs -Djacoco.skip=true test -Dtest='com.liorshaya.policypilot.architecture.*Test'
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-static
@@ -227,7 +227,7 @@ jobs:
             echo "cores: $(nproc)"
             echo "memory: $(free -g | awk '/^Mem:/ {print $2}') GiB"
           } > backend/target/runner.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-integration
@@ -328,7 +328,7 @@ jobs:
     timeout-minutes: 12 # budget 4 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -373,7 +373,7 @@ jobs:
       - name: Stop the stack
         if: always()
         run: make down
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
@@ -419,7 +419,7 @@ jobs:
     timeout-minutes: 8 # budget 1 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: reports-*
           path: reports
@@ -441,7 +441,7 @@ jobs:
         if: github.ref_type == 'tag'
         working-directory: backend
         run: ./mvnw -B -ntp -Psbom -DskipTests cyclonedx:makeAggregateBom
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: github.ref_type == 'tag'
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -453,7 +453,7 @@ jobs:
         run: |
           npm ci
           npm sbom --sbom-format cyclonedx --package-lock-only > sbom-frontend.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: github.ref_type == 'tag'
         with:
           name: sbom-${{ github.ref_name }}
