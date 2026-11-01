@@ -38,7 +38,7 @@ jobs:
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -v "$GITHUB_WORKSPACE:/repo" -w /repo \
             "$GITLEAKS_IMAGE" git --redact --exit-code 1 --no-banner --verbose
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Fixture privacy check
@@ -57,7 +57,7 @@ jobs:
         run: python3 scripts/ci/check_readme_limitations.py
       - name: The README's setup block reads as the clean-clone run expects
         run: python3 scripts/ci/readme_setup.py --self-test
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -75,7 +75,7 @@ jobs:
     timeout-minutes: 12 # budget 3 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -84,7 +84,7 @@ jobs:
       - name: Backend unit, architecture and conformance tests with the JaCoCo gates
         working-directory: backend
         run: ./mvnw -B -ntp verify -DskipITs
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -97,7 +97,7 @@ jobs:
         run: |
           npm run typecheck
           npm run test:coverage
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Python reference self-test (conformance suite, invalid fixtures, evaluation-set admission)
@@ -111,7 +111,7 @@ jobs:
           git diff --exit-code --stat -- fixtures/
       - name: Quarantine count
         run: scripts/ci/quarantine_count.sh | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-fast-tests
@@ -130,7 +130,7 @@ jobs:
     timeout-minutes: 9 # budget 3 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -139,7 +139,7 @@ jobs:
       - name: PIT on engine and rules (at least 90%)
         working-directory: backend
         run: ./mvnw -B -ntp -Pmutation -DskipITs test-compile org.pitest:pitest-maven:mutationCoverage
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-mutation
@@ -155,7 +155,7 @@ jobs:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Semgrep (project rules)
@@ -163,7 +163,7 @@ jobs:
           pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep scan --config .semgrep/policypilot.yml --error --metrics=off \
             backend/src frontend/src frontend/e2e scripts
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -177,7 +177,7 @@ jobs:
       - name: npm audit (high and critical)
         working-directory: frontend
         run: npm audit --audit-level=high
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -193,7 +193,7 @@ jobs:
       - name: ArchUnit report
         working-directory: backend
         run: ./mvnw -B -ntp -DskipITs -Djacoco.skip=true test -Dtest='com.liorshaya.policypilot.architecture.*Test'
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-static
@@ -209,7 +209,7 @@ jobs:
     timeout-minutes: 15 # budget 5 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -227,7 +227,7 @@ jobs:
             echo "cores: $(nproc)"
             echo "memory: $(free -g | awk '/^Mem:/ {print $2}') GiB"
           } > backend/target/runner.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: reports-integration
@@ -284,7 +284,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
@@ -328,7 +328,7 @@ jobs:
     timeout-minutes: 12 # budget 4 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -373,7 +373,7 @@ jobs:
       - name: Stop the stack
         if: always()
         run: make down
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
@@ -419,18 +419,18 @@ jobs:
     timeout-minutes: 8 # budget 1 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: reports-*
           path: reports
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Job summary (coverage per package, PIT score, test counts, performance numbers)
         run: python3 scripts/ci/ci_summary.py reports >> "$GITHUB_STEP_SUMMARY"
       - name: Traceability matrix in the job summary
         run: python3 scripts/ci/traceability.py --summary >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         if: github.ref_type == 'tag'
         with:
           distribution: temurin
@@ -441,7 +441,7 @@ jobs:
         if: github.ref_type == 'tag'
         working-directory: backend
         run: ./mvnw -B -ntp -Psbom -DskipTests cyclonedx:makeAggregateBom
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: github.ref_type == 'tag'
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -453,7 +453,7 @@ jobs:
         run: |
           npm ci
           npm sbom --sbom-format cyclonedx --package-lock-only > sbom-frontend.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: github.ref_type == 'tag'
         with:
           name: sbom-${{ github.ref_name }}
